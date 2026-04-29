@@ -1,0 +1,282 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Firm {
+  id           String        @id @default(cuid())
+  name         String
+  logoUrl      String?
+  address      String?
+  phone        String?
+  email        String?
+  taxNumber    String?
+  website      String?
+  themeColor   String        @default("#F59E0B")
+  createdAt    DateTime      @default(now())
+
+  users        User[]
+  projects     Project[]
+  subscription Subscription?
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         UserRole  @default(MEMBER)
+  firmId       String
+  firm         Firm      @relation(fields: [firmId], references: [id])
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+
+  projects     Project[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model InviteToken {
+  id        String    @id @default(cuid())
+  firmId    String
+  email     String
+  role      UserRole  @default(MEMBER)
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+enum UserRole {
+  FIRM_ADMIN
+  MANAGER
+  MEMBER
+  VIEWER
+}
+
+model Project {
+  id              String           @id @default(cuid())
+  firmId          String
+  firm            Firm             @relation(fields: [firmId], references: [id])
+  createdById     String
+  createdBy       User             @relation(fields: [createdById], references: [id])
+
+  name            String
+  customerName    String           @default("")
+  customerEmail   String?
+  customerPhone   String?
+  customerAddress String?
+  projectLocation String           @default("")
+
+  installationType     InstallationType @default(ROOFTOP)
+  systemSize           SystemSize       @default(SMALL)
+
+  panelCount      Int               @default(0)
+  panelPowerWp    Float             @default(0)
+  inverterCount   Int               @default(0)
+  totalAreaM2     Float             @default(0)
+  perimeterM      Float             @default(0)
+  totalPowerKw    Float             @default(0)
+
+  electricityTariff    TariffType   @default(RESIDENTIAL)
+  electricityUnitPrice Float        @default(0)
+
+  annualInflationRate       Float   @default(0.40)
+  electricityEscalationRate Float   @default(0.35)
+  projectLifeYears          Int     @default(25)
+
+  status          ProjectStatus    @default(DRAFT)
+  currentStep     Int              @default(1)
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  pricingSnapshot PricingSnapshot?
+  equipmentItems  EquipmentItem[]
+  costItems       CostItem[]
+  proposal        Proposal?
+  projectDetail   ProjectDetail?
+}
+
+model ProjectDetail {
+  id        String   @id @default(cuid())
+  projectId String   @unique
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  kesifA    Json     @default("[]")
+  kesifB    Json     @default("[]")
+  timeline  Json     @default("{}")
+  dor       Json     @default("[]")
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum InstallationType {
+  ROOFTOP
+  GROUND_MOUNTED
+}
+
+enum SystemSize {
+  SMALL
+  LARGE
+}
+
+enum TariffType {
+  RESIDENTIAL
+  COMMERCIAL
+  INDUSTRIAL
+  AGRICULTURAL
+}
+
+enum ProjectStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+  SENT
+  CLOSE_WIN
+  CLOSE_LOST
+  CANCELLED
+}
+
+model PricingSnapshot {
+  id            String  @id @default(cuid())
+  projectId     String  @unique
+  project       Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  referencePricePerKw   Float
+  baseTotalPrice        Float
+
+  finalEquipmentCost    Float
+  finalInstallationCost Float
+  finalEngineeringCost  Float
+  finalOtherCosts       Float
+  finalTotalCost        Float
+  profitMarginPercent   Float    @default(0.20)
+  finalSalePrice        Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EquipmentItem {
+  id          String            @id @default(cuid())
+  projectId   String
+  project     Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category    EquipmentCategory
+  brand       String?
+  model       String?
+  quantity    Int
+  unitPrice   Float
+  totalPrice  Float
+  notes       String?
+  sortOrder   Int               @default(0)
+}
+
+enum EquipmentCategory {
+  PANEL
+  INVERTER
+  MOUNTING_SYSTEM
+  DC_CABLE
+  AC_CABLE
+  JUNCTION_BOX
+  MONITORING_SYSTEM
+  PROTECTION_EQUIPMENT
+  TRANSFORMER
+  OTHER
+}
+
+model CostItem {
+  id          String       @id @default(cuid())
+  projectId   String
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category    CostCategory
+  description String
+  amount      Float
+  notes       String?
+}
+
+enum CostCategory {
+  INSTALLATION_LABOR
+  ENGINEERING_DESIGN
+  PERMITS_LICENSING
+  TRANSPORTATION
+  COMMISSIONING
+  INSURANCE
+  OTHER
+}
+
+model Proposal {
+  id          String   @id @default(cuid())
+  projectId   String   @unique
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  pdfUrl      String?
+  generatedAt DateTime?
+  sentAt      DateTime?
+  version     Int      @default(1)
+
+  coverNote        String?
+  validityDays     Int     @default(30)
+  includedSections Json    @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  firmId               String    @unique
+  firm                 Firm      @relation(fields: [firmId], references: [id])
+  plan                 PlanType
+  status               SubStatus
+  monthlyProposalLimit Int
+  currentMonthCount    Int       @default(0)
+  periodStart          DateTime
+  periodEnd            DateTime
+  createdAt            DateTime  @default(now())
+}
+
+enum PlanType {
+  FREE
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum SubStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+}
+
+model ReferencePriceTable {
+  id               String           @id @default(cuid())
+  powerKw          Float
+  installationType InstallationType
+  pricePerKw       Float
+  validFrom        DateTime
+  notes            String?
+  updatedAt        DateTime         @updatedAt
+}
+
+model ElectricityTariff {
+  id            String     @id @default(cuid())
+  type          TariffType
+  unitPrice     Float
+  effectiveDate DateTime
+  source        String?
+}
+
+model PlatformSettings {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+}
