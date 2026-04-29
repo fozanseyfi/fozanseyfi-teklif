@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "app/api/pdf/**": {
+      "maxDuration": 60
+    }
+  }
+}
