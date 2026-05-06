@@ -641,20 +641,19 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
 
         </div>{/* SOL kapanis */}
 
-        {/* SAG — Kritik Malzeme Seçimi: SOL (Hero + 5 KPI) yuksekligine
-            kilit, asari icte scroll'lansin. */}
-        <div className="lg:h-[300px]">
-          <Card className="lg:flex lg:h-full lg:flex-col">
-            <CardHeader className="shrink-0 pb-2 pt-2 px-3">
-              <div className="flex items-center gap-2">
-                <div className={cn("size-6 rounded-md flex items-center justify-center", SECTION_TONE.primary.iconBg)}>
-                  <Zap className={cn("size-3", SECTION_TONE.primary.iconText)} />
+        {/* SAG — Kritik Malzeme Seçimi: kompakt, scroll yok, küçük punto */}
+        <div>
+          <Card>
+            <CardHeader className="pb-1.5 pt-2 px-3">
+              <div className="flex items-center gap-1.5">
+                <div className={cn("size-5 rounded-md flex items-center justify-center", SECTION_TONE.primary.iconBg)}>
+                  <Zap className={cn("size-2.5", SECTION_TONE.primary.iconText)} />
                 </div>
-                <CardTitle className="text-xs">Kritik Malzeme Seçimi</CardTitle>
-                <span className="ml-auto text-[10px] text-muted-foreground">+/− delta</span>
+                <CardTitle className="text-[11px] leading-tight">Kritik Malzeme Seçimi</CardTitle>
+                <span className="ml-auto text-[9px] text-muted-foreground">+/− delta</span>
               </div>
             </CardHeader>
-            <CardContent className="space-y-2 p-2.5 lg:flex-1 lg:overflow-y-auto">
+            <CardContent className="space-y-2 p-2">
               {([
                 { label: "Panel", category: "panel" as const, field: "selPanel" as const,
                   alts: s.panelAlts, selIdx: s.selPanel,
@@ -669,16 +668,16 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
                   makeTestKesif: (alt: { price: number }) => localKesifA.map((g) => g.code === "A.2" ? { ...g, items: g.items.map((it) => it.code === "A.2.1" ? { ...it, rawFiyat: alt.price } : it) } : g),
                   priceLabel: (p: number) => `$${fmt(p)}/adet` },
               ] as const).map(({ label, category, field, alts, selIdx, makeTestKesif, priceLabel }) => (
-                <div key={field} className="space-y-1.5">
+                <div key={field} className="space-y-0.5">
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">{label}</p>
+                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</p>
                     <button type="button"
                       onClick={() => { setAddAltOpen(category); setNewAltName(""); setNewAltPrice(""); }}
-                      className="flex items-center gap-1 text-[10px] font-semibold text-primary-soft-foreground bg-primary-soft hover:bg-primary-soft/70 px-2 py-0.5 rounded-md transition-all">
-                      <Plus className="size-2.5" /> Ekle
+                      className="flex items-center gap-0.5 text-[9px] font-semibold text-primary-soft-foreground bg-primary-soft hover:bg-primary-soft/70 px-1.5 py-0 rounded transition-all">
+                      <Plus className="size-2" /> Ekle
                     </button>
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-0.5">
                     {alts.map((alt, i) => {
                       const testResult = calc(makeTestKesif(alt), localKesifB, s);
                       const actualIdx = field === "selInv" ? s.invAlts.findIndex((a) => a.name === alt.name) : i;
@@ -690,33 +689,35 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
                         <div key={i} className="group relative">
                           <button type="button" onClick={() => handleAltChange(field, actualIdx)}
                             className={cn(
-                              "w-full rounded-lg border p-2 text-left transition-all",
-                              isSel ? "border-primary/30 bg-primary-soft shadow-sm" : "hover:border-primary/30 hover:bg-muted/60",
+                              "flex w-full items-center justify-between gap-1.5 rounded border px-1.5 py-1 text-left transition-all",
+                              isSel ? "border-primary/30 bg-primary-soft" : "hover:border-primary/30 hover:bg-muted/60",
                             )}>
-                            <div className="mb-0.5 flex items-center justify-between gap-2 pr-4">
-                              <span className="text-[11px] font-semibold text-foreground truncate">{alt.name}</span>
-                              {isSel ? (
-                                <span className="rounded-full border border-primary/30 bg-primary-soft px-1.5 py-0 text-[9px] font-semibold text-primary-soft-foreground whitespace-nowrap">✓ Mevcut</span>
-                              ) : (
-                                <span className={cn(
-                                  "whitespace-nowrap rounded-full border px-1.5 py-0 text-[9px] font-semibold tabular-nums",
-                                  deltaPositive && "border-destructive/30 bg-destructive-soft text-destructive-soft-foreground",
-                                  deltaNegative && "border-success/30 bg-success-soft text-success-soft-foreground",
-                                  !deltaPositive && !deltaNegative && "border-border bg-muted text-muted-foreground",
-                                )} title={`Toplam: $${fmt(testResult.salePriceUsd)}`}>
-                                  {deltaPositive ? `+$${fmt(delta)}` : deltaNegative ? `−$${fmt(Math.abs(delta))}` : "≈ aynı"}
-                                </span>
-                              )}
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[10px] font-semibold text-foreground leading-tight truncate">{alt.name}</p>
+                              <p className="text-[9px] text-muted-foreground leading-tight">
+                                <span className="font-medium text-primary-soft-foreground">{priceLabel(alt.price)}</span>
+                                {isSel && (<>{" · "}<span className="font-semibold text-foreground">${fmt(testResult.salePriceUsd)}</span></>)}
+                              </p>
                             </div>
-                            <div className="text-[10px] text-muted-foreground">
-                              <span className="font-medium text-primary-soft-foreground">{priceLabel(alt.price)}</span>
-                              {isSel && (<>{" · "}<span className="font-semibold text-foreground">${fmt(testResult.salePriceUsd)}</span></>)}
-                            </div>
+                            {isSel ? (
+                              <span className="shrink-0 rounded-full border border-primary/30 bg-primary-soft px-1 py-0 text-[8px] font-semibold text-primary-soft-foreground whitespace-nowrap leading-tight">
+                                ✓
+                              </span>
+                            ) : (
+                              <span className={cn(
+                                "shrink-0 whitespace-nowrap rounded-full border px-1 py-0 text-[8px] font-semibold tabular-nums leading-tight",
+                                deltaPositive && "border-destructive/30 bg-destructive-soft text-destructive-soft-foreground",
+                                deltaNegative && "border-success/30 bg-success-soft text-success-soft-foreground",
+                                !deltaPositive && !deltaNegative && "border-border bg-muted text-muted-foreground",
+                              )} title={`Toplam: $${fmt(testResult.salePriceUsd)}`}>
+                                {deltaPositive ? `+$${fmt(delta)}` : deltaNegative ? `−$${fmt(Math.abs(delta))}` : "≈"}
+                              </span>
+                            )}
                           </button>
                           {alts.length > 1 && (
                             <button type="button" onClick={() => handleRemoveAlt(category, actualIdx)}
-                              className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-destructive-soft opacity-0 transition-all hover:bg-destructive-soft/70 group-hover:opacity-100" title="Kaldır">
-                              <X className="size-2.5 text-destructive-soft-foreground" />
+                              className="absolute -right-1 -top-1 flex size-3.5 items-center justify-center rounded-full bg-destructive-soft opacity-0 transition-all hover:bg-destructive-soft/70 group-hover:opacity-100" title="Kaldır">
+                              <X className="size-2 text-destructive-soft-foreground" />
                             </button>
                           )}
                         </div>
@@ -744,16 +745,16 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table className="w-full text-[11px]">
                 <thead>
                   <tr className="bg-muted border-b">
-                    <th className="px-3 py-2 text-left text-muted-foreground font-medium">Kod</th>
-                    <th className="px-3 py-2 text-left text-muted-foreground font-medium">Grup</th>
-                    <th className="px-3 py-2 text-right text-muted-foreground font-medium">Toplam USD</th>
-                    <th className="px-3 py-2 text-right text-muted-foreground font-medium">$/Wp</th>
-                    <th className="px-3 py-2 text-right text-muted-foreground font-medium">Pay %</th>
-                    <th className="px-3 py-2 text-right text-success-soft-foreground font-medium">% Satış</th>
-                    <th className="px-3 py-2 text-center text-muted-foreground font-medium w-8"></th>
+                    <th className="px-2.5 py-1 text-left text-muted-foreground font-medium">Kod</th>
+                    <th className="px-2.5 py-1 text-left text-muted-foreground font-medium">Grup</th>
+                    <th className="px-2.5 py-1 text-right text-muted-foreground font-medium">Toplam USD</th>
+                    <th className="px-2.5 py-1 text-right text-muted-foreground font-medium">$/Wp</th>
+                    <th className="px-2.5 py-1 text-right text-muted-foreground font-medium">Pay %</th>
+                    <th className="px-2.5 py-1 text-right text-success-soft-foreground font-medium">% Satış</th>
+                    <th className="px-2.5 py-1 text-center text-muted-foreground font-medium w-8"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -764,27 +765,27 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
                     return (
                       <tr key={g.code} className="hover:bg-primary-soft/40 cursor-pointer transition-colors group"
                         onClick={() => openGroupEditor(localKesifA.find((x) => x.code === g.code) ?? g, true)}>
-                        <td className="px-3 py-2 font-mono text-muted-foreground">{g.code}</td>
-                        <td className="px-3 py-2 text-foreground">{g.name}</td>
-                        <td className="px-3 py-2 text-right font-semibold text-foreground">${fmt(total)}</td>
-                        <td className="px-3 py-2 text-right text-muted-foreground">{perWp > 0 ? `$${perWp.toFixed(4)}` : "—"}</td>
-                        <td className="px-3 py-2 text-right">
+                        <td className="px-2.5 py-1 font-mono text-muted-foreground">{g.code}</td>
+                        <td className="px-2.5 py-1 text-foreground">{g.name}</td>
+                        <td className="px-2.5 py-1 text-right font-semibold text-foreground">${fmt(total)}</td>
+                        <td className="px-2.5 py-1 text-right text-muted-foreground">{perWp > 0 ? `$${perWp.toFixed(4)}` : "—"}</td>
+                        <td className="px-2.5 py-1 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <div className="w-14 bg-muted rounded-full h-1"><div className="h-1 bg-primary rounded-full" style={{ width: `${Math.min(pct, 100)}%` }} /></div>
                             <span className="text-muted-foreground w-8">{pct.toFixed(1)}%</span>
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-right text-success-soft-foreground font-medium">{result.salePriceUsd > 0 ? `${(total/result.salePriceUsd*100).toFixed(1)}%` : "—"}</td>
-                        <td className="px-3 py-2 text-center"><ChevronRight className="size-3.5 text-muted-foreground group-hover:text-primary-soft-foreground transition-colors" /></td>
+                        <td className="px-2.5 py-1 text-right text-success-soft-foreground font-medium">{result.salePriceUsd > 0 ? `${(total/result.salePriceUsd*100).toFixed(1)}%` : "—"}</td>
+                        <td className="px-2.5 py-1 text-center"><ChevronRight className="size-3.5 text-muted-foreground group-hover:text-primary-soft-foreground transition-colors" /></td>
                       </tr>
                     );
                   })}
                   <tr className="bg-primary-soft border-y-2 border-primary/30">
-                    <td colSpan={2} className="px-3 py-2 font-semibold text-primary-soft-foreground">Kesif-A Ara Toplam</td>
-                    <td className="px-3 py-2 text-right font-semibold text-primary-soft-foreground">${fmt(result.kaTotal)}</td>
-                    <td className="px-3 py-2 text-right font-semibold text-muted-foreground">{dcWp > 0 ? `$${(result.kaTotal/dcWp).toFixed(4)}/Wp` : ""}</td>
-                    <td className="px-3 py-2 text-right font-semibold text-primary-soft-foreground">{result.directCost > 0 ? (result.kaTotal/result.directCost*100).toFixed(1) : "0"}%</td>
-                    <td className="px-3 py-2 text-right font-semibold text-success-soft-foreground">{result.salePriceUsd > 0 ? `${(result.kaTotal/result.salePriceUsd*100).toFixed(1)}%` : "—"}</td>
+                    <td colSpan={2} className="px-2.5 py-1 font-semibold text-primary-soft-foreground">Kesif-A Ara Toplam</td>
+                    <td className="px-2.5 py-1 text-right font-semibold text-primary-soft-foreground">${fmt(result.kaTotal)}</td>
+                    <td className="px-2.5 py-1 text-right font-semibold text-muted-foreground">{dcWp > 0 ? `$${(result.kaTotal/dcWp).toFixed(4)}/Wp` : ""}</td>
+                    <td className="px-2.5 py-1 text-right font-semibold text-primary-soft-foreground">{result.directCost > 0 ? (result.kaTotal/result.directCost*100).toFixed(1) : "0"}%</td>
+                    <td className="px-2.5 py-1 text-right font-semibold text-success-soft-foreground">{result.salePriceUsd > 0 ? `${(result.kaTotal/result.salePriceUsd*100).toFixed(1)}%` : "—"}</td>
                     <td />
                   </tr>
                   {localKesifB.map((g) => {
@@ -794,77 +795,77 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
                     return (
                       <tr key={g.code} className="hover:bg-primary-soft/40 cursor-pointer transition-colors group"
                         onClick={() => openGroupEditor(g, false)}>
-                        <td className="px-3 py-2 font-mono text-muted-foreground">{g.code}</td>
-                        <td className="px-3 py-2 text-foreground">{g.name}</td>
-                        <td className="px-3 py-2 text-right font-semibold text-foreground">${fmt(total)}</td>
-                        <td className="px-3 py-2 text-right text-muted-foreground">{perWp > 0 ? `$${perWp.toFixed(4)}` : "—"}</td>
-                        <td className="px-3 py-2 text-right">
+                        <td className="px-2.5 py-1 font-mono text-muted-foreground">{g.code}</td>
+                        <td className="px-2.5 py-1 text-foreground">{g.name}</td>
+                        <td className="px-2.5 py-1 text-right font-semibold text-foreground">${fmt(total)}</td>
+                        <td className="px-2.5 py-1 text-right text-muted-foreground">{perWp > 0 ? `$${perWp.toFixed(4)}` : "—"}</td>
+                        <td className="px-2.5 py-1 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <div className="w-14 bg-muted rounded-full h-1"><div className="h-1 bg-info rounded-full" style={{ width: `${Math.min(pct, 100)}%` }} /></div>
                             <span className="text-muted-foreground w-8">{pct.toFixed(1)}%</span>
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-right text-success-soft-foreground font-medium">{result.salePriceUsd > 0 ? `${(total/result.salePriceUsd*100).toFixed(1)}%` : "—"}</td>
-                        <td className="px-3 py-2 text-center"><ChevronRight className="size-3.5 text-muted-foreground group-hover:text-primary-soft-foreground transition-colors" /></td>
+                        <td className="px-2.5 py-1 text-right text-success-soft-foreground font-medium">{result.salePriceUsd > 0 ? `${(total/result.salePriceUsd*100).toFixed(1)}%` : "—"}</td>
+                        <td className="px-2.5 py-1 text-center"><ChevronRight className="size-3.5 text-muted-foreground group-hover:text-primary-soft-foreground transition-colors" /></td>
                       </tr>
                     );
                   })}
                   <tr className="bg-info-soft border-y-2 border-info/30">
-                    <td colSpan={2} className="px-3 py-2 font-semibold text-info-soft-foreground">Kesif-B Ara Toplam</td>
-                    <td className="px-3 py-2 text-right font-semibold text-info-soft-foreground">${fmt(result.kbTotal)}</td>
-                    <td className="px-3 py-2 text-right font-semibold text-muted-foreground">{dcWp > 0 ? `$${(result.kbTotal/dcWp).toFixed(4)}/Wp` : ""}</td>
-                    <td className="px-3 py-2 text-right font-semibold text-info-soft-foreground">{result.directCost > 0 ? (result.kbTotal/result.directCost*100).toFixed(1) : "0"}%</td>
-                    <td className="px-3 py-2 text-right font-semibold text-success-soft-foreground">{result.salePriceUsd > 0 ? `${(result.kbTotal/result.salePriceUsd*100).toFixed(1)}%` : "—"}</td>
+                    <td colSpan={2} className="px-2.5 py-1 font-semibold text-info-soft-foreground">Kesif-B Ara Toplam</td>
+                    <td className="px-2.5 py-1 text-right font-semibold text-info-soft-foreground">${fmt(result.kbTotal)}</td>
+                    <td className="px-2.5 py-1 text-right font-semibold text-muted-foreground">{dcWp > 0 ? `$${(result.kbTotal/dcWp).toFixed(4)}/Wp` : ""}</td>
+                    <td className="px-2.5 py-1 text-right font-semibold text-info-soft-foreground">{result.directCost > 0 ? (result.kbTotal/result.directCost*100).toFixed(1) : "0"}%</td>
+                    <td className="px-2.5 py-1 text-right font-semibold text-success-soft-foreground">{result.salePriceUsd > 0 ? `${(result.kbTotal/result.salePriceUsd*100).toFixed(1)}%` : "—"}</td>
                     <td />
                   </tr>
                 </tbody>
                 <tfoot className="border-t-2">
                   <tr className="bg-muted text-muted-foreground">
-                    <td colSpan={2} className="px-3 py-2">Contingency (%{s.contingency})</td>
-                    <td className="px-3 py-2 text-right font-semibold">${fmt(result.contingencyAmt)}</td>
-                    <td className="px-3 py-2 text-right text-muted-foreground">{dcWp > 0 ? `$${(result.contingencyAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
+                    <td colSpan={2} className="px-2.5 py-1">Contingency (%{s.contingency})</td>
+                    <td className="px-2.5 py-1 text-right font-semibold">${fmt(result.contingencyAmt)}</td>
+                    <td className="px-2.5 py-1 text-right text-muted-foreground">{dcWp > 0 ? `$${(result.contingencyAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
                     <td />
-                    <td className="px-3 py-2 text-right text-success-soft-foreground font-semibold">{pctOf(result.contingencyAmt).toFixed(1)}%</td>
+                    <td className="px-2.5 py-1 text-right text-success-soft-foreground font-semibold">{pctOf(result.contingencyAmt).toFixed(1)}%</td>
                     <td />
                   </tr>
                   <tr className="bg-muted border-y-2 font-semibold text-foreground">
-                    <td colSpan={2} className="px-3 py-2">Maliyet</td>
-                    <td className="px-3 py-2 text-right">${fmt(result.totalCost)}</td>
-                    <td className="px-3 py-2 text-right text-muted-foreground text-xs font-semibold">{dcWp > 0 ? `$${(result.totalCost/dcWp).toFixed(4)}/Wp` : ""}</td>
+                    <td colSpan={2} className="px-2.5 py-1">Maliyet</td>
+                    <td className="px-2.5 py-1 text-right">${fmt(result.totalCost)}</td>
+                    <td className="px-2.5 py-1 text-right text-muted-foreground text-xs font-semibold">{dcWp > 0 ? `$${(result.totalCost/dcWp).toFixed(4)}/Wp` : ""}</td>
                     <td />
-                    <td className="px-3 py-2 text-right text-success-soft-foreground">{pctOf(result.totalCost).toFixed(1)}%</td>
+                    <td className="px-2.5 py-1 text-right text-success-soft-foreground">{pctOf(result.totalCost).toFixed(1)}%</td>
                     <td />
                   </tr>
                   <tr className="bg-muted text-info-soft-foreground">
-                    <td colSpan={2} className="px-3 py-2">Overhead Cost (%{s.genelGider})</td>
-                    <td className="px-3 py-2 text-right font-semibold">${fmt(result.genelGiderAmt)}</td>
-                    <td className="px-3 py-2 text-right text-muted-foreground">{dcWp > 0 ? `$${(result.genelGiderAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
+                    <td colSpan={2} className="px-2.5 py-1">Overhead Cost (%{s.genelGider})</td>
+                    <td className="px-2.5 py-1 text-right font-semibold">${fmt(result.genelGiderAmt)}</td>
+                    <td className="px-2.5 py-1 text-right text-muted-foreground">{dcWp > 0 ? `$${(result.genelGiderAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
                     <td />
-                    <td className="px-3 py-2 text-right text-success-soft-foreground font-semibold">{pctOf(result.genelGiderAmt).toFixed(1)}%</td>
+                    <td className="px-2.5 py-1 text-right text-success-soft-foreground font-semibold">{pctOf(result.genelGiderAmt).toFixed(1)}%</td>
                     <td />
                   </tr>
                   <tr className="bg-muted text-success-soft-foreground font-semibold">
-                    <td colSpan={2} className="px-3 py-2">Net Kar (%{s.netKar})</td>
-                    <td className="px-3 py-2 text-right">${fmt(result.netKarAmt)}</td>
-                    <td className="px-3 py-2 text-right text-muted-foreground">{dcWp > 0 ? `$${(result.netKarAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
+                    <td colSpan={2} className="px-2.5 py-1">Net Kar (%{s.netKar})</td>
+                    <td className="px-2.5 py-1 text-right">${fmt(result.netKarAmt)}</td>
+                    <td className="px-2.5 py-1 text-right text-muted-foreground">{dcWp > 0 ? `$${(result.netKarAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
                     <td />
-                    <td className="px-3 py-2 text-right text-success-soft-foreground">{pctOf(result.netKarAmt).toFixed(1)}%</td>
+                    <td className="px-2.5 py-1 text-right text-success-soft-foreground">{pctOf(result.netKarAmt).toFixed(1)}%</td>
                     <td />
                   </tr>
                   <tr className="bg-warning-soft text-warning-soft-foreground">
-                    <td colSpan={2} className="px-3 py-2">Finans Maliyeti (Toplam Faiz)</td>
-                    <td className="px-3 py-2 text-right font-semibold">${fmt(finansMaliyeti)}</td>
-                    <td className="px-3 py-2 text-right text-muted-foreground">{dcWp > 0 ? `$${(finansMaliyeti/dcWp).toFixed(4)}/Wp` : ""}</td>
+                    <td colSpan={2} className="px-2.5 py-1">Finans Maliyeti (Toplam Faiz)</td>
+                    <td className="px-2.5 py-1 text-right font-semibold">${fmt(finansMaliyeti)}</td>
+                    <td className="px-2.5 py-1 text-right text-muted-foreground">{dcWp > 0 ? `$${(finansMaliyeti/dcWp).toFixed(4)}/Wp` : ""}</td>
                     <td />
-                    <td className="px-3 py-2 text-right text-warning-soft-foreground font-semibold">{pctOf(finansMaliyeti).toFixed(1)}%</td>
+                    <td className="px-2.5 py-1 text-right text-warning-soft-foreground font-semibold">{pctOf(finansMaliyeti).toFixed(1)}%</td>
                     <td />
                   </tr>
                   <tr className="bg-primary-soft border-t-2 border-primary/30">
-                    <td colSpan={2} className="px-3 py-3 font-semibold text-primary-soft-foreground">EPC SATIŞ FİYATI</td>
-                    <td className="px-3 py-3 text-right font-bold text-primary-soft-foreground text-sm">${fmt(result.salePriceUsd)}</td>
-                    <td className="px-3 py-3 text-right text-muted-foreground font-medium text-xs">{dcWp > 0 ? `$${(result.salePriceUsd/dcWp).toFixed(4)}/Wp` : ""}</td>
+                    <td colSpan={2} className="px-2.5 py-2 font-semibold text-primary-soft-foreground">EPC SATIŞ FİYATI</td>
+                    <td className="px-2.5 py-2 text-right font-bold text-primary-soft-foreground text-sm">${fmt(result.salePriceUsd)}</td>
+                    <td className="px-2.5 py-2 text-right text-muted-foreground font-medium text-xs">{dcWp > 0 ? `$${(result.salePriceUsd/dcWp).toFixed(4)}/Wp` : ""}</td>
                     <td />
-                    <td className="px-3 py-3 text-right font-semibold text-success-soft-foreground">100%</td>
+                    <td className="px-2.5 py-2 text-right font-semibold text-success-soft-foreground">100%</td>
                     <td />
                   </tr>
                   <tr className="bg-primary-soft">
