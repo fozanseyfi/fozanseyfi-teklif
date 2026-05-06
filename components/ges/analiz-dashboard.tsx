@@ -10,7 +10,7 @@ import { calc, getGrpTot, toUSD } from "@/lib/ges-engine";
 import type { KesifGroup, KesifItem, GesSettings, TimelineData } from "@/lib/ges-defaults";
 import type { Project } from "@prisma/client";
 import {
-  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
+  Tooltip, ResponsiveContainer,
   ComposedChart, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Area, ReferenceLine, Legend,
 } from "recharts";
@@ -20,11 +20,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
-const PIE_COLORS = [
-  "#059669","#2563eb","#10b981","#8b5cf6","#dc2626","#06b6d4",
-  "#047857","#84cc16","#ec4899","#6366f1","#14b8a6","#a855f7",
-];
 
 type SectionTone = "primary" | "info" | "success" | "warning" | "destructive";
 
@@ -621,68 +616,127 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
         </CardContent>
       </Card>
 
-      {/* ── Maliyet Dağılımı (Donut) ── */}
-      <Card className="shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b">
+      {/* ── Maliyet Dağılımı — Sıralı yatay bar (patron görünümü) ── */}
+      <Card className="overflow-hidden shadow-sm">
+        <div className="flex items-center justify-between border-b px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className={cn("size-8 rounded-xl flex items-center justify-center", SECTION_TONE.primary.iconBg)}>
+            <div className={cn("flex size-8 items-center justify-center rounded-xl", SECTION_TONE.primary.iconBg)}>
               <DollarSign className={cn("size-4", SECTION_TONE.primary.iconText)} />
             </div>
-            <h3 className="font-semibold text-foreground text-sm">Maliyet Dağılımı (USD)</h3>
+            <h3 className="text-sm font-semibold text-foreground">Maliyet Dağılımı</h3>
+            <span className="text-xs text-muted-foreground">
+              {pieData.length} grup · ${fmt(totalPieValue)}
+            </span>
           </div>
           {hiddenItemKeys.size > 0 && (
-            <button onClick={() => setHiddenItemKeys(new Set())} className="text-xs text-primary-soft-foreground hover:underline font-semibold">Tümünü göster</button>
+            <button
+              onClick={() => setHiddenItemKeys(new Set())}
+              className="text-xs font-semibold text-primary-soft-foreground hover:underline"
+            >
+              Tümünü göster ({hiddenItemKeys.size} gizli)
+            </button>
           )}
         </div>
         <CardContent className="p-4">
-          <div className="flex flex-col lg:flex-row gap-5 items-center">
-            <div className="w-full lg:w-[360px] flex-shrink-0">
-              <ResponsiveContainer width="100%" height={340}>
-                <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={135} innerRadius={72} paddingAngle={1.5} dataKey="value" labelLine={false}
-                    onClick={(d) => { const key = (d as { key?: string | null }).key; if (key) togglePieItem(key); }}
-                    style={{ cursor: "pointer" }}>
-                    {pieData.map((d) => (
-                      <Cell key={d.key} fill={PIE_COLORS[allPieItems.findIndex((x) => x.key === d.key) % PIE_COLORS.length]} stroke="white" strokeWidth={2} />
-                    ))}
-                  </Pie>
-                  <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
-                    <tspan x="50%" dy="-10" fontSize={10} fill="#94a3b8" fontWeight={600}>TOPLAM</tspan>
-                    <tspan x="50%" dy="24" fontSize={17} fill="#0f172a" fontWeight={700}>${fmt(totalPieValue)}</tspan>
-                  </text>
-                  <Tooltip formatter={(v) => `$${fmt(Number(v))}`}
-                    contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 2px 0 rgb(15 23 42 / 0.04)", fontSize: "12px" }} />
-                </PieChart>
-              </ResponsiveContainer>
+          {/* 100% stacked horizontal bar — birden fazla kalemi tek bakışta gör */}
+          {totalPieValue > 0 && (
+            <div className="mb-4 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+              <div className="flex h-full">
+                {[...pieData]
+                  .sort((a, b) => b.value - a.value)
+                  .map((d) => {
+                    const w = (d.value / totalPieValue) * 100;
+                    const isA = d.key.startsWith("A");
+                    return (
+                      <div
+                        key={d.key}
+                        className={cn(
+                          "h-full transition-all",
+                          isA ? "bg-primary" : "bg-info",
+                        )}
+                        style={{
+                          width: `${w}%`,
+                          opacity: 0.4 + 0.6 * (d.value / pieData[0].value),
+                        }}
+                        title={`${d.name}: $${fmt(d.value)} (${w.toFixed(1)}%)`}
+                      />
+                    );
+                  })}
+              </div>
             </div>
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-[340px] overflow-y-auto pr-1">
-              {allPieItems.map((d, i) => {
+          )}
+
+          {/* Sirali liste — her satir kendi bar'i ile */}
+          <div className="space-y-1">
+            {[...allPieItems]
+              .sort((a, b) => b.value - a.value)
+              .map((d) => {
                 const hidden = hiddenItemKeys.has(d.key);
-                const pct = totalPieValue > 0 && !hidden ? (d.value / totalPieValue * 100).toFixed(1) : "—";
+                const pct = totalPieValue > 0 && !hidden ? (d.value / totalPieValue) * 100 : 0;
+                const isA = d.key.startsWith("A");
                 return (
-                  <button key={d.key} type="button" onClick={() => togglePieItem(d.key)}
+                  <button
+                    key={d.key}
+                    type="button"
+                    onClick={() => togglePieItem(d.key)}
                     className={cn(
-                      "flex items-start gap-2.5 text-xs text-left rounded-xl px-3 py-2 transition-all border",
-                      hidden ? "opacity-35 border-transparent" : "hover:bg-muted/60 border-transparent",
-                    )}>
-                    <div className="size-3.5 rounded flex-shrink-0 mt-0.5" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-muted-foreground leading-tight block truncate">{d.name}</span>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-muted-foreground font-semibold">{pct}%</span>
-                        <span className="text-muted-foreground font-medium">{!hidden ? `$${fmt(d.value)}` : "—"}</span>
-                      </div>
+                      "group flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-xs transition-colors",
+                      hidden
+                        ? "opacity-40 hover:opacity-60"
+                        : "hover:bg-muted/60",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-md border px-1.5 py-0.5 font-mono text-[10px] font-semibold",
+                        isA
+                          ? "border-primary/30 bg-primary-soft text-primary-soft-foreground"
+                          : "border-info/30 bg-info-soft text-info-soft-foreground",
+                      )}
+                    >
+                      {d.key}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-left text-muted-foreground group-hover:text-foreground">
+                      {d.name.replace(`${d.key} `, "")}
+                    </span>
+                    {/* Bar */}
+                    <div className="hidden h-1.5 w-32 shrink-0 overflow-hidden rounded-full bg-muted sm:block lg:w-48">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all",
+                          isA ? "bg-primary" : "bg-info",
+                        )}
+                        style={{ width: hidden ? "0%" : `${pct}%` }}
+                      />
                     </div>
+                    <span className="w-12 shrink-0 text-right font-semibold tabular-nums text-foreground">
+                      {hidden ? "—" : `${pct.toFixed(1)}%`}
+                    </span>
+                    <span className="w-20 shrink-0 text-right tabular-nums text-muted-foreground">
+                      {hidden ? "—" : `$${fmt(d.value)}`}
+                    </span>
                   </button>
                 );
               })}
-            </div>
+          </div>
+
+          {/* Legend */}
+          <div className="mt-3 flex items-center gap-4 border-t pt-3 text-[11px] text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="size-2.5 rounded-sm bg-primary" /> Keşif-A (Doğrudan)
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="size-2.5 rounded-sm bg-info" /> Keşif-B (Dolaylı)
+            </span>
+            <span className="ml-auto text-[10px]">
+              Bir kaleme tıklayarak gizleyebilirsiniz
+            </span>
           </div>
         </CardContent>
       </Card>
 
-      {/* ── Maliyet Kırılımı + Grup Dağılımı ── */}
-      <div className="grid lg:grid-cols-2 gap-3">
+      {/* ── Maliyet Kırılımı ── */}
+      <div className="grid grid-cols-1 gap-3">
         <Card className="shadow-sm overflow-hidden">
           <div className="flex items-center gap-3 px-4 py-3 border-b">
             <div className={cn("size-8 rounded-xl flex items-center justify-center", SECTION_TONE.primary.iconBg)}>
@@ -745,29 +799,6 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm overflow-hidden">
-          <div className="flex items-center gap-3 px-4 py-3 border-b">
-            <div className={cn("size-8 rounded-xl flex items-center justify-center", SECTION_TONE.info.iconBg)}>
-              <Zap className={cn("size-4", SECTION_TONE.info.iconText)} />
-            </div>
-            <h3 className="font-semibold text-foreground text-sm">Grup Dağılımı ($000)</h3>
-          </div>
-          <CardContent className="px-4 pb-4 pt-3">
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={[...modifiedKesifA, ...localKesifB].map((g) => ({ name: g.code, usd: Math.round(getGrpTot(g, s) / 1000) })).filter((d) => d.usd > 0)} barSize={24}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 600, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                <Tooltip formatter={(v) => [`$${v}k`, "Toplam"]} contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 2px 0 rgb(15 23 42 / 0.04)", fontSize: "12px" }} />
-                <Bar dataKey="usd" radius={[5, 5, 0, 0]}>
-                  {[...modifiedKesifA, ...localKesifB].filter((g) => Math.round(getGrpTot(g, s) / 1000) > 0).map((g, i) => (
-                    <Cell key={g.code} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
       </div>
 
       {/* ── Döviz Duyarlılığı + Kârlılık Analizi ── */}
