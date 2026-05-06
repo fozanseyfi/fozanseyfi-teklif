@@ -641,19 +641,20 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
 
         </div>{/* SOL kapanis */}
 
-        {/* SAG — Kritik Malzeme Seçimi: max KPI seviyesinde, içte scroll */}
-        <div className="lg:max-h-[400px] lg:overflow-hidden">
-          <Card className="lg:flex lg:h-full lg:max-h-[400px] lg:flex-col">
-            <CardHeader className="pb-2 pt-3 px-4">
+        {/* SAG — Kritik Malzeme Seçimi: SOL (Hero + 5 KPI) yuksekligine
+            kilit, asari icte scroll'lansin. */}
+        <div className="lg:h-[300px]">
+          <Card className="lg:flex lg:h-full lg:flex-col">
+            <CardHeader className="shrink-0 pb-2 pt-2 px-3">
               <div className="flex items-center gap-2">
-                <div className={cn("size-7 rounded-lg flex items-center justify-center", SECTION_TONE.primary.iconBg)}>
-                  <Zap className={cn("size-3.5", SECTION_TONE.primary.iconText)} />
+                <div className={cn("size-6 rounded-md flex items-center justify-center", SECTION_TONE.primary.iconBg)}>
+                  <Zap className={cn("size-3", SECTION_TONE.primary.iconText)} />
                 </div>
-                <CardTitle className="text-sm">Kritik Malzeme Seçimi</CardTitle>
+                <CardTitle className="text-xs">Kritik Malzeme Seçimi</CardTitle>
+                <span className="ml-auto text-[10px] text-muted-foreground">+/− delta</span>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-1">Seçili olan baseline · diğerleri delta</p>
             </CardHeader>
-            <CardContent className="space-y-3 p-3 lg:flex-1 lg:overflow-y-auto">
+            <CardContent className="space-y-2 p-2.5 lg:flex-1 lg:overflow-y-auto">
               {([
                 { label: "Panel", category: "panel" as const, field: "selPanel" as const,
                   alts: s.panelAlts, selIdx: s.selPanel,
