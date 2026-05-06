@@ -443,7 +443,15 @@ export function ProjeBilgileriForm({
     if (c.address) setCustomerAddress(c.address);
   }
 
+  // Required fields — advance is gated until these are filled.
+  const missingFields: string[] = [];
+  if (!nameVal.trim()) missingFields.push("Proje Adı");
+  if (!customerNameVal.trim()) missingFields.push("Müşteri Adı");
+  if (!ilVal.trim()) missingFields.push("İl");
+  const isValid = missingFields.length === 0;
+
   function handleAdvance() {
+    if (!isValid) return;
     shouldAdvanceRef.current = true;
     formRef.current?.requestSubmit();
   }
@@ -504,12 +512,23 @@ export function ProjeBilgileriForm({
             type="button"
             size="sm"
             onClick={handleAdvance}
-            disabled={pending}
+            disabled={pending || !isValid}
+            title={
+              !isValid
+                ? `Önce zorunlu alanları doldurun: ${missingFields.join(", ")}`
+                : undefined
+            }
           >
-            Teknik Parametreler <ArrowRight className="size-3.5" />
+            Kaydet &amp; İlerle <ArrowRight className="size-3.5" />
           </Button>
         </div>
       </div>
+      {!isValid && (
+        <div className="rounded-md border border-warning/30 bg-warning-soft px-4 py-2 text-xs text-warning-soft-foreground">
+          <strong>Eksik alanlar:</strong> {missingFields.join(", ")}. İlerlemek
+          için bu alanları doldurun.
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* ── Left column ── */}
@@ -519,13 +538,16 @@ export function ProjeBilgileriForm({
             <SectionHeader icon={Building2} title="Proje Bilgileri" tone="info" />
             <CardContent className="space-y-5 p-6">
               <div className="space-y-2">
-                <Label htmlFor="name">Proje Adı</Label>
+                <Label htmlFor="name">
+                  Proje Adı <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="name"
                   name="name"
                   value={nameVal}
                   onChange={(e) => setNameVal(e.target.value)}
-                  placeholder="Örn: Konya 5 MWp GES Projesi (opsiyonel)"
+                  placeholder="Yeni Proje"
+                  required
                 />
               </div>
 
@@ -582,11 +604,14 @@ export function ProjeBilgileriForm({
                 </Label>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <p className="text-xs text-muted-foreground">İl</p>
+                    <p className="text-xs text-muted-foreground">
+                      İl <span className="text-destructive">*</span>
+                    </p>
                     <Input
                       value={ilVal}
                       onChange={(e) => setIlVal(e.target.value)}
                       placeholder="Örn: Ankara"
+                      required
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -619,7 +644,9 @@ export function ProjeBilgileriForm({
             />
             <CardContent className="space-y-4 p-6">
               <div className="space-y-2">
-                <Label>İşveren / Müşteri Adı</Label>
+                <Label>
+                  İşveren / Müşteri Adı <span className="text-destructive">*</span>
+                </Label>
                 <CustomerSelect
                   customers={customers}
                   value={customerNameVal}

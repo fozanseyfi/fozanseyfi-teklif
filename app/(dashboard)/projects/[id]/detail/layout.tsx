@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { GesDetailNav } from "@/components/ges/ges-detail-nav";
-import { ProjectStatusChanger } from "@/components/ges/project-status-changer";
+import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, MapPin, User, Zap } from "lucide-react";
 import type { GesSettings, KesifGroup } from "@/lib/ges-defaults";
 
@@ -22,6 +22,13 @@ function hasItems(groups: unknown): boolean {
   return false;
 }
 
+function timelineHasData(timeline: unknown): boolean {
+  if (!timeline || typeof timeline !== "object") return false;
+  const tl = timeline as { rows?: { values?: number[] }[] };
+  if (!Array.isArray(tl.rows) || tl.rows.length === 0) return false;
+  return tl.rows.some((r) => Array.isArray(r.values) && r.values.some((v) => v > 0));
+}
+
 export default async function ProjectDetailLayout({ children, params }: Props) {
   const { id } = await params;
   const user = await requireAuth();
@@ -29,7 +36,9 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
   const project = await prisma.project.findFirst({
     where: { id, firmId: user.firmId },
     include: {
-      projectDetail: { select: { kesifA: true, kesifB: true, settings: true } },
+      projectDetail: {
+        select: { kesifA: true, kesifB: true, settings: true, timeline: true },
+      },
     },
   });
 
@@ -37,15 +46,25 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
 
   const settings = project.projectDetail?.settings as GesSettings | undefined;
 
-  // Progress gates — compute purely from data so we don't have to mutate
-  // currentStep on every save. A user can complete steps in any order; the
-  // nav simply unlocks downstream tabs as soon as the prerequisite has data.
+  // Progress gates — compute purely from data. A user can complete steps in
+  // any order; the nav unlocks downstream tabs as soon as the prerequisite
+  // has data. Timeline is now a hard gate before Analiz/CF/BoQ/PBoQ/DoR.
   const progress = {
     info: !!project.name?.trim() && !!project.customerName?.trim(),
     teknik: (settings?.dcGuc ?? 0) > 0 && (settings?.panelGuc ?? 0) > 0,
     kesifA: hasItems(project.projectDetail?.kesifA),
     kesifB: hasItems(project.projectDetail?.kesifB),
+    timeline: timelineHasData(project.projectDetail?.timeline),
   };
+
+  // Status etiketi — TASLAK (timeline doldurulmadan) vs TAMAMLANDI (sonra)
+  const isCompleted =
+    project.status === "COMPLETED" ||
+    project.status === "CLOSE_WIN" ||
+    project.status === "CLOSE_LOST";
+  const statusLabel = isCompleted ? "Tamamlandı" : project.status === "CANCELLED" ? "İptal" : "Taslak";
+  const statusVariant: "success" | "secondary" | "destructive" =
+    isCompleted ? "success" : project.status === "CANCELLED" ? "destructive" : "secondary";
 
   const kwLabel =
     project.totalPowerKw >= 1000
@@ -76,7 +95,7 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
               <h1 className="truncate text-base font-semibold leading-tight tracking-tight">
                 {project.name || "İsimsiz Proje"}
               </h1>
-              <ProjectStatusChanger projectId={id} currentStatus={project.status} />
+              <Badge variant={statusVariant}>{statusLabel}</Badge>
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               {project.customerName && (

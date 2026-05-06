@@ -17,19 +17,19 @@ export async function getOrCreateProjectDetail(projectId: string) {
   let detail = await prisma.projectDetail.findUnique({ where: { projectId } });
 
   if (!detail) {
-    const dcGucMW = project.totalPowerKw / 1000 || 1;
+    // Yeni proje: settings DEF_S'ten gelir (her sey 0/bos), kullanici doldurur.
+    // Sadece proje meta-bilgisi ve regulatory sabitler aktarilir.
     const settings = {
       ...DEF_S,
       projeAdi: project.name,
       isveren: project.customerName || "",
-      dcGuc: dcGucMW,
-      acGuc: dcGucMW * 0.9,
-      panelAdet: project.panelCount || 0,
-      panelGuc: project.panelPowerWp || 625,
-      invAdet: project.inverterCount || 1,
-      cevreTelcit: project.perimeterM || 400,
-      projeAlani: project.totalAreaM2 || 10000,
-      electricityUnitPriceTry: project.electricityUnitPrice || 3.5,
+      dcGuc: project.totalPowerKw / 1000,
+      panelAdet: project.panelCount,
+      panelGuc: project.panelPowerWp,
+      invAdet: project.inverterCount,
+      cevreTelcit: project.perimeterM,
+      projeAlani: project.totalAreaM2,
+      electricityUnitPriceTry: project.electricityUnitPrice,
       electricityEscalationRate: project.electricityEscalationRate,
       annualInflationRate: project.annualInflationRate,
       projectLifeYears: project.projectLifeYears,
@@ -44,7 +44,8 @@ export async function getOrCreateProjectDetail(projectId: string) {
         projectId,
         kesifA: kesifA as never,
         kesifB: kesifB as never,
-        timeline: DEF_TL as never,
+        // Timeline bos baslar — kullanici dolduracak ki Analiz acilsin
+        timeline: {} as never,
         dor: DEF_DOR as never,
         settings: settings as never,
       },
@@ -52,6 +53,47 @@ export async function getOrCreateProjectDetail(projectId: string) {
   }
 
   return detail;
+}
+
+/**
+ * Timeline veri tabanindan dolu mu? Analiz/CF/BoQ/PBoQ/DoR sekmelerini
+ * acmak icin kullanicinin Timeline'i kaydetmis olmasi gerekir.
+ */
+function timelineHasData(timeline: unknown): boolean {
+  if (!timeline || typeof timeline !== "object") return false;
+  const tl = timeline as { rows?: { values?: number[] }[] };
+  if (!Array.isArray(tl.rows) || tl.rows.length === 0) return false;
+  return tl.rows.some((r) => Array.isArray(r.values) && r.values.some((v) => v > 0));
+}
+
+/**
+ * Proje statusunu Timeline durumuna gore otomatik gunceller:
+ * - Timeline dolu ise COMPLETED
+ * - Aksi halde DRAFT
+ * Kullanici manual olarak CLOSE_WIN/CLOSE_LOST/CANCELLED'a gecmisse dokunmaz.
+ */
+async function recomputeProjectStatus(projectId: string) {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: { projectDetail: { select: { timeline: true } } },
+  });
+  if (!project) return;
+  // Manuel kapanis/iptal durumlarini koru
+  if (
+    project.status === "CLOSE_WIN" ||
+    project.status === "CLOSE_LOST" ||
+    project.status === "CANCELLED"
+  ) {
+    return;
+  }
+  const tlFilled = timelineHasData(project.projectDetail?.timeline);
+  const desired = tlFilled ? "COMPLETED" : "DRAFT";
+  if (project.status !== desired) {
+    await prisma.project.update({
+      where: { id: projectId },
+      data: { status: desired },
+    });
+  }
 }
 
 export async function saveProjectInfo(projectId: string, formData: FormData) {
@@ -105,7 +147,6 @@ export async function saveProjectInfo(projectId: string, formData: FormData) {
       installationType,
       systemSize,
       electricityTariff: electricityTariff as TariffType,
-      status: "IN_PROGRESS",
     },
   });
 
@@ -148,10 +189,10 @@ export async function saveTeknik(projectId: string, data: Record<string, unknown
   });
   if (!project) throw new Error("Proje bulunamadı");
 
-  const dcGuc = Number(data.dcGuc) || 1;
+  const dcGuc = Number(data.dcGuc) || 0;
   const panelCount = Number(data.panelAdet) || 0;
-  const panelPowerWp = Number(data.panelGuc) || 625;
-  const inverterCount = Number(data.invAdet) || 1;
+  const panelPowerWp = Number(data.panelGuc) || 0;
+  const inverterCount = Number(data.invAdet) || 0;
   const totalPowerKw = dcGuc * 1000;
 
   await prisma.project.update({
@@ -330,7 +371,12 @@ export async function saveTimeline(projectId: string, timeline: unknown) {
     update: { timeline: timeline as never },
   });
 
+  // Timeline doldugunda proje TASLAK -> TAMAMLANDI'ya otomatik geçer
+  await recomputeProjectStatus(projectId);
+
   revalidatePath(`/projects/${projectId}/detail`);
+  revalidatePath("/dashboard");
+  revalidatePath("/projects");
 }
 
 export async function saveDor(projectId: string, dor: unknown[]) {

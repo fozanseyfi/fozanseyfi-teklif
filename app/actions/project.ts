@@ -11,7 +11,7 @@ export async function createProject() {
   const user = await requireAuth();
   const project = await prisma.project.create({
     data: {
-      name: "Yeni Proje",
+      name: "",
       firmId: user.firmId,
       createdById: user.id,
       customerName: "",
@@ -19,6 +19,7 @@ export async function createProject() {
       installationType: InstallationType.ROOFTOP,
       systemSize: SystemSize.SMALL,
       electricityTariff: TariffType.RESIDENTIAL,
+      status: "DRAFT",
     },
   });
   redirect(`/projects/${project.id}/detail`);

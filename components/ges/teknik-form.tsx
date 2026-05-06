@@ -82,7 +82,22 @@ export function TeknikForm({ projectId, settings }: Props) {
     };
   }
 
+  // Required fields — advance is gated until these are filled.
+  const missingFields: string[] = [];
+  if (!(s.dcGuc > 0)) missingFields.push("DC Güç");
+  if (!(s.panelGuc > 0)) missingFields.push("Panel Gücü");
+  if (!(s.invGuc > 0)) missingFields.push("İnverter Gücü");
+  if (!(s.invAdet > 0)) missingFields.push("İnverter Adedi");
+  if (!(s.usd > 0)) missingFields.push("USD/TRY Kuru");
+  if (!s.baslangic) missingFields.push("Başlangıç Tarihi");
+  if (!(s.sure > 0)) missingFields.push("İnşaat Süresi");
+  const isValid = missingFields.length === 0;
+
   async function handleSave(goNext = false) {
+    if (goNext && !isValid) {
+      toast.error(`Eksik alanlar: ${missingFields.join(", ")}`);
+      return;
+    }
     setSaving(true);
     try {
       const data = { ...s, panelAdet: panelAdetCalc };
@@ -121,11 +136,26 @@ export function TeknikForm({ projectId, settings }: Props) {
             <Save className="size-3.5" />
             {saving ? "Kaydediliyor…" : "Kaydet"}
           </Button>
-          <Button size="sm" onClick={() => handleSave(true)} disabled={saving}>
+          <Button
+            size="sm"
+            onClick={() => handleSave(true)}
+            disabled={saving || !isValid}
+            title={
+              !isValid
+                ? `Önce zorunlu alanları doldurun: ${missingFields.join(", ")}`
+                : undefined
+            }
+          >
             Kaydet &amp; Keşif A <ArrowRight className="size-3.5" />
           </Button>
         </div>
       </div>
+      {!isValid && (
+        <div className="rounded-md border border-warning/30 bg-warning-soft px-4 py-2 text-xs text-warning-soft-foreground">
+          <strong>Eksik alanlar:</strong> {missingFields.join(", ")}. İlerlemek
+          için bu alanları doldurun.
+        </div>
+      )}
 
       {/* ── Two-column layout ── */}
       <div className="grid items-start gap-5 lg:grid-cols-[1fr_360px]">
@@ -141,8 +171,10 @@ export function TeknikForm({ projectId, settings }: Props) {
             />
             <CardContent className="grid grid-cols-2 gap-5 p-6">
               <div className="space-y-2">
-                <Label>DC Güç (MW) *</Label>
-                <Input type="number" step="0.1" {...f("dcGuc")} />
+                <Label>
+                  DC Güç (MW) <span className="text-destructive">*</span>
+                </Label>
+                <Input type="number" step="0.1" required {...f("dcGuc")} />
                 <p className="text-xs font-medium text-info-soft-foreground">
                   {(s.dcGuc * 1000).toFixed(0)} kWp
                 </p>
@@ -157,8 +189,10 @@ export function TeknikForm({ projectId, settings }: Props) {
                 )}
               </div>
               <div className="space-y-2">
-                <Label>Panel Gücü (Wp)</Label>
-                <Input type="number" {...f("panelGuc")} />
+                <Label>
+                  Panel Gücü (Wp) <span className="text-destructive">*</span>
+                </Label>
+                <Input type="number" required {...f("panelGuc")} />
               </div>
               <div className="space-y-2">
                 <Label>Panel Adedi</Label>
@@ -189,12 +223,16 @@ export function TeknikForm({ projectId, settings }: Props) {
                 </p>
               </div>
               <div className="space-y-2">
-                <Label>İnverter Gücü (kW)</Label>
-                <Input type="number" {...f("invGuc")} />
+                <Label>
+                  İnverter Gücü (kW) <span className="text-destructive">*</span>
+                </Label>
+                <Input type="number" required {...f("invGuc")} />
               </div>
               <div className="space-y-2">
-                <Label>İnverter Adedi</Label>
-                <Input type="number" {...f("invAdet")} />
+                <Label>
+                  İnverter Adedi <span className="text-destructive">*</span>
+                </Label>
+                <Input type="number" required {...f("invAdet")} />
               </div>
               <div className="space-y-2">
                 <Label>Trafo Sayısı</Label>
@@ -221,20 +259,26 @@ export function TeknikForm({ projectId, settings }: Props) {
             />
             <CardContent className="grid grid-cols-2 gap-5 p-6">
               <div className="space-y-2">
-                <Label>USD/TRY</Label>
-                <Input type="number" step="0.01" {...f("usd")} />
+                <Label>
+                  USD/TRY <span className="text-destructive">*</span>
+                </Label>
+                <Input type="number" step="0.01" required {...f("usd")} />
               </div>
               <div className="space-y-2">
                 <Label>EUR/TRY</Label>
                 <Input type="number" step="0.01" {...f("eur")} />
               </div>
               <div className="space-y-2">
-                <Label>Başlangıç Tarihi</Label>
-                <Input type="date" {...f("baslangic", false)} />
+                <Label>
+                  Başlangıç Tarihi <span className="text-destructive">*</span>
+                </Label>
+                <Input type="date" required {...f("baslangic", false)} />
               </div>
               <div className="space-y-2">
-                <Label>İnşaat Süresi (gün)</Label>
-                <Input type="number" {...f("sure")} />
+                <Label>
+                  İnşaat Süresi (gün) <span className="text-destructive">*</span>
+                </Label>
+                <Input type="number" required {...f("sure")} />
               </div>
             </CardContent>
           </Card>

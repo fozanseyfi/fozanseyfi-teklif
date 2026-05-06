@@ -27,7 +27,16 @@ function normalizeInflow(val: number): number {
   return val <= 1 && val > 0 ? Math.round(val * 100) : val;
 }
 
-function normalizeTl(tl: TimelineData): TimelineData {
+function normalizeTl(tl: TimelineData | undefined | null): TimelineData {
+  // Yeni proje: timeline {} olarak baslar — bos sablon don
+  if (!tl || !Array.isArray(tl.rows) || tl.rows.length === 0) {
+    return {
+      months: 12,
+      startYear: new Date().getFullYear(),
+      startMonth: 0,
+      rows: [],
+    };
+  }
   return {
     ...tl,
     rows: tl.rows.map((r) => ({

@@ -22,6 +22,7 @@ export interface DetailNavProgress {
   teknik: boolean;
   kesifA: boolean;
   kesifB: boolean;
+  timeline: boolean;
 }
 
 interface NavItem {
@@ -35,6 +36,10 @@ interface NavItem {
   lockHint?: string;
 }
 
+// Permissive helper: if any later step has data, all earlier ones unlock.
+const downstream = (...flags: (keyof DetailNavProgress)[]) => (p: DetailNavProgress) =>
+  flags.some((f) => p[f]);
+
 const GROUPS: { id: string; label: string; items: NavItem[] }[] = [
   {
     id: "input",
@@ -45,23 +50,29 @@ const GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         label: "Teknik",
         href: "/teknik",
         icon: Settings2,
-        // Permissive: any later step having data implies prerequisites are met.
-        isUnlocked: (p) => p.info || p.teknik || p.kesifA || p.kesifB,
+        isUnlocked: downstream("info", "teknik", "kesifA", "kesifB", "timeline"),
         lockHint: "Önce Proje bilgilerini doldurup kaydedin",
       },
       {
         label: "Keşif-A",
         href: "/kesif-a",
         icon: List,
-        isUnlocked: (p) => p.teknik || p.kesifA || p.kesifB,
-        lockHint: "Önce Teknik parametreleri girin (DC güç, panel gücü)",
+        isUnlocked: downstream("teknik", "kesifA", "kesifB", "timeline"),
+        lockHint: "Önce Teknik parametreleri doldurun",
       },
       {
         label: "Keşif-B",
         href: "/kesif-b",
         icon: FileText,
-        isUnlocked: (p) => p.kesifA || p.kesifB,
+        isUnlocked: downstream("kesifA", "kesifB", "timeline"),
         lockHint: "Önce Keşif-A kalemlerini doldurun",
+      },
+      {
+        label: "CF Timeline",
+        href: "/timeline",
+        icon: Calendar,
+        isUnlocked: downstream("kesifB", "timeline"),
+        lockHint: "Önce Keşif-B kalemlerini doldurun",
       },
     ],
   },
@@ -74,22 +85,15 @@ const GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         href: "/analiz",
         icon: BarChart3,
         primary: true,
-        isUnlocked: (p) => p.kesifB,
-        lockHint: "Önce Keşif-A ve Keşif-B kalemlerini doldurun",
+        isUnlocked: downstream("timeline"),
+        lockHint: "Önce CF Timeline'ı doldurup kaydedin",
       },
       {
         label: "Cash Flow",
         href: "/cashflow",
         icon: TrendingUp,
-        isUnlocked: (p) => p.kesifB,
-        lockHint: "Önce Keşif-B kalemlerini doldurun",
-      },
-      {
-        label: "Timeline",
-        href: "/timeline",
-        icon: Calendar,
-        isUnlocked: (p) => p.kesifB,
-        lockHint: "Önce Keşif-B kalemlerini doldurun",
+        isUnlocked: downstream("timeline"),
+        lockHint: "Önce CF Timeline'ı doldurup kaydedin",
       },
     ],
   },
@@ -101,22 +105,22 @@ const GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         label: "BoQ",
         href: "/boq",
         icon: Table2,
-        isUnlocked: (p) => p.kesifB,
-        lockHint: "Önce Keşif kalemlerini doldurun",
+        isUnlocked: downstream("timeline"),
+        lockHint: "Önce CF Timeline'ı doldurup kaydedin",
       },
       {
         label: "P-BoQ",
         href: "/priced-boq",
         icon: DollarSign,
-        isUnlocked: (p) => p.kesifB,
-        lockHint: "Önce Keşif kalemlerini doldurun",
+        isUnlocked: downstream("timeline"),
+        lockHint: "Önce CF Timeline'ı doldurup kaydedin",
       },
       {
         label: "DoR",
         href: "/dor",
         icon: ClipboardCheck,
-        isUnlocked: (p) => p.kesifB,
-        lockHint: "Önce Keşif kalemlerini doldurun",
+        isUnlocked: downstream("timeline"),
+        lockHint: "Önce CF Timeline'ı doldurup kaydedin",
       },
     ],
   },
@@ -156,10 +160,7 @@ export function GesDetailNav({ projectId, progress }: Props) {
                     key={item.href}
                     title={item.lockHint}
                     aria-disabled="true"
-                    className={cn(
-                      "flex shrink-0 cursor-not-allowed select-none items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium",
-                      "border border-dashed text-muted-foreground/60",
-                    )}
+                    className="flex shrink-0 cursor-not-allowed select-none items-center gap-1.5 whitespace-nowrap rounded-md border border-dashed px-3 py-1.5 text-xs font-medium text-muted-foreground/60"
                   >
                     <Lock className="size-3" />
                     {item.label}
