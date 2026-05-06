@@ -542,7 +542,7 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
         </button>
       </NavActions>
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[3fr_2fr] lg:items-start">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[3fr_2fr]">
 
         {/* SOL — Hero + 5 KPI dikey sıkıştırılmış */}
         <div className="space-y-3">
@@ -641,10 +641,11 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
 
         </div>{/* SOL kapanis */}
 
-        {/* SAG — Kritik Malzeme Seçimi: kompakt, scroll yok, küçük punto */}
-        <div>
-          <Card>
-            <CardHeader className="pb-1.5 pt-2 px-3">
+        {/* SAG — Kritik Malzeme Seçimi: SOL kolonun (Hero + 5 KPI) tam
+            yuksekligine genisler. */}
+        <div className="lg:h-full">
+          <Card className="lg:flex lg:h-full lg:flex-col">
+            <CardHeader className="shrink-0 pb-1.5 pt-2 px-3">
               <div className="flex items-center gap-1.5">
                 <div className={cn("size-5 rounded-md flex items-center justify-center", SECTION_TONE.primary.iconBg)}>
                   <Zap className={cn("size-2.5", SECTION_TONE.primary.iconText)} />
@@ -653,7 +654,7 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
                 <span className="ml-auto text-[9px] text-muted-foreground">+/− delta</span>
               </div>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-2 p-2.5 sm:grid-cols-3">
+            <CardContent className="grid grid-cols-1 gap-2 p-2.5 sm:grid-cols-3 lg:flex-1">
               {([
                 { label: "Panel", category: "panel" as const, field: "selPanel" as const,
                   alts: s.panelAlts, selIdx: s.selPanel,
