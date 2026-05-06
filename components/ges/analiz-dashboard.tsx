@@ -653,29 +653,80 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                 </div>
                 {alts.map((alt, i) => {
                   const testResult = calc(makeTestKesif(alt), localKesifB, s);
-                  const actualIdx = field === "selInv" ? s.invAlts.findIndex((a) => a.name === alt.name) : i;
+                  const actualIdx =
+                    field === "selInv"
+                      ? s.invAlts.findIndex((a) => a.name === alt.name)
+                      : i;
                   const isSel = (field === "selInv" ? s.selInv : selIdx) === actualIdx;
+                  // Delta: secili olan baseline (current result), digerleri
+                  // ona gore +/- gosterir.
+                  const delta = testResult.salePriceUsd - result.salePriceUsd;
+                  const deltaPositive = delta > 50; // gurultu esigi
+                  const deltaNegative = delta < -50;
                   return (
-                    <div key={i} className="relative group">
-                      <button type="button" onClick={() => handleAltChange(field, actualIdx)}
+                    <div key={i} className="group relative">
+                      <button
+                        type="button"
+                        onClick={() => handleAltChange(field, actualIdx)}
                         className={cn(
-                          "w-full text-left p-3 rounded-xl border text-sm transition-all",
+                          "w-full rounded-xl border p-3 text-left text-sm transition-all",
                           isSel
-                            ? "shadow-sm bg-primary-soft border-primary/30"
+                            ? "border-primary/30 bg-primary-soft shadow-sm"
                             : "hover:border-primary/30 hover:bg-muted/60",
-                        )}>
-                        <div className="flex items-center justify-between mb-1 pr-5">
-                          <span className="font-semibold text-foreground text-xs">{alt.name}</span>
-                          {isSel && <span className="text-xs font-semibold text-primary-soft-foreground bg-primary-soft px-2 py-0.5 rounded-full border border-primary/30">✓ Seçili</span>}
+                        )}
+                      >
+                        <div className="mb-1 flex items-center justify-between gap-2 pr-5">
+                          <span className="text-xs font-semibold text-foreground">
+                            {alt.name}
+                          </span>
+                          {isSel ? (
+                            <span className="rounded-full border border-primary/30 bg-primary-soft px-2 py-0.5 text-[10px] font-semibold text-primary-soft-foreground">
+                              ✓ Mevcut Seçim
+                            </span>
+                          ) : (
+                            <span
+                              className={cn(
+                                "whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-semibold tabular-nums",
+                                deltaPositive &&
+                                  "border-destructive/30 bg-destructive-soft text-destructive-soft-foreground",
+                                deltaNegative &&
+                                  "border-success/30 bg-success-soft text-success-soft-foreground",
+                                !deltaPositive &&
+                                  !deltaNegative &&
+                                  "border-border bg-muted text-muted-foreground",
+                              )}
+                              title={`Toplam: $${fmt(testResult.salePriceUsd)}`}
+                            >
+                              {deltaPositive
+                                ? `+$${fmt(delta)}`
+                                : deltaNegative
+                                  ? `−$${fmt(Math.abs(delta))}`
+                                  : "≈ aynı"}
+                            </span>
+                          )}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          <span className="font-medium text-primary-soft-foreground">{priceLabel(alt.price)}</span>
-                          {" · "}Toplam: <span className="font-semibold text-foreground">${fmt(testResult.salePriceUsd)}</span>
+                          <span className="font-medium text-primary-soft-foreground">
+                            {priceLabel(alt.price)}
+                          </span>
+                          {isSel && (
+                            <>
+                              {" · "}
+                              Toplam:{" "}
+                              <span className="font-semibold text-foreground">
+                                ${fmt(testResult.salePriceUsd)}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </button>
                       {alts.length > 1 && (
-                        <button type="button" onClick={() => handleRemoveAlt(category, actualIdx)}
-                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 size-5 rounded-full bg-destructive-soft hover:bg-destructive-soft/70 flex items-center justify-center transition-all" title="Kaldır">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAlt(category, actualIdx)}
+                          className="absolute right-2 top-2 flex size-5 items-center justify-center rounded-full bg-destructive-soft opacity-0 transition-all hover:bg-destructive-soft/70 group-hover:opacity-100"
+                          title="Kaldır"
+                        >
                           <X className="size-3 text-destructive-soft-foreground" />
                         </button>
                       )}
