@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { saveTimeline } from "@/app/actions/ges";
 import { calc } from "@/lib/ges-engine";
+import { DEF_TL } from "@/lib/ges-defaults";
 import type { KesifGroup, GesSettings, TimelineData } from "@/lib/ges-defaults";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { Save, RefreshCw } from "lucide-react";
+import { Save, RefreshCw, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -28,13 +30,14 @@ function normalizeInflow(val: number): number {
 }
 
 function normalizeTl(tl: TimelineData | undefined | null): TimelineData {
-  // Yeni proje: timeline {} olarak baslar — bos sablon don
+  // Yeni proje: timeline {} olarak baslar — DEF_TL'i sablon olarak kullan.
+  // Kullanici Save'e basinca template DB'ye yazilir ve timelineHasData true
+  // doner; Analiz/CF/BoQ/PBoQ/DoR sekmeleri o zaman acilir.
   if (!tl || !Array.isArray(tl.rows) || tl.rows.length === 0) {
     return {
-      months: 12,
+      ...DEF_TL,
       startYear: new Date().getFullYear(),
       startMonth: 0,
-      rows: [],
     };
   }
   return {
@@ -47,6 +50,7 @@ function normalizeTl(tl: TimelineData | undefined | null): TimelineData {
 }
 
 export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Props) {
+  const router = useRouter();
   const [tl, setTl] = useState<TimelineData>(() => normalizeTl(data));
   const [saving, setSaving] = useState(false);
 
@@ -143,11 +147,18 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
     }));
   }
 
-  async function handleSave() {
+  async function handleSave(advance = false) {
     setSaving(true);
     try {
       await saveTimeline(projectId, tl as never);
-      toast.success("Kaydedildi");
+      toast.success(
+        advance
+          ? "Kaydedildi — Analiz açıldı"
+          : "Kaydedildi",
+      );
+      if (advance) {
+        router.push(`/projects/${projectId}/detail/analiz`);
+      }
     } catch {
       toast.error("Kayıt hatası");
     } finally {
@@ -269,9 +280,17 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
               onChange={(e) => changeMonths(parseInt(e.target.value) || 12)}
             />
           </div>
-          <Button onClick={handleSave} disabled={saving} size="sm">
+          <Button
+            variant="outline"
+            onClick={() => handleSave(false)}
+            disabled={saving}
+            size="sm"
+          >
             <Save className="size-4" />
             {saving ? "Kaydediliyor..." : "Kaydet"}
+          </Button>
+          <Button onClick={() => handleSave(true)} disabled={saving} size="sm">
+            Kaydet &amp; Analiz <ArrowRight className="size-4" />
           </Button>
         </div>
       </div>

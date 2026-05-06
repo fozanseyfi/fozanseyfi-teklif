@@ -19,10 +19,11 @@ import { calc } from "@/lib/ges-engine";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
 import { DeleteProjectButton } from "@/components/project/delete-project-button";
 import { TurkeyMap } from "@/components/dashboard/turkey-map";
+import { ProjectStatusChanger } from "@/components/ges/project-status-changer";
 import {
-  ProjectStatusChanger,
   COMPLETION_TRANSITION_VALUES,
-} from "@/components/ges/project-status-changer";
+  isCompletionStatus,
+} from "@/lib/project-status";
 
 const STATUS_BAR_COLOR: Record<string, string> = {
   DRAFT: "bg-muted-foreground/40",
@@ -266,11 +267,11 @@ export default async function DashboardPage() {
                           {formatCurrency(project.pricingSnapshot.finalSalePrice)}
                         </p>
                       ) : null}
-                      {COMPLETION_TRANSITION_VALUES.includes(project.status) ? (
+                      {isCompletionStatus(project.status) ? (
                         <ProjectStatusChanger
                           projectId={project.id}
                           currentStatus={project.status}
-                          allowedTransitions={COMPLETION_TRANSITION_VALUES}
+                          allowedTransitions={[...COMPLETION_TRANSITION_VALUES]}
                         />
                       ) : (
                         <Badge variant={STATUS_VARIANT[project.status] ?? "secondary"}>

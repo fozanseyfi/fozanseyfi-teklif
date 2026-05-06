@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { saveKesifA, saveKesifB } from "@/app/actions/ges";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ import {
   FileDown,
   Plus,
   Trash2,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -213,12 +215,20 @@ export function KesifEditor({ projectId, type, data, settings }: Props) {
     );
   }
 
-  async function handleSave() {
+  const router = useRouter();
+  const nextHref =
+    type === "A"
+      ? `/projects/${projectId}/detail/kesif-b`
+      : `/projects/${projectId}/detail/timeline`;
+  const nextLabel = type === "A" ? "Keşif-B" : "CF Timeline";
+
+  async function handleSave(advance = false) {
     setSaving(true);
     try {
       if (type === "A") await saveKesifA(projectId, groups as never);
       else await saveKesifB(projectId, groups as never);
-      toast.success("Kaydedildi");
+      toast.success(advance ? `Kaydedildi — ${nextLabel} açıldı` : "Kaydedildi");
+      if (advance) router.push(nextHref);
     } catch {
       toast.error("Kayıt hatası");
     } finally {
@@ -283,9 +293,17 @@ export function KesifEditor({ projectId, type, data, settings }: Props) {
             <FileDown className="size-4" />
             PDF
           </Button>
-          <Button onClick={handleSave} disabled={saving} size="sm">
+          <Button
+            variant="outline"
+            onClick={() => handleSave(false)}
+            disabled={saving}
+            size="sm"
+          >
             <Save className="size-4" />
             {saving ? "Kaydediliyor…" : "Kaydet"}
+          </Button>
+          <Button onClick={() => handleSave(true)} disabled={saving} size="sm">
+            Kaydet &amp; {nextLabel} <ArrowRight className="size-4" />
           </Button>
         </div>
       </div>

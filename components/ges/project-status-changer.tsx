@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { updateProjectStatus } from "@/app/actions/project";
 import { ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { COMPLETION_TRANSITION_VALUES } from "@/lib/project-status";
 
 const STATUSES = [
   {
@@ -38,8 +39,6 @@ const STATUSES = [
     dot: "bg-muted-foreground/60",
   },
 ];
-
-const COMPLETION_TRANSITIONS = ["COMPLETED", "CLOSE_WIN", "CLOSE_LOST", "CANCELLED"];
 
 interface Props {
   projectId: string;
@@ -148,4 +147,3 @@ export function ProjectStatusChanger({
   );
 }
 
-export const COMPLETION_TRANSITION_VALUES = COMPLETION_TRANSITIONS;
