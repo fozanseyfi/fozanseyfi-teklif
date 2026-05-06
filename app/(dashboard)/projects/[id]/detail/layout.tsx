@@ -1,13 +1,25 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { GesDetailNav } from "@/components/ges/ges-detail-nav";
 import { ProjectStatusChanger } from "@/components/ges/project-status-changer";
-import { Zap, MapPin, User } from "lucide-react";
+import { ArrowLeft, MapPin, User, Zap } from "lucide-react";
+import type { GesSettings, KesifGroup } from "@/lib/ges-defaults";
 
 interface Props {
   children: React.ReactNode;
   params: Promise<{ id: string }>;
+}
+
+function hasItems(groups: unknown): boolean {
+  if (!Array.isArray(groups)) return false;
+  for (const g of groups as KesifGroup[]) {
+    for (const it of g.items ?? []) {
+      if ((it.miktar ?? 0) > 0) return true;
+    }
+  }
+  return false;
 }
 
 export default async function ProjectDetailLayout({ children, params }: Props) {
@@ -16,68 +28,90 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
 
   const project = await prisma.project.findFirst({
     where: { id, firmId: user.firmId },
+    include: {
+      projectDetail: { select: { kesifA: true, kesifB: true, settings: true } },
+    },
   });
 
   if (!project) notFound();
 
-  const kwLabel = project.totalPowerKw >= 1000
-    ? `${(project.totalPowerKw / 1000).toFixed(2)} MWp`
-    : project.totalPowerKw > 0
-    ? `${project.totalPowerKw.toFixed(1)} kWp`
-    : null;
+  const settings = project.projectDetail?.settings as GesSettings | undefined;
+
+  // Progress gates — compute purely from data so we don't have to mutate
+  // currentStep on every save. A user can complete steps in any order; the
+  // nav simply unlocks downstream tabs as soon as the prerequisite has data.
+  const progress = {
+    info: !!project.name?.trim() && !!project.customerName?.trim(),
+    teknik: (settings?.dcGuc ?? 0) > 0 && (settings?.panelGuc ?? 0) > 0,
+    kesifA: hasItems(project.projectDetail?.kesifA),
+    kesifB: hasItems(project.projectDetail?.kesifB),
+  };
+
+  const kwLabel =
+    project.totalPowerKw >= 1000
+      ? `${(project.totalPowerKw / 1000).toFixed(2)} MWp`
+      : project.totalPowerKw > 0
+        ? `${project.totalPowerKw.toFixed(1)} kWp`
+        : null;
 
   return (
-    <div className="max-w-[1440px] mx-auto space-y-3">
-      {/* Corporate project header */}
-      <div className="rounded-2xl overflow-hidden shadow-xl"
-        style={{ background: "linear-gradient(135deg, #071120 0%, #0c1e3c 45%, #122448 100%)" }}>
-        <div className="px-5 py-3.5 flex items-center gap-4">
-          {/* Brand mark */}
-          <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, rgba(251,191,36,0.22) 0%, rgba(251,191,36,0.08) 100%)", border: "1px solid rgba(251,191,36,0.28)" }}>
-            <Zap className="w-5 h-5 text-amber-400" strokeWidth={2.5} />
+    <div className="mx-auto max-w-[1440px] space-y-4">
+      {/* Project header — token-based, glass over background */}
+      <div className="rounded-xl border bg-card shadow-sm">
+        <div className="flex items-center gap-4 px-5 py-3.5">
+          <Link
+            href="/projects"
+            aria-label="Projelere dön"
+            className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <ArrowLeft className="size-4" />
+          </Link>
+
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary-soft-foreground">
+            <Zap className="size-5" strokeWidth={2.5} />
           </div>
 
-          {/* Project info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-[15px] font-bold text-white tracking-tight leading-none">{project.name || "İsimsiz Proje"}</h1>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="truncate text-base font-semibold leading-tight tracking-tight">
+                {project.name || "İsimsiz Proje"}
+              </h1>
               <ProjectStatusChanger projectId={id} currentStatus={project.status} />
             </div>
-            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+            <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               {project.customerName && (
-                <span className="flex items-center gap-1 text-[11px] text-slate-400">
-                  <User className="w-3 h-3 flex-shrink-0" />
+                <span className="flex items-center gap-1">
+                  <User className="size-3 shrink-0" />
                   {project.customerName}
                 </span>
               )}
               {project.projectLocation && (
-                <span className="flex items-center gap-1 text-[11px] text-slate-400">
-                  <MapPin className="w-3 h-3 flex-shrink-0" />
+                <span className="flex items-center gap-1">
+                  <MapPin className="size-3 shrink-0" />
                   {project.projectLocation}
                 </span>
               )}
             </div>
           </div>
 
-          {/* Kurulu Güç badge */}
           {kwLabel && (
-            <div className="hidden sm:flex flex-shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5"
-              style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.25)" }}>
-              <Zap className="w-4 h-4 text-amber-400/70 flex-shrink-0" />
+            <div className="hidden shrink-0 items-center gap-3 rounded-lg border border-primary/20 bg-primary-soft/40 px-4 py-2 sm:flex">
+              <Zap className="size-4 text-primary-soft-foreground/70" />
               <div>
-                <p className="text-[9px] font-semibold text-amber-400/50 uppercase tracking-[0.12em] leading-none mb-1">Kurulu Güç</p>
-                <p className="text-[22px] font-extrabold text-amber-400 leading-none tracking-tight tabular-nums">{kwLabel}</p>
+                <p className="text-[9px] font-semibold uppercase leading-none tracking-[0.12em] text-primary-soft-foreground/70">
+                  Kurulu Güç
+                </p>
+                <p className="mt-1 text-lg font-bold leading-none tracking-tight tabular-nums text-primary-soft-foreground">
+                  {kwLabel}
+                </p>
               </div>
             </div>
           )}
         </div>
-
-        {/* Bottom accent line */}
-        <div className="h-px" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(251,191,36,0.4) 25%, rgba(99,102,241,0.4) 75%, transparent 100%)" }} />
       </div>
 
-      <GesDetailNav projectId={id} />
+      <GesDetailNav projectId={id} progress={progress} />
+
       <div>{children}</div>
     </div>
   );

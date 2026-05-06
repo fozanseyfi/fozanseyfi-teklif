@@ -14,69 +14,196 @@ import {
   ClipboardCheck,
   Table2,
   DollarSign,
+  Lock,
 } from "lucide-react";
 
-const DETAIL_ITEMS = [
-  { label: "Proje", href: "", icon: Info, primary: false },
-  { label: "Teknik", href: "/teknik", icon: Settings2, primary: false },
-  { label: "Keşif-A", href: "/kesif-a", icon: List, primary: false },
-  { label: "Keşif-B", href: "/kesif-b", icon: FileText, primary: false },
-  { label: "ANALİZ", href: "/analiz", icon: BarChart3, primary: true },
-  { label: "Cash Flow", href: "/cashflow", icon: TrendingUp, primary: false },
-  { label: "CF Timeline", href: "/timeline", icon: Calendar, primary: false },
-  { label: "BoQ", href: "/boq", icon: Table2, primary: false },
-  { label: "P-BoQ", href: "/priced-boq", icon: DollarSign, primary: false },
-  { label: "DoR", href: "/dor", icon: ClipboardCheck, primary: false },
+export interface DetailNavProgress {
+  info: boolean;
+  teknik: boolean;
+  kesifA: boolean;
+  kesifB: boolean;
+}
+
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  primary?: boolean;
+  /** Returns true if the tab is unlocked given the project's progress. */
+  isUnlocked?: (p: DetailNavProgress) => boolean;
+  /** Helpful message shown in tooltip when locked. */
+  lockHint?: string;
+}
+
+const GROUPS: { id: string; label: string; items: NavItem[] }[] = [
+  {
+    id: "input",
+    label: "Veri Giriş",
+    items: [
+      { label: "Proje", href: "", icon: Info },
+      {
+        label: "Teknik",
+        href: "/teknik",
+        icon: Settings2,
+        // Permissive: any later step having data implies prerequisites are met.
+        isUnlocked: (p) => p.info || p.teknik || p.kesifA || p.kesifB,
+        lockHint: "Önce Proje bilgilerini doldurup kaydedin",
+      },
+      {
+        label: "Keşif-A",
+        href: "/kesif-a",
+        icon: List,
+        isUnlocked: (p) => p.teknik || p.kesifA || p.kesifB,
+        lockHint: "Önce Teknik parametreleri girin (DC güç, panel gücü)",
+      },
+      {
+        label: "Keşif-B",
+        href: "/kesif-b",
+        icon: FileText,
+        isUnlocked: (p) => p.kesifA || p.kesifB,
+        lockHint: "Önce Keşif-A kalemlerini doldurun",
+      },
+    ],
+  },
+  {
+    id: "analysis",
+    label: "Analiz & Akış",
+    items: [
+      {
+        label: "ANALİZ",
+        href: "/analiz",
+        icon: BarChart3,
+        primary: true,
+        isUnlocked: (p) => p.kesifB,
+        lockHint: "Önce Keşif-A ve Keşif-B kalemlerini doldurun",
+      },
+      {
+        label: "Cash Flow",
+        href: "/cashflow",
+        icon: TrendingUp,
+        isUnlocked: (p) => p.kesifB,
+        lockHint: "Önce Keşif-B kalemlerini doldurun",
+      },
+      {
+        label: "Timeline",
+        href: "/timeline",
+        icon: Calendar,
+        isUnlocked: (p) => p.kesifB,
+        lockHint: "Önce Keşif-B kalemlerini doldurun",
+      },
+    ],
+  },
+  {
+    id: "outputs",
+    label: "Çıktılar",
+    items: [
+      {
+        label: "BoQ",
+        href: "/boq",
+        icon: Table2,
+        isUnlocked: (p) => p.kesifB,
+        lockHint: "Önce Keşif kalemlerini doldurun",
+      },
+      {
+        label: "P-BoQ",
+        href: "/priced-boq",
+        icon: DollarSign,
+        isUnlocked: (p) => p.kesifB,
+        lockHint: "Önce Keşif kalemlerini doldurun",
+      },
+      {
+        label: "DoR",
+        href: "/dor",
+        icon: ClipboardCheck,
+        isUnlocked: (p) => p.kesifB,
+        lockHint: "Önce Keşif kalemlerini doldurun",
+      },
+    ],
+  },
 ];
 
-export function GesDetailNav({ projectId }: { projectId: string }) {
+interface Props {
+  projectId: string;
+  progress: DetailNavProgress;
+}
+
+export function GesDetailNav({ projectId, progress }: Props) {
   const pathname = usePathname();
   const base = `/projects/${projectId}/detail`;
 
   return (
-    <div className="flex items-center gap-1 overflow-x-auto rounded-xl border bg-card px-2 py-2 shadow-sm">
-      {DETAIL_ITEMS.map((item) => {
-        const href = `${base}${item.href}`;
-        const isActive =
-          item.href === ""
-            ? pathname === base || pathname === `${base}/`
-            : pathname.startsWith(`${base}${item.href}`);
-
-        // Highlighted "ANALİZ" tab — primary brand emphasis
-        if (item.primary) {
-          return (
-            <Link
-              key={item.href}
-              href={href}
-              className={cn(
-                "flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-bold tracking-wide transition-colors",
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "border border-primary/30 bg-primary-soft text-primary-soft-foreground hover:border-primary/60 hover:bg-primary-soft/70",
-              )}
-            >
-              <item.icon className="size-4" />
-              {item.label}
-            </Link>
-          );
-        }
-
-        return (
-          <Link
-            key={item.href}
-            href={href}
+    <nav className="rounded-xl border bg-card p-2 shadow-sm">
+      <div className="flex flex-wrap items-stretch gap-1 lg:flex-nowrap">
+        {GROUPS.map((group, gi) => (
+          <div
+            key={group.id}
             className={cn(
-              "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-              isActive
-                ? "bg-foreground text-background shadow-sm"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              "flex items-center gap-1",
+              gi > 0 && "ml-0 lg:ml-1 lg:border-l lg:pl-2",
             )}
           >
-            <item.icon className="size-3.5" />
-            {item.label}
-          </Link>
-        );
-      })}
-    </div>
+            {group.items.map((item) => {
+              const href = `${base}${item.href}`;
+              const isActive =
+                item.href === ""
+                  ? pathname === base || pathname === `${base}/`
+                  : pathname.startsWith(`${base}${item.href}`);
+              const unlocked = item.isUnlocked?.(progress) ?? true;
+
+              if (!unlocked) {
+                return (
+                  <span
+                    key={item.href}
+                    title={item.lockHint}
+                    aria-disabled="true"
+                    className={cn(
+                      "flex shrink-0 cursor-not-allowed select-none items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium",
+                      "border border-dashed text-muted-foreground/60",
+                    )}
+                  >
+                    <Lock className="size-3" />
+                    {item.label}
+                  </span>
+                );
+              }
+
+              if (item.primary) {
+                return (
+                  <Link
+                    key={item.href}
+                    href={href}
+                    className={cn(
+                      "flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-3.5 py-1.5 text-xs font-bold tracking-wide transition-colors",
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "border border-primary/30 bg-primary-soft text-primary-soft-foreground hover:bg-primary-soft/70",
+                    )}
+                  >
+                    <item.icon className="size-3.5" />
+                    {item.label}
+                  </Link>
+                );
+              }
+
+              return (
+                <Link
+                  key={item.href}
+                  href={href}
+                  className={cn(
+                    "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                    isActive
+                      ? "bg-foreground text-background shadow-sm"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                >
+                  <item.icon className="size-3.5" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </nav>
   );
 }

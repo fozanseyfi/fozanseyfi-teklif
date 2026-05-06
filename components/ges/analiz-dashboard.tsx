@@ -169,17 +169,56 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
   async function handleSaveMargins() {
     setSaving(true);
     try {
-      await saveGesSettings(projectId, { contingency: s.contingency, genelGider: s.genelGider, netKar: s.netKar } as never);
+      await saveGesSettings(projectId, {
+        contingency: s.contingency,
+        genelGider: s.genelGider,
+        netKar: s.netKar,
+        krediFaiz: s.krediFaiz,
+      } as never);
       setMarginDirty(false);
       toast.success("Marjlar kaydedildi");
     } catch { toast.error("Kayıt hatası"); }
     finally { setSaving(false); }
   }
 
-  function updateMargin(field: "contingency" | "genelGider" | "netKar", val: string) {
+  function updateMargin(
+    field: "contingency" | "genelGider" | "netKar" | "krediFaiz",
+    val: string,
+  ) {
     setS((p) => ({ ...p, [field]: parseFloat(val) || 0 }));
     setMarginDirty(true);
   }
+
+  // Total interest cost across the project lifetime — re-runs the cash-flow
+  // loop without mutating chart data. Used in the KPI grid.
+  const totalInterestCost = useMemo(() => {
+    if (!timeline?.rows?.length) return 0;
+    let cum = 0;
+    let totalInterest = 0;
+    for (let m = 0; m < timeline.months; m++) {
+      let inflow = 0,
+        outflow = 0;
+      for (const row of timeline.rows) {
+        const pct = row.values[m] / 100;
+        if (!pct) continue;
+        if (row.type === "inflow") {
+          inflow += pct * result.salePriceUsd;
+        } else {
+          const grp = [...modifiedKesifA, ...localKesifB].find((g) =>
+            row.name.startsWith(g.code),
+          );
+          if (grp) outflow += pct * getGrpTot(grp, s);
+        }
+      }
+      const net = inflow - outflow;
+      cum += net;
+      const creditInterest = cum < 0 ? Math.abs(cum) * (s.krediFaiz / 100 / 12) : 0;
+      const depositInterest = cum > 0 ? cum * ((s.mevduat ?? 0) / 100 / 12) : 0;
+      totalInterest += creditInterest;
+      cum = cum - creditInterest + depositInterest;
+    }
+    return totalInterest;
+  }, [timeline, result, modifiedKesifA, localKesifB, s]);
 
   async function handleAddAlt() {
     if (!addAltOpen || !newAltName.trim() || !newAltPrice) return;
@@ -261,7 +300,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
 
       {/* ── Alt Ekleme Modal ── */}
       {addAltOpen && (
@@ -384,34 +423,42 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
       )}
 
       {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <Card className="bg-primary text-primary-foreground relative overflow-hidden col-span-1 shadow-sm">
-          <CardContent className="p-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Card className="relative overflow-hidden bg-primary text-primary-foreground shadow-sm">
+          <CardContent className="p-5">
             <div className="absolute right-3 top-3 opacity-20"><DollarSign className="size-10" /></div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest opacity-80 mb-1.5">EPC Satış Fiyatı</p>
-            <p className="text-xl font-bold">${fmt(result.salePriceUsd)}</p>
-            <p className="text-xs opacity-70 mt-0.5">₺{fmt(result.salePriceTry)}</p>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest opacity-80">EPC Satış Fiyatı</p>
+            <p className="text-2xl font-bold tracking-tight">${fmt(result.salePriceUsd)}</p>
+            <p className="mt-1 text-xs opacity-70">₺{fmt(result.salePriceTry)}</p>
           </CardContent>
         </Card>
-        <Card className="bg-info-soft relative overflow-hidden shadow-sm border-info/30">
-          <CardContent className="p-4">
+        <Card className="relative overflow-hidden border-info/30 bg-info-soft shadow-sm">
+          <CardContent className="p-5">
             <div className="absolute right-3 top-3 opacity-20"><Zap className="size-10 text-info-soft-foreground" /></div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-info-soft-foreground/80 mb-1.5">Özgül Maliyet</p>
-            <p className="text-xl font-bold text-info-soft-foreground">{result.perKwUsd.toFixed(3)}</p>
-            <p className="text-xs text-info-soft-foreground/70 mt-0.5">USD/kWp</p>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-info-soft-foreground/80">Özgül Maliyet</p>
+            <p className="text-2xl font-bold tracking-tight text-info-soft-foreground">{result.perKwUsd.toFixed(3)}</p>
+            <p className="mt-1 text-xs text-info-soft-foreground/70">USD/kWp</p>
           </CardContent>
         </Card>
-        <Card className="bg-success-soft relative overflow-hidden shadow-sm border-success/30">
-          <CardContent className="p-4">
+        <Card className="relative overflow-hidden border-warning/30 bg-warning-soft shadow-sm">
+          <CardContent className="p-5">
+            <div className="absolute right-3 top-3 opacity-20"><DollarSign className="size-10 text-warning-soft-foreground" /></div>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-warning-soft-foreground/80">Toplam Faiz Maliyeti</p>
+            <p className="text-2xl font-bold tracking-tight text-warning-soft-foreground">${fmt(totalInterestCost)}</p>
+            <p className="mt-1 text-xs text-warning-soft-foreground/70">{s.krediFaiz}% / yıl · ₺{fmt(totalInterestCost * s.usd)}</p>
+          </CardContent>
+        </Card>
+        <Card className="relative overflow-hidden border-success/30 bg-success-soft shadow-sm">
+          <CardContent className="p-5">
             <div className="absolute right-3 top-3 opacity-20"><Zap className="size-10 text-success-soft-foreground" /></div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-success-soft-foreground/80 mb-1.5">DC / AC Güç</p>
-            <p className="text-xl font-bold text-success-soft-foreground">{s.dcGuc.toFixed(2)} MW</p>
-            <p className="text-xs text-success-soft-foreground/75 mt-0.5">{(s.dcGuc * 1000).toFixed(0)} kWp · AC: {s.acGuc.toFixed(2)} MW · Oran: {s.dcGuc > 0 && s.acGuc > 0 ? (s.dcGuc / s.acGuc).toFixed(2) : "—"}</p>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-success-soft-foreground/80">DC / AC Güç</p>
+            <p className="text-2xl font-bold tracking-tight text-success-soft-foreground">{s.dcGuc.toFixed(2)} MW</p>
+            <p className="mt-1 text-xs text-success-soft-foreground/75">{(s.dcGuc * 1000).toFixed(0)} kWp · AC: {s.acGuc.toFixed(2)} MW · Oran: {s.dcGuc > 0 && s.acGuc > 0 ? (s.dcGuc / s.acGuc).toFixed(2) : "—"}</p>
           </CardContent>
         </Card>
         <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Maliyet Yapısı</p>
+          <CardContent className="p-5">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Maliyet Yapısı</p>
             <div className="space-y-1 text-xs">
               <div className="flex justify-between items-baseline gap-1">
                 <span className="text-muted-foreground">Kesif A+B</span>
@@ -441,8 +488,8 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
           </CardContent>
         </Card>
         <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Panel &amp; İnverter</p>
+          <CardContent className="p-5">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Panel &amp; İnverter</p>
             <div className="space-y-1 text-xs">
               <div className="flex justify-between"><span className="text-muted-foreground">Panel Sayısı</span><span className="font-bold text-foreground">{fmt(panelAdetCalc)} adet</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Panel Gücü</span><span className="text-muted-foreground font-medium">{s.panelGuc} Wp</span></div>
@@ -474,16 +521,22 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
           </div>
         </div>
         <CardContent className="p-4">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {[
-              { label: "Contingency (%)", field: "contingency" as const, val: s.contingency, amt: result.contingencyAmt, color: "text-muted-foreground" },
-              { label: "Overhead Cost (%)", field: "genelGider" as const, val: s.genelGider, amt: result.genelGiderAmt, color: "text-info-soft-foreground" },
-              { label: "Net Kar (%)", field: "netKar" as const, val: s.netKar, amt: result.netKarAmt, color: "text-success-soft-foreground" },
+              { label: "Contingency (%)", field: "contingency" as const, val: s.contingency, amt: result.contingencyAmt, hint: `$${fmt(result.contingencyAmt)} · ₺${fmt(result.contingencyAmt * s.usd)}`, color: "text-muted-foreground" },
+              { label: "Overhead Cost (%)", field: "genelGider" as const, val: s.genelGider, amt: result.genelGiderAmt, hint: `$${fmt(result.genelGiderAmt)} · ₺${fmt(result.genelGiderAmt * s.usd)}`, color: "text-info-soft-foreground" },
+              { label: "Net Kar (%)", field: "netKar" as const, val: s.netKar, amt: result.netKarAmt, hint: `$${fmt(result.netKarAmt)} · ₺${fmt(result.netKarAmt * s.usd)}`, color: "text-success-soft-foreground" },
+              { label: "Kredi Faizi (%/yıl)", field: "krediFaiz" as const, val: s.krediFaiz, amt: totalInterestCost, hint: `Toplam faiz: $${fmt(totalInterestCost)}`, color: "text-warning-soft-foreground" },
             ].map((m) => (
               <div key={m.field} className="space-y-1.5">
                 <Label className="text-sm">{m.label}</Label>
-                <Input type="number" step="0.5" value={m.val} onChange={(e) => updateMargin(m.field, e.target.value)} />
-                <p className={cn("text-xs font-medium", m.color)}>${fmt(m.amt)} · ₺{fmt(m.amt * s.usd)}</p>
+                <Input
+                  type="number"
+                  step="0.5"
+                  value={m.val}
+                  onChange={(e) => updateMargin(m.field, e.target.value)}
+                />
+                <p className={cn("text-xs font-medium", m.color)}>{m.hint}</p>
               </div>
             ))}
           </div>

@@ -14,7 +14,6 @@ import {
   RefreshCw,
   Zap,
   DollarSign,
-  Percent,
   Layers,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -240,38 +239,6 @@ export function TeknikForm({ projectId, settings }: Props) {
             </CardContent>
           </Card>
 
-          {/* Cost margins */}
-          <Card className="overflow-hidden">
-            <SectionHeader
-              icon={Percent}
-              title="Maliyet Marjları"
-              subtitle="Contingency, genel gider ve kar oranları"
-              tone="warning"
-            />
-            <CardContent className="grid grid-cols-3 gap-5 p-6">
-              <div className="space-y-2">
-                <Label>Contingency (%)</Label>
-                <Input type="number" step="0.5" {...f("contingency")} />
-              </div>
-              <div className="space-y-2">
-                <Label>Genel Gider (%)</Label>
-                <Input type="number" step="0.5" {...f("genelGider")} />
-              </div>
-              <div className="space-y-2">
-                <Label>Net Kar (%)</Label>
-                <Input type="number" step="0.5" {...f("netKar")} />
-              </div>
-              <div className="col-span-3 space-y-2">
-                <Label>Kredi Faizi (%/yıl)</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  {...f("krediFaiz")}
-                  className="max-w-[180px]"
-                />
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Right column — material alternatives */}

@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Users,
   Zap,
+  MessageCircle,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,10 @@ const navItems = [
   { href: "/projects", icon: FolderOpen, label: "Projeler" },
   { href: "/customers", icon: Users, label: "Müşteriler" },
   { href: "/firm-settings", icon: Settings, label: "Firma Ayarları" },
+];
+
+const supportItems = [
+  { href: "/contact", icon: MessageCircle, label: "İletişime Geç" },
 ];
 
 const adminItems = [
@@ -116,6 +121,23 @@ export function Sidebar({ userName, firmName, role }: SidebarProps) {
             </div>
           </div>
         )}
+
+        <div className="mt-6">
+          <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted">
+            Destek
+          </p>
+          <div className="space-y-0.5">
+            {supportItems.map((item) => (
+              <NavLink
+                key={item.href}
+                href={item.href}
+                icon={item.icon}
+                label={item.label}
+                active={pathname.startsWith(item.href)}
+              />
+            ))}
+          </div>
+        </div>
       </nav>
 
       {/* Hint card */}

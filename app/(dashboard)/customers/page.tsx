@@ -3,7 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Plus, Phone, Mail, MapPin, Lightbulb } from "lucide-react";
+import { Users, Plus, ArrowRight } from "lucide-react";
 import type { GesSettings } from "@/lib/ges-defaults";
 
 export default async function CustomersPage() {
@@ -28,16 +28,21 @@ export default async function CustomersPage() {
     const insights: string[] = settings?.customerInsights ?? [];
     return {
       name,
+      slug: encodeURIComponent(name),
       email: latest.customerEmail,
       phone: latest.customerPhone,
       address: latest.customerAddress,
       insights,
       projectCount: projs.length,
+      lastTouched: projs.reduce(
+        (max, p) => (p.updatedAt > max ? p.updatedAt : max),
+        projs[0].updatedAt,
+      ),
     };
   });
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Müşteriler</h1>
@@ -66,76 +71,85 @@ export default async function CustomersPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {customers.map((c) => (
-            <Card key={c.name} className="card-lift">
-              <CardContent className="px-6 py-5">
-                <div className="flex items-start gap-4">
-                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-base font-semibold text-primary-foreground">
-                    {c.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <p className="text-base font-semibold">{c.name}</p>
-                      <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                        {c.projectCount} proje
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-x-5 gap-y-1.5">
-                      {c.phone && (
-                        <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                          <div className="flex size-5 shrink-0 items-center justify-center rounded-md bg-info-soft">
-                            <Phone className="size-3 text-info-soft-foreground" />
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Müşteri
+                    </th>
+                    <th className="hidden px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground md:table-cell">
+                      İletişim
+                    </th>
+                    <th className="px-6 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Proje
+                    </th>
+                    <th className="hidden px-6 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:table-cell">
+                      Öngörü
+                    </th>
+                    <th className="px-6 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {customers.map((c) => (
+                    <tr
+                      key={c.name}
+                      className="group transition-colors hover:bg-muted/40"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground">
+                            {c.name.charAt(0).toUpperCase()}
                           </div>
-                          {c.phone}
-                        </span>
-                      )}
-                      {c.email && (
-                        <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                          <div className="flex size-5 shrink-0 items-center justify-center rounded-md bg-primary-soft">
-                            <Mail className="size-3 text-primary-soft-foreground" />
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-foreground">{c.name}</p>
+                            {c.address && (
+                              <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                                {c.address}
+                              </p>
+                            )}
                           </div>
-                          {c.email}
-                        </span>
-                      )}
-                      {c.address && (
-                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <div className="flex size-5 shrink-0 items-center justify-center rounded-md bg-secondary">
-                            <MapPin className="size-3 text-muted-foreground" />
-                          </div>
-                          {c.address}
-                        </span>
-                      )}
-                    </div>
-
-                    {c.insights.length > 0 && (
-                      <div className="mt-3.5 rounded-lg border border-info-soft bg-info-soft/40 p-3">
-                        <div className="mb-2 flex items-center gap-1.5">
-                          <Lightbulb className="size-3.5 text-info-soft-foreground" />
-                          <p className="text-[11px] font-semibold uppercase tracking-wider text-info-soft-foreground">
-                            Müşteri Öngörüleri
-                          </p>
                         </div>
-                        <div className="space-y-1">
-                          {c.insights.map((ins, i) => (
-                            <p
-                              key={i}
-                              className="flex gap-1.5 text-xs text-info-soft-foreground"
-                            >
-                              <span className="shrink-0 font-semibold opacity-60">→</span>
-                              {ins}
-                            </p>
-                          ))}
+                      </td>
+                      <td className="hidden px-6 py-4 md:table-cell">
+                        <div className="space-y-0.5 text-xs text-muted-foreground">
+                          {c.phone && <p className="font-medium text-foreground">{c.phone}</p>}
+                          {c.email && <p className="truncate">{c.email}</p>}
+                          {!c.phone && !c.email && <span>—</span>}
                         </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
+                          {c.projectCount}
+                        </span>
+                      </td>
+                      <td className="hidden px-6 py-4 text-center sm:table-cell">
+                        {c.insights.length > 0 ? (
+                          <span className="rounded-full bg-info-soft px-2.5 py-0.5 text-xs font-medium text-info-soft-foreground">
+                            {c.insights.length} not
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex justify-end">
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/customers/${c.slug}`}>
+                              Git <ArrowRight className="size-3.5" />
+                            </Link>
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
