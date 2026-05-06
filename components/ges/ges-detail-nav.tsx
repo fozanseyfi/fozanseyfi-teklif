@@ -138,6 +138,8 @@ export function GesDetailNav({ projectId, progress }: Props) {
   return (
     <nav className="rounded-xl border bg-card p-2 shadow-sm">
       <div className="flex flex-wrap items-stretch gap-1 lg:flex-nowrap">
+        {/* Sol: sekmeler */}
+        <div className="flex flex-1 flex-wrap items-stretch gap-1 lg:flex-nowrap">
         {GROUPS.map((group, gi) => (
           <div
             key={group.id}
@@ -204,6 +206,14 @@ export function GesDetailNav({ projectId, progress }: Props) {
             })}
           </div>
         ))}
+        </div>
+        {/* Sag: page-level action slot — `NavActions` portal hedefi.
+            Sayfalar <NavActions>...</NavActions> ile buraya buton koyar.
+            Bos olabilir. */}
+        <div
+          id="ges-nav-actions"
+          className="ml-auto flex shrink-0 items-center gap-1.5"
+        />
       </div>
     </nav>
   );
