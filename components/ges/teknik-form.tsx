@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { saveTeknik } from "@/app/actions/ges";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -63,9 +63,55 @@ function SectionHeader({
   );
 }
 
+async function fetchExchangeRates(): Promise<{ usd?: number; eur?: number }> {
+  // Frankfurter API — ECB-tabanli, ucretsiz, CORS acik
+  try {
+    const [usdRes, eurRes] = await Promise.all([
+      fetch("https://api.frankfurter.app/latest?from=USD&to=TRY"),
+      fetch("https://api.frankfurter.app/latest?from=EUR&to=TRY"),
+    ]);
+    const usdData = await usdRes.json();
+    const eurData = await eurRes.json();
+    return {
+      usd: usdData?.rates?.TRY,
+      eur: eurData?.rates?.TRY,
+    };
+  } catch {
+    return {};
+  }
+}
+
 export function TeknikForm({ projectId, settings }: Props) {
   const [s, setS] = useState<GesSettings>(settings);
   const [saving, setSaving] = useState(false);
+  const [fxLoading, setFxLoading] = useState(false);
+
+  async function refreshFx(silent = false) {
+    setFxLoading(true);
+    try {
+      const { usd, eur } = await fetchExchangeRates();
+      if (typeof usd === "number" || typeof eur === "number") {
+        setS((p) => ({
+          ...p,
+          ...(typeof usd === "number" ? { usd } : {}),
+          ...(typeof eur === "number" ? { eur } : {}),
+        }));
+        if (!silent) toast.success("Kurlar güncellendi");
+      } else if (!silent) {
+        toast.error("Kur servisi yanıt vermedi");
+      }
+    } finally {
+      setFxLoading(false);
+    }
+  }
+
+  // Yeni projede USD/EUR 0 ise ilk yuklemede otomatik cek
+  useEffect(() => {
+    if (s.usd === 0 || s.eur === 0) {
+      refreshFx(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const panelAdetCalc =
     s.dcGuc > 0 && s.panelGuc > 0
@@ -73,11 +119,31 @@ export function TeknikForm({ projectId, settings }: Props) {
       : 0;
 
   function f(key: keyof GesSettings, isNum = true) {
+    const raw = s[key];
+    // Sayisal 0 input'ta "0" yazmaz; bos gosterir, kullanici yazinca degisir.
+    // String alanlar oldugu gibi gosterilir.
+    const display: string | number =
+      isNum && typeof raw === "number" && raw === 0 ? "" : (raw as string | number);
     return {
-      value: s[key] as string | number,
+      value: display,
+      placeholder: isNum ? "0" : undefined,
       onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-        const v = isNum ? parseFloat(e.target.value) || 0 : e.target.value;
-        setS((p) => ({ ...p, [key]: v }));
+        const v = isNum
+          ? e.target.value === ""
+            ? 0
+            : parseFloat(e.target.value) || 0
+          : e.target.value;
+        setS((p) => {
+          const next: typeof p = { ...p, [key]: v };
+          // Auto-perimeter: Proje Alani'ni doldurunca tel-cit otomatik
+          // hesaplanir (kare varsayimi: cevre = 4 * sqrt(alan)). Kullanici
+          // tel-cit'i daha sonra kendisi degistirebilir; alani tekrar
+          // degistirirse de yeniden onerilir.
+          if (key === "projeAlani" && typeof v === "number" && v > 0) {
+            next.cevreTelcit = Math.round(4 * Math.sqrt(v));
+          }
+          return next;
+        });
       },
     };
   }
@@ -258,6 +324,20 @@ export function TeknikForm({ projectId, settings }: Props) {
               tone="success"
             />
             <CardContent className="grid grid-cols-2 gap-5 p-6">
+              <div className="col-span-2 -mb-2 flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => refreshFx(false)}
+                  disabled={fxLoading}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary-soft px-2.5 py-1 text-[11px] font-semibold text-primary-soft-foreground transition-colors hover:bg-primary-soft/70 disabled:opacity-60"
+                  title="Frankfurter (ECB) servisinden güncel TCMB-yakını kuru çek"
+                >
+                  <RefreshCw
+                    className={cn("size-3", fxLoading && "animate-spin")}
+                  />
+                  {fxLoading ? "Çekiliyor…" : "Güncel kuru çek"}
+                </button>
+              </div>
               <div className="space-y-2">
                 <Label>
                   USD/TRY <span className="text-destructive">*</span>

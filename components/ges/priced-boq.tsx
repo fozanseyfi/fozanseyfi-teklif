@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { saveGesSettings } from "@/app/actions/ges";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
 import { calc, getGrpTot, toUSD } from "@/lib/ges-engine";
 import { Input } from "@/components/ui/input";
@@ -85,15 +86,30 @@ function buildSalePrices(
   return map;
 }
 
-export function PricedBoQ({ kesifA, kesifB, settings }: Props) {
+export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
   const [search, setSearch] = useState("");
-  const [excludedCodes, setExcludedCodes] = useState<Set<string>>(new Set());
-  const [hiddenCodes, setHiddenCodes] = useState<Set<string>>(new Set());
+  // Karsiz/gizli isaretler proje bazli persisted — settings.pboqExcluded
+  // ve settings.pboqHidden alanlari Prisma'da JSON olarak duruyor.
+  const [excludedCodes, setExcludedCodes] = useState<Set<string>>(
+    () => new Set(settings.pboqExcluded ?? []),
+  );
+  const [hiddenCodes, setHiddenCodes] = useState<Set<string>>(
+    () => new Set(settings.pboqHidden ?? []),
+  );
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
     const all = [...kesifA, ...kesifB];
     return Object.fromEntries(all.map((g) => [g.code, false]));
   });
-  const [showHidden, setShowHidden] = useState(true); // Editor'de gizli kalemleri goster (PDF disinda)
+  const [showHidden, setShowHidden] = useState(true);
+
+  // Set degisiminde server'a yaz — ayri bir useEffect yerine toggle anlik
+  // olarak save eder; debounce'a gerek yok cunku islem tek tikla olur.
+  function persistSets(newExcluded: Set<string>, newHidden: Set<string>) {
+    saveGesSettings(projectId, {
+      pboqExcluded: Array.from(newExcluded),
+      pboqHidden: Array.from(newHidden),
+    } as never).catch(() => {});
+  }
 
   const allGroups = useMemo(() => [...kesifA, ...kesifB], [kesifA, kesifB]);
 
@@ -123,6 +139,7 @@ export function PricedBoQ({ kesifA, kesifB, settings }: Props) {
       const next = new Set(prev);
       if (next.has(code)) next.delete(code);
       else next.add(code);
+      persistSets(next, hiddenCodes);
       return next;
     });
   }
@@ -132,6 +149,7 @@ export function PricedBoQ({ kesifA, kesifB, settings }: Props) {
       const next = new Set(prev);
       if (next.has(code)) next.delete(code);
       else next.add(code);
+      persistSets(excludedCodes, next);
       return next;
     });
   }

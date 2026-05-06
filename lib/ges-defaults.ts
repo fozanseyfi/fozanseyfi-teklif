@@ -84,17 +84,21 @@ export interface GesSettings {
   annualInflationRate: number;
   projectLifeYears: number;
   electricityTariff: string;
-  // Harita
+  // Harita (legacy — drawing editor kaldirildi, bu alanlar artik kullanilmiyor
+  // ama Prisma JSON kolonu icinde duruyor)
   haritaLat?: number;
   haritaLng?: number;
   haritaZoom?: number;
   haritaPolygon?: [number, number][];
   haritaScreenshot?: string;
   haritaPanelCount?: number;
-  // Çizim motoru
   haritaRoofs?: { id: string; vertices: [number, number][]; color: string; height: number; elevations?: number[] }[];
   haritaPanelCfg?: { orientation: string; panelsPerGroup: number; panelHGap: number; groupHGap: number; panelVGap: number };
   haritaRemovedPanels?: number[];
+  // P-BoQ persistence — kullanicinin kar dagit/gizle isaretlemeleri proje
+  // bazli, sayfa degistirince kaybolmaz.
+  pboqExcluded?: string[]; // karsiz isaretli kalemlerin item.code listesi
+  pboqHidden?: string[]; // gizli kalemlerin item.code listesi
 }
 
 export const DEF_KA: KesifGroup[] = [
@@ -422,7 +426,7 @@ export const DEF_S: GesSettings = {
   projeAdi: "",
   il: "",
   ilce: "",
-  // Teknik — kullanici doldurur, varsayilan yok
+  // Teknik — sayisal degerler kullanici doldurur, varsayilan yok
   dcGuc: 0,
   acGuc: 0,
   panelGuc: 0,
@@ -438,9 +442,22 @@ export const DEF_S: GesSettings = {
   contingency: 0,
   genelGider: 0,
   netKar: 0,
-  panelAlts: [],
-  konstrAlts: [],
-  invAlts: [],
+  // Kritik malzeme alternatifleri — sablon olarak gelir, kullanici degistirir
+  panelAlts: [
+    { name: "Elin", price: 0.185 },
+    { name: "Schmid Pekintaş", price: 0.19 },
+    { name: "Daxler", price: 0.17 },
+  ],
+  konstrAlts: [
+    { name: "Magnelis", price: 31000 },
+    { name: "SDG", price: 43500 },
+    { name: "Tracker", price: 74000 },
+  ],
+  invAlts: [
+    { name: "Sungrow", price: 7250 },
+    { name: "Huawei", price: 0 },
+    { name: "Sineng", price: 0 },
+  ],
   trafoSayisi: 0,
   cevreTelcit: 0,
   projeAlani: 0,

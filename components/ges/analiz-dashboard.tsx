@@ -6,7 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { calc, getGrpTot, toUSD } from "@/lib/ges-engine";
+import {
+  calc,
+  getGrpTot,
+  toUSD,
+  buildGroupTotals,
+  getRowAmount,
+} from "@/lib/ges-engine";
 import type { KesifGroup, KesifItem, GesSettings, TimelineData } from "@/lib/ges-defaults";
 import type { Project } from "@prisma/client";
 import {
@@ -66,23 +72,39 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
     ? Math.round((s.dcGuc * 1_000_000) / s.panelGuc)
     : (s.panelAdet || 0);
 
-  // Apply alt selections on top of localKesifA
+  // Apply alt selections on top of localKesifA. Secilen alternatif sadece
+  // fiyatla degil, KALEM bilgisiyle de senkronize olur — Kesif-A'ya bakanlar
+  // da "su an Elin paneli kullaniliyor" gorur.
   const modifiedKesifA = useMemo(() => {
+    function applyAlt(
+      g: KesifGroup,
+      itemCode: string,
+      alt: { name: string; price: number } | undefined,
+    ): KesifGroup {
+      if (!alt) return g;
+      return {
+        ...g,
+        items: g.items.map((it) =>
+          it.code === itemCode
+            ? {
+                ...it,
+                marka: alt.name,
+                tip: alt.name,
+                birimFiyat: alt.price,
+                rawFiyat: alt.price,
+                fiyatCur: "USD" as const,
+              }
+            : it,
+        ),
+      };
+    }
     return localKesifA.map((g) => {
-      if (g.code === "A.1") {
-        const alt = s.panelAlts[s.selPanel];
-        if (!alt) return g;
-        return { ...g, items: g.items.map((it) => it.code === "A.1.1" ? { ...it, birimFiyat: alt.price, rawFiyat: alt.price, fiyatCur: "USD" as const } : it) };
-      }
-      if (g.code === "A.3") {
-        const alt = s.konstrAlts[s.selKonstr];
-        if (!alt) return g;
-        return { ...g, items: g.items.map((it) => it.code === "A.3.1" ? { ...it, birimFiyat: alt.price, rawFiyat: alt.price, fiyatCur: "USD" as const } : it) };
-      }
+      if (g.code === "A.1") return applyAlt(g, "A.1.1", s.panelAlts[s.selPanel]);
+      if (g.code === "A.3") return applyAlt(g, "A.3.1", s.konstrAlts[s.selKonstr]);
       if (g.code === "A.2") {
         const alt = s.invAlts[s.selInv];
         if (!alt || alt.price === 0) return g;
-        return { ...g, items: g.items.map((it) => it.code === "A.2.1" ? { ...it, birimFiyat: alt.price, rawFiyat: alt.price, fiyatCur: "USD" as const } : it) };
+        return applyAlt(g, "A.2.1", alt);
       }
       return g;
     });
@@ -120,7 +142,13 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
     });
   }
 
-  // Cash flow mini chart
+  // Cash flow mini chart — cashflow-view ile ortak buildGroupTotals/
+  // getRowAmount kullanir; iki sayfada toplam faiz maliyeti birbirinin ayni
+  // ciksin diye.
+  const groupTotals = useMemo(
+    () => buildGroupTotals(modifiedKesifA, localKesifB, s),
+    [modifiedKesifA, localKesifB, s],
+  );
   const cfData = useMemo(() => {
     if (!timeline?.rows?.length) return [];
     const MONTHS_TR = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
@@ -133,8 +161,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
         if (row.type === "inflow") {
           inflow += pct * result.salePriceUsd;
         } else {
-          const grp = [...modifiedKesifA, ...localKesifB].find((g) => row.name.startsWith(g.code));
-          if (grp) outflow += pct * getGrpTot(grp, s);
+          outflow += pct * getRowAmount(row.name, groupTotals);
         }
       }
       const net = inflow - outflow;
@@ -147,18 +174,63 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
       const label = `${MONTHS_TR[offset % 12]} ${timeline.startYear + Math.floor(offset / 12)}`;
       return { label, Giriş: inflow / 1000, Çıkış: -outflow / 1000, Kümülatif: finalCum / 1000 };
     });
-  }, [timeline, result, modifiedKesifA, localKesifB, s]);
+  }, [timeline, result, groupTotals, s]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   async function handleAltChange(field: "selPanel" | "selKonstr" | "selInv", idx: number) {
     const newS = { ...s, [field]: idx };
     setS(newS);
+    // Kesif-A'ya da yansiyacak — secilen alternatifin marka/model/fiyat
+    // bilgisi ilgili kalemin uzerine yazilir.
+    const alt =
+      field === "selPanel"
+        ? s.panelAlts[idx]
+        : field === "selKonstr"
+          ? s.konstrAlts[idx]
+          : s.invAlts[idx];
+    const groupCode =
+      field === "selPanel" ? "A.1" : field === "selKonstr" ? "A.3" : "A.2";
+    const itemCode =
+      field === "selPanel" ? "A.1.1" : field === "selKonstr" ? "A.3.1" : "A.2.1";
+
+    let updatedKesifA = localKesifA;
+    if (alt && !(field === "selInv" && alt.price === 0)) {
+      updatedKesifA = localKesifA.map((g) =>
+        g.code !== groupCode
+          ? g
+          : {
+              ...g,
+              items: g.items.map((it) =>
+                it.code !== itemCode
+                  ? it
+                  : {
+                      ...it,
+                      marka: alt.name,
+                      tip: alt.name,
+                      birimFiyat: alt.price,
+                      rawFiyat: alt.price,
+                      fiyatCur: "USD" as const,
+                    },
+              ),
+            },
+      );
+      setLocalKesifA(updatedKesifA);
+    }
+
     setSaving(true);
     try {
-      await saveGesSettings(projectId, { [field]: idx } as never);
+      await Promise.all([
+        saveGesSettings(projectId, { [field]: idx } as never),
+        alt && updatedKesifA !== localKesifA
+          ? saveKesifA(projectId, updatedKesifA as never)
+          : Promise.resolve(),
+      ]);
       toast.success("Malzeme seçimi güncellendi");
-    } catch { toast.error("Kayıt hatası"); }
-    finally { setSaving(false); }
+    } catch {
+      toast.error("Kayıt hatası");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleSaveMargins() {

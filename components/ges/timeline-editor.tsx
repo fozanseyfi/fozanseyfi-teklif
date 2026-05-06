@@ -56,15 +56,6 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
 
   const result = calc(kesifA, kesifB, settings);
 
-  // Compute default start from settings.baslangic
-  function getDefaultStart() {
-    if (settings.baslangic) {
-      const d = new Date(settings.baslangic);
-      if (!isNaN(d.getTime())) return { year: d.getFullYear(), month: d.getMonth() };
-    }
-    return { year: tl.startYear, month: tl.startMonth ?? 0 };
-  }
-
   function changeMonths(newMonths: number) {
     setTl((prev) => ({
       ...prev,
@@ -75,10 +66,6 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
         return { ...r, values: vals.slice(0, newMonths) };
       }),
     }));
-  }
-
-  function changeStart(year: number, month: number) {
-    setTl((prev) => ({ ...prev, startYear: year, startMonth: month }));
   }
 
   function evenDistribute(rowIdx: number) {
@@ -97,11 +84,13 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
   }
 
   /**
-   * Smart % distribution: bir ay degistiginde toplam %100'e otomatik
-   * tamamlanir. Kullanicinin son aya elle gitmesine gerek kalmaz.
-   * - Eger toplam > 100: fazlayi diger aylardan (son aydan basa) eksiltir.
-   * - Eger toplam < 100: eksigi son BOS ayda toplar (kullanicinin yazdigi
-   *   ay haric). Bos ay yoksa eksik kalir, kullanici manual dengeler.
+   * Smart % distribution — yalnizca OUTFLOW satirlarina uygulanir.
+   * Outflow her satir kendi icinde %100'e tamamlanir (toplam = aydan aya
+   * dagilan kalemin %100'u).
+   *
+   * INFLOW satirlari: 3 satirin (Avans, Ara Hakedis, Is Bitis) global
+   * toplami %100 olmasi gerekir — kullanici kendi paylarını belirler;
+   * burada otomatik denge YOK. Kullanici banner'dan eksigi gorur.
    */
   function updateValue(rowIdx: number, mIdx: number, val: string) {
     const parsed = parseFloat(val);
@@ -112,9 +101,15 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
         if (ri !== rowIdx) return r;
         const values = [...r.values];
         values[mIdx] = newVal;
-        let total = values.reduce((s, v) => s + v, 0);
 
-        // Fazla varsa diger aylardan kirpalim
+        // Inflow: serbest birakiyoruz, kullanici 3 satir toplami 100 olsun
+        // diye banner'a bakacak
+        if (r.type === "inflow") {
+          return { ...r, values };
+        }
+
+        // Outflow: kendi icinde %100'e otomatik tamamlanir
+        let total = values.reduce((s, v) => s + v, 0);
         if (total > 100) {
           let excess = total - 100;
           for (let i = values.length - 1; i >= 0 && excess > 0; i--) {
@@ -127,8 +122,6 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
           }
           total = values.reduce((s, v) => s + v, 0);
         }
-
-        // Eksik varsa son bos aya yerlestirelim
         if (total < 100) {
           const deficit = Math.round((100 - total) * 10) / 10;
           let lastEmpty = -1;
@@ -150,11 +143,15 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
   async function handleSave(advance = false) {
     setSaving(true);
     try {
-      await saveTimeline(projectId, tl as never);
+      // Timeline kayit edilirken Teknik'ten gelen baslangic ayini sabitle
+      const toSave = {
+        ...tl,
+        startYear: effectiveStart.year,
+        startMonth: effectiveStart.month,
+      };
+      await saveTimeline(projectId, toSave as never);
       toast.success(
-        advance
-          ? "Kaydedildi — Analiz açıldı"
-          : "Kaydedildi",
+        advance ? "Kaydedildi — Analiz açıldı" : "Kaydedildi",
       );
       if (advance) {
         router.push(`/projects/${projectId}/detail/analiz`);
@@ -166,11 +163,21 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
     }
   }
 
-  const { year: startY, month: startM } = getDefaultStart();
+  // Baslangic ayi = Teknik'te girilen Proje Baslangic Tarihi (settings.baslangic)
+  // Kullanici timeline'da ayrica baslangic ayarlamaz; tek dogru kaynak Teknik.
+  const effectiveStart = (() => {
+    if (settings.baslangic) {
+      const d = new Date(settings.baslangic);
+      if (!isNaN(d.getTime())) {
+        return { year: d.getFullYear(), month: d.getMonth() };
+      }
+    }
+    return { year: tl.startYear, month: tl.startMonth ?? 0 };
+  })();
 
   const monthLabels = Array.from({ length: tl.months }, (_, i) => {
-    const offset = i + (tl.startMonth ?? 0);
-    const y = tl.startYear + Math.floor(offset / 12);
+    const offset = i + effectiveStart.month;
+    const y = effectiveStart.year + Math.floor(offset / 12);
     const m = offset % 12;
     return `${MONTHS_TR[m]} ${y}`;
   });
@@ -195,7 +202,11 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
           <tbody className="divide-y">
             {items.map(({ row, idx }) => {
               const total = row.values.reduce((s, v) => s + v, 0);
-              const ok = isInflow ? Math.abs(total - 100) < 1 : Math.abs(total - 100) < 1;
+              // Outflow: her satir kendi icinde %100 olmali (ok yesil olur).
+              // Inflow: tek satirin payi serbest (30/35/35 vb), ust banner
+              // toplam %100'i kontrol ediyor — bu yuzden inflow'da hep
+              // notr renk.
+              const ok = !isInflow && Math.abs(total - 100) < 1;
               return (
                 <tr
                   key={idx}
@@ -230,12 +241,14 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
                   </td>
                   <td
                     className={cn(
-                      "px-3 py-1.5 text-right font-semibold",
-                      ok
-                        ? "text-success-soft-foreground"
-                        : total > 100
-                          ? "text-destructive-soft-foreground"
-                          : "text-muted-foreground",
+                      "px-3 py-1.5 text-right font-semibold tabular-nums",
+                      isInflow
+                        ? "text-muted-foreground"
+                        : ok
+                          ? "text-success-soft-foreground"
+                          : total > 100
+                            ? "text-destructive-soft-foreground"
+                            : "text-muted-foreground",
                     )}
                   >
                     {total.toFixed(0)}%
@@ -257,18 +270,6 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
           <p className="text-sm text-muted-foreground">{tl.months} ay · Satış Fiyatı: ${result.salePriceUsd.toLocaleString("tr-TR", { maximumFractionDigits: 0 })}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Label className="whitespace-nowrap text-xs">Başlangıç Tarihi</Label>
-            <Input
-              type="month"
-              className="h-8 w-36 text-xs"
-              value={`${tl.startYear}-${String((tl.startMonth ?? 0) + 1).padStart(2, "0")}`}
-              onChange={(e) => {
-                const [y, m] = e.target.value.split("-");
-                if (y && m) changeStart(parseInt(y), parseInt(m) - 1);
-              }}
-            />
-          </div>
           <div className="flex items-center gap-2">
             <Label className="whitespace-nowrap text-xs">Ay Sayısı</Label>
             <Input
@@ -305,8 +306,31 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
       </div>
 
       <Card className="overflow-hidden">
-        <CardHeader className="border-b bg-success-soft py-2">
-          <CardTitle className="text-xs font-semibold text-success-soft-foreground">HAKEDİŞ / GİRİŞLER</CardTitle>
+        <CardHeader className="flex-row items-center justify-between border-b bg-success-soft py-2">
+          <CardTitle className="text-xs font-semibold text-success-soft-foreground">
+            HAKEDİŞ / GİRİŞLER
+          </CardTitle>
+          {(() => {
+            const inflowTotal = inflowRows.reduce(
+              (s, x) => s + x.row.values.reduce((a, b) => a + b, 0),
+              0,
+            );
+            const ok = Math.abs(inflowTotal - 100) < 0.5;
+            return (
+              <span
+                className={cn(
+                  "rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tabular-nums",
+                  ok
+                    ? "border-success/30 bg-success text-success-foreground"
+                    : "border-destructive/30 bg-destructive text-destructive-foreground",
+                )}
+              >
+                {ok
+                  ? `✓ Toplam Giriş: %${inflowTotal.toFixed(1)}`
+                  : `⚠ Toplam Giriş: %${inflowTotal.toFixed(1)} — %${(100 - inflowTotal).toFixed(1)} eksik`}
+              </span>
+            );
+          })()}
         </CardHeader>
         <CardContent className="p-0">{renderTable(inflowRows, true)}</CardContent>
       </Card>

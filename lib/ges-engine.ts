@@ -122,6 +122,39 @@ function getRowTotal(rowName: string, _s: GesSettings): number {
   return 0;
 }
 
+/**
+ * Cash flow zaman serisinde "A.1 Panel Ödemesi" gibi satir adlarinin
+ * hangi gruba (A.1) denk geldigini bulup grup toplamini doner. Hem
+ * cashflow-view hem analiz-dashboard buradan import eder ki Toplam
+ * Faiz Maliyeti iki sayfada bir-e-bir ayni çiksin.
+ */
+export function buildGroupTotals(
+  kesifA: KesifGroup[],
+  kesifB: KesifGroup[],
+  s: GesSettings,
+): Record<string, number> {
+  const map: Record<string, number> = {};
+  const groupCodes = [
+    "A.1","A.2","A.3","A.4","A.5","A.6","A.7","A.8","A.9","A.10",
+    "A.11","A.12","A.13","A.14","A.15","A.16","A.17","A.18",
+    "B.1","B.2","B.3","B.4","B.5","B.6",
+  ];
+  for (const g of [...kesifA, ...kesifB]) {
+    const key = groupCodes.find((c) => g.code === c || g.code.startsWith(c + "."));
+    if (key) map[key] = (map[key] || 0) + getGrpTot(g, s);
+  }
+  return map;
+}
+
+export function getRowAmount(
+  rowName: string,
+  groupTotals: Record<string, number>,
+): number {
+  const match = rowName.match(/^([AB]\.\d+)/);
+  if (!match) return 0;
+  return groupTotals[match[1]] || 0;
+}
+
 export function calcQty(code: string, s: GesSettings): number | null {
   const dc = s.dcGuc || 1;
   const ia = s.invAdet || 3;
