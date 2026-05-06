@@ -653,7 +653,7 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
                 <span className="ml-auto text-[9px] text-muted-foreground">+/− delta</span>
               </div>
             </CardHeader>
-            <CardContent className="space-y-2 p-2">
+            <CardContent className="grid grid-cols-1 gap-2 p-2.5 sm:grid-cols-3">
               {([
                 { label: "Panel", category: "panel" as const, field: "selPanel" as const,
                   alts: s.panelAlts, selIdx: s.selPanel,
@@ -668,16 +668,16 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
                   makeTestKesif: (alt: { price: number }) => localKesifA.map((g) => g.code === "A.2" ? { ...g, items: g.items.map((it) => it.code === "A.2.1" ? { ...it, rawFiyat: alt.price } : it) } : g),
                   priceLabel: (p: number) => `$${fmt(p)}/adet` },
               ] as const).map(({ label, category, field, alts, selIdx, makeTestKesif, priceLabel }) => (
-                <div key={field} className="space-y-0.5">
+                <div key={field} className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
                     <button type="button"
                       onClick={() => { setAddAltOpen(category); setNewAltName(""); setNewAltPrice(""); }}
-                      className="flex items-center gap-0.5 text-[9px] font-semibold text-primary-soft-foreground bg-primary-soft hover:bg-primary-soft/70 px-1.5 py-0 rounded transition-all">
-                      <Plus className="size-2" /> Ekle
+                      className="flex items-center gap-0.5 rounded bg-primary-soft px-1.5 py-0.5 text-[10px] font-semibold text-primary-soft-foreground transition-all hover:bg-primary-soft/70">
+                      <Plus className="size-2.5" /> Ekle
                     </button>
                   </div>
-                  <div className="space-y-0.5">
+                  <div className="space-y-1">
                     {alts.map((alt, i) => {
                       const testResult = calc(makeTestKesif(alt), localKesifB, s);
                       const actualIdx = field === "selInv" ? s.invAlts.findIndex((a) => a.name === alt.name) : i;
@@ -689,35 +689,33 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
                         <div key={i} className="group relative">
                           <button type="button" onClick={() => handleAltChange(field, actualIdx)}
                             className={cn(
-                              "flex w-full items-center justify-between gap-1.5 rounded border px-1.5 py-1 text-left transition-all",
+                              "block w-full rounded-md border px-2 py-1.5 text-left transition-all",
                               isSel ? "border-primary/30 bg-primary-soft" : "hover:border-primary/30 hover:bg-muted/60",
                             )}>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[10px] font-semibold text-foreground leading-tight truncate">{alt.name}</p>
-                              <p className="text-[9px] text-muted-foreground leading-tight">
-                                <span className="font-medium text-primary-soft-foreground">{priceLabel(alt.price)}</span>
-                                {isSel && (<>{" · "}<span className="font-semibold text-foreground">${fmt(testResult.salePriceUsd)}</span></>)}
-                              </p>
+                            <div className="flex items-center justify-between gap-1.5">
+                              <span className="truncate text-[11px] font-semibold text-foreground">{alt.name}</span>
+                              {isSel ? (
+                                <span className="shrink-0 rounded-full border border-primary/30 bg-primary-soft px-1.5 py-0 text-[9px] font-semibold leading-tight text-primary-soft-foreground">✓</span>
+                              ) : (
+                                <span className={cn(
+                                  "shrink-0 whitespace-nowrap rounded-full border px-1.5 py-0 text-[9px] font-semibold leading-tight tabular-nums",
+                                  deltaPositive && "border-destructive/30 bg-destructive-soft text-destructive-soft-foreground",
+                                  deltaNegative && "border-success/30 bg-success-soft text-success-soft-foreground",
+                                  !deltaPositive && !deltaNegative && "border-border bg-muted text-muted-foreground",
+                                )} title={`Toplam: $${fmt(testResult.salePriceUsd)}`}>
+                                  {deltaPositive ? `+$${fmt(delta)}` : deltaNegative ? `−$${fmt(Math.abs(delta))}` : "≈"}
+                                </span>
+                              )}
                             </div>
-                            {isSel ? (
-                              <span className="shrink-0 rounded-full border border-primary/30 bg-primary-soft px-1 py-0 text-[8px] font-semibold text-primary-soft-foreground whitespace-nowrap leading-tight">
-                                ✓
-                              </span>
-                            ) : (
-                              <span className={cn(
-                                "shrink-0 whitespace-nowrap rounded-full border px-1 py-0 text-[8px] font-semibold tabular-nums leading-tight",
-                                deltaPositive && "border-destructive/30 bg-destructive-soft text-destructive-soft-foreground",
-                                deltaNegative && "border-success/30 bg-success-soft text-success-soft-foreground",
-                                !deltaPositive && !deltaNegative && "border-border bg-muted text-muted-foreground",
-                              )} title={`Toplam: $${fmt(testResult.salePriceUsd)}`}>
-                                {deltaPositive ? `+$${fmt(delta)}` : deltaNegative ? `−$${fmt(Math.abs(delta))}` : "≈"}
-                              </span>
-                            )}
+                            <div className="mt-0.5 text-[10px] leading-tight text-muted-foreground">
+                              <span className="font-medium text-primary-soft-foreground">{priceLabel(alt.price)}</span>
+                              {isSel && (<>{" · "}<span className="font-semibold text-foreground">${fmt(testResult.salePriceUsd)}</span></>)}
+                            </div>
                           </button>
                           {alts.length > 1 && (
                             <button type="button" onClick={() => handleRemoveAlt(category, actualIdx)}
-                              className="absolute -right-1 -top-1 flex size-3.5 items-center justify-center rounded-full bg-destructive-soft opacity-0 transition-all hover:bg-destructive-soft/70 group-hover:opacity-100" title="Kaldır">
-                              <X className="size-2 text-destructive-soft-foreground" />
+                              className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-destructive-soft opacity-0 transition-all hover:bg-destructive-soft/70 group-hover:opacity-100" title="Kaldır">
+                              <X className="size-2.5 text-destructive-soft-foreground" />
                             </button>
                           )}
                         </div>
@@ -850,14 +848,6 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
                     <td className="px-2.5 py-1 text-right text-muted-foreground">{dcWp > 0 ? `$${(result.netKarAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
                     <td />
                     <td className="px-2.5 py-1 text-right text-success-soft-foreground">{pctOf(result.netKarAmt).toFixed(1)}%</td>
-                    <td />
-                  </tr>
-                  <tr className="bg-warning-soft text-warning-soft-foreground">
-                    <td colSpan={2} className="px-2.5 py-1">Finans Maliyeti (Toplam Faiz)</td>
-                    <td className="px-2.5 py-1 text-right font-semibold">${fmt(finansMaliyeti)}</td>
-                    <td className="px-2.5 py-1 text-right text-muted-foreground">{dcWp > 0 ? `$${(finansMaliyeti/dcWp).toFixed(4)}/Wp` : ""}</td>
-                    <td />
-                    <td className="px-2.5 py-1 text-right text-warning-soft-foreground font-semibold">{pctOf(finansMaliyeti).toFixed(1)}%</td>
                     <td />
                   </tr>
                   <tr className="bg-primary-soft border-t-2 border-primary/30">
