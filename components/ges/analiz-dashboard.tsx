@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { saveGesSettings, saveKesifA, saveKesifB } from "@/app/actions/ges";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -264,6 +264,26 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
     setMarginDirty(true);
   }
 
+  /**
+   * Inline KPI rate edit — slider'dan gelen surekli onChange'leri 350ms
+   * debounce eder; UI ise anında günceller. Boylece slider surukleyince
+   * server'a 100 istek gitmez.
+   */
+  const saveTimersRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
+  function saveOneMargin(
+    field: "contingency" | "genelGider" | "netKar" | "krediFaiz",
+    value: number,
+  ) {
+    setS((p) => ({ ...p, [field]: value }));
+    const existing = saveTimersRef.current[field];
+    if (existing) clearTimeout(existing);
+    saveTimersRef.current[field] = setTimeout(() => {
+      saveGesSettings(projectId, { [field]: value } as never).catch(() => {
+        toast.error("Kayıt hatası");
+      });
+    }, 350);
+  }
+
   async function handleAddAlt() {
     if (!addAltOpen || !newAltName.trim() || !newAltPrice) return;
     const price = parseFloat(newAltPrice);
@@ -484,87 +504,211 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
       )}
 
       {/* ╔═══════════════════════════════════════════════════════════════════╗ */}
-      {/* ║ 1. HERO — Sale Price + System Overview (eskize göre)             ║ */}
+      {/* ║ TOP SECTION — KPIs sol sutunda yiginli, Kritik Malzeme sag tepe  ║ */}
       {/* ╚═══════════════════════════════════════════════════════════════════╝ */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
-        {/* Sale Price */}
-        <Card className="relative overflow-hidden bg-primary text-primary-foreground shadow-md">
-          <CardContent className="p-7">
-            <div className="absolute right-5 top-5 opacity-15"><DollarSign className="size-24" /></div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest opacity-80">
-              Toplam EPC Satış Fiyatı
-            </p>
-            <p className="mt-3 text-5xl font-bold tracking-tight tabular-nums">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[3fr_2fr]">
+
+        {/* SOL — Hero + 5 KPI dikey sıkıştırılmış */}
+        <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.4fr_1fr]">
+        {/* Sale Price — kompakt */}
+        <Card className="relative overflow-hidden bg-primary text-primary-foreground shadow-sm">
+          <CardContent className="p-4">
+            <div className="absolute right-3 top-3 opacity-15"><DollarSign className="size-12" /></div>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest opacity-80">
+                Toplam EPC Satış Fiyatı
+              </p>
+              <span className="rounded-full bg-primary-foreground/15 px-2 py-0.5 text-[10px] font-semibold backdrop-blur-sm">
+                Brüt Kar Oranı %{pctOf(result.brutKar).toFixed(1)}
+              </span>
+            </div>
+            <p className="mt-2 text-3xl font-bold tracking-tight tabular-nums">
               ${fmt(result.salePriceUsd)}
             </p>
-            <p className="mt-1.5 text-sm opacity-85 tabular-nums">
-              ₺{fmt(result.salePriceTry)}
-            </p>
-            <p className="mt-1 text-sm opacity-85 tabular-nums">
-              {result.perKwUsd.toFixed(3)} USD/kWp
-            </p>
-            <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary-foreground/15 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
-              <span>Net Kar %{pctOf(result.netKarAmt).toFixed(1)}</span>
+            <div className="mt-1 flex items-center gap-3 text-xs opacity-85 tabular-nums">
+              <span>₺{fmt(result.salePriceTry)}</span>
+              <span className="size-1 rounded-full bg-primary-foreground/40" />
+              <span>{result.perKwUsd.toFixed(3)} USD/kWp</span>
+            </div>
+            <div className="mt-1 flex items-center gap-1 text-[10px] opacity-70">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="inline-flex items-center gap-1 rounded-full bg-primary-foreground/15 px-2 py-0.5 hover:bg-primary-foreground/25"
+                title="Analizi yazdır"
+              >
+                <FileDown className="size-3" /> Yazdır
+              </button>
             </div>
           </CardContent>
         </Card>
 
-        {/* System Overview */}
-        <Card className="shadow-md">
-          <CardContent className="space-y-4 p-7">
-            <div className="flex items-center gap-3">
-              <div className={cn("flex size-10 items-center justify-center rounded-xl", SECTION_TONE.info.iconBg)}>
-                <Zap className={cn("size-5", SECTION_TONE.info.iconText)} />
+        {/* System Overview — kompakt */}
+        <Card className="shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2.5">
+              <div className={cn("flex size-7 shrink-0 items-center justify-center rounded-md", SECTION_TONE.info.iconBg)}>
+                <Zap className={cn("size-3.5", SECTION_TONE.info.iconText)} />
               </div>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  Sistem Bilgileri
-                </p>
-                <p className="text-sm font-semibold">DC / AC / Panel / İnverter</p>
-              </div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Sistem Bilgileri
+              </p>
             </div>
-            <dl className="space-y-2 text-sm">
-              <SysRow
-                label="DC / AC Güç"
-                value={`${s.dcGuc.toFixed(2)} MWp / ${s.acGuc.toFixed(2)} MWe`}
-              />
-              <SysRow
-                label="DC / AC Oranı"
-                value={s.dcGuc > 0 && s.acGuc > 0 ? `${(s.dcGuc / s.acGuc).toFixed(2)}` : "—"}
-              />
-              <SysRow
-                label="Panel"
-                value={`${fmt(panelAdetCalc)} adet · ${s.panelGuc} Wp`}
-              />
-              <SysRow
-                label="İnverter"
-                value={`${s.invAdet || 0} adet · ${s.invGuc || 0} kVA`}
-              />
-              {s.trafoSayisi > 0 && (
-                <SysRow label="Trafo" value={`${s.trafoSayisi} adet`} />
-              )}
+            <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+              <SysRow label="DC" value={`${s.dcGuc.toFixed(2)} MWp`} />
+              <SysRow label="AC" value={`${s.acGuc.toFixed(2)} MWe`} />
+              <SysRow label="DC/AC" value={s.dcGuc > 0 && s.acGuc > 0 ? `${(s.dcGuc / s.acGuc).toFixed(2)}` : "—"} />
+              {s.trafoSayisi > 0 && <SysRow label="Trafo" value={`${s.trafoSayisi} adet`} />}
+              <SysRow label="Panel" value={`${fmt(panelAdetCalc)} × ${s.panelGuc} Wp`} fullWidth />
+              <SysRow label="İnverter" value={`${s.invAdet || 0} × ${s.invGuc || 0} kVA`} fullWidth />
             </dl>
           </CardContent>
         </Card>
       </div>
 
-      {/* ╔═══════════════════════════════════════════════════════════════════╗ */}
-      {/* ║ 2. 5 KPI — Cost breakdown ratios (sketch)                         ║ */}
-      {/* ╚═══════════════════════════════════════════════════════════════════╝ */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <RatioKpi tone="muted" label="Maliyet" value={`$${fmt(directCostPlusCont)}`} pct={pctOf(directCostPlusCont)} />
-        <RatioKpi tone="primary" label="Contingency" value={`$${fmt(result.contingencyAmt)}`} pct={pctOf(result.contingencyAmt)} ratePct={s.contingency} />
-        <RatioKpi tone="info" label="OHC" value={`$${fmt(result.genelGiderAmt)}`} pct={pctOf(result.genelGiderAmt)} ratePct={s.genelGider} />
-        <RatioKpi tone="success" label="Net Kar" value={`$${fmt(result.netKarAmt)}`} pct={pctOf(result.netKarAmt)} ratePct={s.netKar} />
-        <RatioKpi tone="warning" label="Finans Maliyeti" value={`$${fmt(finansMaliyeti)}`} pct={pctOf(finansMaliyeti)} sub={`${s.krediFaiz}% / yıl`} />
+      {/* 5 Cost-Breakdown KPIs */}
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+        <RatioKpi
+          tone="muted"
+          label="Maliyet"
+          value={`$${fmt(directCostPlusCont)}`}
+          pct={pctOf(directCostPlusCont)}
+        />
+        <RatioKpi
+          tone="primary"
+          label="Contingency"
+          value={`$${fmt(result.contingencyAmt)}`}
+          pct={pctOf(result.contingencyAmt)}
+          ratePct={s.contingency}
+          maxRate={10}
+          onRateChange={(v) => saveOneMargin("contingency", v)}
+        />
+        <RatioKpi
+          tone="info"
+          label="OHC"
+          value={`$${fmt(result.genelGiderAmt)}`}
+          pct={pctOf(result.genelGiderAmt)}
+          ratePct={s.genelGider}
+          maxRate={20}
+          onRateChange={(v) => saveOneMargin("genelGider", v)}
+        />
+        <RatioKpi
+          tone="success"
+          label="Net Kar"
+          value={`$${fmt(result.netKarAmt)}`}
+          pct={pctOf(result.netKarAmt)}
+          ratePct={s.netKar}
+          maxRate={30}
+          onRateChange={(v) => saveOneMargin("netKar", v)}
+        />
+        <RatioKpi
+          tone="warning"
+          label="Finans Maliyeti"
+          value={`$${fmt(finansMaliyeti)}`}
+          pct={pctOf(finansMaliyeti)}
+          ratePct={s.krediFaiz}
+          rateLabel="Faiz"
+          maxRate={20}
+          onRateChange={(v) => saveOneMargin("krediFaiz", v)}
+        />
       </div>
 
-      {/* ╔═══════════════════════════════════════════════════════════════════╗ */}
-      {/* ║ 3. WORKSPACE — Tüm Kalemler Özet (left) | Kritik Malzeme (right) ║ */}
-      {/* ╚═══════════════════════════════════════════════════════════════════╝ */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[3fr_2fr]">
+        </div>{/* SOL kapanis */}
 
-        {/* LEFT — Tüm Kalemler Özet */}
+        {/* SAG — Kritik Malzeme Seçimi (top-aligned, sticky on desktop) */}
+        <div className="lg:sticky lg:top-4 lg:self-start">
+          <Card>
+            <CardHeader className="pb-2 pt-3 px-4">
+              <div className="flex items-center gap-2">
+                <div className={cn("size-7 rounded-lg flex items-center justify-center", SECTION_TONE.primary.iconBg)}>
+                  <Zap className={cn("size-3.5", SECTION_TONE.primary.iconText)} />
+                </div>
+                <CardTitle className="text-sm">Kritik Malzeme Seçimi</CardTitle>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">Seçili olan baseline · diğerleri delta</p>
+            </CardHeader>
+            <CardContent className="space-y-3 p-3">
+              {([
+                { label: "Panel", category: "panel" as const, field: "selPanel" as const,
+                  alts: s.panelAlts, selIdx: s.selPanel,
+                  makeTestKesif: (alt: { price: number }) => localKesifA.map((g) => g.code === "A.1" ? { ...g, items: g.items.map((it) => it.code === "A.1.1" ? { ...it, rawFiyat: alt.price } : it) } : g),
+                  priceLabel: (p: number) => `$${p}/Wp` },
+                { label: "Konstrüksiyon", category: "konstr" as const, field: "selKonstr" as const,
+                  alts: s.konstrAlts, selIdx: s.selKonstr,
+                  makeTestKesif: (alt: { price: number }) => localKesifA.map((g) => g.code === "A.3" ? { ...g, items: g.items.map((it) => it.code === "A.3.1" ? { ...it, rawFiyat: alt.price } : it) } : g),
+                  priceLabel: (p: number) => `$${fmt(p)}/MW` },
+                { label: "İnverter", category: "inv" as const, field: "selInv" as const,
+                  alts: s.invAlts.filter((a) => a.price > 0), selIdx: s.selInv,
+                  makeTestKesif: (alt: { price: number }) => localKesifA.map((g) => g.code === "A.2" ? { ...g, items: g.items.map((it) => it.code === "A.2.1" ? { ...it, rawFiyat: alt.price } : it) } : g),
+                  priceLabel: (p: number) => `$${fmt(p)}/adet` },
+              ] as const).map(({ label, category, field, alts, selIdx, makeTestKesif, priceLabel }) => (
+                <div key={field} className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">{label}</p>
+                    <button type="button"
+                      onClick={() => { setAddAltOpen(category); setNewAltName(""); setNewAltPrice(""); }}
+                      className="flex items-center gap-1 text-[10px] font-semibold text-primary-soft-foreground bg-primary-soft hover:bg-primary-soft/70 px-2 py-0.5 rounded-md transition-all">
+                      <Plus className="size-2.5" /> Ekle
+                    </button>
+                  </div>
+                  <div className="space-y-1.5">
+                    {alts.map((alt, i) => {
+                      const testResult = calc(makeTestKesif(alt), localKesifB, s);
+                      const actualIdx = field === "selInv" ? s.invAlts.findIndex((a) => a.name === alt.name) : i;
+                      const isSel = (field === "selInv" ? s.selInv : selIdx) === actualIdx;
+                      const delta = testResult.salePriceUsd - result.salePriceUsd;
+                      const deltaPositive = delta > 50;
+                      const deltaNegative = delta < -50;
+                      return (
+                        <div key={i} className="group relative">
+                          <button type="button" onClick={() => handleAltChange(field, actualIdx)}
+                            className={cn(
+                              "w-full rounded-lg border p-2 text-left transition-all",
+                              isSel ? "border-primary/30 bg-primary-soft shadow-sm" : "hover:border-primary/30 hover:bg-muted/60",
+                            )}>
+                            <div className="mb-0.5 flex items-center justify-between gap-2 pr-4">
+                              <span className="text-[11px] font-semibold text-foreground truncate">{alt.name}</span>
+                              {isSel ? (
+                                <span className="rounded-full border border-primary/30 bg-primary-soft px-1.5 py-0 text-[9px] font-semibold text-primary-soft-foreground whitespace-nowrap">✓ Mevcut</span>
+                              ) : (
+                                <span className={cn(
+                                  "whitespace-nowrap rounded-full border px-1.5 py-0 text-[9px] font-semibold tabular-nums",
+                                  deltaPositive && "border-destructive/30 bg-destructive-soft text-destructive-soft-foreground",
+                                  deltaNegative && "border-success/30 bg-success-soft text-success-soft-foreground",
+                                  !deltaPositive && !deltaNegative && "border-border bg-muted text-muted-foreground",
+                                )} title={`Toplam: $${fmt(testResult.salePriceUsd)}`}>
+                                  {deltaPositive ? `+$${fmt(delta)}` : deltaNegative ? `−$${fmt(Math.abs(delta))}` : "≈ aynı"}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              <span className="font-medium text-primary-soft-foreground">{priceLabel(alt.price)}</span>
+                              {isSel && (<>{" · "}<span className="font-semibold text-foreground">${fmt(testResult.salePriceUsd)}</span></>)}
+                            </div>
+                          </button>
+                          {alts.length > 1 && (
+                            <button type="button" onClick={() => handleRemoveAlt(category, actualIdx)}
+                              className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-destructive-soft opacity-0 transition-all hover:bg-destructive-soft/70 group-hover:opacity-100" title="Kaldır">
+                              <X className="size-2.5 text-destructive-soft-foreground" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+
+      </div>{/* TOP SECTION grid kapanis */}
+
+      {/* ╔═══════════════════════════════════════════════════════════════════╗ */}
+      {/* ║ Tüm Kalemler Özet — full width                                    ║ */}
+      {/* ╚═══════════════════════════════════════════════════════════════════╝ */}
+      <div>
         <Card>
           <CardHeader className="pb-2 pt-3 px-4">
             <div className="flex items-center justify-between">
@@ -707,96 +851,10 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
             </div>
           </CardContent>
         </Card>
-
-        {/* RIGHT — Kritik Malzeme Seçimi */}
-        <Card>
-          <CardHeader className="pb-2 pt-3 px-4">
-            <div className="flex items-center gap-2">
-              <div className={cn("size-7 rounded-lg flex items-center justify-center", SECTION_TONE.primary.iconBg)}>
-                <Zap className={cn("size-3.5", SECTION_TONE.primary.iconText)} />
-              </div>
-              <CardTitle className="text-sm">Kritik Malzeme Seçimi</CardTitle>
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">Seçili olan baseline · diğerleri delta gösterir</p>
-          </CardHeader>
-          <CardContent className="space-y-4 p-4">
-            {([
-              { label: "Panel", category: "panel" as const, field: "selPanel" as const,
-                alts: s.panelAlts, selIdx: s.selPanel,
-                makeTestKesif: (alt: { price: number }) => localKesifA.map((g) => g.code === "A.1" ? { ...g, items: g.items.map((it) => it.code === "A.1.1" ? { ...it, rawFiyat: alt.price } : it) } : g),
-                priceLabel: (p: number) => `$${p}/Wp` },
-              { label: "Konstrüksiyon", category: "konstr" as const, field: "selKonstr" as const,
-                alts: s.konstrAlts, selIdx: s.selKonstr,
-                makeTestKesif: (alt: { price: number }) => localKesifA.map((g) => g.code === "A.3" ? { ...g, items: g.items.map((it) => it.code === "A.3.1" ? { ...it, rawFiyat: alt.price } : it) } : g),
-                priceLabel: (p: number) => `$${fmt(p)}/MW` },
-              { label: "İnverter", category: "inv" as const, field: "selInv" as const,
-                alts: s.invAlts.filter((a) => a.price > 0), selIdx: s.selInv,
-                makeTestKesif: (alt: { price: number }) => localKesifA.map((g) => g.code === "A.2" ? { ...g, items: g.items.map((it) => it.code === "A.2.1" ? { ...it, rawFiyat: alt.price } : it) } : g),
-                priceLabel: (p: number) => `$${fmt(p)}/adet` },
-            ] as const).map(({ label, category, field, alts, selIdx, makeTestKesif, priceLabel }) => (
-              <div key={field} className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">{label}</p>
-                  <button type="button"
-                    onClick={() => { setAddAltOpen(category); setNewAltName(""); setNewAltPrice(""); }}
-                    className="flex items-center gap-1 text-[10px] font-semibold text-primary-soft-foreground bg-primary-soft hover:bg-primary-soft/70 px-2 py-0.5 rounded-md transition-all">
-                    <Plus className="size-2.5" /> Ekle
-                  </button>
-                </div>
-                <div className="space-y-1.5">
-                  {alts.map((alt, i) => {
-                    const testResult = calc(makeTestKesif(alt), localKesifB, s);
-                    const actualIdx = field === "selInv" ? s.invAlts.findIndex((a) => a.name === alt.name) : i;
-                    const isSel = (field === "selInv" ? s.selInv : selIdx) === actualIdx;
-                    const delta = testResult.salePriceUsd - result.salePriceUsd;
-                    const deltaPositive = delta > 50;
-                    const deltaNegative = delta < -50;
-                    return (
-                      <div key={i} className="group relative">
-                        <button type="button" onClick={() => handleAltChange(field, actualIdx)}
-                          className={cn(
-                            "w-full rounded-lg border p-2 text-left transition-all",
-                            isSel ? "border-primary/30 bg-primary-soft shadow-sm" : "hover:border-primary/30 hover:bg-muted/60",
-                          )}>
-                          <div className="mb-0.5 flex items-center justify-between gap-2 pr-4">
-                            <span className="text-[11px] font-semibold text-foreground truncate">{alt.name}</span>
-                            {isSel ? (
-                              <span className="rounded-full border border-primary/30 bg-primary-soft px-1.5 py-0 text-[9px] font-semibold text-primary-soft-foreground whitespace-nowrap">✓ Mevcut</span>
-                            ) : (
-                              <span className={cn(
-                                "whitespace-nowrap rounded-full border px-1.5 py-0 text-[9px] font-semibold tabular-nums",
-                                deltaPositive && "border-destructive/30 bg-destructive-soft text-destructive-soft-foreground",
-                                deltaNegative && "border-success/30 bg-success-soft text-success-soft-foreground",
-                                !deltaPositive && !deltaNegative && "border-border bg-muted text-muted-foreground",
-                              )} title={`Toplam: $${fmt(testResult.salePriceUsd)}`}>
-                                {deltaPositive ? `+$${fmt(delta)}` : deltaNegative ? `−$${fmt(Math.abs(delta))}` : "≈ aynı"}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground">
-                            <span className="font-medium text-primary-soft-foreground">{priceLabel(alt.price)}</span>
-                            {isSel && (<>{" · "}<span className="font-semibold text-foreground">${fmt(testResult.salePriceUsd)}</span></>)}
-                          </div>
-                        </button>
-                        {alts.length > 1 && (
-                          <button type="button" onClick={() => handleRemoveAlt(category, actualIdx)}
-                            className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-destructive-soft opacity-0 transition-all hover:bg-destructive-soft/70 group-hover:opacity-100" title="Kaldır">
-                            <X className="size-2.5 text-destructive-soft-foreground" />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
       </div>
 
       {/* ╔═══════════════════════════════════════════════════════════════════╗ */}
-      {/* ║ 4. DİĞER DETAYLAR — collapsible accordion                         ║ */}
+      {/* ║ DİĞER DETAYLAR — collapsible accordion                            ║ */}
       {/* ╚═══════════════════════════════════════════════════════════════════╝ */}
       <details className="group rounded-xl border bg-card shadow-sm" open>
         <summary className="flex cursor-pointer select-none items-center justify-between gap-3 px-5 py-4 hover:bg-muted/40">
@@ -815,42 +873,6 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
         </summary>
 
         <div className="space-y-5 border-t p-5">
-
-          {/* Marjlar */}
-          <div className="rounded-xl border bg-muted/30 px-3 py-2.5">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className={cn("size-5 rounded-md flex items-center justify-center", SECTION_TONE.primary.iconBg)}>
-                  <DollarSign className={cn("size-3", SECTION_TONE.primary.iconText)} />
-                </div>
-                <h3 className="font-semibold text-foreground text-xs">Marjlar &amp; Faiz Oranı</h3>
-              </div>
-              <div className="flex gap-1.5">
-                {marginDirty && (
-                  <Button size="sm" className="h-7 text-xs px-2.5" onClick={handleSaveMargins} disabled={saving}>
-                    <Save className="size-3" />Kaydet
-                  </Button>
-                )}
-                <Button size="sm" variant="outline" className="h-7 text-xs px-2.5" onClick={() => window.print()}>
-                  <FileDown className="size-3" />Yazdır
-                </Button>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              {[
-                { label: "Contingency (%)", field: "contingency" as const, val: s.contingency, hint: `$${fmt(result.contingencyAmt)} · ₺${fmt(result.contingencyAmt * s.usd)}`, color: "text-muted-foreground" },
-                { label: "Overhead (%)", field: "genelGider" as const, val: s.genelGider, hint: `$${fmt(result.genelGiderAmt)} · ₺${fmt(result.genelGiderAmt * s.usd)}`, color: "text-info-soft-foreground" },
-                { label: "Net Kar (%)", field: "netKar" as const, val: s.netKar, hint: `$${fmt(result.netKarAmt)} · ₺${fmt(result.netKarAmt * s.usd)}`, color: "text-success-soft-foreground" },
-                { label: "Kredi Faizi (%/yıl)", field: "krediFaiz" as const, val: s.krediFaiz, hint: `Finans Maliyeti: $${fmt(finansMaliyeti)} (Cash Flow ile aynı)`, color: "text-warning-soft-foreground" },
-              ].map((m) => (
-                <div key={m.field} className="space-y-1">
-                  <Label className="text-xs">{m.label}</Label>
-                  <Input type="number" step="0.5" value={m.val} onChange={(e) => updateMargin(m.field, e.target.value)} className="h-8 text-sm" />
-                  <p className={cn("text-[10px] font-medium", m.color)}>{m.hint}</p>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* Maliyet Dağılımı + Halka — yan yana */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -886,34 +908,92 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
                     </div>
                   </div>
                 )}
-                <div className="space-y-1">
+                <div className="space-y-px">
                   {[...allPieItems].sort((a, b) => b.value - a.value).map((d) => {
                     const hidden = hiddenItemKeys.has(d.key);
                     const pct = totalPieValue > 0 && !hidden ? (d.value / totalPieValue) * 100 : 0;
                     const isA = d.key.startsWith("A");
+                    const isDrilled = drilledGroupCode === d.key;
+                    const isFaded = drilledGroupCode !== null && !isDrilled;
                     return (
-                      <button key={d.key} type="button" onClick={() => togglePieItem(d.key)}
-                        className={cn("group flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-xs transition-colors",
-                          hidden ? "opacity-40 hover:opacity-60" : "hover:bg-muted/60")}>
-                        <span className={cn("shrink-0 rounded-md border px-1.5 py-0.5 font-mono text-[10px] font-semibold",
-                          isA ? "border-primary/30 bg-primary-soft text-primary-soft-foreground" : "border-info/30 bg-info-soft text-info-soft-foreground")}>
-                          {d.key}
-                        </span>
-                        <span className="min-w-0 flex-1 truncate text-left text-muted-foreground group-hover:text-foreground">
-                          {d.name.replace(`${d.key} `, "")}
-                        </span>
-                        <div className="hidden h-1.5 w-32 shrink-0 overflow-hidden rounded-full bg-muted sm:block lg:w-48">
-                          <div className={cn("h-full rounded-full transition-all", isA ? "bg-primary" : "bg-info")} style={{ width: hidden ? "0%" : `${pct}%` }} />
-                        </div>
-                        <span className="w-12 shrink-0 text-right font-semibold tabular-nums text-foreground">{hidden ? "—" : `${pct.toFixed(1)}%`}</span>
-                        <span className="w-20 shrink-0 text-right tabular-nums text-muted-foreground">{hidden ? "—" : `$${fmt(d.value)}`}</span>
-                      </button>
+                      <div
+                        key={d.key}
+                        className={cn(
+                          "group flex w-full items-center gap-2 rounded-md px-1.5 py-0.5 text-[11px] transition-colors",
+                          isDrilled && "bg-primary-soft/40 ring-1 ring-primary/30",
+                          !isDrilled && "hover:bg-muted/60",
+                          hidden && "opacity-40",
+                          isFaded && !hidden && "opacity-50",
+                        )}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setDrilledGroupCode(isDrilled ? null : d.key)}
+                          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                          title={isDrilled ? "Halka odağını kapat" : "Halka grafiğinde aç"}
+                        >
+                          <span
+                            className={cn(
+                              "shrink-0 rounded-md border px-1 py-0 font-mono text-[10px] font-semibold leading-tight",
+                              isA
+                                ? "border-primary/30 bg-primary-soft text-primary-soft-foreground"
+                                : "border-info/30 bg-info-soft text-info-soft-foreground",
+                            )}
+                          >
+                            {d.key}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate text-muted-foreground group-hover:text-foreground">
+                            {d.name.replace(`${d.key} `, "")}
+                          </span>
+                          <div className="hidden h-1 w-28 shrink-0 overflow-hidden rounded-full bg-muted sm:block lg:w-40">
+                            <div
+                              className={cn(
+                                "h-full rounded-full transition-all",
+                                isA ? "bg-primary" : "bg-info",
+                              )}
+                              style={{ width: hidden ? "0%" : `${pct}%` }}
+                            />
+                          </div>
+                          <span className="w-10 shrink-0 text-right font-semibold tabular-nums text-foreground">
+                            {hidden ? "—" : `${pct.toFixed(1)}%`}
+                          </span>
+                          <span className="w-16 shrink-0 text-right tabular-nums text-muted-foreground">
+                            {hidden ? "—" : `$${fmt(d.value)}`}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            togglePieItem(d.key);
+                          }}
+                          className={cn(
+                            "ml-1 flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                            hidden && "text-muted-foreground/60",
+                          )}
+                          title={hidden ? "Göster" : "Gizle"}
+                          aria-label={hidden ? "Göster" : "Gizle"}
+                        >
+                          {hidden ? (
+                            // closed eye
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-3">
+                              <path d="M3 3l18 18M10.58 10.58a2 2 0 002.83 2.83M9.88 5.08A10.94 10.94 0 0112 5c5 0 9.27 3.11 11 8a13.16 13.16 0 01-2.69 4.06M6.61 6.61A13.526 13.526 0 001 13c1.73 4.89 6 8 11 8a10.94 10.94 0 005.94-1.74" />
+                            </svg>
+                          ) : (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-3">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
-                <div className="mt-3 flex items-center gap-4 border-t pt-3 text-[11px] text-muted-foreground">
-                  <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-primary" /> Keşif-A</span>
-                  <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-info" /> Keşif-B</span>
+                <div className="mt-2 flex items-center gap-3 border-t pt-2 text-[10px] text-muted-foreground">
+                  <span className="flex items-center gap-1.5"><span className="size-2 rounded-sm bg-primary" /> Keşif-A</span>
+                  <span className="flex items-center gap-1.5"><span className="size-2 rounded-sm bg-info" /> Keşif-B</span>
+                  <span className="ml-auto">Satır → halkayı odakla · 👁 → gizle</span>
                 </div>
               </CardContent>
             </Card>
@@ -1214,11 +1294,24 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
 
 /* ─── Helpers (in-file) ─────────────────────────────────────────────────── */
 
-function SysRow({ label, value }: { label: string; value: string }) {
+function SysRow({
+  label,
+  value,
+  fullWidth,
+}: {
+  label: string;
+  value: string;
+  fullWidth?: boolean;
+}) {
   return (
-    <div className="flex items-baseline justify-between gap-3 border-b pb-2 last:border-0 last:pb-0">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="text-sm font-semibold tabular-nums tracking-tight">{value}</dd>
+    <div
+      className={cn(
+        "flex items-baseline justify-between gap-2",
+        fullWidth && "col-span-2",
+      )}
+    >
+      <dt className="text-[10px] text-muted-foreground">{label}</dt>
+      <dd className="text-xs font-semibold tabular-nums tracking-tight">{value}</dd>
     </div>
   );
 }
@@ -1270,16 +1363,42 @@ function RatioKpi({
   value,
   pct,
   ratePct,
+  rateLabel,
   sub,
+  onRateChange,
+  maxRate = 30,
 }: {
   tone: keyof typeof RATIO_TONE;
   label: string;
   value: string;
   pct: number;
   ratePct?: number;
+  rateLabel?: string;
   sub?: string;
+  onRateChange?: (newRate: number) => Promise<void> | void;
+  maxRate?: number;
 }) {
   const t = RATIO_TONE[tone];
+  const editable = ratePct !== undefined && !!onRateChange;
+
+  // Manuel giris (input) state'i
+  const [manualEditing, setManualEditing] = useState(false);
+  const [tempRate, setTempRate] = useState("");
+
+  function startManualEdit() {
+    if (!editable) return;
+    setTempRate(String(ratePct));
+    setManualEditing(true);
+  }
+
+  async function commitManual() {
+    setManualEditing(false);
+    const v = parseFloat(tempRate);
+    if (!isNaN(v) && onRateChange && Math.abs(v - (ratePct ?? 0)) > 0.001) {
+      await onRateChange(v);
+    }
+  }
+
   return (
     <div className={cn("rounded-xl border p-3 shadow-sm", t.card)}>
       <p className={cn("text-[10px] font-semibold uppercase tracking-widest", t.label)}>
@@ -1288,21 +1407,85 @@ function RatioKpi({
       <p className={cn("mt-1 text-lg font-bold tabular-nums tracking-tight", t.value)}>
         {value}
       </p>
-      <div className="mt-2 flex items-center gap-2">
-        <div className="h-1 flex-1 overflow-hidden rounded-full bg-foreground/10">
-          <div
-            className={cn("h-full rounded-full transition-all", t.bar)}
-            style={{ width: `${Math.min(Math.max(pct, 0), 100)}%` }}
-          />
-        </div>
-        <span className={cn("w-12 text-right text-[10px] font-semibold tabular-nums", t.value)}>
-          %{pct.toFixed(1)}
-        </span>
-      </div>
-      {(ratePct !== undefined || sub) && (
-        <p className={cn("mt-1 text-[10px]", t.sub)}>
-          {ratePct !== undefined ? `Oran: %${ratePct}` : sub}
-        </p>
+
+      {editable ? (
+        <>
+          {/* Slider — surukleyerek 0.1 adimda oran ver */}
+          <div className="mt-2.5">
+            <input
+              type="range"
+              min={0}
+              max={maxRate}
+              step={0.1}
+              value={ratePct ?? 0}
+              onChange={(e) => onRateChange?.(parseFloat(e.target.value))}
+              className="h-1.5 w-full cursor-ew-resize appearance-none rounded-full bg-foreground/10 accent-current"
+              style={{ accentColor: "currentColor" }}
+            />
+            <div className="mt-1 flex items-center justify-between gap-2 text-[10px]">
+              <span className={cn(t.sub)}>
+                {rateLabel ?? "Oran"}:{" "}
+                <span className={cn("font-semibold tabular-nums", t.value)}>
+                  %{(ratePct ?? 0).toFixed(1)}
+                </span>
+              </span>
+              <span className={cn("tabular-nums", t.sub)}>
+                %{pct.toFixed(1)} satış
+              </span>
+            </div>
+          </div>
+
+          {/* Manuel giris input — dursun ki elle de yazabilsin */}
+          {manualEditing ? (
+            <input
+              type="number"
+              step="0.1"
+              value={tempRate}
+              onChange={(e) => setTempRate(e.target.value)}
+              onBlur={commitManual}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                if (e.key === "Escape") setManualEditing(false);
+              }}
+              autoFocus
+              className={cn(
+                "mt-1.5 h-6 w-full rounded-md border bg-background px-2 text-[11px] font-semibold tabular-nums shadow-sm focus:outline-none focus:ring-2 focus:ring-ring",
+                t.value,
+              )}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={startManualEdit}
+              className={cn(
+                "mt-1.5 flex w-full items-center justify-between gap-1 rounded-md border border-foreground/10 bg-foreground/5 px-2 py-0.5 text-[10px] transition-colors hover:bg-foreground/10",
+                t.sub,
+              )}
+              title="Oranı manuel gir"
+            >
+              <span>Manuel: %{(ratePct ?? 0).toFixed(1)}</span>
+              <Edit2 className="size-2.5 opacity-60" />
+            </button>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Salt-okunur bar (Maliyet kartı icin) */}
+          <div className="mt-2 flex items-center gap-2">
+            <div className="h-1 flex-1 overflow-hidden rounded-full bg-foreground/10">
+              <div
+                className={cn("h-full rounded-full transition-all", t.bar)}
+                style={{ width: `${Math.min(Math.max(pct, 0), 100)}%` }}
+              />
+            </div>
+            <span className={cn("w-12 text-right text-[10px] font-semibold tabular-nums", t.value)}>
+              %{pct.toFixed(1)}
+            </span>
+          </div>
+          {sub && (
+            <p className={cn("mt-1.5 text-[10px]", t.sub)}>{sub}</p>
+          )}
+        </>
       )}
     </div>
   );
