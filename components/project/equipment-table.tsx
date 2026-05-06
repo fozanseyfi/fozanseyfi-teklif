@@ -45,10 +45,10 @@ export function EquipmentTable({ project }: { project: ProjectWithData }) {
   return (
     <div className="space-y-8">
       {project.equipmentItems.length === 0 && project.costItems.length === 0 && (
-        <div className="text-center py-8 rounded-xl border border-dashed border-slate-300 bg-slate-50">
-          <p className="text-slate-500 mb-3">Henüz ekipman girilmedi</p>
+        <div className="rounded-xl border border-dashed bg-muted py-8 text-center">
+          <p className="mb-3 text-muted-foreground">Henüz ekipman girilmedi</p>
           <Button variant="secondary" onClick={handleSeed} disabled={isPending}>
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="size-4" />
             {isPending ? "Dolduruluyor..." : "Otomatik Doldur (Tahmin)"}
           </Button>
         </div>
@@ -56,43 +56,46 @@ export function EquipmentTable({ project }: { project: ProjectWithData }) {
 
       {/* Ekipman Listesi */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-slate-800">Ekipman Listesi</h3>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-semibold text-foreground">Ekipman Listesi</h3>
           <AddEquipmentDialog projectId={project.id} />
         </div>
         {project.equipmentItems.length > 0 && (
-          <div className="rounded-xl border border-slate-200 overflow-hidden">
+          <div className="overflow-hidden rounded-xl border">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500">
-                  <th className="text-left px-4 py-2.5 font-medium text-xs uppercase tracking-wider">Kategori</th>
-                  <th className="text-left px-4 py-2.5 font-medium text-xs uppercase tracking-wider">Marka / Model</th>
-                  <th className="text-right px-4 py-2.5 font-medium text-xs uppercase tracking-wider">Adet</th>
-                  <th className="text-right px-4 py-2.5 font-medium text-xs uppercase tracking-wider">Birim Fiyat</th>
-                  <th className="text-right px-4 py-2.5 font-medium text-xs uppercase tracking-wider">Toplam</th>
+                <tr className="border-b bg-muted text-muted-foreground">
+                  <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider">Kategori</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider">Marka / Model</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wider">Adet</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wider">Birim Fiyat</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wider">Toplam</th>
                   <th className="px-4 py-2.5" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y">
                 {project.equipmentItems.map((item, idx) => (
-                  <tr key={item.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
-                    <td className="px-4 py-3 text-slate-700">{EQUIPMENT_CATEGORY_LABELS[item.category]}</td>
-                    <td className="px-4 py-3 text-slate-500">{[item.brand, item.model].filter(Boolean).join(" ") || "—"}</td>
-                    <td className="px-4 py-3 text-right text-slate-700">{item.quantity}</td>
-                    <td className="px-4 py-3 text-right text-slate-700">{formatCurrency(item.unitPrice)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-slate-800">{formatCurrency(item.totalPrice)}</td>
+                  <tr key={item.id} className={idx % 2 === 0 ? "bg-card" : "bg-muted/40"}>
+                    <td className="px-4 py-3 text-foreground">{EQUIPMENT_CATEGORY_LABELS[item.category]}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{[item.brand, item.model].filter(Boolean).join(" ") || "—"}</td>
+                    <td className="px-4 py-3 text-right text-foreground">{item.quantity}</td>
+                    <td className="px-4 py-3 text-right text-foreground">{formatCurrency(item.unitPrice)}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-foreground">{formatCurrency(item.totalPrice)}</td>
                     <td className="px-4 py-3 text-right">
                       <form action={deleteEquipmentItem.bind(null, item.id, project.id)}>
-                        <button type="submit" className="text-slate-300 hover:text-red-500 transition-colors">
-                          <Trash2 className="w-4 h-4" />
+                        <button
+                          type="submit"
+                          className="text-muted-foreground transition-colors hover:text-destructive"
+                        >
+                          <Trash2 className="size-4" />
                         </button>
                       </form>
                     </td>
                   </tr>
                 ))}
-                <tr className="bg-slate-50 font-semibold border-t border-slate-200">
-                  <td colSpan={4} className="px-4 py-2.5 text-slate-500 text-right">Ekipman Toplamı</td>
-                  <td className="px-4 py-2.5 text-right text-slate-800">{formatCurrency(equipmentTotal)}</td>
+                <tr className="border-t bg-muted font-semibold">
+                  <td colSpan={4} className="px-4 py-2.5 text-right text-muted-foreground">Ekipman Toplamı</td>
+                  <td className="px-4 py-2.5 text-right text-foreground">{formatCurrency(equipmentTotal)}</td>
                   <td />
                 </tr>
               </tbody>
@@ -103,39 +106,42 @@ export function EquipmentTable({ project }: { project: ProjectWithData }) {
 
       {/* Maliyet Kalemleri */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-slate-800">Maliyet Kalemleri</h3>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-semibold text-foreground">Maliyet Kalemleri</h3>
           <AddCostDialog projectId={project.id} />
         </div>
         {project.costItems.length > 0 && (
-          <div className="rounded-xl border border-slate-200 overflow-hidden">
+          <div className="overflow-hidden rounded-xl border">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500">
-                  <th className="text-left px-4 py-2.5 font-medium text-xs uppercase tracking-wider">Kalem</th>
-                  <th className="text-left px-4 py-2.5 font-medium text-xs uppercase tracking-wider">Açıklama</th>
-                  <th className="text-right px-4 py-2.5 font-medium text-xs uppercase tracking-wider">Tutar</th>
+                <tr className="border-b bg-muted text-muted-foreground">
+                  <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider">Kalem</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider">Açıklama</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wider">Tutar</th>
                   <th className="px-4 py-2.5" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y">
                 {project.costItems.map((item, idx) => (
-                  <tr key={item.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
-                    <td className="px-4 py-3 text-slate-700">{COST_CATEGORY_LABELS[item.category]}</td>
-                    <td className="px-4 py-3 text-slate-500">{item.description}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-slate-800">{formatCurrency(item.amount)}</td>
+                  <tr key={item.id} className={idx % 2 === 0 ? "bg-card" : "bg-muted/40"}>
+                    <td className="px-4 py-3 text-foreground">{COST_CATEGORY_LABELS[item.category]}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{item.description}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-foreground">{formatCurrency(item.amount)}</td>
                     <td className="px-4 py-3 text-right">
                       <form action={deleteCostItem.bind(null, item.id, project.id)}>
-                        <button type="submit" className="text-slate-300 hover:text-red-500 transition-colors">
-                          <Trash2 className="w-4 h-4" />
+                        <button
+                          type="submit"
+                          className="text-muted-foreground transition-colors hover:text-destructive"
+                        >
+                          <Trash2 className="size-4" />
                         </button>
                       </form>
                     </td>
                   </tr>
                 ))}
-                <tr className="bg-slate-50 font-semibold border-t border-slate-200">
-                  <td colSpan={2} className="px-4 py-2.5 text-slate-500 text-right">Maliyet Toplamı</td>
-                  <td className="px-4 py-2.5 text-right text-slate-800">{formatCurrency(costTotal)}</td>
+                <tr className="border-t bg-muted font-semibold">
+                  <td colSpan={2} className="px-4 py-2.5 text-right text-muted-foreground">Maliyet Toplamı</td>
+                  <td className="px-4 py-2.5 text-right text-foreground">{formatCurrency(costTotal)}</td>
                   <td />
                 </tr>
               </tbody>
@@ -146,23 +152,23 @@ export function EquipmentTable({ project }: { project: ProjectWithData }) {
 
       {/* Fiyat Özeti */}
       {(project.equipmentItems.length > 0 || project.costItems.length > 0) && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-          <h3 className="font-semibold text-amber-800 mb-4">Fiyat Özeti</h3>
+        <div className="rounded-xl border border-primary/30 bg-primary-soft p-5">
+          <h3 className="mb-4 font-semibold text-primary-soft-foreground">Fiyat Özeti</h3>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between text-slate-600">
+            <div className="flex justify-between text-muted-foreground">
               <span>Ekipman Toplamı</span>
               <span>{formatCurrency(equipmentTotal)}</span>
             </div>
-            <div className="flex justify-between text-slate-600">
+            <div className="flex justify-between text-muted-foreground">
               <span>Hizmet & Maliyet Toplamı</span>
               <span>{formatCurrency(costTotal)}</span>
             </div>
-            <div className="border-t border-amber-200 pt-2 flex justify-between text-slate-700 font-medium">
+            <div className="flex justify-between border-t border-primary/30 pt-2 font-medium text-foreground">
               <span>Toplam Maliyet</span>
               <span>{formatCurrency(totalCost)}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <span className="text-slate-600">Kâr Marjı</span>
+              <span className="text-muted-foreground">Kâr Marjı</span>
               <div className="flex items-center gap-2">
                 <input
                   type="range"
@@ -170,18 +176,18 @@ export function EquipmentTable({ project }: { project: ProjectWithData }) {
                   max={50}
                   value={profitMargin}
                   onChange={(e) => setProfitMargin(parseInt(e.target.value))}
-                  className="w-24 accent-amber-500"
+                  className="w-24 accent-primary"
                 />
-                <span className="text-amber-700 font-bold w-12 text-right">%{profitMargin}</span>
-                <span className="text-slate-500">{formatCurrency(margin)}</span>
+                <span className="w-12 text-right font-bold text-primary-soft-foreground">%{profitMargin}</span>
+                <span className="text-muted-foreground">{formatCurrency(margin)}</span>
               </div>
             </div>
-            <div className="border-t border-amber-300 pt-2 flex justify-between text-amber-700 font-bold text-base">
+            <div className="flex justify-between border-t border-primary/40 pt-2 text-base font-bold text-primary-soft-foreground">
               <span>SATIŞ FİYATI</span>
               <span>{formatCurrency(salePrice)}</span>
             </div>
             {project.totalPowerKw > 0 && (
-              <div className="flex justify-between text-slate-400 text-xs">
+              <div className="flex justify-between text-xs text-muted-foreground">
                 <span>kWp Başına</span>
                 <span>{formatCurrency(salePrice / project.totalPowerKw)} /kWp</span>
               </div>
@@ -195,7 +201,7 @@ export function EquipmentTable({ project }: { project: ProjectWithData }) {
         <div className="flex justify-between">
           <Button variant="outline" asChild>
             <Link href={`/projects/${project.id}/pricing`}>
-              <ArrowLeft className="w-4 h-4" /> Geri
+              <ArrowLeft className="size-4" /> Geri
             </Link>
           </Button>
           <Button type="submit" size="lg">
@@ -213,7 +219,7 @@ function AddEquipmentDialog({ projectId }: { projectId: string }) {
   if (!open) {
     return (
       <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
-        <Plus className="w-4 h-4" /> Ekipman Ekle
+        <Plus className="size-4" /> Ekipman Ekle
       </Button>
     );
   }
@@ -224,7 +230,7 @@ function AddEquipmentDialog({ projectId }: { projectId: string }) {
         await addEquipmentItem(projectId, fd);
         setOpen(false);
       }}
-      className="flex items-end gap-2 flex-wrap"
+      className="flex flex-wrap items-end gap-2"
     >
       <Select name="category" defaultValue="PANEL">
         <SelectTrigger className="w-44">
@@ -252,7 +258,7 @@ function AddCostDialog({ projectId }: { projectId: string }) {
   if (!open) {
     return (
       <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
-        <Plus className="w-4 h-4" /> Maliyet Ekle
+        <Plus className="size-4" /> Maliyet Ekle
       </Button>
     );
   }
@@ -263,7 +269,7 @@ function AddCostDialog({ projectId }: { projectId: string }) {
         await addCostItem(projectId, fd);
         setOpen(false);
       }}
-      className="flex items-end gap-2 flex-wrap"
+      className="flex flex-wrap items-end gap-2"
     >
       <Select name="category" defaultValue="INSTALLATION_LABOR">
         <SelectTrigger className="w-44">

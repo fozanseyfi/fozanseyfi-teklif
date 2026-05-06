@@ -29,7 +29,7 @@ export function DeleteProjectButton({ projectId }: { projectId: string }) {
             }
           }}
         >
-          {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : "Evet, Sil"}
+          {deleting ? <Loader2 className="size-3 animate-spin" /> : "Evet, Sil"}
         </Button>
         <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>İptal</Button>
       </div>
@@ -40,10 +40,10 @@ export function DeleteProjectButton({ projectId }: { projectId: string }) {
     <Button
       size="sm"
       variant="ghost"
-      className="text-red-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+      className="text-destructive opacity-0 transition-opacity hover:bg-destructive-soft hover:text-destructive-soft-foreground group-hover:opacity-100"
       onClick={() => setConfirming(true)}
     >
-      <Trash2 className="w-3.5 h-3.5" />
+      <Trash2 className="size-3.5" />
     </Button>
   );
 }

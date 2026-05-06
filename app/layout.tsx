@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "SolarTeklif — Güneş Enerjisi Teklif Platformu",
@@ -11,8 +15,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="tr" className="h-full">
-      <body className={`${inter.className} min-h-full bg-slate-50 text-slate-900 antialiased`}>
+    <html lang="tr" className={`${inter.variable} h-full antialiased`}>
+      <body className="bg-background text-foreground min-h-full font-sans">
         {children}
       </body>
     </html>

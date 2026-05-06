@@ -6,10 +6,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const user = await requireAuth();
 
   return (
-    <div className="min-h-screen" style={{ background: "#f0f4f8" }}>
+    <div className="min-h-screen bg-background">
       <Sidebar userName={user.name} firmName={user.firm.name} role={user.role} />
       <div className="pl-64">
-        <main className="min-h-screen p-8">{children}</main>
+        <main key="dashboard-main" className="min-h-screen p-8 animate-in-up">
+          {children}
+        </main>
       </div>
       <Toaster theme="light" position="top-right" richColors />
     </div>

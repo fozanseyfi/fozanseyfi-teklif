@@ -15,41 +15,41 @@ export default async function AdminPage() {
   ]);
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       <Card>
         <CardContent className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-gray-500">Toplam Firma</p>
-            <Building2 className="w-4 h-4 text-gray-600" />
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">Toplam Firma</p>
+            <Building2 className="size-4 text-muted-foreground" />
           </div>
-          <p className="text-3xl font-bold text-gray-100">{formatNumber(firmCount)}</p>
+          <p className="text-3xl font-bold tracking-tight text-foreground">{formatNumber(firmCount)}</p>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-gray-500">Toplam Proje</p>
-            <FolderOpen className="w-4 h-4 text-gray-600" />
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">Toplam Proje</p>
+            <FolderOpen className="size-4 text-muted-foreground" />
           </div>
-          <p className="text-3xl font-bold text-gray-100">{formatNumber(projectCount)}</p>
+          <p className="text-3xl font-bold tracking-tight text-foreground">{formatNumber(projectCount)}</p>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-gray-500">Toplam Kullanıcı</p>
-            <Users className="w-4 h-4 text-gray-600" />
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">Toplam Kullanıcı</p>
+            <Users className="size-4 text-muted-foreground" />
           </div>
-          <p className="text-3xl font-bold text-gray-100">{formatNumber(userCount)}</p>
+          <p className="text-3xl font-bold tracking-tight text-foreground">{formatNumber(userCount)}</p>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-gray-500">Oluşturulan PDF</p>
-            <FileText className="w-4 h-4 text-gray-600" />
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">Oluşturulan PDF</p>
+            <FileText className="size-4 text-muted-foreground" />
           </div>
-          <p className="text-3xl font-bold text-gray-100">{formatNumber(proposalCount)}</p>
+          <p className="text-3xl font-bold tracking-tight text-foreground">{formatNumber(proposalCount)}</p>
         </CardContent>
       </Card>
     </div>

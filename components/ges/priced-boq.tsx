@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { Search, FileDown, ChevronDown, ChevronRight, AlertTriangle } from "lucide-react";
 
 function fmt(n: number, d = 0) {
@@ -167,7 +168,7 @@ export function PricedBoQ({ kesifA, kesifB, settings }: Props) {
       return `<tr class="group-row">
         <td colspan="2"><span class="${isA ? "badge-a" : "badge-b"}">${g.code}</span> <strong>${g.name}</strong></td>
         <td colspan="4"></td>
-        <td style="text-align:right;font-weight:800;color:${isA ? "#d97706" : "#7c3aed"}">$${fmt(grpTotal)}</td>
+        <td style="text-align:right;font-weight:800;color:${isA ? "#059669" : "#047857"}">$${fmt(grpTotal)}</td>
         <td style="text-align:right;color:#64748b">₺${fmt(grpTotal * settings.usd)}</td>
       </tr>${itemRows}`;
     }).join("");
@@ -222,11 +223,13 @@ export function PricedBoQ({ kesifA, kesifB, settings }: Props) {
   return (
     <div className="space-y-4">
       {/* Warning banner */}
-      <div className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
-        <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+      <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3">
+        <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warning-soft-foreground" />
         <div>
-          <p className="text-sm font-bold text-amber-800">Satış Fiyatı Dağılımı — Maliyet Değildir</p>
-          <p className="text-xs text-amber-700 mt-0.5">
+          <p className="text-sm font-semibold text-warning-soft-foreground">
+            Satış Fiyatı Dağılımı — Maliyet Değildir
+          </p>
+          <p className="mt-0.5 text-xs text-warning-soft-foreground/90">
             Bu sekmedeki fiyatlar, toplam EPC satış fiyatının kalemlere orantısal olarak dağıtılmış halidir.
             Gerçek maliyet rakamları değildir; müşteriye gönderilmek üzere tasarlanmıştır.
             Kar dağıtılmasını istemediğiniz kalemleri <strong>⊘ Karsız</strong> olarak işaretleyin.
@@ -235,22 +238,22 @@ export function PricedBoQ({ kesifA, kesifB, settings }: Props) {
       </div>
 
       {/* Header row */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Priced BoQ</h2>
-          <p className="text-sm text-slate-500">
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">Priced BoQ</h2>
+          <p className="text-sm text-muted-foreground">
             Satış Fiyatı:{" "}
-            <span className="font-bold text-amber-700">${fmt(salePrice)}</span>
+            <span className="font-semibold text-primary">${fmt(salePrice)}</span>
             {" / "}₺{fmt(salePrice * settings.usd)}
             {excludedCodes.size > 0 && (
-              <span className="ml-2 text-slate-400">· {excludedCodes.size} kalem karsız</span>
+              <span className="ml-2 text-muted-foreground">· {excludedCodes.size} kalem karsız</span>
             )}
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            <Input className="pl-8 h-8 text-sm w-44" placeholder="Ara..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input className="h-8 w-44 pl-8 text-sm" placeholder="Ara..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <Button variant="outline" size="sm" onClick={() => setCollapsed(Object.fromEntries(allGroups.map((g) => [g.code, true])))}>
             Tümünü Kapat
@@ -259,13 +262,13 @@ export function PricedBoQ({ kesifA, kesifB, settings }: Props) {
             Tümünü Aç
           </Button>
           <Button variant="outline" size="sm" onClick={handlePrintSummary}>
-            <FileDown className="w-4 h-4" /> Özet PDF
+            <FileDown className="size-4" /> Özet PDF
           </Button>
           <Button variant="outline" size="sm" onClick={handlePrintDetail}>
-            <FileDown className="w-4 h-4" /> Detay PDF
+            <FileDown className="size-4" /> Detay PDF
           </Button>
           <Button variant="outline" size="sm" onClick={handleExcel}>
-            <FileDown className="w-4 h-4" /> Excel
+            <FileDown className="size-4" /> Excel
           </Button>
         </div>
       </div>
@@ -278,27 +281,35 @@ export function PricedBoQ({ kesifA, kesifB, settings }: Props) {
           const grpTotal = groupSaleTotals.get(group.code) ?? 0;
 
           return (
-            <Card key={group.code} className="overflow-hidden border-0 shadow-sm shadow-slate-200/60">
+            <Card key={group.code} className="overflow-hidden shadow-sm">
               <CardHeader
-                className="py-2.5 cursor-pointer select-none hover:bg-slate-50 transition-colors"
+                className="cursor-pointer select-none py-2.5 transition-colors hover:bg-muted/40"
                 onClick={() => setCollapsed((p) => ({ ...p, [group.code]: !p[group.code] }))}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {isCollapsed
-                      ? <ChevronRight className="w-4 h-4 text-slate-400" />
-                      : <ChevronDown className="w-4 h-4 text-slate-400" />
+                      ? <ChevronRight className="size-4 text-muted-foreground" />
+                      : <ChevronDown className="size-4 text-muted-foreground" />
                     }
-                    <Badge variant="outline" className={`text-xs font-mono ${isA ? "border-amber-300 text-amber-700 bg-amber-50" : "border-purple-300 text-purple-700 bg-purple-50"}`}>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "font-mono text-xs",
+                        isA
+                          ? "border-primary/30 bg-primary-soft text-primary-soft-foreground"
+                          : "border-info/30 bg-info-soft text-info-soft-foreground",
+                      )}
+                    >
                       {group.code}
                     </Badge>
-                    <CardTitle className="text-sm font-semibold text-slate-700">{group.name}</CardTitle>
-                    <span className="text-xs text-slate-400">({group.items.length} kalem)</span>
+                    <CardTitle className="text-sm font-semibold text-foreground">{group.name}</CardTitle>
+                    <span className="text-xs text-muted-foreground">({group.items.length} kalem)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-amber-600">${fmt(grpTotal)}</span>
-                    <span className="text-xs text-slate-400">₺{fmt(grpTotal * settings.usd)}</span>
-                    {salePrice > 0 && <span className="text-xs text-blue-400 hidden sm:inline">{(grpTotal / salePrice * 100).toFixed(1)}%</span>}
+                    <span className="text-sm font-semibold text-primary">${fmt(grpTotal)}</span>
+                    <span className="text-xs text-muted-foreground">₺{fmt(grpTotal * settings.usd)}</span>
+                    {salePrice > 0 && <span className="hidden text-xs text-info-soft-foreground sm:inline">{(grpTotal / salePrice * 100).toFixed(1)}%</span>}
                   </div>
                 </div>
               </CardHeader>
@@ -308,43 +319,50 @@ export function PricedBoQ({ kesifA, kesifB, settings }: Props) {
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200">
-                          <th className="px-3 py-2 text-left text-slate-500 font-medium w-20">Kod</th>
-                          <th className="px-3 py-2 text-left text-slate-500 font-medium">Tanım</th>
-                          <th className="px-3 py-2 text-left text-slate-500 font-medium w-32">Tip/Model</th>
-                          <th className="px-3 py-2 text-left text-slate-500 font-medium w-28">Marka</th>
-                          <th className="px-3 py-2 text-center text-slate-500 font-medium w-16">Birim</th>
-                          <th className="px-3 py-2 text-right text-slate-500 font-medium w-24">Miktar</th>
-                          <th className="px-3 py-2 text-right text-slate-500 font-medium w-28">Satış USD</th>
-                          <th className="px-3 py-2 text-right text-slate-500 font-medium w-28">Satış TRY</th>
-                          <th className="px-3 py-2 text-center text-slate-500 font-medium w-20">Kar Dağıt</th>
+                        <tr className="border-b bg-muted">
+                          <th className="w-20 px-3 py-2 text-left font-medium text-muted-foreground">Kod</th>
+                          <th className="px-3 py-2 text-left font-medium text-muted-foreground">Tanım</th>
+                          <th className="w-32 px-3 py-2 text-left font-medium text-muted-foreground">Tip/Model</th>
+                          <th className="w-28 px-3 py-2 text-left font-medium text-muted-foreground">Marka</th>
+                          <th className="w-16 px-3 py-2 text-center font-medium text-muted-foreground">Birim</th>
+                          <th className="w-24 px-3 py-2 text-right font-medium text-muted-foreground">Miktar</th>
+                          <th className="w-28 px-3 py-2 text-right font-medium text-muted-foreground">Satış USD</th>
+                          <th className="w-28 px-3 py-2 text-right font-medium text-muted-foreground">Satış TRY</th>
+                          <th className="w-20 px-3 py-2 text-center font-medium text-muted-foreground">Kar Dağıt</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y">
                         {group.items.map((item) => {
                           const sp = salePriceMap.get(item.code) ?? 0;
                           const excluded = excludedCodes.has(item.code);
                           return (
-                            <tr key={item.code} className={`transition-colors ${excluded ? "bg-slate-50/60" : "hover:bg-amber-50/30"}`}>
-                              <td className={`px-3 py-1.5 font-mono ${excluded ? "text-slate-300" : "text-slate-400"}`}>{item.code}</td>
-                              <td className={`px-3 py-1.5 ${excluded ? "text-slate-400" : "text-slate-800"}`}>{item.tanim}</td>
-                              <td className="px-3 py-1.5 text-slate-500">{item.tip}</td>
-                              <td className="px-3 py-1.5 text-slate-500">{item.marka}</td>
-                              <td className="px-3 py-1.5 text-center text-slate-500 whitespace-nowrap">{item.birim}</td>
-                              <td className="px-3 py-1.5 text-right text-slate-700 tabular-nums">{fmt(item.miktar, item.miktar < 100 ? 2 : 0)}</td>
-                              <td className={`px-3 py-1.5 text-right font-semibold tabular-nums ${excluded ? "text-slate-400" : "text-slate-800"}`}>
+                            <tr
+                              key={item.code}
+                              className={cn(
+                                "transition-colors",
+                                excluded ? "bg-muted/40" : "hover:bg-primary-soft/40",
+                              )}
+                            >
+                              <td className={cn("px-3 py-1.5 font-mono", excluded ? "text-muted-foreground/60" : "text-muted-foreground")}>{item.code}</td>
+                              <td className={cn("px-3 py-1.5", excluded ? "text-muted-foreground" : "text-foreground")}>{item.tanim}</td>
+                              <td className="px-3 py-1.5 text-muted-foreground">{item.tip}</td>
+                              <td className="px-3 py-1.5 text-muted-foreground">{item.marka}</td>
+                              <td className="whitespace-nowrap px-3 py-1.5 text-center text-muted-foreground">{item.birim}</td>
+                              <td className="px-3 py-1.5 text-right tabular-nums text-foreground">{fmt(item.miktar, item.miktar < 100 ? 2 : 0)}</td>
+                              <td className={cn("px-3 py-1.5 text-right font-semibold tabular-nums", excluded ? "text-muted-foreground" : "text-foreground")}>
                                 ${fmt(sp)}
                               </td>
-                              <td className="px-3 py-1.5 text-right text-slate-500 tabular-nums">₺{fmt(sp * settings.usd)}</td>
+                              <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground">₺{fmt(sp * settings.usd)}</td>
                               <td className="px-3 py-1.5 text-center">
                                 <button
                                   type="button"
                                   onClick={() => toggleExclude(item.code)}
-                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${
+                                  className={cn(
+                                    "rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors",
                                     excluded
-                                      ? "border-slate-300 text-slate-400 bg-slate-100"
-                                      : "border-emerald-300 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
-                                  }`}
+                                      ? "border-border bg-muted text-muted-foreground"
+                                      : "border-success/30 bg-success-soft text-success-soft-foreground hover:bg-success-soft/80",
+                                  )}
                                 >
                                   {excluded ? "⊘ Karsız" : "✓ Karlı"}
                                 </button>
@@ -354,10 +372,10 @@ export function PricedBoQ({ kesifA, kesifB, settings }: Props) {
                         })}
                       </tbody>
                       <tfoot>
-                        <tr className="bg-amber-50 border-t-2 border-amber-200">
-                          <td colSpan={6} className="px-3 py-2 text-right font-bold text-amber-800">{group.code} Toplam:</td>
-                          <td className="px-3 py-2 text-right font-bold text-amber-700">${fmt(grpTotal)}</td>
-                          <td className="px-3 py-2 text-right font-bold text-amber-600">₺{fmt(grpTotal * settings.usd)}</td>
+                        <tr className="border-t-2 border-primary/30 bg-primary-soft">
+                          <td colSpan={6} className="px-3 py-2 text-right font-semibold text-primary-soft-foreground">{group.code} Toplam:</td>
+                          <td className="px-3 py-2 text-right font-bold text-primary-soft-foreground">${fmt(grpTotal)}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-primary-soft-foreground">₺{fmt(grpTotal * settings.usd)}</td>
                           <td />
                         </tr>
                       </tfoot>
@@ -370,12 +388,12 @@ export function PricedBoQ({ kesifA, kesifB, settings }: Props) {
         })}
 
         {/* Grand total */}
-        <div className="rounded-xl overflow-hidden" style={{ background: "linear-gradient(135deg, #fffbeb, #fef3c7)", border: "2px solid #fbbf24" }}>
+        <div className="overflow-hidden rounded-xl border border-primary/40 bg-primary-soft">
           <div className="flex items-center justify-between px-5 py-3">
-            <span className="font-extrabold text-amber-800 text-sm">EPC SATIŞ FİYATI TOPLAM</span>
+            <span className="text-sm font-semibold text-primary-soft-foreground">EPC SATIŞ FİYATI TOPLAM</span>
             <div className="text-right">
-              <span className="font-extrabold text-amber-700 text-base">${fmt(salePrice)}</span>
-              <span className="text-amber-600 text-sm ml-3">₺{fmt(salePrice * settings.usd)}</span>
+              <span className="text-base font-bold text-primary-soft-foreground">${fmt(salePrice)}</span>
+              <span className="ml-3 text-sm text-primary-soft-foreground/80">₺{fmt(salePrice * settings.usd)}</span>
             </div>
           </div>
         </div>
@@ -393,10 +411,10 @@ function buildPrintHtml(title: string, tableHtml: string, salePrice: number, usd
     .header{background:linear-gradient(135deg,#071120 0%,#0c1e3c 50%,#122448 100%);color:#fff;padding:16px 20px 14px;display:flex;justify-content:space-between;align-items:flex-end}
     .header h1{font-size:17px;font-weight:800;color:#fff}
     .header .sub{font-size:9px;color:rgba(255,255,255,0.5);margin-top:3px}
-    .header .total-badge .label{font-size:8px;color:rgba(251,191,36,0.6);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px}
-    .header .total-badge .amount{font-size:22px;font-weight:900;color:#fbbf24}
-    .warning{background:#fffbeb;border-bottom:2px solid #fbbf24;padding:8px 20px;font-size:9px;color:#92400e;font-weight:600}
-    .accent-bar{height:3px;background:linear-gradient(90deg,#d97706,#fbbf24,transparent)}
+    .header .total-badge .label{font-size:8px;color:rgba(110,231,183,0.7);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px}
+    .header .total-badge .amount{font-size:22px;font-weight:900;color:#34d399}
+    .warning{background:#ecfdf5;border-bottom:2px solid #34d399;padding:8px 20px;font-size:9px;color:#065f46;font-weight:600}
+    .accent-bar{height:3px;background:linear-gradient(90deg,#047857,#34d399,transparent)}
     .content{padding:14px 20px 20px}
     table{width:100%;border-collapse:collapse}
     th{background:#1e293b;color:#fff;padding:5px 7px;text-align:left;font-size:8.5px;font-weight:700}
@@ -406,9 +424,9 @@ function buildPrintHtml(title: string, tableHtml: string, salePrice: number, usd
     .code-cell{color:#94a3b8;font-family:monospace;font-size:8px;width:52px}
     .dim{color:#64748b}
     .num{font-variant-numeric:tabular-nums}
-    .total-row td{background:#fef3c7;font-weight:800;font-size:10px;border-top:3px double #fbbf24}
-    .badge-a{display:inline-block;padding:1px 5px;border-radius:4px;font-size:8px;font-weight:700;background:#fef3c7;color:#d97706;border:1px solid #fbbf24}
-    .badge-b{display:inline-block;padding:1px 5px;border-radius:4px;font-size:8px;font-weight:700;background:#ede9fe;color:#7c3aed;border:1px solid #a78bfa}
+    .total-row td{background:#ecfdf5;font-weight:800;font-size:10px;border-top:3px double #34d399}
+    .badge-a{display:inline-block;padding:1px 5px;border-radius:4px;font-size:8px;font-weight:700;background:#ecfdf5;color:#047857;border:1px solid #34d399}
+    .badge-b{display:inline-block;padding:1px 5px;border-radius:4px;font-size:8px;font-weight:700;background:#eff6ff;color:#1d4ed8;border:1px solid #93c5fd}
     @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
   </style></head><body>
   <div class="header">

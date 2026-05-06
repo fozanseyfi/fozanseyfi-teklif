@@ -4,14 +4,27 @@ import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatCurrency, formatDate, PROJECT_STATUS_LABELS, INSTALLATION_TYPE_LABELS } from "@/lib/utils";
+import {
+  formatCurrency,
+  formatDate,
+  PROJECT_STATUS_LABELS,
+  INSTALLATION_TYPE_LABELS,
+} from "@/lib/utils";
 import { Plus, FolderOpen } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const STATUS_VARIANT: Record<string, "default" | "secondary" | "success" | "warning" | "destructive"> = {
+const STATUS_VARIANT: Record<string, "default" | "secondary" | "success" | "warning" | "destructive" | "info"> = {
   DRAFT: "secondary",
   IN_PROGRESS: "warning",
   COMPLETED: "success",
-  SENT: "default",
+  SENT: "info",
+};
+
+const STATUS_BAR_COLOR: Record<string, string> = {
+  DRAFT: "bg-muted-foreground/40",
+  IN_PROGRESS: "bg-warning",
+  COMPLETED: "bg-success",
+  SENT: "bg-info",
 };
 
 interface Props {
@@ -25,49 +38,61 @@ export default async function ProjectsPage({ searchParams }: Props) {
   const projects = await prisma.project.findMany({
     where: {
       firmId: user.firmId,
-      ...(q ? {
-        OR: [
-          { name: { contains: q, mode: "insensitive" } },
-          { customerName: { contains: q, mode: "insensitive" } },
-        ],
-      } : {}),
+      ...(q
+        ? {
+            OR: [
+              { name: { contains: q, mode: "insensitive" } },
+              { customerName: { contains: q, mode: "insensitive" } },
+            ],
+          }
+        : {}),
       ...(status ? { status: status as any } : {}),
     },
     include: { pricingSnapshot: true },
     orderBy: { updatedAt: "desc" },
   });
 
+  const filters = [
+    { value: undefined, label: "Tümü" },
+    { value: "DRAFT", label: PROJECT_STATUS_LABELS.DRAFT },
+    { value: "IN_PROGRESS", label: PROJECT_STATUS_LABELS.IN_PROGRESS },
+    { value: "COMPLETED", label: PROJECT_STATUS_LABELS.COMPLETED },
+    { value: "SENT", label: PROJECT_STATUS_LABELS.SENT },
+  ];
+
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Projeler</h1>
-          <p className="text-slate-500 text-sm mt-0.5">{projects.length} proje bulundu</p>
+          <h1 className="text-2xl font-semibold tracking-tight">Projeler</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {projects.length} proje bulundu
+          </p>
         </div>
         <Button asChild>
           <Link href="/projects/new">
-            <Plus className="w-4 h-4" />
+            <Plus className="size-4" />
             Yeni Proje
           </Link>
         </Button>
       </div>
 
       {/* Filtreler */}
-      <div className="flex gap-2 flex-wrap">
-        {[undefined, "DRAFT", "IN_PROGRESS", "COMPLETED", "SENT"].map((s) => {
-          const isActive = status === s || (!status && !s);
+      <div className="flex flex-wrap gap-2">
+        {filters.map((f) => {
+          const isActive = status === f.value || (!status && !f.value);
           return (
             <Link
-              key={s ?? "all"}
-              href={s ? `/projects?status=${s}` : "/projects"}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+              key={f.value ?? "all"}
+              href={f.value ? `/projects?status=${f.value}` : "/projects"}
+              className={cn(
+                "rounded-full px-4 py-1.5 text-xs font-medium transition-colors",
                 isActive
-                  ? "text-white shadow-md shadow-amber-500/25"
-                  : "bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-              }`}
-              style={isActive ? { background: "linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)" } : {}}
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground"
+              )}
             >
-              {s ? PROJECT_STATUS_LABELS[s] : "Tümü"}
+              {f.label}
             </Link>
           );
         })}
@@ -76,63 +101,80 @@ export default async function ProjectsPage({ searchParams }: Props) {
       {projects.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
-              <FolderOpen className="w-7 h-7 text-slate-400" />
+            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-secondary">
+              <FolderOpen className="size-7 text-muted-foreground" />
             </div>
-            <p className="text-slate-700 font-semibold">Proje bulunamadı</p>
-            <p className="text-slate-400 text-sm mt-1">Yeni bir proje oluşturarak başlayın</p>
+            <p className="font-semibold text-foreground">Proje bulunamadı</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Yeni bir proje oluşturarak başlayın
+            </p>
             <Button asChild className="mt-5">
               <Link href="/projects/new">
-                <Plus className="w-4 h-4" />
+                <Plus className="size-4" />
                 İlk Projeyi Oluştur
               </Link>
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-0 shadow-md shadow-slate-200/60 overflow-hidden">
+        <Card className="overflow-hidden">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-100" style={{ background: "#f8fafc" }}>
-                    <th className="text-left px-6 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-widest">Proje</th>
-                    <th className="text-left px-6 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-widest hidden md:table-cell">Müşteri</th>
-                    <th className="text-right px-6 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-widest hidden lg:table-cell">Güç</th>
-                    <th className="text-right px-6 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-widest hidden lg:table-cell">Fiyat</th>
-                    <th className="text-center px-6 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-widest">Durum</th>
-                    <th className="text-right px-6 py-3.5 font-semibold text-slate-500 text-xs uppercase tracking-widest hidden sm:table-cell">Tarih</th>
-                    <th className="px-6 py-3.5" />
+                  <tr className="border-b bg-muted/50">
+                    <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Proje
+                    </th>
+                    <th className="hidden px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground md:table-cell">
+                      Müşteri
+                    </th>
+                    <th className="hidden px-6 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground lg:table-cell">
+                      Güç
+                    </th>
+                    <th className="hidden px-6 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground lg:table-cell">
+                      Fiyat
+                    </th>
+                    <th className="px-6 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Durum
+                    </th>
+                    <th className="hidden px-6 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:table-cell">
+                      Tarih
+                    </th>
+                    <th className="px-6 py-3" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y">
                   {projects.map((project) => (
-                    <tr key={project.id} className="hover:bg-slate-50/80 transition-colors group">
+                    <tr
+                      key={project.id}
+                      className="group transition-colors hover:bg-muted/30"
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-1 h-8 rounded-full flex-shrink-0"
-                            style={{
-                              background: project.status === "COMPLETED"
-                                ? "linear-gradient(180deg,#10b981,#059669)"
-                                : project.status === "IN_PROGRESS"
-                                ? "linear-gradient(180deg,#f59e0b,#ea580c)"
-                                : project.status === "SENT"
-                                ? "linear-gradient(180deg,#3b82f6,#6366f1)"
-                                : "linear-gradient(180deg,#cbd5e1,#94a3b8)"
-                            }} />
+                          <div
+                            className={cn(
+                              "h-8 w-1 shrink-0 rounded-full",
+                              STATUS_BAR_COLOR[project.status] ?? "bg-muted-foreground/40"
+                            )}
+                          />
                           <div>
-                            <p className="font-semibold text-slate-800 group-hover:text-slate-900">{project.name}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">{INSTALLATION_TYPE_LABELS[project.installationType]}</p>
+                            <p className="font-medium text-foreground">{project.name}</p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              {INSTALLATION_TYPE_LABELS[project.installationType]}
+                            </p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-slate-500 hidden md:table-cell font-medium">
+                      <td className="hidden px-6 py-4 font-medium text-muted-foreground md:table-cell">
                         {project.customerName}
                       </td>
-                      <td className="px-6 py-4 text-right text-slate-500 hidden lg:table-cell font-semibold">
-                        {project.totalPowerKw > 0 ? `${project.totalPowerKw.toFixed(1)} kWp` : "—"}
+                      <td className="hidden px-6 py-4 text-right font-medium text-muted-foreground lg:table-cell">
+                        {project.totalPowerKw > 0
+                          ? `${project.totalPowerKw.toFixed(1)} kWp`
+                          : "—"}
                       </td>
-                      <td className="px-6 py-4 text-right font-bold text-amber-600 hidden lg:table-cell">
+                      <td className="hidden px-6 py-4 text-right font-semibold text-foreground lg:table-cell">
                         {project.pricingSnapshot
                           ? formatCurrency(project.pricingSnapshot.finalSalePrice)
                           : "—"}
@@ -142,13 +184,15 @@ export default async function ProjectsPage({ searchParams }: Props) {
                           {PROJECT_STATUS_LABELS[project.status]}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 text-right text-slate-400 text-xs hidden sm:table-cell">
+                      <td className="hidden px-6 py-4 text-right text-xs text-muted-foreground sm:table-cell">
                         {formatDate(project.updatedAt)}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="sm" asChild className="rounded-xl">
-                            <Link href={`/projects/${project.id}/detail`}>Düzenle</Link>
+                        <div className="flex items-center justify-end">
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/projects/${project.id}/detail`}>
+                              Düzenle
+                            </Link>
                           </Button>
                         </div>
                       </td>

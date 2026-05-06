@@ -48,17 +48,17 @@ export default function TariffsAdminPage() {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Tarife Birim Fiyatları</CardTitle>
         <Button size="sm" onClick={save} disabled={loading}>
-          <Save className="w-4 h-4" /> Kaydet
+          <Save className="size-4" /> Kaydet
         </Button>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-gray-500 mb-4">
+        <p className="mb-4 text-sm text-muted-foreground">
           Elektrik tarife birim fiyatları (TL/kWh). Proje oluşturulurken otomatik olarak kullanılır.
         </p>
-        <div className="grid grid-cols-2 gap-4 max-w-lg">
+        <div className="grid max-w-lg grid-cols-2 gap-4">
           {TARIFF_KEYS.map((key) => (
             <div key={key} className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-300">{TARIFF_LABELS[key]}</label>
+              <label className="text-sm font-medium text-foreground">{TARIFF_LABELS[key]}</label>
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
@@ -67,7 +67,7 @@ export default function TariffsAdminPage() {
                   onChange={(e) => setPrices((prev) => ({ ...prev, [key]: e.target.value }))}
                   placeholder="3.500"
                 />
-                <span className="text-xs text-gray-500 whitespace-nowrap">TL/kWh</span>
+                <span className="whitespace-nowrap text-xs text-muted-foreground">TL/kWh</span>
               </div>
             </div>
           ))}

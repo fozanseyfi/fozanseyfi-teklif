@@ -16,20 +16,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   ];
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="mx-auto max-w-6xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Admin Panel</h1>
-        <p className="text-slate-500 text-sm mt-0.5">Platform yönetim merkezi</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Admin Panel</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">Platform yönetim merkezi</p>
       </div>
-      <div className="flex gap-1.5 flex-wrap">
+      <div className="flex flex-wrap gap-1.5">
         {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white shadow-md shadow-amber-500/25 hover:shadow-amber-500/40 hover:-translate-y-0.5 transition-all duration-150"
-            style={{ background: "linear-gradient(135deg, #0f1f3d 0%, #1e3a5f 100%)" }}
+            className="flex items-center gap-1.5 rounded-xl border bg-card px-4 py-2 text-sm font-semibold text-foreground shadow-sm transition-colors hover:border-primary/40 hover:bg-primary-soft hover:text-primary-soft-foreground"
           >
-            <item.icon className="w-4 h-4 text-amber-400" />
+            <item.icon className="size-4 text-primary" />
             {item.label}
           </Link>
         ))}

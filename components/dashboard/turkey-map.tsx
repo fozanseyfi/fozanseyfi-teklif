@@ -175,7 +175,7 @@ export function TurkeyMap({ provinceCounts }: Props) {
               <Marker key={p.name} coordinates={p.coord}>
                 <circle
                   r={r}
-                  fill="#f59e0b"
+                  fill="#059669"
                   fillOpacity={0.9}
                   stroke="#ffffff"
                   strokeWidth={1.5 * markerScale}
@@ -249,7 +249,7 @@ export function TurkeyMap({ provinceCounts }: Props) {
       {zoom > 1 && (
         <button
           onClick={() => { setZoom(1); setCenter([35.5, 39.0]); }}
-          className="absolute bottom-3 right-3 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-600 shadow-sm hover:bg-slate-50 transition-colors"
+          className="absolute bottom-3 right-3 rounded-lg border bg-card px-2.5 py-1 text-xs text-muted-foreground shadow-sm transition-colors hover:bg-muted"
         >
           Sıfırla
         </button>

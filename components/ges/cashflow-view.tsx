@@ -5,6 +5,7 @@ import { calc, getGrpTot } from "@/lib/ges-engine";
 import { saveKesifB } from "@/app/actions/ges";
 import type { KesifGroup, GesSettings, TimelineData } from "@/lib/ges-defaults";
 import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import {
   BarChart,
   Bar,
@@ -37,6 +38,41 @@ interface Props {
   kesifB: KesifGroup[];
   settings: GesSettings;
   timeline: TimelineData;
+}
+
+type SectionTone = "primary" | "info" | "success" | "warning" | "destructive";
+
+const SECTION_TONE: Record<SectionTone, { iconBg: string; iconText: string }> = {
+  primary: { iconBg: "bg-primary-soft", iconText: "text-primary-soft-foreground" },
+  info: { iconBg: "bg-info-soft", iconText: "text-info-soft-foreground" },
+  success: { iconBg: "bg-success-soft", iconText: "text-success-soft-foreground" },
+  warning: { iconBg: "bg-warning-soft", iconText: "text-warning-soft-foreground" },
+  destructive: { iconBg: "bg-destructive-soft", iconText: "text-destructive-soft-foreground" },
+};
+
+function SectionHeader({
+  icon: Icon,
+  title,
+  tone,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  tone: SectionTone;
+}) {
+  const t = SECTION_TONE[tone];
+  return (
+    <div className="flex items-center gap-3 border-b px-4 py-3">
+      <div
+        className={cn(
+          "flex size-8 shrink-0 items-center justify-center rounded-lg",
+          t.iconBg,
+        )}
+      >
+        <Icon className={cn("size-4", t.iconText)} />
+      </div>
+      <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
+    </div>
+  );
 }
 
 function buildGroupTotals(kesifA: KesifGroup[], kesifB: KesifGroup[], s: GesSettings): Record<string, number> {
@@ -144,111 +180,98 @@ export function CashFlowView({ projectId, kesifA, kesifB: kesifBProp, settings, 
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="rounded-2xl overflow-hidden shadow-lg" style={{ background: "linear-gradient(135deg, #0b1628 0%, #0f2444 50%, #162d55 100%)" }}>
-        <div className="px-6 py-4 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(251,191,36,0.2)", border: "1px solid rgba(251,191,36,0.3)" }}>
-            <Activity className="w-5 h-5 text-amber-400" />
-          </div>
-          <div>
-            <h2 className="text-base font-bold text-white">Cash Flow Analizi</h2>
-            <p className="text-xs text-slate-400">{timeline.months} aylık nakit akışı simülasyonu</p>
-          </div>
+      <div className="flex items-center gap-3 rounded-xl border bg-card px-5 py-3 shadow-sm">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary-soft-foreground">
+          <Activity className="size-4" />
         </div>
-        <div className="h-0.5" style={{ background: "linear-gradient(90deg, transparent, rgba(251,191,36,0.5), rgba(99,102,241,0.5), transparent)" }} />
+        <div>
+          <h2 className="text-sm font-semibold tracking-tight">Cash Flow Analizi</h2>
+          <p className="text-xs text-muted-foreground">{timeline.months} aylık nakit akışı simülasyonu</p>
+        </div>
       </div>
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="rounded-2xl p-4 text-white relative overflow-hidden" style={{ background: "linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)", boxShadow: "0 8px 24px rgba(245,158,11,0.3)" }}>
-          <div className="absolute right-3 top-3 opacity-15"><DollarSign className="w-10 h-10" /></div>
-          <p className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">Satış Fiyatı</p>
-          <p className="text-xl font-black">{kFmt(result.salePriceUsd)}</p>
-        </div>
-        <div className="rounded-2xl p-4 text-white relative overflow-hidden" style={{ background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", boxShadow: "0 8px 24px rgba(239,68,68,0.3)" }}>
-          <div className="absolute right-3 top-3 opacity-15"><TrendingDown className="w-10 h-10" /></div>
-          <p className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">Maks. Kredi İhtiyacı</p>
-          <p className="text-xl font-black">{kFmt(Math.abs(maxCredit))}</p>
-        </div>
-        <div className="rounded-2xl p-4 text-white relative overflow-hidden" style={{ background: finalBalance >= 0 ? "linear-gradient(135deg, #10b981 0%, #059669 100%)" : "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", boxShadow: "0 8px 24px rgba(16,185,129,0.3)" }}>
-          <div className="absolute right-3 top-3 opacity-15"><TrendingUp className="w-10 h-10" /></div>
-          <p className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">Final Bakiye</p>
-          <p className="text-xl font-black">{kFmt(finalBalance)}</p>
-        </div>
-        <div className="rounded-2xl p-4 bg-white border-0 shadow-md shadow-slate-200/60">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Toplam Faiz Maliyeti</p>
-          <p className="text-xl font-black text-red-600">{kFmt(totalInterest)}</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">B.6 Finans Maliyeti → otomatik</p>
-        </div>
+        <Card className="overflow-hidden">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Satış Fiyatı</p>
+              <DollarSign className="size-4 text-muted-foreground" />
+            </div>
+            <p className="mt-1 text-xl font-bold text-foreground">{kFmt(result.salePriceUsd)}</p>
+          </CardContent>
+        </Card>
+        <Card className="overflow-hidden">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Maks. Kredi İhtiyacı</p>
+              <TrendingDown className="size-4 text-destructive-soft-foreground" />
+            </div>
+            <p className="mt-1 text-xl font-bold text-destructive-soft-foreground">{kFmt(Math.abs(maxCredit))}</p>
+          </CardContent>
+        </Card>
+        <Card className="overflow-hidden">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Final Bakiye</p>
+              <TrendingUp className={cn("size-4", finalBalance >= 0 ? "text-success-soft-foreground" : "text-destructive-soft-foreground")} />
+            </div>
+            <p className={cn("mt-1 text-xl font-bold", finalBalance >= 0 ? "text-success-soft-foreground" : "text-destructive-soft-foreground")}>{kFmt(finalBalance)}</p>
+          </CardContent>
+        </Card>
+        <Card className="overflow-hidden">
+          <CardContent className="p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Toplam Faiz Maliyeti</p>
+            <p className="mt-1 text-xl font-bold text-destructive-soft-foreground">{kFmt(totalInterest)}</p>
+            <p className="mt-0.5 text-[10px] text-muted-foreground">B.6 Finans Maliyeti → otomatik</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Bar chart — Aylık Giriş / Çıkış */}
-      <Card className="border-0 shadow-md shadow-slate-200/60 overflow-hidden">
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #10b981, #059669)" }}>
-            <DollarSign className="w-4 h-4 text-white" />
-          </div>
-          <h3 className="font-bold text-slate-800 text-sm">Aylık Nakit Giriş / Çıkış (000 USD)</h3>
-        </div>
+      <Card className="overflow-hidden">
+        <SectionHeader icon={DollarSign} title="Aylık Nakit Giriş / Çıkış (000 USD)" tone="success" />
         <CardContent className="px-4 pb-4 pt-3">
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={chartData} barGap={2} margin={{ top: 5, right: 10, bottom: 0, left: 0 }}>
-              <defs>
-                <linearGradient id="colorGiris" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
-                  <stop offset="100%" stopColor="#059669" stopOpacity={0.8} />
-                </linearGradient>
-                <linearGradient id="colorCikis" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f87171" stopOpacity={1} />
-                  <stop offset="100%" stopColor="#ef4444" stopOpacity={0.8} />
-                </linearGradient>
-              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis dataKey="name" tick={{ fontSize: 9, fill: "#94a3b8", fontWeight: 500 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
               <ReferenceLine y={0} stroke="#e2e8f0" strokeWidth={1.5} />
-              <Tooltip formatter={(v) => kFmt(Number(v) * 1000)} contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 8px 24px rgba(0,0,0,0.12)", fontSize: "12px" }} />
+              <Tooltip formatter={(v) => kFmt(Number(v) * 1000)} contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 2px 0 rgb(15 23 42 / 0.04)", fontSize: "12px" }} />
               <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
-              <Bar dataKey="Giriş" fill="url(#colorGiris)" radius={[4, 4, 0, 0]} maxBarSize={32} />
-              <Bar dataKey="Çıkış" fill="url(#colorCikis)" radius={[4, 4, 0, 0]} maxBarSize={32} />
+              <Bar dataKey="Giriş" fill="#059669" radius={[4, 4, 0, 0]} maxBarSize={32} />
+              <Bar dataKey="Çıkış" fill="#dc2626" radius={[4, 4, 0, 0]} maxBarSize={32} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
       {/* Area chart — Kümülatif */}
-      <Card className="border-0 shadow-md shadow-slate-200/60 overflow-hidden">
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #f59e0b, #ea580c)" }}>
-            <Activity className="w-4 h-4 text-white" />
-          </div>
-          <h3 className="font-bold text-slate-800 text-sm">Kümülatif Nakit Pozisyonu (000 USD)</h3>
-        </div>
+      <Card className="overflow-hidden">
+        <SectionHeader icon={Activity} title="Kümülatif Nakit Pozisyonu (000 USD)" tone="primary" />
         <CardContent className="px-4 pb-4 pt-3">
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={chartData} margin={{ top: 5, right: 10, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="cumGradPos" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="cumGradNeg" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0} />
-                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0.2} />
+                  <stop offset="5%" stopColor="#059669" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#059669" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis dataKey="name" tick={{ fontSize: 9, fill: "#94a3b8", fontWeight: 500 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
               <ReferenceLine y={0} stroke="#e2e8f0" strokeWidth={2} strokeDasharray="4 2" label={{ value: "0", position: "insideTopRight", fontSize: 10, fill: "#94a3b8" }} />
-              <Tooltip formatter={(v) => kFmt(Number(v) * 1000)} contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 8px 24px rgba(0,0,0,0.12)", fontSize: "12px" }} />
+              <Tooltip formatter={(v) => kFmt(Number(v) * 1000)} contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 2px 0 rgb(15 23 42 / 0.04)", fontSize: "12px" }} />
               <Area
                 type="monotone"
                 dataKey="Kümülatif"
-                stroke="#f59e0b"
+                stroke="#059669"
                 strokeWidth={2.5}
                 fill="url(#cumGradPos)"
                 dot={false}
-                activeDot={{ r: 5, fill: "#f59e0b", stroke: "white", strokeWidth: 2 }}
+                activeDot={{ r: 5, fill: "#059669", stroke: "white", strokeWidth: 2 }}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -256,56 +279,57 @@ export function CashFlowView({ projectId, kesifA, kesifB: kesifBProp, settings, 
       </Card>
 
       {/* Table */}
-      <Card className="border-0 shadow-md shadow-slate-200/60 overflow-hidden">
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0f1f3d, #1e3a5f)" }}>
-            <DollarSign className="w-4 h-4 text-amber-400" />
-          </div>
-          <h3 className="font-bold text-slate-800 text-sm">Aylık Detay Tablosu</h3>
-        </div>
+      <Card className="overflow-hidden">
+        <SectionHeader icon={DollarSign} title="Aylık Detay Tablosu" tone="info" />
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="px-3 py-2.5 text-left text-slate-500 font-semibold">Ay</th>
-                  <th className="px-3 py-2.5 text-right text-emerald-600 font-semibold">Giriş ($)</th>
-                  <th className="px-3 py-2.5 text-right text-red-500 font-semibold">Çıkış ($)</th>
-                  <th className="px-3 py-2.5 text-right text-slate-500 font-semibold">Net ($)</th>
-                  <th className="px-3 py-2.5 text-right text-slate-500 font-semibold">Kümülatif ($)</th>
-                  <th className="px-3 py-2.5 text-right text-orange-500 font-semibold">Kredi Faizi ($)</th>
+                <tr className="border-b bg-muted">
+                  <th className="px-3 py-2.5 text-left font-semibold text-muted-foreground">Ay</th>
+                  <th className="px-3 py-2.5 text-right font-semibold text-success-soft-foreground">Giriş ($)</th>
+                  <th className="px-3 py-2.5 text-right font-semibold text-destructive-soft-foreground">Çıkış ($)</th>
+                  <th className="px-3 py-2.5 text-right font-semibold text-muted-foreground">Net ($)</th>
+                  <th className="px-3 py-2.5 text-right font-semibold text-muted-foreground">Kümülatif ($)</th>
+                  <th className="px-3 py-2.5 text-right font-semibold text-warning-soft-foreground">Kredi Faizi ($)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y">
                 {cfRows.map((row) => (
-                  <tr key={row.month} className={`hover:bg-slate-50 transition-colors ${row.cumulative < 0 ? "bg-red-50/40" : ""}`}>
-                    <td className="px-3 py-2 font-medium text-slate-700">{row.label}</td>
-                    <td className="px-3 py-2 text-right text-emerald-600 font-medium">
-                      {row.inflow > 0 ? `$${fmt(row.inflow)}` : <span className="text-slate-300">—</span>}
+                  <tr
+                    key={row.month}
+                    className={cn(
+                      "transition-colors hover:bg-muted/60",
+                      row.cumulative < 0 && "bg-destructive-soft/40",
+                    )}
+                  >
+                    <td className="px-3 py-2 font-medium text-foreground">{row.label}</td>
+                    <td className="px-3 py-2 text-right font-medium text-success-soft-foreground">
+                      {row.inflow > 0 ? `$${fmt(row.inflow)}` : <span className="text-muted-foreground">—</span>}
                     </td>
-                    <td className="px-3 py-2 text-right text-red-500 font-medium">
-                      {row.outflow > 0 ? `$${fmt(row.outflow)}` : <span className="text-slate-300">—</span>}
+                    <td className="px-3 py-2 text-right font-medium text-destructive-soft-foreground">
+                      {row.outflow > 0 ? `$${fmt(row.outflow)}` : <span className="text-muted-foreground">—</span>}
                     </td>
-                    <td className={`px-3 py-2 text-right font-semibold ${row.net >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                    <td className={cn("px-3 py-2 text-right font-semibold", row.net >= 0 ? "text-success-soft-foreground" : "text-destructive-soft-foreground")}>
                       ${fmt(row.net)}
                     </td>
-                    <td className={`px-3 py-2 text-right font-bold ${row.cumulative >= 0 ? "text-slate-800" : "text-red-700"}`}>
+                    <td className={cn("px-3 py-2 text-right font-semibold", row.cumulative >= 0 ? "text-foreground" : "text-destructive-soft-foreground")}>
                       ${fmt(row.cumulative)}
                     </td>
-                    <td className="px-3 py-2 text-right text-orange-500 font-medium">
-                      {row.creditInterest > 0 ? `$${fmt(row.creditInterest)}` : <span className="text-slate-300">—</span>}
+                    <td className="px-3 py-2 text-right font-medium text-warning-soft-foreground">
+                      {row.creditInterest > 0 ? `$${fmt(row.creditInterest)}` : <span className="text-muted-foreground">—</span>}
                     </td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="border-t-2 border-slate-300">
-                <tr style={{ background: "linear-gradient(135deg, #fffbeb, #fef3c7)", borderTop: "2px solid #fbbf24" }}>
-                  <td className="px-3 py-2.5 font-extrabold text-amber-800">TOPLAM</td>
-                  <td className="px-3 py-2.5 text-right font-extrabold text-emerald-700">${fmt(totalInflow)}</td>
-                  <td className="px-3 py-2.5 text-right font-extrabold text-red-600">${fmt(totalOutflow)}</td>
-                  <td className={`px-3 py-2.5 text-right font-extrabold ${totalNet >= 0 ? "text-emerald-700" : "text-red-700"}`}>${fmt(totalNet)}</td>
-                  <td className={`px-3 py-2.5 text-right font-extrabold ${finalBalance >= 0 ? "text-slate-900" : "text-red-700"}`}>${fmt(finalBalance)}</td>
-                  <td className="px-3 py-2.5 text-right font-extrabold text-orange-600">${fmt(totalInterest)}</td>
+              <tfoot className="border-t-2">
+                <tr className="bg-primary-soft">
+                  <td className="px-3 py-2.5 font-semibold text-primary-soft-foreground">TOPLAM</td>
+                  <td className="px-3 py-2.5 text-right font-semibold text-success-soft-foreground">${fmt(totalInflow)}</td>
+                  <td className="px-3 py-2.5 text-right font-semibold text-destructive-soft-foreground">${fmt(totalOutflow)}</td>
+                  <td className={cn("px-3 py-2.5 text-right font-semibold", totalNet >= 0 ? "text-success-soft-foreground" : "text-destructive-soft-foreground")}>${fmt(totalNet)}</td>
+                  <td className={cn("px-3 py-2.5 text-right font-semibold", finalBalance >= 0 ? "text-foreground" : "text-destructive-soft-foreground")}>${fmt(finalBalance)}</td>
+                  <td className="px-3 py-2.5 text-right font-semibold text-warning-soft-foreground">${fmt(totalInterest)}</td>
                 </tr>
               </tfoot>
             </table>

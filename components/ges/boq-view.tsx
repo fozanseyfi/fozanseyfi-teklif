@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { Search, FileDown, ChevronDown, ChevronRight } from "lucide-react";
 
 function fmt(n: number, d = 0) {
@@ -64,11 +65,11 @@ export function BoQView({ kesifA, kesifB }: Props) {
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       body{font-family:"Segoe UI",Arial,sans-serif;font-size:9.5px;color:#111;padding:0}
-      .header{background:linear-gradient(135deg,#071120 0%,#0c1e3c 50%,#122448 100%);color:#fff;padding:16px 20px 14px;display:flex;justify-content:space-between;align-items:flex-end}
+      .header{background:linear-gradient(135deg,#064e3b 0%,#047857 50%,#059669 100%);color:#fff;padding:16px 20px 14px;display:flex;justify-content:space-between;align-items:flex-end}
       .header h1{font-size:17px;font-weight:800;letter-spacing:-0.02em;color:#fff}
-      .header .sub{font-size:9px;color:rgba(255,255,255,0.5);margin-top:3px}
-      .header .badge{text-align:right;font-size:11px;color:rgba(251,191,36,0.8);font-weight:700}
-      .accent-bar{height:3px;background:linear-gradient(90deg,#d97706,#fbbf24,transparent)}
+      .header .sub{font-size:9px;color:rgba(255,255,255,0.7);margin-top:3px}
+      .header .badge{text-align:right;font-size:11px;color:rgba(236,253,245,0.9);font-weight:700}
+      .accent-bar{height:3px;background:linear-gradient(90deg,#047857,#10b981,transparent)}
       .content{padding:14px 20px 20px}
       table{width:100%;border-collapse:collapse;margin-top:10px}
       th{background:#1e293b;color:#fff;padding:5px 7px;text-align:left;font-size:8.5px;font-weight:700;white-space:nowrap}
@@ -112,17 +113,17 @@ export function BoQView({ kesifA, kesifB }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">BoQ — Bill of Quantities</h2>
-          <p className="text-sm text-slate-500">
+          <h2 className="text-lg font-semibold text-foreground">BoQ — Bill of Quantities</h2>
+          <p className="text-sm text-muted-foreground">
             {totalItems} kalem · {allGroups.length} grup
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            <Input className="pl-8 h-8 text-sm w-44" placeholder="Ara..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input className="h-8 w-44 pl-8 text-sm" placeholder="Ara..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <Button variant="outline" size="sm" onClick={() => setCollapsed(Object.fromEntries(allGroups.map((g) => [g.code, true])))}>
             Tümünü Kapat
@@ -131,7 +132,7 @@ export function BoQView({ kesifA, kesifB }: Props) {
             Tümünü Aç
           </Button>
           <Button variant="outline" size="sm" onClick={handlePrint}>
-            <FileDown className="w-4 h-4" /> PDF
+            <FileDown className="size-4" /> PDF
           </Button>
         </div>
       </div>
@@ -142,22 +143,30 @@ export function BoQView({ kesifA, kesifB }: Props) {
           const isCollapsed = collapsed[group.code];
 
           return (
-            <Card key={group.code} className="overflow-hidden border-0 shadow-sm shadow-slate-200/60">
+            <Card key={group.code} className="overflow-hidden shadow-sm">
               <CardHeader
-                className="py-2.5 cursor-pointer select-none hover:bg-slate-50 transition-colors"
+                className="cursor-pointer select-none py-2.5 transition-colors hover:bg-muted/60"
                 onClick={() => setCollapsed((p) => ({ ...p, [group.code]: !p[group.code] }))}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {isCollapsed
-                      ? <ChevronRight className="w-4 h-4 text-slate-400" />
-                      : <ChevronDown className="w-4 h-4 text-slate-400" />
+                      ? <ChevronRight className="size-4 text-muted-foreground" />
+                      : <ChevronDown className="size-4 text-muted-foreground" />
                     }
-                    <Badge variant="outline" className={`text-xs font-mono ${isA ? "border-amber-300 text-amber-700 bg-amber-50" : "border-purple-300 text-purple-700 bg-purple-50"}`}>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "font-mono text-xs",
+                        isA
+                          ? "border-primary/30 bg-primary-soft text-primary-soft-foreground"
+                          : "border-info/30 bg-info-soft text-info-soft-foreground",
+                      )}
+                    >
                       {group.code}
                     </Badge>
-                    <CardTitle className="text-sm font-semibold text-slate-700">{group.name}</CardTitle>
-                    <span className="text-xs text-slate-400">({group.items.length} kalem)</span>
+                    <CardTitle className="text-sm font-semibold text-foreground">{group.name}</CardTitle>
+                    <span className="text-xs text-muted-foreground">({group.items.length} kalem)</span>
                   </div>
                 </div>
               </CardHeader>
@@ -167,24 +176,24 @@ export function BoQView({ kesifA, kesifB }: Props) {
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200">
-                          <th className="px-3 py-2 text-left text-slate-500 font-medium w-20">Kod</th>
-                          <th className="px-3 py-2 text-left text-slate-500 font-medium">Tanım</th>
-                          <th className="px-3 py-2 text-left text-slate-500 font-medium w-32">Tip/Model</th>
-                          <th className="px-3 py-2 text-left text-slate-500 font-medium w-28">Marka</th>
-                          <th className="px-3 py-2 text-center text-slate-500 font-medium w-16">Birim</th>
-                          <th className="px-3 py-2 text-right text-slate-500 font-medium w-24">Miktar</th>
+                        <tr className="border-b bg-muted">
+                          <th className="w-20 px-3 py-2 text-left font-medium text-muted-foreground">Kod</th>
+                          <th className="px-3 py-2 text-left font-medium text-muted-foreground">Tanım</th>
+                          <th className="w-32 px-3 py-2 text-left font-medium text-muted-foreground">Tip/Model</th>
+                          <th className="w-28 px-3 py-2 text-left font-medium text-muted-foreground">Marka</th>
+                          <th className="w-16 px-3 py-2 text-center font-medium text-muted-foreground">Birim</th>
+                          <th className="w-24 px-3 py-2 text-right font-medium text-muted-foreground">Miktar</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y">
                         {group.items.map((item) => (
-                          <tr key={item.code} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-3 py-1.5 font-mono text-slate-400">{item.code}</td>
-                            <td className="px-3 py-1.5 text-slate-800">{item.tanim}</td>
-                            <td className="px-3 py-1.5 text-slate-500">{item.tip}</td>
-                            <td className="px-3 py-1.5 text-slate-500">{item.marka}</td>
-                            <td className="px-3 py-1.5 text-center text-slate-500 whitespace-nowrap">{item.birim}</td>
-                            <td className="px-3 py-1.5 text-right text-slate-700 tabular-nums">{fmt(item.miktar, item.miktar < 100 ? 2 : 0)}</td>
+                          <tr key={item.code} className="transition-colors hover:bg-muted/60">
+                            <td className="px-3 py-1.5 font-mono text-muted-foreground">{item.code}</td>
+                            <td className="px-3 py-1.5 text-foreground">{item.tanim}</td>
+                            <td className="px-3 py-1.5 text-muted-foreground">{item.tip}</td>
+                            <td className="px-3 py-1.5 text-muted-foreground">{item.marka}</td>
+                            <td className="whitespace-nowrap px-3 py-1.5 text-center text-muted-foreground">{item.birim}</td>
+                            <td className="px-3 py-1.5 text-right tabular-nums text-foreground">{fmt(item.miktar, item.miktar < 100 ? 2 : 0)}</td>
                           </tr>
                         ))}
                       </tbody>

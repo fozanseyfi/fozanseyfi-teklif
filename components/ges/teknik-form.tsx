@@ -6,8 +6,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { GesSettings } from "@/lib/ges-defaults";
-import { Save, ArrowRight, RefreshCw, Zap, DollarSign, Percent, Settings2, Layers } from "lucide-react";
+import {
+  Save,
+  ArrowRight,
+  RefreshCw,
+  Zap,
+  DollarSign,
+  Percent,
+  Layers,
+} from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -15,15 +24,41 @@ interface Props {
   settings: GesSettings;
 }
 
-function SectionHeader({ icon: Icon, title, subtitle, color }: { icon: React.ComponentType<{className?: string}>; title: string; subtitle?: string; color: string }) {
+type SectionTone = "primary" | "info" | "success" | "warning" | "destructive";
+
+const SECTION_TONE: Record<SectionTone, { iconBg: string; iconText: string }> = {
+  primary: { iconBg: "bg-primary-soft", iconText: "text-primary-soft-foreground" },
+  info: { iconBg: "bg-info-soft", iconText: "text-info-soft-foreground" },
+  success: { iconBg: "bg-success-soft", iconText: "text-success-soft-foreground" },
+  warning: { iconBg: "bg-warning-soft", iconText: "text-warning-soft-foreground" },
+  destructive: { iconBg: "bg-destructive-soft", iconText: "text-destructive-soft-foreground" },
+};
+
+function SectionHeader({
+  icon: Icon,
+  title,
+  subtitle,
+  tone,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  subtitle?: string;
+  tone: SectionTone;
+}) {
+  const t = SECTION_TONE[tone];
   return (
-    <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100">
-      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`} style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
-        <Icon className="w-4.5 h-4.5 text-white" />
+    <div className="flex items-center gap-3 border-b px-6 py-4">
+      <div
+        className={cn(
+          "flex size-9 shrink-0 items-center justify-center rounded-lg",
+          t.iconBg,
+        )}
+      >
+        <Icon className={cn("size-4", t.iconText)} />
       </div>
       <div>
-        <h3 className="font-bold text-slate-800 text-sm">{title}</h3>
-        {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+        <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
+        {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
       </div>
     </div>
   );
@@ -33,9 +68,10 @@ export function TeknikForm({ projectId, settings }: Props) {
   const [s, setS] = useState<GesSettings>(settings);
   const [saving, setSaving] = useState(false);
 
-  const panelAdetCalc = s.dcGuc > 0 && s.panelGuc > 0
-    ? Math.round((s.dcGuc * 1_000_000) / s.panelGuc)
-    : 0;
+  const panelAdetCalc =
+    s.dcGuc > 0 && s.panelGuc > 0
+      ? Math.round((s.dcGuc * 1_000_000) / s.panelGuc)
+      : 0;
 
   function f(key: keyof GesSettings, isNum = true) {
     return {
@@ -52,7 +88,7 @@ export function TeknikForm({ projectId, settings }: Props) {
     try {
       const data = { ...s, panelAdet: panelAdetCalc };
       await saveTeknik(projectId, data as never);
-      toast.success("Teknik parametreler kaydedildi — Kesif kalemleri güncellendi");
+      toast.success("Teknik parametreler kaydedildi — Keşif kalemleri güncellendi");
       if (goNext) window.location.href = `/projects/${projectId}/detail/kesif-a`;
     } catch {
       toast.error("Kayıt hatası");
@@ -63,46 +99,62 @@ export function TeknikForm({ projectId, settings }: Props) {
 
   return (
     <div className="max-w-5xl space-y-5">
-      {/* ── Butonlar — üstte ── */}
-      <div className="flex items-center justify-between bg-white rounded-2xl border border-slate-200/70 shadow-sm px-5 py-3.5">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(135deg, #f59e0b, #ea580c)" }}>
-            <Zap className="w-4 h-4 text-white" />
+      {/* ── Top action bar ── */}
+      <div className="flex items-center justify-between rounded-xl border bg-card px-5 py-3 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <Zap className="size-4" />
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-800">Teknik Parametreler</p>
-            <p className="text-xs text-slate-400">Kaydedince Kesif-A ve Kesif-B otomatik hesaplanır</p>
+            <p className="text-sm font-semibold">Teknik Parametreler</p>
+            <p className="text-xs text-muted-foreground">
+              Kaydedince Keşif-A ve Keşif-B otomatik hesaplanır
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
-            <Save className="w-4 h-4" />
-            {saving ? "Kaydediliyor..." : "Kaydet"}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleSave(false)}
+            disabled={saving}
+          >
+            <Save className="size-3.5" />
+            {saving ? "Kaydediliyor…" : "Kaydet"}
           </Button>
-          <Button onClick={() => handleSave(true)} disabled={saving}>
-            Kaydet &amp; Keşif A <ArrowRight className="w-4 h-4" />
+          <Button size="sm" onClick={() => handleSave(true)} disabled={saving}>
+            Kaydet &amp; Keşif A <ArrowRight className="size-3.5" />
           </Button>
         </div>
       </div>
 
-      {/* ── İki sütun layout ── */}
-      <div className="grid lg:grid-cols-[1fr_360px] gap-5 items-start">
-        {/* Sol sütun */}
+      {/* ── Two-column layout ── */}
+      <div className="grid items-start gap-5 lg:grid-cols-[1fr_360px]">
+        {/* Left column */}
         <div className="space-y-5">
-          {/* Güç & Sistem */}
-          <Card className="border-0 shadow-md shadow-slate-200/60 overflow-hidden">
-            <SectionHeader icon={Zap} title="Güç & Sistem Parametreleri" subtitle="DC/AC güç, panel ve inverter bilgileri" color="bg-gradient-to-br from-blue-500 to-indigo-600" />
-            <CardContent className="p-6 grid grid-cols-2 gap-5">
+          {/* Power & system */}
+          <Card className="overflow-hidden">
+            <SectionHeader
+              icon={Zap}
+              title="Güç & Sistem Parametreleri"
+              subtitle="DC/AC güç, panel ve inverter bilgileri"
+              tone="info"
+            />
+            <CardContent className="grid grid-cols-2 gap-5 p-6">
               <div className="space-y-2">
                 <Label>DC Güç (MW) *</Label>
                 <Input type="number" step="0.1" {...f("dcGuc")} />
-                <p className="text-xs text-blue-500 font-medium">{(s.dcGuc * 1000).toFixed(0)} kWp</p>
+                <p className="text-xs font-medium text-info-soft-foreground">
+                  {(s.dcGuc * 1000).toFixed(0)} kWp
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>AC Güç (MW)</Label>
                 <Input type="number" step="0.1" {...f("acGuc")} />
                 {s.dcGuc > 0 && s.acGuc > 0 && (
-                  <p className="text-xs text-emerald-500 font-medium">Oran: {(s.dcGuc / s.acGuc).toFixed(2)}</p>
+                  <p className="text-xs font-medium text-success-soft-foreground">
+                    Oran: {(s.dcGuc / s.acGuc).toFixed(2)}
+                  </p>
                 )}
               </div>
               <div className="space-y-2">
@@ -115,18 +167,27 @@ export function TeknikForm({ projectId, settings }: Props) {
                   <Input
                     type="number"
                     value={s.panelAdet || panelAdetCalc}
-                    onChange={(e) => setS((p) => ({ ...p, panelAdet: parseInt(e.target.value) || 0 }))}
+                    onChange={(e) =>
+                      setS((p) => ({
+                        ...p,
+                        panelAdet: parseInt(e.target.value) || 0,
+                      }))
+                    }
                   />
                   <button
                     type="button"
-                    className="h-11 w-11 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-amber-50 hover:border-amber-200 transition-colors flex-shrink-0"
+                    className="flex size-10 shrink-0 items-center justify-center rounded-md border bg-card text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary-soft hover:text-primary-soft-foreground"
                     title="Otomatik hesapla"
-                    onClick={() => setS((p) => ({ ...p, panelAdet: panelAdetCalc }))}
+                    onClick={() =>
+                      setS((p) => ({ ...p, panelAdet: panelAdetCalc }))
+                    }
                   >
-                    <RefreshCw className="w-4 h-4 text-slate-400" />
+                    <RefreshCw className="size-4" />
                   </button>
                 </div>
-                <p className="text-xs text-slate-400">Hesaplanan: {panelAdetCalc} adet</p>
+                <p className="text-xs text-muted-foreground">
+                  Hesaplanan: {panelAdetCalc} adet
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>İnverter Gücü (kW)</Label>
@@ -151,10 +212,15 @@ export function TeknikForm({ projectId, settings }: Props) {
             </CardContent>
           </Card>
 
-          {/* Döviz & Takvim */}
-          <Card className="border-0 shadow-md shadow-slate-200/60 overflow-hidden">
-            <SectionHeader icon={DollarSign} title="Döviz & Proje Takvimi" subtitle="Kur bilgileri ve inşaat süresi" color="bg-gradient-to-br from-emerald-500 to-teal-600" />
-            <CardContent className="p-6 grid grid-cols-2 gap-5">
+          {/* Currency & timeline */}
+          <Card className="overflow-hidden">
+            <SectionHeader
+              icon={DollarSign}
+              title="Döviz & Proje Takvimi"
+              subtitle="Kur bilgileri ve inşaat süresi"
+              tone="success"
+            />
+            <CardContent className="grid grid-cols-2 gap-5 p-6">
               <div className="space-y-2">
                 <Label>USD/TRY</Label>
                 <Input type="number" step="0.01" {...f("usd")} />
@@ -174,10 +240,15 @@ export function TeknikForm({ projectId, settings }: Props) {
             </CardContent>
           </Card>
 
-          {/* Maliyet Marjları */}
-          <Card className="border-0 shadow-md shadow-slate-200/60 overflow-hidden">
-            <SectionHeader icon={Percent} title="Maliyet Marjları" subtitle="Contingency, genel gider ve kar oranları" color="bg-gradient-to-br from-amber-500 to-orange-500" />
-            <CardContent className="p-6 grid grid-cols-3 gap-5">
+          {/* Cost margins */}
+          <Card className="overflow-hidden">
+            <SectionHeader
+              icon={Percent}
+              title="Maliyet Marjları"
+              subtitle="Contingency, genel gider ve kar oranları"
+              tone="warning"
+            />
+            <CardContent className="grid grid-cols-3 gap-5 p-6">
               <div className="space-y-2">
                 <Label>Contingency (%)</Label>
                 <Input type="number" step="0.5" {...f("contingency")} />
@@ -192,55 +263,102 @@ export function TeknikForm({ projectId, settings }: Props) {
               </div>
               <div className="col-span-3 space-y-2">
                 <Label>Kredi Faizi (%/yıl)</Label>
-                <Input type="number" step="0.1" {...f("krediFaiz")} className="max-w-[180px]" />
+                <Input
+                  type="number"
+                  step="0.1"
+                  {...f("krediFaiz")}
+                  className="max-w-[180px]"
+                />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Sağ sütun — Kritik Malzeme Alternatifleri */}
+        {/* Right column — material alternatives */}
         <div>
-          <Card className="border-0 shadow-md shadow-slate-200/60 overflow-hidden">
-            <SectionHeader icon={Layers} title="Kritik Malzeme Alternatifleri" subtitle="Panel, konstrüksiyon ve inverter seçenekleri" color="bg-gradient-to-br from-purple-500 to-violet-600" />
-            <CardContent className="p-5 space-y-6">
+          <Card className="overflow-hidden">
+            <SectionHeader
+              icon={Layers}
+              title="Kritik Malzeme Alternatifleri"
+              subtitle="Panel, konstrüksiyon ve inverter seçenekleri"
+              tone="primary"
+            />
+            <CardContent className="space-y-6 p-5">
               {[
-                { label: "Panel Alternatifleri", key: "panelAlts" as const, sel: "selPanel" as const, placeholder: "USD/Wp" },
-                { label: "Konstrüksiyon Alternatifleri", key: "konstrAlts" as const, sel: "selKonstr" as const, placeholder: "USD/MW" },
-                { label: "İnverter Alternatifleri", key: "invAlts" as const, sel: "selInv" as const, placeholder: "USD/adet" },
+                {
+                  label: "Panel Alternatifleri",
+                  key: "panelAlts" as const,
+                  sel: "selPanel" as const,
+                  placeholder: "USD/Wp",
+                },
+                {
+                  label: "Konstrüksiyon Alternatifleri",
+                  key: "konstrAlts" as const,
+                  sel: "selKonstr" as const,
+                  placeholder: "USD/MW",
+                },
+                {
+                  label: "İnverter Alternatifleri",
+                  key: "invAlts" as const,
+                  sel: "selInv" as const,
+                  placeholder: "USD/adet",
+                },
               ].map(({ label, key, sel, placeholder }) => (
                 <div key={key}>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">{label}</p>
+                  <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {label}
+                  </p>
                   <div className="space-y-2">
                     {s[key].map((alt, i) => (
-                      <div key={i} className="grid grid-cols-[1fr_90px_70px] gap-2 items-center">
+                      <div
+                        key={i}
+                        className="grid grid-cols-[1fr_90px_70px] items-center gap-2"
+                      >
                         <Input
-                          className="text-sm h-9"
+                          className="h-9 text-sm"
                           value={alt.name}
-                          onChange={(e) => setS((p) => {
-                            const a = [...p[key]] as typeof s[typeof key];
-                            (a[i] as typeof a[0]) = { ...a[i], name: e.target.value };
-                            return { ...p, [key]: a };
-                          })}
+                          onChange={(e) =>
+                            setS((p) => {
+                              const a = [...p[key]] as typeof s[typeof key];
+                              (a[i] as typeof a[0]) = {
+                                ...a[i],
+                                name: e.target.value,
+                              };
+                              return { ...p, [key]: a };
+                            })
+                          }
                         />
                         <Input
                           type="number"
                           step="0.001"
-                          className="text-sm h-9"
+                          className="h-9 text-sm"
                           value={alt.price}
                           placeholder={placeholder}
-                          onChange={(e) => setS((p) => {
-                            const a = [...p[key]] as typeof s[typeof key];
-                            (a[i] as typeof a[0]) = { ...a[i], price: parseFloat(e.target.value) || 0 };
-                            return { ...p, [key]: a };
-                          })}
+                          onChange={(e) =>
+                            setS((p) => {
+                              const a = [...p[key]] as typeof s[typeof key];
+                              (a[i] as typeof a[0]) = {
+                                ...a[i],
+                                price: parseFloat(e.target.value) || 0,
+                              };
+                              return { ...p, [key]: a };
+                            })
+                          }
                         />
-                        <label className={`flex items-center gap-1.5 text-xs cursor-pointer px-2 py-1.5 rounded-lg border transition-all ${s[sel] === i ? "border-amber-300 bg-amber-50 text-amber-700 font-semibold" : "border-slate-200 text-slate-500"}`}>
+                        <label
+                          className={cn(
+                            "flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs transition-colors",
+                            s[sel] === i
+                              ? "border-primary bg-primary-soft font-semibold text-primary-soft-foreground"
+                              : "border-border text-muted-foreground hover:bg-muted",
+                          )}
+                        >
                           <input
                             type="radio"
                             name={`sel_${key}`}
                             checked={s[sel] === i}
                             onChange={() => setS((p) => ({ ...p, [sel]: i }))}
-                            className="accent-amber-500"
+                            className="accent-primary"
                           />
                           {s[sel] === i ? "✓" : "Seç"}
                         </label>

@@ -69,31 +69,31 @@ export default function PricingAdminPage() {
             {loading ? "Yükleniyor..." : "Yükle"}
           </Button>
           <Button size="sm" onClick={addRow}>
-            <Plus className="w-4 h-4" /> Satır Ekle
+            <Plus className="size-4" /> Satır Ekle
           </Button>
           <Button size="sm" onClick={save} disabled={isPending}>
-            <Save className="w-4 h-4" /> {isPending ? "Kaydediliyor..." : "Kaydet"}
+            <Save className="size-4" /> {isPending ? "Kaydediliyor..." : "Kaydet"}
           </Button>
         </div>
       </CardHeader>
       <CardContent>
         {points.length === 0 ? (
-          <p className="text-gray-500 text-sm text-center py-8">
-            Fiyat noktası yok. "Yükle" butonuna tıklayın veya yeni satır ekleyin.
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            Fiyat noktası yok. &quot;Yükle&quot; butonuna tıklayın veya yeni satır ekleyin.
           </p>
         ) : (
-          <div className="rounded-lg border border-gray-800 overflow-hidden">
+          <div className="overflow-hidden rounded-lg border">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-800/80 text-gray-400">
-                  <th className="text-left px-4 py-2.5">Kurulum Tipi</th>
-                  <th className="text-right px-4 py-2.5">Güç (kWp)</th>
-                  <th className="text-right px-4 py-2.5">Birim Maliyet (TL/kWp)</th>
-                  <th className="text-left px-4 py-2.5">Not</th>
+                <tr className="bg-muted text-muted-foreground">
+                  <th className="px-4 py-2.5 text-left">Kurulum Tipi</th>
+                  <th className="px-4 py-2.5 text-right">Güç (kWp)</th>
+                  <th className="px-4 py-2.5 text-right">Birim Maliyet (TL/kWp)</th>
+                  <th className="px-4 py-2.5 text-left">Not</th>
                   <th className="px-4 py-2.5" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800">
+              <tbody className="divide-y">
                 {points.map((point, idx) => (
                   <tr key={idx}>
                     <td className="px-3 py-2">
@@ -101,7 +101,7 @@ export default function PricingAdminPage() {
                         value={point.installationType}
                         onValueChange={(v) => updateRow(idx, "installationType", v)}
                       >
-                        <SelectTrigger className="w-36 h-8 text-xs">
+                        <SelectTrigger className="h-8 w-36 text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -115,7 +115,7 @@ export default function PricingAdminPage() {
                         type="number"
                         value={point.powerKw}
                         onChange={(e) => updateRow(idx, "powerKw", parseFloat(e.target.value))}
-                        className="w-24 h-8 text-xs text-right"
+                        className="h-8 w-24 text-right text-xs"
                       />
                     </td>
                     <td className="px-3 py-2">
@@ -123,20 +123,23 @@ export default function PricingAdminPage() {
                         type="number"
                         value={point.pricePerKw}
                         onChange={(e) => updateRow(idx, "pricePerKw", parseFloat(e.target.value))}
-                        className="w-32 h-8 text-xs text-right"
+                        className="h-8 w-32 text-right text-xs"
                       />
                     </td>
                     <td className="px-3 py-2">
                       <Input
                         value={point.notes ?? ""}
                         onChange={(e) => updateRow(idx, "notes", e.target.value)}
-                        className="w-40 h-8 text-xs"
+                        className="h-8 w-40 text-xs"
                         placeholder="Opsiyonel"
                       />
                     </td>
                     <td className="px-3 py-2 text-right">
-                      <button onClick={() => removeRow(idx)} className="text-gray-600 hover:text-red-400">
-                        <Trash2 className="w-4 h-4" />
+                      <button
+                        onClick={() => removeRow(idx)}
+                        className="text-muted-foreground transition-colors hover:text-destructive"
+                      >
+                        <Trash2 className="size-4" />
                       </button>
                     </td>
                   </tr>

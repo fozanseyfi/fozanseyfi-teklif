@@ -39,7 +39,7 @@ export function FirmSettingsForm({ firm, users, currentUserId }: Props) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Settings className="w-4 h-4" /> Firma Profili
+            <Settings className="size-4" /> Firma Profili
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -68,11 +68,16 @@ export function FirmSettingsForm({ firm, users, currentUserId }: Props) {
               <div className="space-y-1.5">
                 <Label>Tema Rengi (Aksan)</Label>
                 <div className="flex gap-2">
-                  <Input name="themeColor" defaultValue={firm.themeColor} placeholder="#F59E0B" />
-                  <input type="color" defaultValue={firm.themeColor} className="w-10 h-10 rounded border border-gray-700 bg-gray-800 cursor-pointer" onChange={(e) => {
-                    const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                    if (input) input.value = e.target.value;
-                  }} />
+                  <Input name="themeColor" defaultValue={firm.themeColor} placeholder="#059669" />
+                  <input
+                    type="color"
+                    defaultValue={firm.themeColor}
+                    className="size-10 cursor-pointer rounded border bg-card"
+                    onChange={(e) => {
+                      const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                      if (input) input.value = e.target.value;
+                    }}
+                  />
                 </div>
               </div>
             </div>
@@ -91,30 +96,30 @@ export function FirmSettingsForm({ firm, users, currentUserId }: Props) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <UserPlus className="w-4 h-4" /> Kullanıcı Yönetimi
+            <UserPlus className="size-4" /> Kullanıcı Yönetimi
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Mevcut Kullanıcılar */}
-          <div className="rounded-lg border border-gray-800 overflow-hidden">
+          <div className="overflow-hidden rounded-lg border">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-800/80 text-gray-400">
-                  <th className="text-left px-4 py-2.5 font-medium">İsim</th>
-                  <th className="text-left px-4 py-2.5 font-medium">E-posta</th>
-                  <th className="text-left px-4 py-2.5 font-medium">Rol</th>
-                  <th className="text-center px-4 py-2.5 font-medium">Durum</th>
+                <tr className="bg-muted text-muted-foreground">
+                  <th className="px-4 py-2.5 text-left font-medium">İsim</th>
+                  <th className="px-4 py-2.5 text-left font-medium">E-posta</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Rol</th>
+                  <th className="px-4 py-2.5 text-center font-medium">Durum</th>
                   <th className="px-4 py-2.5" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800">
+              <tbody className="divide-y">
                 {users.map((u) => (
-                  <tr key={u.id} className="hover:bg-gray-800/30">
-                    <td className="px-4 py-3 text-gray-200 font-medium">{u.name}</td>
-                    <td className="px-4 py-3 text-gray-400">{u.email}</td>
+                  <tr key={u.id} className="transition-colors hover:bg-muted/40">
+                    <td className="px-4 py-3 font-medium text-foreground">{u.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
                     <td className="px-4 py-3">
                       {u.role === UserRole.FIRM_ADMIN || u.id === currentUserId ? (
-                        <span className="text-amber-400 text-xs font-medium">{ROLE_LABELS[u.role]}</span>
+                        <span className="text-xs font-medium text-primary">{ROLE_LABELS[u.role]}</span>
                       ) : (
                         <form action={async (fd) => {
                           const role = fd.get("role") as UserRole;
@@ -148,13 +153,16 @@ export function FirmSettingsForm({ firm, users, currentUserId }: Props) {
                       {u.id !== currentUserId && u.role !== UserRole.FIRM_ADMIN && (
                         <div className="flex items-center justify-end gap-1">
                           <form action={toggleUserActive.bind(null, u.id)}>
-                            <Button type="submit" variant="ghost" size="sm" className="text-xs h-7">
+                            <Button type="submit" variant="ghost" size="sm" className="h-7 text-xs">
                               {u.isActive ? "Pasifleştir" : "Aktifleştir"}
                             </Button>
                           </form>
                           <form action={removeUser.bind(null, u.id)}>
-                            <button type="submit" className="text-gray-600 hover:text-red-400 transition-colors ml-1">
-                              <Trash2 className="w-4 h-4" />
+                            <button
+                              type="submit"
+                              className="ml-1 text-muted-foreground transition-colors hover:text-destructive"
+                            >
+                              <Trash2 className="size-4" />
                             </button>
                           </form>
                         </div>
@@ -170,8 +178,8 @@ export function FirmSettingsForm({ firm, users, currentUserId }: Props) {
 
           {/* Davet Et */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-300 mb-3">Kullanıcı Davet Et</h3>
-            <form action={handleInvite} className="flex items-end gap-3 flex-wrap">
+            <h3 className="mb-3 text-sm font-semibold text-foreground">Kullanıcı Davet Et</h3>
+            <form action={handleInvite} className="flex flex-wrap items-end gap-3">
               <div className="space-y-1.5">
                 <Label>E-posta</Label>
                 <Input name="email" type="email" placeholder="yeni@kullanici.com" className="w-56" required />
@@ -192,11 +200,11 @@ export function FirmSettingsForm({ firm, users, currentUserId }: Props) {
                 </Select>
               </div>
               <Button type="submit">
-                <UserPlus className="w-4 h-4" /> Davet Gönder
+                <UserPlus className="size-4" /> Davet Gönder
               </Button>
             </form>
             {inviteResult && (
-              <div className="mt-3 p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-xs text-green-400 break-all">
+              <div className="mt-3 break-all rounded-lg border border-success/30 bg-success-soft p-3 text-xs text-success-soft-foreground">
                 Davet linki: {inviteResult}
               </div>
             )}

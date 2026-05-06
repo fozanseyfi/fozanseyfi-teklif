@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Sun } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "SolarTeklif — Giriş",
@@ -6,16 +7,20 @@ export const metadata: Metadata = {
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-amber-50/30 flex items-center justify-center p-4">
+    <div className="bg-soft-gradient flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2.5 mb-3">
-            <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center shadow-md shadow-amber-500/25">
-              <span className="text-white font-bold text-xl">☀</span>
+        <div className="mb-8 text-center">
+          <div className="mb-3 inline-flex items-center gap-2.5">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+              <Sun className="size-5" />
             </div>
-            <span className="text-2xl font-bold text-slate-900">SolarTeklif</span>
+            <span className="text-2xl font-semibold tracking-tight text-foreground">
+              SolarTeklif
+            </span>
           </div>
-          <p className="text-slate-500 text-sm">Güneş Enerjisi Teklif Yönetim Platformu</p>
+          <p className="text-sm text-muted-foreground">
+            Güneş Enerjisi Teklif Yönetim Platformu
+          </p>
         </div>
         {children}
       </div>

@@ -1,14 +1,19 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
 import { register } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 function RegisterForm() {
   const [result, action, pending] = useActionState(register, undefined);
@@ -16,46 +21,70 @@ function RegisterForm() {
   const inviteToken = searchParams.get("token");
 
   return (
-    <Card className="shadow-xl shadow-slate-200/50 border-slate-200">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-xl">{inviteToken ? "Davete Katıl" : "Hesap Oluştur"}</CardTitle>
+    <Card className="animate-in-up">
+      <CardHeader>
+        <CardTitle className="text-xl">
+          {inviteToken ? "Davete Katıl" : "Hesap Oluştur"}
+        </CardTitle>
         <CardDescription>
-          {inviteToken ? "Firma davetini kabul ederek kayıt olun" : "Firmanız için ücretsiz hesap oluşturun"}
+          {inviteToken
+            ? "Firma davetini kabul ederek kayıt olun"
+            : "Firmanız için ücretsiz hesap oluşturun"}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form action={action} className="space-y-4">
           {result?.error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-600">
+            <div className="rounded-md border border-destructive/30 bg-destructive-soft p-3 text-sm text-destructive-soft-foreground">
               {result.error}
             </div>
           )}
           {inviteToken && <input type="hidden" name="inviteToken" value={inviteToken} />}
           <div className="space-y-1.5">
             <Label htmlFor="name">Ad Soyad</Label>
-            <Input id="name" name="name" placeholder="Ahmet Yılmaz" required />
+            <Input id="name" name="name" placeholder="Ahmet Yılmaz" required autoComplete="name" />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="email">E-posta</Label>
-            <Input id="email" name="email" type="email" placeholder="ahmet@firma.com" required />
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="ahmet@firma.com"
+              required
+              autoComplete="email"
+            />
           </div>
           {!inviteToken && (
             <div className="space-y-1.5">
               <Label htmlFor="firmName">Firma Adı</Label>
-              <Input id="firmName" name="firmName" placeholder="ABC Solar Enerji" required />
+              <Input
+                id="firmName"
+                name="firmName"
+                placeholder="ABC Solar Enerji"
+                required
+                autoComplete="organization"
+              />
             </div>
           )}
           <div className="space-y-1.5">
             <Label htmlFor="password">Şifre</Label>
-            <Input id="password" name="password" type="password" placeholder="En az 8 karakter" required />
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="En az 8 karakter"
+              required
+              autoComplete="new-password"
+            />
           </div>
           <Button type="submit" className="w-full" disabled={pending}>
             {pending ? "Kayıt yapılıyor..." : "Kayıt Ol"}
           </Button>
         </form>
-        <p className="mt-5 text-center text-sm text-slate-500">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
           Zaten hesabınız var mı?{" "}
-          <Link href="/login" className="text-amber-600 hover:text-amber-700 font-medium">
+          <Link href="/login" className="font-medium text-primary hover:underline">
             Giriş yap
           </Link>
         </p>
@@ -66,7 +95,7 @@ function RegisterForm() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="text-slate-400 text-center">Yükleniyor...</div>}>
+    <Suspense fallback={<div className="text-center text-muted-foreground">Yükleniyor...</div>}>
       <RegisterForm />
     </Suspense>
   );

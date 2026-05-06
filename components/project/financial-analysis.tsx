@@ -13,7 +13,7 @@ import {
   calculateCO2Saving,
   calculateEquivalentTrees,
 } from "@/lib/pricing-engine";
-import { formatCurrency, formatNumber } from "@/lib/utils";
+import { formatCurrency, formatNumber, cn } from "@/lib/utils";
 import {
   LineChart,
   Line,
@@ -66,7 +66,7 @@ export function FinancialAnalysis({ project }: { project: ProjectWithSnapshot })
       <input type="hidden" name="electricityUnitPrice" value={unitPrice} />
 
       {/* Parametreler */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="space-y-1.5">
           <Label>Yıllık Enflasyon (%)</Label>
           <Input
@@ -114,44 +114,49 @@ export function FinancialAnalysis({ project }: { project: ProjectWithSnapshot })
       </div>
 
       {/* KPI Kartları */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center">
-              <Zap className="w-3.5 h-3.5 text-amber-600" />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="rounded-xl border bg-muted p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-primary-soft">
+              <Zap className="size-3.5 text-primary-soft-foreground" />
             </div>
-            <p className="text-xs text-slate-500 font-medium">Yıllık Üretim</p>
+            <p className="text-xs font-medium text-muted-foreground">Yıllık Üretim</p>
           </div>
-          <p className="text-xl font-bold text-slate-900">{formatNumber(annualProduction)} kWh</p>
+          <p className="text-xl font-bold tracking-tight text-foreground">{formatNumber(annualProduction)} kWh</p>
         </div>
-        <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center">
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+        <div className="rounded-xl border bg-muted p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-success-soft">
+              <TrendingUp className="size-3.5 text-success-soft-foreground" />
             </div>
-            <p className="text-xs text-slate-500 font-medium">İlk Yıl Tasarruf</p>
+            <p className="text-xs font-medium text-muted-foreground">İlk Yıl Tasarruf</p>
           </div>
-          <p className="text-xl font-bold text-slate-900">{formatCurrency(firstYearSaving)}</p>
+          <p className="text-xl font-bold tracking-tight text-foreground">{formatCurrency(firstYearSaving)}</p>
         </div>
-        <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
-              <Clock className="w-3.5 h-3.5 text-blue-600" />
+        <div className="rounded-xl border bg-muted p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-info-soft">
+              <Clock className="size-3.5 text-info-soft-foreground" />
             </div>
-            <p className="text-xs text-slate-500 font-medium">Geri Ödeme</p>
+            <p className="text-xs font-medium text-muted-foreground">Geri Ödeme</p>
           </div>
-          <p className="text-xl font-bold text-slate-900">
+          <p className="text-xl font-bold tracking-tight text-foreground">
             {paybackYear > 0 ? `${paybackYear} Yıl` : "—"}
           </p>
         </div>
-        <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center">
-              <TrendingUp className="w-3.5 h-3.5 text-amber-600" />
+        <div className="rounded-xl border bg-muted p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-primary-soft">
+              <TrendingUp className="size-3.5 text-primary-soft-foreground" />
             </div>
-            <p className="text-xs text-slate-500 font-medium">{lifeYears} Yıl Net Kazanç</p>
+            <p className="text-xs font-medium text-muted-foreground">{lifeYears} Yıl Net Kazanç</p>
           </div>
-          <p className={`text-xl font-bold ${netPosition25 >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+          <p
+            className={cn(
+              "text-xl font-bold tracking-tight",
+              netPosition25 >= 0 ? "text-success-soft-foreground" : "text-destructive",
+            )}
+          >
             {formatCurrency(netPosition25)}
           </p>
         </div>
@@ -159,22 +164,22 @@ export function FinancialAnalysis({ project }: { project: ProjectWithSnapshot })
 
       {/* Grafik */}
       <div>
-        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
+        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Kümülatif Cash Flow
         </h3>
-        <div className="h-64 rounded-xl border border-slate-200 bg-white p-4">
+        <div className="h-64 rounded-xl border bg-card p-4">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={cashFlow} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="year" stroke="#94a3b8" tick={{ fontSize: 11 }} label={{ value: "Yıl", position: "insideBottom", offset: -2, fill: "#94a3b8", fontSize: 11 }} />
-              <YAxis stroke="#94a3b8" tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v / 1_000_000).toFixed(1)}M`} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="year" stroke="#64748b" tick={{ fontSize: 11 }} label={{ value: "Yıl", position: "insideBottom", offset: -2, fill: "#64748b", fontSize: 11 }} />
+              <YAxis stroke="#64748b" tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v / 1_000_000).toFixed(1)}M`} />
               <Tooltip
                 contentStyle={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.05)" }}
                 labelStyle={{ color: "#64748b" }}
                 formatter={(v) => [formatCurrency(v as number), ""]}
               />
-              <ReferenceLine y={0} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: "Geri Ödeme Noktası", fill: "#d97706", fontSize: 10 }} />
-              <Line type="monotone" dataKey="netPosition" stroke="#f59e0b" dot={false} strokeWidth={2.5} name="Net Pozisyon" />
+              <ReferenceLine y={0} stroke="#059669" strokeDasharray="4 4" label={{ value: "Geri Ödeme Noktası", fill: "#047857", fontSize: 10 }} />
+              <Line type="monotone" dataKey="netPosition" stroke="#059669" dot={false} strokeWidth={2.5} name="Net Pozisyon" />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -182,13 +187,13 @@ export function FinancialAnalysis({ project }: { project: ProjectWithSnapshot })
 
       {/* Cash Flow Tablosu */}
       <div>
-        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
+        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Cash Flow Tablosu
         </h3>
-        <div className="rounded-xl border border-slate-200 overflow-auto max-h-72">
+        <div className="max-h-72 overflow-auto rounded-xl border">
           <table className="w-full text-xs">
-            <thead className="sticky top-0 bg-slate-50 border-b border-slate-200">
-              <tr className="text-slate-500">
+            <thead className="sticky top-0 border-b bg-muted">
+              <tr className="text-muted-foreground">
                 <th className="px-3 py-2.5 text-left font-semibold">Yıl</th>
                 <th className="px-3 py-2.5 text-right font-semibold">Üretim (kWh)</th>
                 <th className="px-3 py-2.5 text-right font-semibold">Birim Fiyat</th>
@@ -197,15 +202,20 @@ export function FinancialAnalysis({ project }: { project: ProjectWithSnapshot })
                 <th className="px-3 py-2.5 text-right font-semibold">Net Pozisyon</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y">
               {cashFlow.map((row, idx) => (
-                <tr key={row.year} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
-                  <td className="px-3 py-2 text-slate-600 font-medium">{row.year}</td>
-                  <td className="px-3 py-2 text-right text-slate-600">{formatNumber(row.productionKwh)}</td>
-                  <td className="px-3 py-2 text-right text-slate-600">{row.unitPrice.toFixed(3)}</td>
-                  <td className="px-3 py-2 text-right text-slate-600">{formatCurrency(row.annualSaving)}</td>
-                  <td className="px-3 py-2 text-right text-slate-600">{formatCurrency(row.cumulativeSaving)}</td>
-                  <td className={`px-3 py-2 text-right font-semibold ${row.netPosition >= 0 ? "text-emerald-600" : "text-slate-400"}`}>
+                <tr key={row.year} className={idx % 2 === 0 ? "bg-card" : "bg-muted/40"}>
+                  <td className="px-3 py-2 font-medium text-muted-foreground">{row.year}</td>
+                  <td className="px-3 py-2 text-right text-muted-foreground">{formatNumber(row.productionKwh)}</td>
+                  <td className="px-3 py-2 text-right text-muted-foreground">{row.unitPrice.toFixed(3)}</td>
+                  <td className="px-3 py-2 text-right text-muted-foreground">{formatCurrency(row.annualSaving)}</td>
+                  <td className="px-3 py-2 text-right text-muted-foreground">{formatCurrency(row.cumulativeSaving)}</td>
+                  <td
+                    className={cn(
+                      "px-3 py-2 text-right font-semibold",
+                      row.netPosition >= 0 ? "text-success-soft-foreground" : "text-muted-foreground",
+                    )}
+                  >
                     {formatCurrency(row.netPosition)}
                   </td>
                 </tr>
@@ -216,25 +226,25 @@ export function FinancialAnalysis({ project }: { project: ProjectWithSnapshot })
       </div>
 
       {/* Çevre Katkısı */}
-      <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-            <Leaf className="w-4 h-4 text-emerald-600" />
+      <div className="rounded-xl border border-primary/20 bg-success-soft p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-success/10">
+            <Leaf className="size-4 text-success-soft-foreground" />
           </div>
-          <h3 className="text-sm font-semibold text-emerald-800">Çevre Katkısı</h3>
+          <h3 className="text-sm font-semibold text-success-soft-foreground">Çevre Katkısı</h3>
         </div>
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
-            <p className="text-xs text-emerald-600/70 mb-1 font-medium">Yıllık CO₂ Tasarrufu</p>
-            <p className="text-lg font-bold text-emerald-700">{formatNumber(totalCO2 / lifeYears, 1)} ton</p>
+            <p className="mb-1 text-xs font-medium text-success-soft-foreground/80">Yıllık CO₂ Tasarrufu</p>
+            <p className="text-lg font-bold tracking-tight text-success-soft-foreground">{formatNumber(totalCO2 / lifeYears, 1)} ton</p>
           </div>
           <div>
-            <p className="text-xs text-emerald-600/70 mb-1 font-medium">{lifeYears} Yıl CO₂ Tasarrufu</p>
-            <p className="text-lg font-bold text-emerald-700">{formatNumber(totalCO2, 0)} ton</p>
+            <p className="mb-1 text-xs font-medium text-success-soft-foreground/80">{lifeYears} Yıl CO₂ Tasarrufu</p>
+            <p className="text-lg font-bold tracking-tight text-success-soft-foreground">{formatNumber(totalCO2, 0)} ton</p>
           </div>
           <div>
-            <p className="text-xs text-emerald-600/70 mb-1 font-medium">Eşdeğer Ağaç</p>
-            <p className="text-lg font-bold text-emerald-700">{formatNumber(trees)} adet</p>
+            <p className="mb-1 text-xs font-medium text-success-soft-foreground/80">Eşdeğer Ağaç</p>
+            <p className="text-lg font-bold tracking-tight text-success-soft-foreground">{formatNumber(trees)} adet</p>
           </div>
         </div>
       </div>
@@ -242,7 +252,7 @@ export function FinancialAnalysis({ project }: { project: ProjectWithSnapshot })
       <div className="flex justify-between">
         <Button variant="outline" asChild>
           <Link href={`/projects/${project.id}/equipment`}>
-            <ArrowLeft className="w-4 h-4" /> Geri
+            <ArrowLeft className="size-4" /> Geri
           </Link>
         </Button>
         <Button type="submit" size="lg">

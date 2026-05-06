@@ -1,57 +1,285 @@
 @import "tailwindcss";
 
-:root {
-  --background: #f0f4f8;
-  --foreground: #0f172a;
-  --muted: #f8fafc;
-  --muted-foreground: #64748b;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #f59e0b;
-  --primary: #f59e0b;
-  --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --accent: #fef3c7;
-  --accent-foreground: #92400e;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  --radius: 0.75rem;
-  --sidebar: #0f1f3d;
-  --sidebar-border: #1e3a5f;
+/* ---------------------------------------------------------------
+   Design tokens (Tailwind 4 @theme)
+   - Emerald primary, slate neutrals
+   - Karardestek-style: restrained shadows, soft backgrounds, token-driven
+   --------------------------------------------------------------- */
+
+@theme {
+  /* === Surface & text === */
+  --color-background: #f8fafc;        /* slate-50 */
+  --color-foreground: #0f172a;        /* slate-900 */
+
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0f172a;
+
+  /* === Brand (emerald) === */
+  --color-primary: #059669;
+  --color-primary-foreground: #ffffff;
+  --color-primary-soft: #ecfdf5;
+  --color-primary-soft-foreground: #047857;
+
+  /* === Neutrals === */
+  --color-secondary: #f1f5f9;
+  --color-secondary-foreground: #1e293b;
+
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #64748b;
+
+  --color-accent: #ecfdf5;
+  --color-accent-foreground: #047857;
+
+  /* === Status === */
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #ffffff;
+  --color-destructive-soft: #fef2f2;
+  --color-destructive-soft-foreground: #b91c1c;
+
+  --color-success: #059669;
+  --color-success-foreground: #ffffff;
+  --color-success-soft: #ecfdf5;
+  --color-success-soft-foreground: #047857;
+
+  --color-warning: #d97706;
+  --color-warning-foreground: #ffffff;
+  --color-warning-soft: #fffbeb;
+  --color-warning-soft-foreground: #b45309;
+
+  --color-info: #2563eb;
+  --color-info-foreground: #ffffff;
+  --color-info-soft: #eff6ff;
+  --color-info-soft-foreground: #1d4ed8;
+
+  /* === Borders & inputs === */
+  --color-border: #e2e8f0;
+  --color-input: #e2e8f0;
+  --color-ring: #059669;
+
+  /* === Sidebar === */
+  --color-sidebar: #0f172a;
+  --color-sidebar-foreground: #cbd5e1;
+  --color-sidebar-muted: #94a3b8;
+  --color-sidebar-border: #1e293b;
+  --color-sidebar-accent: #047857;
+  --color-sidebar-accent-foreground: #ecfdf5;
+
+  /* === Radius === */
+  --radius: 0.625rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  /* === Typography === */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+
+  /* === Motion (consistent durations & easings) === */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-snappy: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 280ms;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-feature-settings: "rlig" 1, "calt" 1;
+/* ---------------------------------------------------------------
+   Base layer
+   --------------------------------------------------------------- */
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    /* Inter ligatures + numeric features for tabular numbers */
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1, "cv11" 1;
+    /* Smoother sub-pixel rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* Smooth in-page anchor scroll */
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    /* Tighter heading kerning */
+    letter-spacing: -0.005em;
+  }
+
+  /* Heading defaults — consistent tight kerning */
+  h1, h2, h3, h4 {
+    letter-spacing: -0.02em;
+  }
+
+  /* Tabular numbers for data-heavy displays */
+  table, .tabular-nums, .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background: var(--color-primary-soft);
+    color: var(--color-primary-soft-foreground);
+  }
+
+  /* Scrollbar — minimal */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #cbd5e1;
+  }
+
+  /* Refined focus rings — appear only for keyboard, never mouse */
+  :focus-visible {
+    outline: none;
+  }
+
+  /* Reduced motion respect */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
-* {
-  border-color: var(--border);
-}
+/* ---------------------------------------------------------------
+   Component-style utilities
+   --------------------------------------------------------------- */
+@layer utilities {
+  /* Sticky translucent header (karardestek pattern) */
+  .glass-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    border-bottom: 1px solid var(--color-border);
+    background: color-mix(in oklab, var(--color-background) 80%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  @supports (backdrop-filter: blur(12px)) {
+    .glass-header {
+      background: color-mix(in oklab, var(--color-background) 60%, transparent);
+    }
+  }
 
-::selection {
-  background: #fef3c7;
-  color: #92400e;
-}
+  /* Soft hero gradient — almost invisible, just a hint */
+  .bg-soft-gradient {
+    background: linear-gradient(180deg, var(--color-background) 0%, #ffffff 60%, #ffffff 100%);
+  }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  /* Subtle elevated surface */
+  .surface-card {
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.04);
+  }
+
+  /* Card lift on hover — opt-in, only for clickable cards */
+  .card-lift {
+    transition:
+      transform var(--duration-base) var(--ease-out-soft),
+      box-shadow var(--duration-base) var(--ease-out-soft),
+      border-color var(--duration-base) var(--ease-out-soft);
+  }
+  .card-lift:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 4px 6px -2px rgb(15 23 42 / 0.05),
+      0 2px 4px -2px rgb(15 23 42 / 0.04);
+    border-color: color-mix(in oklab, var(--color-border) 50%, var(--color-primary) 30%);
+  }
+
+  /* Page entry animations — applied via class */
+  .animate-in {
+    animation: fade-in var(--duration-slow) var(--ease-out-soft);
+  }
+  .animate-in-up {
+    animation: fade-in-up var(--duration-slow) var(--ease-out-soft);
+  }
+  .animate-in-stagger > * {
+    animation: fade-in-up var(--duration-slow) var(--ease-out-soft) backwards;
+  }
+  .animate-in-stagger > *:nth-child(1) { animation-delay: 0ms; }
+  .animate-in-stagger > *:nth-child(2) { animation-delay: 40ms; }
+  .animate-in-stagger > *:nth-child(3) { animation-delay: 80ms; }
+  .animate-in-stagger > *:nth-child(4) { animation-delay: 120ms; }
+  .animate-in-stagger > *:nth-child(5) { animation-delay: 160ms; }
+  .animate-in-stagger > *:nth-child(6) { animation-delay: 200ms; }
+
+  /* Status pulse — subtle attention dot for in-progress items */
+  .status-pulse {
+    position: relative;
+  }
+  .status-pulse::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: currentColor;
+    opacity: 0.4;
+    animation: pulse-ring 1.8s var(--ease-out-soft) infinite;
+  }
+
+  /* Smooth interactive transitions for any element */
+  .smooth {
+    transition:
+      background-color var(--duration-fast) var(--ease-out-soft),
+      color var(--duration-fast) var(--ease-out-soft),
+      border-color var(--duration-fast) var(--ease-out-soft),
+      box-shadow var(--duration-fast) var(--ease-out-soft),
+      transform var(--duration-fast) var(--ease-out-soft);
+  }
+
+  /* Tab indicator — animated underline accent */
+  .tab-indicator {
+    position: relative;
+  }
+  .tab-indicator::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -2px;
+    width: 0;
+    height: 2px;
+    background: var(--color-primary);
+    border-radius: 2px;
+    transform: translateX(-50%);
+    transition: width var(--duration-base) var(--ease-out-snappy);
+  }
+  .tab-indicator[data-active="true"]::after {
+    width: 60%;
+  }
+
+  /* Keyframes */
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse-ring {
+    0%   { opacity: 0.45; transform: scale(1); }
+    70%  { opacity: 0; transform: scale(2.4); }
+    100% { opacity: 0; transform: scale(2.4); }
+  }
 }

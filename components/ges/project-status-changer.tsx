@@ -4,13 +4,39 @@ import { useState, useTransition, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { updateProjectStatus } from "@/app/actions/project";
 import { ChevronDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const STATUSES = [
-  { value: "DRAFT",       label: "Taslak",                 color: "bg-slate-500/20 text-slate-200 ring-slate-400/40",       dot: "#94a3b8" },
-  { value: "SENT",        label: "Müşteriye Gönderildi",   color: "bg-amber-500/20 text-amber-200 ring-amber-400/40",       dot: "#fbbf24" },
-  { value: "CLOSE_WIN",   label: "Close Win",              color: "bg-emerald-500/20 text-emerald-200 ring-emerald-400/40", dot: "#34d399" },
-  { value: "CLOSE_LOST",  label: "Close Lost",             color: "bg-red-500/20 text-red-200 ring-red-400/40",             dot: "#f87171" },
-  { value: "CANCELLED",   label: "Proje İptal",            color: "bg-slate-600/20 text-slate-300 ring-slate-500/40",       dot: "#64748b" },
+  {
+    value: "DRAFT",
+    label: "Taslak",
+    pill: "bg-secondary text-secondary-foreground border-border",
+    dot: "bg-muted-foreground/60",
+  },
+  {
+    value: "SENT",
+    label: "Müşteriye Gönderildi",
+    pill: "bg-info-soft text-info-soft-foreground border-info-soft",
+    dot: "bg-info",
+  },
+  {
+    value: "CLOSE_WIN",
+    label: "Close Win",
+    pill: "bg-success-soft text-success-soft-foreground border-success-soft",
+    dot: "bg-success",
+  },
+  {
+    value: "CLOSE_LOST",
+    label: "Close Lost",
+    pill: "bg-destructive-soft text-destructive-soft-foreground border-destructive-soft",
+    dot: "bg-destructive",
+  },
+  {
+    value: "CANCELLED",
+    label: "Proje İptal",
+    pill: "bg-secondary text-muted-foreground border-border",
+    dot: "bg-muted-foreground/60",
+  },
 ];
 
 interface Props {
@@ -18,7 +44,10 @@ interface Props {
   currentStatus: string;
 }
 
-interface DropdownPos { top: number; left: number; }
+interface DropdownPos {
+  top: number;
+  left: number;
+}
 
 export function ProjectStatusChanger({ projectId, currentStatus }: Props) {
   const [open, setOpen] = useState(false);
@@ -28,7 +57,9 @@ export function ProjectStatusChanger({ projectId, currentStatus }: Props) {
   const btnRef = useRef<HTMLButtonElement>(null);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   function openDropdown() {
     if (!btnRef.current) return;
@@ -38,7 +69,10 @@ export function ProjectStatusChanger({ projectId, currentStatus }: Props) {
   }
 
   function handleSelect(value: string) {
-    if (value === status) { setOpen(false); return; }
+    if (value === status) {
+      setOpen(false);
+      return;
+    }
     setStatus(value);
     setOpen(false);
     startTransition(() => {
@@ -52,19 +86,19 @@ export function ProjectStatusChanger({ projectId, currentStatus }: Props) {
     <>
       <div className="fixed inset-0 z-[400]" onClick={() => setOpen(false)} />
       <div
-        className="fixed z-[500] min-w-[190px] rounded-xl overflow-hidden shadow-2xl"
-        style={{ top: pos.top, left: pos.left, background: "#0f1f3d", border: "1px solid rgba(255,255,255,0.1)" }}
+        className="fixed z-[500] min-w-[200px] overflow-hidden rounded-md border bg-popover shadow-xl"
+        style={{ top: pos.top, left: pos.left }}
       >
         {STATUSES.map((s) => (
           <button
             key={s.value}
             type="button"
             onClick={() => handleSelect(s.value)}
-            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left text-[12px] font-medium transition-colors hover:bg-white/10"
+            className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs font-medium transition-colors hover:bg-muted"
           >
-            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: s.dot }} />
-            <span className="flex-1 text-white/90">{s.label}</span>
-            {s.value === status && <Check className="w-3 h-3 text-amber-400" />}
+            <span className={cn("size-2 shrink-0 rounded-full", s.dot)} />
+            <span className="flex-1">{s.label}</span>
+            {s.value === status && <Check className="size-3.5 text-primary" />}
           </button>
         ))}
       </div>
@@ -78,11 +112,20 @@ export function ProjectStatusChanger({ projectId, currentStatus }: Props) {
         type="button"
         onClick={openDropdown}
         disabled={isPending}
-        className={`inline-flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-full font-bold ring-1 transition-all select-none ${current.color} ${isPending ? "opacity-60" : "hover:opacity-90 cursor-pointer"}`}
+        className={cn(
+          "inline-flex items-center gap-1.5 select-none rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-opacity",
+          current.pill,
+          isPending ? "opacity-60" : "cursor-pointer hover:opacity-90",
+        )}
       >
-        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: current.dot }} />
+        <span className={cn("size-1.5 rounded-full", current.dot)} />
         {current.label}
-        <ChevronDown className={`w-2.5 h-2.5 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown
+          className={cn(
+            "size-2.5 transition-transform",
+            open && "rotate-180",
+          )}
+        />
       </button>
 
       {mounted && createPortal(dropdown, document.body)}

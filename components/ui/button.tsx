@@ -4,22 +4,30 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        default: "text-white shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:-translate-y-0.5 active:translate-y-0",
-        destructive: "bg-red-500 text-white hover:bg-red-600 shadow-sm shadow-red-500/25",
-        outline: "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-sm",
-        secondary: "bg-slate-100 text-slate-700 hover:bg-slate-200 shadow-sm",
-        ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-        link: "text-amber-600 underline-offset-4 hover:underline",
+        default:
+          "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 active:bg-primary/95",
+        destructive:
+          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+        outline:
+          "border border-input bg-card text-foreground shadow-sm hover:bg-secondary hover:text-secondary-foreground",
+        secondary:
+          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+        soft:
+          "bg-primary-soft text-primary-soft-foreground hover:bg-primary-soft/70",
+        ghost:
+          "text-foreground hover:bg-secondary hover:text-secondary-foreground",
+        link:
+          "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-10 px-5 py-2",
-        sm: "h-8 rounded-lg px-3.5 text-xs",
-        lg: "h-12 rounded-xl px-8 text-base",
-        icon: "h-10 w-10",
+        default: "h-9 px-4 py-2",
+        sm: "h-8 rounded-md px-3 text-xs",
+        lg: "h-10 rounded-lg px-6",
+        icon: "h-9 w-9",
       },
     },
     defaultVariants: {
@@ -36,14 +44,12 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, style, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
-    const isDefault = !variant || variant === "default";
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        style={isDefault ? { background: "linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)", ...style } : style}
         {...props}
       />
     );

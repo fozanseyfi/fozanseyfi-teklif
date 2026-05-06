@@ -19,11 +19,22 @@ import {
   TrendingUp, ChevronRight, Edit2, BarChart2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const PIE_COLORS = [
-  "#f59e0b","#3b82f6","#10b981","#8b5cf6","#ef4444","#06b6d4",
-  "#f97316","#84cc16","#ec4899","#6366f1","#14b8a6","#a855f7",
+  "#059669","#2563eb","#10b981","#8b5cf6","#dc2626","#06b6d4",
+  "#047857","#84cc16","#ec4899","#6366f1","#14b8a6","#a855f7",
 ];
+
+type SectionTone = "primary" | "info" | "success" | "warning" | "destructive";
+
+const SECTION_TONE: Record<SectionTone, { iconBg: string; iconText: string }> = {
+  primary: { iconBg: "bg-primary-soft", iconText: "text-primary-soft-foreground" },
+  info: { iconBg: "bg-info-soft", iconText: "text-info-soft-foreground" },
+  success: { iconBg: "bg-success-soft", iconText: "text-success-soft-foreground" },
+  warning: { iconBg: "bg-warning-soft", iconText: "text-warning-soft-foreground" },
+  destructive: { iconBg: "bg-destructive-soft", iconText: "text-destructive-soft-foreground" },
+};
 
 function fmt(n: number, d = 0) {
   return n.toLocaleString("tr-TR", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -254,17 +265,17 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
 
       {/* ── Alt Ekleme Modal ── */}
       {addAltOpen && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-foreground/50 backdrop-blur-sm">
+          <div className="bg-card rounded-2xl shadow-md w-full max-w-sm mx-4 overflow-hidden border">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
-                  <Plus className="w-4 h-4 text-white" />
+                <div className={cn("size-8 rounded-xl flex items-center justify-center", SECTION_TONE.primary.iconBg)}>
+                  <Plus className={cn("size-4", SECTION_TONE.primary.iconText)} />
                 </div>
-                <h2 className="font-bold text-slate-800 text-sm">{altModalConfig[addAltOpen].title}</h2>
+                <h2 className="font-semibold text-foreground text-sm">{altModalConfig[addAltOpen].title}</h2>
               </div>
-              <button onClick={() => setAddAltOpen(null)} className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50">
-                <X className="w-4 h-4 text-slate-500" />
+              <button onClick={() => setAddAltOpen(null)} className="size-8 rounded-lg border flex items-center justify-center hover:bg-muted">
+                <X className="size-4 text-muted-foreground" />
               </button>
             </div>
             <div className="px-5 py-4 space-y-3">
@@ -277,12 +288,11 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                 <Input type="number" step="0.001" value={newAltPrice} onChange={(e) => setNewAltPrice(e.target.value)} placeholder={altModalConfig[addAltOpen].pricePlaceholder} />
               </div>
             </div>
-            <div className="flex gap-3 justify-end px-5 py-3.5 border-t border-slate-100">
-              <button onClick={() => setAddAltOpen(null)} className="h-9 px-4 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50">Vazgeç</button>
+            <div className="flex gap-3 justify-end px-5 py-3.5 border-t">
+              <button onClick={() => setAddAltOpen(null)} className="h-9 px-4 rounded-xl border text-sm font-semibold text-muted-foreground hover:bg-muted">Vazgeç</button>
               <button onClick={handleAddAlt} disabled={saving || !newAltName.trim() || !newAltPrice}
-                className="h-9 px-5 rounded-xl text-sm font-semibold text-white flex items-center gap-2 disabled:opacity-40"
-                style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
-                <Plus className="w-4 h-4" /> Ekle
+                className="h-9 px-5 rounded-xl text-sm font-semibold text-primary-foreground flex items-center gap-2 disabled:opacity-40 bg-primary hover:bg-primary/90">
+                <Plus className="size-4" /> Ekle
               </button>
             </div>
           </div>
@@ -291,44 +301,43 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
 
       {/* ── Grup Düzenleme Modal ── */}
       {editGrp && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0"
-              style={{ background: "linear-gradient(135deg, #0f1f3d 0%, #1e3a5f 100%)" }}>
+        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-foreground/60 backdrop-blur-sm p-4">
+          <div className="bg-card rounded-2xl shadow-md w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden border">
+            <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0 bg-primary-soft">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-amber-400/20 flex items-center justify-center">
-                  <Edit2 className="w-4 h-4 text-amber-400" />
+                <div className="size-8 rounded-xl bg-primary/15 flex items-center justify-center">
+                  <Edit2 className="size-4 text-primary-soft-foreground" />
                 </div>
                 <div>
-                  <h2 className="font-bold text-white text-sm">{editGrp.grp.code} — {editGrp.grp.name}</h2>
-                  <p className="text-xs text-slate-400">{editGrp.isA ? "Kesif-A" : "Kesif-B"} · Değişiklikler kaydedince Kesife yansır</p>
+                  <h2 className="font-semibold text-primary-soft-foreground text-sm">{editGrp.grp.code} — {editGrp.grp.name}</h2>
+                  <p className="text-xs text-muted-foreground">{editGrp.isA ? "Kesif-A" : "Kesif-B"} · Değişiklikler kaydedince Kesife yansır</p>
                 </div>
               </div>
-              <button onClick={() => setEditGrp(null)} className="h-8 w-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center">
-                <X className="w-4 h-4 text-white" />
+              <button onClick={() => setEditGrp(null)} className="size-8 rounded-lg bg-card hover:bg-muted border flex items-center justify-center">
+                <X className="size-4 text-muted-foreground" />
               </button>
             </div>
             <div className="overflow-auto flex-1">
               <table className="w-full text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
+                <thead className="bg-muted border-b sticky top-0">
                   <tr>
-                    <th className="px-4 py-2.5 text-left text-slate-500 font-semibold w-16">Kod</th>
-                    <th className="px-4 py-2.5 text-left text-slate-500 font-semibold">Tanım</th>
-                    <th className="px-4 py-2.5 text-center text-slate-500 font-semibold min-w-[90px]">Birim</th>
-                    <th className="px-4 py-2.5 text-center text-slate-500 font-semibold w-24">Miktar</th>
-                    <th className="px-4 py-2.5 text-center text-slate-500 font-semibold w-28">Birim Fiyat</th>
-                    <th className="px-4 py-2.5 text-center text-slate-500 font-semibold w-20">Para</th>
-                    <th className="px-4 py-2.5 text-right text-slate-500 font-semibold w-28">Toplam USD</th>
+                    <th className="px-4 py-2.5 text-left text-muted-foreground font-semibold w-16">Kod</th>
+                    <th className="px-4 py-2.5 text-left text-muted-foreground font-semibold">Tanım</th>
+                    <th className="px-4 py-2.5 text-center text-muted-foreground font-semibold min-w-[90px]">Birim</th>
+                    <th className="px-4 py-2.5 text-center text-muted-foreground font-semibold w-24">Miktar</th>
+                    <th className="px-4 py-2.5 text-center text-muted-foreground font-semibold w-28">Birim Fiyat</th>
+                    <th className="px-4 py-2.5 text-center text-muted-foreground font-semibold w-20">Para</th>
+                    <th className="px-4 py-2.5 text-right text-muted-foreground font-semibold w-28">Toplam USD</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y">
                   {editItems.map((it, i) => {
                     const totalUsd = it.miktar * toUSD(it.rawFiyat, it.fiyatCur, s);
                     return (
-                      <tr key={it.code} className="hover:bg-slate-50">
-                        <td className="px-4 py-2 font-mono text-slate-400">{it.code}</td>
-                        <td className="px-4 py-2 text-slate-700">{it.tanim}</td>
-                        <td className="px-4 py-2 text-center text-slate-500 whitespace-nowrap">{it.birim}</td>
+                      <tr key={it.code} className="hover:bg-muted/60">
+                        <td className="px-4 py-2 font-mono text-muted-foreground">{it.code}</td>
+                        <td className="px-4 py-2 text-foreground">{it.tanim}</td>
+                        <td className="px-4 py-2 text-center text-muted-foreground whitespace-nowrap">{it.birim}</td>
                         <td className="px-4 py-2">
                           <Input type="number" step="any" value={it.miktar || ""}
                             onChange={(e) => updateEditItem(i, "miktar", parseFloat(e.target.value) || 0)}
@@ -342,33 +351,32 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                         <td className="px-4 py-2">
                           <select value={it.fiyatCur}
                             onChange={(e) => updateEditItem(i, "fiyatCur", e.target.value)}
-                            className="h-7 w-full text-xs border border-slate-200 rounded-md px-1 bg-white">
+                            className="h-7 w-full text-xs border rounded-md px-1 bg-card">
                             <option value="USD">USD</option>
                             <option value="EUR">EUR</option>
                             <option value="TRY">TRY</option>
                           </select>
                         </td>
-                        <td className="px-4 py-2 text-right font-semibold text-slate-800">${fmt(totalUsd)}</td>
+                        <td className="px-4 py-2 text-right font-semibold text-foreground">${fmt(totalUsd)}</td>
                       </tr>
                     );
                   })}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-slate-50 border-t-2 border-slate-300">
-                    <td colSpan={6} className="px-4 py-2.5 font-bold text-slate-700">Grup Toplam</td>
-                    <td className="px-4 py-2.5 text-right font-bold text-amber-700">
+                  <tr className="bg-muted border-t-2">
+                    <td colSpan={6} className="px-4 py-2.5 font-semibold text-foreground">Grup Toplam</td>
+                    <td className="px-4 py-2.5 text-right font-semibold text-primary-soft-foreground">
                       ${fmt(editItems.reduce((sum, it) => sum + it.miktar * toUSD(it.rawFiyat, it.fiyatCur, s), 0))}
                     </td>
                   </tr>
                 </tfoot>
               </table>
             </div>
-            <div className="flex gap-3 justify-end px-6 py-3.5 border-t border-slate-100 flex-shrink-0">
-              <button onClick={() => setEditGrp(null)} className="h-9 px-4 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50">Vazgeç</button>
+            <div className="flex gap-3 justify-end px-6 py-3.5 border-t flex-shrink-0">
+              <button onClick={() => setEditGrp(null)} className="h-9 px-4 rounded-xl border text-sm font-semibold text-muted-foreground hover:bg-muted">Vazgeç</button>
               <button onClick={handleSaveGroup} disabled={saving}
-                className="h-9 px-5 rounded-xl text-sm font-semibold text-white flex items-center gap-2 disabled:opacity-40"
-                style={{ background: "linear-gradient(135deg, #0f1f3d, #1e3a5f)" }}>
-                <Save className="w-4 h-4" /> Kaydet &amp; Uygula
+                className="h-9 px-5 rounded-xl text-sm font-semibold text-primary-foreground flex items-center gap-2 disabled:opacity-40 bg-primary hover:bg-primary/90">
+                <Save className="size-4" /> Kaydet &amp; Uygula
               </button>
             </div>
           </div>
@@ -377,95 +385,105 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
 
       {/* ── KPI Cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <div className="rounded-2xl p-4 text-white relative overflow-hidden col-span-1" style={{ background: "linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)", boxShadow: "0 8px 24px rgba(245,158,11,0.35)" }}>
-          <div className="absolute right-3 top-3 opacity-20"><DollarSign className="w-10 h-10" /></div>
-          <p className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1.5">EPC Satış Fiyatı</p>
-          <p className="text-xl font-bold">${fmt(result.salePriceUsd)}</p>
-          <p className="text-xs opacity-70 mt-0.5">₺{fmt(result.salePriceTry)}</p>
-        </div>
-        <div className="rounded-2xl p-4 text-white relative overflow-hidden" style={{ background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)", boxShadow: "0 8px 24px rgba(59,130,246,0.3)" }}>
-          <div className="absolute right-3 top-3 opacity-20"><Zap className="w-10 h-10" /></div>
-          <p className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1.5">Özgül Maliyet</p>
-          <p className="text-xl font-bold">{result.perKwUsd.toFixed(3)}</p>
-          <p className="text-xs opacity-70 mt-0.5">USD/kWp</p>
-        </div>
-        <div className="rounded-2xl p-4 text-white relative overflow-hidden" style={{ background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", boxShadow: "0 8px 24px rgba(16,185,129,0.3)" }}>
-          <div className="absolute right-3 top-3 opacity-20"><Zap className="w-10 h-10" /></div>
-          <p className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1.5">DC / AC Güç</p>
-          <p className="text-xl font-bold">{s.dcGuc.toFixed(2)} MW</p>
-          <p className="text-xs opacity-75 mt-0.5">{(s.dcGuc * 1000).toFixed(0)} kWp · AC: {s.acGuc.toFixed(2)} MW · Oran: {s.dcGuc > 0 && s.acGuc > 0 ? (s.dcGuc / s.acGuc).toFixed(2) : "—"}</p>
-        </div>
-        <div className="rounded-2xl p-4 bg-white border-0 shadow-md shadow-slate-200/60">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Maliyet Yapısı</p>
-          <div className="space-y-1 text-xs">
-            <div className="flex justify-between items-baseline gap-1">
-              <span className="text-slate-500">Kesif A+B</span>
-              <div className="text-right"><span className="font-semibold text-slate-700">${fmt(result.directCost)}</span>{dcWp > 0 && <span className="text-slate-400 text-[10px] ml-1">/{(result.directCost/dcWp).toFixed(3)}$/Wp</span>}</div>
+        <Card className="bg-primary text-primary-foreground relative overflow-hidden col-span-1 shadow-sm">
+          <CardContent className="p-4">
+            <div className="absolute right-3 top-3 opacity-20"><DollarSign className="size-10" /></div>
+            <p className="text-[10px] font-semibold uppercase tracking-widest opacity-80 mb-1.5">EPC Satış Fiyatı</p>
+            <p className="text-xl font-bold">${fmt(result.salePriceUsd)}</p>
+            <p className="text-xs opacity-70 mt-0.5">₺{fmt(result.salePriceTry)}</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-info-soft relative overflow-hidden shadow-sm border-info/30">
+          <CardContent className="p-4">
+            <div className="absolute right-3 top-3 opacity-20"><Zap className="size-10 text-info-soft-foreground" /></div>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-info-soft-foreground/80 mb-1.5">Özgül Maliyet</p>
+            <p className="text-xl font-bold text-info-soft-foreground">{result.perKwUsd.toFixed(3)}</p>
+            <p className="text-xs text-info-soft-foreground/70 mt-0.5">USD/kWp</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-success-soft relative overflow-hidden shadow-sm border-success/30">
+          <CardContent className="p-4">
+            <div className="absolute right-3 top-3 opacity-20"><Zap className="size-10 text-success-soft-foreground" /></div>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-success-soft-foreground/80 mb-1.5">DC / AC Güç</p>
+            <p className="text-xl font-bold text-success-soft-foreground">{s.dcGuc.toFixed(2)} MW</p>
+            <p className="text-xs text-success-soft-foreground/75 mt-0.5">{(s.dcGuc * 1000).toFixed(0)} kWp · AC: {s.acGuc.toFixed(2)} MW · Oran: {s.dcGuc > 0 && s.acGuc > 0 ? (s.dcGuc / s.acGuc).toFixed(2) : "—"}</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Maliyet Yapısı</p>
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between items-baseline gap-1">
+                <span className="text-muted-foreground">Kesif A+B</span>
+                <div className="text-right"><span className="font-semibold text-foreground">${fmt(result.directCost)}</span>{dcWp > 0 && <span className="text-muted-foreground text-[10px] ml-1">/{(result.directCost/dcWp).toFixed(3)}$/Wp</span>}</div>
+              </div>
+              <div className="flex justify-between items-baseline gap-1">
+                <span className="text-muted-foreground">Cont. %{s.contingency}</span>
+                <div className="text-right"><span className="text-muted-foreground font-medium">${fmt(result.contingencyAmt)}</span>{dcWp > 0 && <span className="text-muted-foreground text-[10px] ml-1">/{(result.contingencyAmt/dcWp).toFixed(3)}$/Wp</span>}</div>
+              </div>
+              <div className="flex justify-between items-baseline gap-1 pt-0.5 border-t">
+                <span className="text-foreground font-semibold">Maliyet</span>
+                <div className="text-right"><span className="font-bold text-foreground">${fmt(result.totalCost)}</span>{dcWp > 0 && <span className="text-muted-foreground text-[10px] ml-1">/{(result.totalCost/dcWp).toFixed(3)}$/Wp</span>}</div>
+              </div>
+              <div className="flex justify-between items-baseline gap-1 pt-0.5 border-t">
+                <span className="text-info-soft-foreground">OHC %{s.genelGider}</span>
+                <div className="text-right"><span className="text-info-soft-foreground font-medium">${fmt(result.genelGiderAmt)}</span>{dcWp > 0 && <span className="text-muted-foreground text-[10px] ml-1">/{(result.genelGiderAmt/dcWp).toFixed(3)}$/Wp</span>}</div>
+              </div>
+              <div className="flex justify-between items-baseline gap-1">
+                <span className="text-success-soft-foreground">Kar %{s.netKar}</span>
+                <div className="text-right"><span className="text-success-soft-foreground font-medium">${fmt(result.netKarAmt)}</span>{dcWp > 0 && <span className="text-muted-foreground text-[10px] ml-1">/{(result.netKarAmt/dcWp).toFixed(3)}$/Wp</span>}</div>
+              </div>
+              <div className="flex justify-between items-baseline gap-1 pt-0.5 border-t">
+                <span className="text-success-soft-foreground font-semibold">Brüt Kar</span>
+                <div className="text-right"><span className="font-bold text-success-soft-foreground">${fmt(result.brutKar)}</span>{dcWp > 0 && <span className="text-muted-foreground text-[10px] ml-1">/{(result.brutKar/dcWp).toFixed(3)}$/Wp</span>}</div>
+              </div>
             </div>
-            <div className="flex justify-between items-baseline gap-1">
-              <span className="text-slate-500">Cont. %{s.contingency}</span>
-              <div className="text-right"><span className="text-slate-600 font-medium">${fmt(result.contingencyAmt)}</span>{dcWp > 0 && <span className="text-slate-400 text-[10px] ml-1">/{(result.contingencyAmt/dcWp).toFixed(3)}$/Wp</span>}</div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Panel &amp; İnverter</p>
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between"><span className="text-muted-foreground">Panel Sayısı</span><span className="font-bold text-foreground">{fmt(panelAdetCalc)} adet</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Panel Gücü</span><span className="text-muted-foreground font-medium">{s.panelGuc} Wp</span></div>
+              <div className="flex justify-between pt-1 border-t"><span className="text-muted-foreground">İnverter Sayısı</span><span className="font-bold text-foreground">{s.invAdet ?? "—"} adet</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">İnverter Gücü</span><span className="text-muted-foreground font-medium">{s.invGuc} kVA</span></div>
             </div>
-            <div className="flex justify-between items-baseline gap-1 pt-0.5 border-t border-slate-100">
-              <span className="text-slate-800 font-bold">Maliyet</span>
-              <div className="text-right"><span className="font-bold text-slate-900">${fmt(result.totalCost)}</span>{dcWp > 0 && <span className="text-slate-400 text-[10px] ml-1">/{(result.totalCost/dcWp).toFixed(3)}$/Wp</span>}</div>
-            </div>
-            <div className="flex justify-between items-baseline gap-1 pt-0.5 border-t border-slate-100">
-              <span className="text-blue-600">OHC %{s.genelGider}</span>
-              <div className="text-right"><span className="text-blue-700 font-medium">${fmt(result.genelGiderAmt)}</span>{dcWp > 0 && <span className="text-slate-400 text-[10px] ml-1">/{(result.genelGiderAmt/dcWp).toFixed(3)}$/Wp</span>}</div>
-            </div>
-            <div className="flex justify-between items-baseline gap-1">
-              <span className="text-emerald-600">Kar %{s.netKar}</span>
-              <div className="text-right"><span className="text-emerald-700 font-medium">${fmt(result.netKarAmt)}</span>{dcWp > 0 && <span className="text-slate-400 text-[10px] ml-1">/{(result.netKarAmt/dcWp).toFixed(3)}$/Wp</span>}</div>
-            </div>
-            <div className="flex justify-between items-baseline gap-1 pt-0.5 border-t border-slate-100">
-              <span className="text-emerald-700 font-bold">Brüt Kar</span>
-              <div className="text-right"><span className="font-bold text-emerald-800">${fmt(result.brutKar)}</span>{dcWp > 0 && <span className="text-slate-400 text-[10px] ml-1">/{(result.brutKar/dcWp).toFixed(3)}$/Wp</span>}</div>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-2xl p-4 bg-white border-0 shadow-md shadow-slate-200/60">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Panel &amp; İnverter</p>
-          <div className="space-y-1 text-xs">
-            <div className="flex justify-between"><span className="text-slate-600">Panel Sayısı</span><span className="font-bold text-slate-800">{fmt(panelAdetCalc)} adet</span></div>
-            <div className="flex justify-between"><span className="text-slate-500">Panel Gücü</span><span className="text-slate-600 font-medium">{s.panelGuc} Wp</span></div>
-            <div className="flex justify-between pt-1 border-t border-slate-100"><span className="text-slate-600">İnverter Sayısı</span><span className="font-bold text-slate-800">{s.invAdet ?? "—"} adet</span></div>
-            <div className="flex justify-between"><span className="text-slate-500">İnverter Gücü</span><span className="text-slate-600 font-medium">{s.invGuc} kVA</span></div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* ── Marjlar ── */}
-      <Card className="border-0 shadow-md shadow-slate-200/60 overflow-hidden">
-        <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100">
+      <Card className="shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-3 py-2 border-b">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #f59e0b, #ea580c)" }}>
-              <DollarSign className="w-3 h-3 text-white" />
+            <div className={cn("size-6 rounded-lg flex items-center justify-center", SECTION_TONE.primary.iconBg)}>
+              <DollarSign className={cn("size-3", SECTION_TONE.primary.iconText)} />
             </div>
-            <h3 className="font-bold text-slate-700 text-xs">Maliyet Marjları</h3>
+            <h3 className="font-semibold text-foreground text-xs">Maliyet Marjları</h3>
           </div>
           <div className="flex gap-1.5">
             {marginDirty && (
               <Button size="sm" className="h-7 text-xs px-2.5" onClick={handleSaveMargins} disabled={saving}>
-                <Save className="w-3 h-3" />Kaydet
+                <Save className="size-3" />Kaydet
               </Button>
             )}
             <Button size="sm" variant="outline" className="h-7 text-xs px-2.5" onClick={() => window.print()}>
-              <FileDown className="w-3 h-3" />Analiz Yazdır
+              <FileDown className="size-3" />Analiz Yazdır
             </Button>
           </div>
         </div>
         <CardContent className="p-4">
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: "Contingency (%)", field: "contingency" as const, val: s.contingency, amt: result.contingencyAmt, color: "text-slate-600" },
-              { label: "Overhead Cost (%)", field: "genelGider" as const, val: s.genelGider, amt: result.genelGiderAmt, color: "text-blue-600" },
-              { label: "Net Kar (%)", field: "netKar" as const, val: s.netKar, amt: result.netKarAmt, color: "text-emerald-600" },
+              { label: "Contingency (%)", field: "contingency" as const, val: s.contingency, amt: result.contingencyAmt, color: "text-muted-foreground" },
+              { label: "Overhead Cost (%)", field: "genelGider" as const, val: s.genelGider, amt: result.genelGiderAmt, color: "text-info-soft-foreground" },
+              { label: "Net Kar (%)", field: "netKar" as const, val: s.netKar, amt: result.netKarAmt, color: "text-success-soft-foreground" },
             ].map((m) => (
               <div key={m.field} className="space-y-1.5">
                 <Label className="text-sm">{m.label}</Label>
                 <Input type="number" step="0.5" value={m.val} onChange={(e) => updateMargin(m.field, e.target.value)} />
-                <p className={`text-xs font-medium ${m.color}`}>${fmt(m.amt)} · ₺{fmt(m.amt * s.usd)}</p>
+                <p className={cn("text-xs font-medium", m.color)}>${fmt(m.amt)} · ₺{fmt(m.amt * s.usd)}</p>
               </div>
             ))}
           </div>
@@ -473,13 +491,13 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
       </Card>
 
       {/* ── Kritik Malzeme Seçimi ── */}
-      <Card className="border-0 shadow-md shadow-slate-200/60 overflow-hidden">
-        <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100">
+      <Card className="shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-3 py-2 border-b">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
-              <Zap className="w-3 h-3 text-white" />
+            <div className={cn("size-6 rounded-lg flex items-center justify-center", SECTION_TONE.primary.iconBg)}>
+              <Zap className={cn("size-3", SECTION_TONE.primary.iconText)} />
             </div>
-            <h3 className="font-bold text-slate-700 text-xs">Kritik Malzeme Seçimi — KPI Etkisi</h3>
+            <h3 className="font-semibold text-foreground text-xs">Kritik Malzeme Seçimi — KPI Etkisi</h3>
           </div>
         </div>
         <CardContent className="p-4">
@@ -506,11 +524,11 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
             ] as const).map(({ label, category, field, alts, selIdx, makeTestKesif, priceLabel }) => (
               <div key={field} className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{label}</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">{label}</p>
                   <button type="button"
                     onClick={() => { setAddAltOpen(category); setNewAltName(""); setNewAltPrice(""); }}
-                    className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition-all">
-                    <Plus className="w-3 h-3" /> Ekle
+                    className="flex items-center gap-1 text-xs font-semibold text-primary-soft-foreground bg-primary-soft hover:bg-primary-soft/70 px-2.5 py-1 rounded-lg transition-all">
+                    <Plus className="size-3" /> Ekle
                   </button>
                 </div>
                 {alts.map((alt, i) => {
@@ -520,21 +538,25 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                   return (
                     <div key={i} className="relative group">
                       <button type="button" onClick={() => handleAltChange(field, actualIdx)}
-                        className={`w-full text-left p-3 rounded-xl border text-sm transition-all ${isSel ? "shadow-md shadow-amber-500/20" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"}`}
-                        style={isSel ? { background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)", borderColor: "#fbbf24" } : {}}>
+                        className={cn(
+                          "w-full text-left p-3 rounded-xl border text-sm transition-all",
+                          isSel
+                            ? "shadow-sm bg-primary-soft border-primary/30"
+                            : "hover:border-primary/30 hover:bg-muted/60",
+                        )}>
                         <div className="flex items-center justify-between mb-1 pr-5">
-                          <span className="font-semibold text-slate-800 text-xs">{alt.name}</span>
-                          {isSel && <span className="text-xs font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">✓ Seçili</span>}
+                          <span className="font-semibold text-foreground text-xs">{alt.name}</span>
+                          {isSel && <span className="text-xs font-semibold text-primary-soft-foreground bg-primary-soft px-2 py-0.5 rounded-full border border-primary/30">✓ Seçili</span>}
                         </div>
-                        <div className="text-xs text-slate-500">
-                          <span className="font-medium text-amber-600">{priceLabel(alt.price)}</span>
-                          {" · "}Toplam: <span className="font-semibold text-slate-700">${fmt(testResult.salePriceUsd)}</span>
+                        <div className="text-xs text-muted-foreground">
+                          <span className="font-medium text-primary-soft-foreground">{priceLabel(alt.price)}</span>
+                          {" · "}Toplam: <span className="font-semibold text-foreground">${fmt(testResult.salePriceUsd)}</span>
                         </div>
                       </button>
                       {alts.length > 1 && (
                         <button type="button" onClick={() => handleRemoveAlt(category, actualIdx)}
-                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 w-5 h-5 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center transition-all" title="Kaldır">
-                          <X className="w-3 h-3 text-red-500" />
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 size-5 rounded-full bg-destructive-soft hover:bg-destructive-soft/70 flex items-center justify-center transition-all" title="Kaldır">
+                          <X className="size-3 text-destructive-soft-foreground" />
                         </button>
                       )}
                     </div>
@@ -547,16 +569,16 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
       </Card>
 
       {/* ── Maliyet Dağılımı (Donut) ── */}
-      <Card className="border-0 shadow-md shadow-slate-200/60 overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+      <Card className="shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #f59e0b, #ea580c)" }}>
-              <DollarSign className="w-4 h-4 text-white" />
+            <div className={cn("size-8 rounded-xl flex items-center justify-center", SECTION_TONE.primary.iconBg)}>
+              <DollarSign className={cn("size-4", SECTION_TONE.primary.iconText)} />
             </div>
-            <h3 className="font-bold text-slate-800 text-sm">Maliyet Dağılımı (USD)</h3>
+            <h3 className="font-semibold text-foreground text-sm">Maliyet Dağılımı (USD)</h3>
           </div>
           {hiddenItemKeys.size > 0 && (
-            <button onClick={() => setHiddenItemKeys(new Set())} className="text-xs text-amber-600 hover:underline font-semibold">Tümünü göster</button>
+            <button onClick={() => setHiddenItemKeys(new Set())} className="text-xs text-primary-soft-foreground hover:underline font-semibold">Tümünü göster</button>
           )}
         </div>
         <CardContent className="p-4">
@@ -573,10 +595,10 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                   </Pie>
                   <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
                     <tspan x="50%" dy="-10" fontSize={10} fill="#94a3b8" fontWeight={600}>TOPLAM</tspan>
-                    <tspan x="50%" dy="24" fontSize={17} fill="#0f172a" fontWeight={800}>${fmt(totalPieValue)}</tspan>
+                    <tspan x="50%" dy="24" fontSize={17} fill="#0f172a" fontWeight={700}>${fmt(totalPieValue)}</tspan>
                   </text>
                   <Tooltip formatter={(v) => `$${fmt(Number(v))}`}
-                    contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 8px 24px rgba(0,0,0,0.12)", fontSize: "12px" }} />
+                    contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 2px 0 rgb(15 23 42 / 0.04)", fontSize: "12px" }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -586,13 +608,16 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                 const pct = totalPieValue > 0 && !hidden ? (d.value / totalPieValue * 100).toFixed(1) : "—";
                 return (
                   <button key={d.key} type="button" onClick={() => togglePieItem(d.key)}
-                    className={`flex items-start gap-2.5 text-xs text-left rounded-xl px-3 py-2 transition-all border ${hidden ? "opacity-35 border-slate-100" : "hover:bg-slate-50 border-transparent"}`}>
-                    <div className="w-3.5 h-3.5 rounded flex-shrink-0 mt-0.5" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                    className={cn(
+                      "flex items-start gap-2.5 text-xs text-left rounded-xl px-3 py-2 transition-all border",
+                      hidden ? "opacity-35 border-transparent" : "hover:bg-muted/60 border-transparent",
+                    )}>
+                    <div className="size-3.5 rounded flex-shrink-0 mt-0.5" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
                     <div className="flex-1 min-w-0">
-                      <span className="text-slate-600 leading-tight block truncate">{d.name}</span>
+                      <span className="text-muted-foreground leading-tight block truncate">{d.name}</span>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-slate-400 font-semibold">{pct}%</span>
-                        <span className="text-slate-500 font-medium">{!hidden ? `$${fmt(d.value)}` : "—"}</span>
+                        <span className="text-muted-foreground font-semibold">{pct}%</span>
+                        <span className="text-muted-foreground font-medium">{!hidden ? `$${fmt(d.value)}` : "—"}</span>
                       </div>
                     </div>
                   </button>
@@ -605,61 +630,61 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
 
       {/* ── Maliyet Kırılımı + Grup Dağılımı ── */}
       <div className="grid lg:grid-cols-2 gap-3">
-        <Card className="border-0 shadow-md shadow-slate-200/60 overflow-hidden">
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0f1f3d, #1e3a5f)" }}>
-              <DollarSign className="w-4 h-4 text-amber-400" />
+        <Card className="shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-4 py-3 border-b">
+            <div className={cn("size-8 rounded-xl flex items-center justify-center", SECTION_TONE.primary.iconBg)}>
+              <DollarSign className={cn("size-4", SECTION_TONE.primary.iconText)} />
             </div>
-            <h3 className="font-bold text-slate-800 text-sm">Maliyet Kırılımı</h3>
+            <h3 className="font-semibold text-foreground text-sm">Maliyet Kırılımı</h3>
           </div>
           <CardContent className="p-0">
             <table className="w-full text-sm">
-              <tbody className="divide-y divide-slate-50">
-                <tr className="hover:bg-slate-50">
-                  <td className="px-5 py-2.5 text-slate-700 font-medium">Kesif-A</td>
-                  <td className="px-5 py-2.5 text-right font-bold text-amber-600">${fmt(result.kaTotal)}</td>
-                  <td className="px-5 py-2.5 text-right text-blue-400 text-xs">{dcWp > 0 ? `$${(result.kaTotal/dcWp).toFixed(4)}/Wp` : ""}</td>
+              <tbody className="divide-y">
+                <tr className="hover:bg-muted/60">
+                  <td className="px-5 py-2.5 text-foreground font-medium">Kesif-A</td>
+                  <td className="px-5 py-2.5 text-right font-semibold text-primary-soft-foreground">${fmt(result.kaTotal)}</td>
+                  <td className="px-5 py-2.5 text-right text-muted-foreground text-xs">{dcWp > 0 ? `$${(result.kaTotal/dcWp).toFixed(4)}/Wp` : ""}</td>
                 </tr>
-                <tr className="hover:bg-slate-50">
-                  <td className="px-5 py-2.5 text-slate-700 font-medium">Kesif-B</td>
-                  <td className="px-5 py-2.5 text-right font-bold text-purple-600">${fmt(result.kbTotal)}</td>
-                  <td className="px-5 py-2.5 text-right text-blue-400 text-xs">{dcWp > 0 ? `$${(result.kbTotal/dcWp).toFixed(4)}/Wp` : ""}</td>
+                <tr className="hover:bg-muted/60">
+                  <td className="px-5 py-2.5 text-foreground font-medium">Kesif-B</td>
+                  <td className="px-5 py-2.5 text-right font-semibold text-primary-soft-foreground">${fmt(result.kbTotal)}</td>
+                  <td className="px-5 py-2.5 text-right text-muted-foreground text-xs">{dcWp > 0 ? `$${(result.kbTotal/dcWp).toFixed(4)}/Wp` : ""}</td>
                 </tr>
-                <tr className="hover:bg-slate-50">
-                  <td className="px-5 py-2.5 text-slate-700 font-medium">Contingency (%{s.contingency})</td>
-                  <td className="px-5 py-2.5 text-right font-semibold text-slate-600">${fmt(result.contingencyAmt)}</td>
-                  <td className="px-5 py-2.5 text-right text-blue-400 text-xs">{dcWp > 0 ? `$${(result.contingencyAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
+                <tr className="hover:bg-muted/60">
+                  <td className="px-5 py-2.5 text-foreground font-medium">Contingency (%{s.contingency})</td>
+                  <td className="px-5 py-2.5 text-right font-semibold text-muted-foreground">${fmt(result.contingencyAmt)}</td>
+                  <td className="px-5 py-2.5 text-right text-muted-foreground text-xs">{dcWp > 0 ? `$${(result.contingencyAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
                 </tr>
-                <tr className="bg-slate-100 border-y-2 border-slate-300">
-                  <td className="px-5 py-2.5 font-extrabold text-slate-900">Maliyet</td>
-                  <td className="px-5 py-2.5 text-right font-extrabold text-slate-900">${fmt(result.totalCost)}</td>
-                  <td className="px-5 py-2.5 text-right text-blue-500 text-xs font-semibold">{dcWp > 0 ? `$${(result.totalCost/dcWp).toFixed(4)}/Wp` : ""}</td>
+                <tr className="bg-muted border-y-2">
+                  <td className="px-5 py-2.5 font-semibold text-foreground">Maliyet</td>
+                  <td className="px-5 py-2.5 text-right font-semibold text-foreground">${fmt(result.totalCost)}</td>
+                  <td className="px-5 py-2.5 text-right text-muted-foreground text-xs font-semibold">{dcWp > 0 ? `$${(result.totalCost/dcWp).toFixed(4)}/Wp` : ""}</td>
                 </tr>
-                <tr className="hover:bg-slate-50">
-                  <td className="px-5 py-2.5 text-slate-700 font-medium">Overhead Cost (%{s.genelGider})</td>
-                  <td className="px-5 py-2.5 text-right font-semibold text-blue-600">${fmt(result.genelGiderAmt)}</td>
-                  <td className="px-5 py-2.5 text-right text-blue-400 text-xs">{dcWp > 0 ? `$${(result.genelGiderAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
+                <tr className="hover:bg-muted/60">
+                  <td className="px-5 py-2.5 text-foreground font-medium">Overhead Cost (%{s.genelGider})</td>
+                  <td className="px-5 py-2.5 text-right font-semibold text-info-soft-foreground">${fmt(result.genelGiderAmt)}</td>
+                  <td className="px-5 py-2.5 text-right text-muted-foreground text-xs">{dcWp > 0 ? `$${(result.genelGiderAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
                 </tr>
-                <tr className="hover:bg-slate-50">
-                  <td className="px-5 py-2.5 text-slate-700 font-medium">Net Kar (%{s.netKar})</td>
-                  <td className="px-5 py-2.5 text-right font-semibold text-emerald-600">${fmt(result.netKarAmt)}</td>
-                  <td className="px-5 py-2.5 text-right text-blue-400 text-xs">{dcWp > 0 ? `$${(result.netKarAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
+                <tr className="hover:bg-muted/60">
+                  <td className="px-5 py-2.5 text-foreground font-medium">Net Kar (%{s.netKar})</td>
+                  <td className="px-5 py-2.5 text-right font-semibold text-success-soft-foreground">${fmt(result.netKarAmt)}</td>
+                  <td className="px-5 py-2.5 text-right text-muted-foreground text-xs">{dcWp > 0 ? `$${(result.netKarAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
                 </tr>
-                <tr className="bg-emerald-50 border-y-2 border-emerald-300">
-                  <td className="px-5 py-2.5 font-extrabold text-emerald-900">Brüt Kar</td>
-                  <td className="px-5 py-2.5 text-right font-extrabold text-emerald-700">${fmt(result.brutKar)}</td>
-                  <td className="px-5 py-2.5 text-right text-blue-500 text-xs font-semibold">{dcWp > 0 ? `$${(result.brutKar/dcWp).toFixed(4)}/Wp` : ""}</td>
+                <tr className="bg-success-soft border-y-2 border-success/30">
+                  <td className="px-5 py-2.5 font-semibold text-success-soft-foreground">Brüt Kar</td>
+                  <td className="px-5 py-2.5 text-right font-semibold text-success-soft-foreground">${fmt(result.brutKar)}</td>
+                  <td className="px-5 py-2.5 text-right text-muted-foreground text-xs font-semibold">{dcWp > 0 ? `$${(result.brutKar/dcWp).toFixed(4)}/Wp` : ""}</td>
                 </tr>
               </tbody>
               <tfoot>
-                <tr style={{ background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)", borderTop: "2px solid #fbbf24" }}>
-                  <td className="px-5 py-3 font-extrabold text-amber-800 text-sm">EPC SATIŞ FİYATI</td>
-                  <td className="px-5 py-3 text-right font-extrabold text-amber-700 text-base">${fmt(result.salePriceUsd)}</td>
-                  <td className="px-5 py-3 text-right text-blue-500 text-xs font-semibold">{dcWp > 0 ? `$${(result.salePriceUsd/dcWp).toFixed(4)}/Wp` : ""}</td>
+                <tr className="bg-primary-soft border-t-2 border-primary/30">
+                  <td className="px-5 py-3 font-semibold text-primary-soft-foreground text-sm">EPC SATIŞ FİYATI</td>
+                  <td className="px-5 py-3 text-right font-bold text-primary-soft-foreground text-base">${fmt(result.salePriceUsd)}</td>
+                  <td className="px-5 py-3 text-right text-muted-foreground text-xs font-semibold">{dcWp > 0 ? `$${(result.salePriceUsd/dcWp).toFixed(4)}/Wp` : ""}</td>
                 </tr>
-                <tr style={{ background: "#fffbeb" }}>
-                  <td className="px-5 py-1.5 text-xs font-medium text-amber-600">TL Karşılığı</td>
-                  <td className="px-5 py-1.5 text-right text-sm font-bold text-amber-600">₺{fmt(result.salePriceTry)}</td>
+                <tr className="bg-primary-soft">
+                  <td className="px-5 py-1.5 text-xs font-medium text-primary-soft-foreground">TL Karşılığı</td>
+                  <td className="px-5 py-1.5 text-right text-sm font-semibold text-primary-soft-foreground">₺{fmt(result.salePriceTry)}</td>
                   <td />
                 </tr>
               </tfoot>
@@ -667,12 +692,12 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-md shadow-slate-200/60 overflow-hidden">
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #3b82f6, #6366f1)" }}>
-              <Zap className="w-4 h-4 text-white" />
+        <Card className="shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-4 py-3 border-b">
+            <div className={cn("size-8 rounded-xl flex items-center justify-center", SECTION_TONE.info.iconBg)}>
+              <Zap className={cn("size-4", SECTION_TONE.info.iconText)} />
             </div>
-            <h3 className="font-bold text-slate-800 text-sm">Grup Dağılımı ($000)</h3>
+            <h3 className="font-semibold text-foreground text-sm">Grup Dağılımı ($000)</h3>
           </div>
           <CardContent className="px-4 pb-4 pt-3">
             <ResponsiveContainer width="100%" height={240}>
@@ -680,7 +705,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 600, fill: "#64748b" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                <Tooltip formatter={(v) => [`$${v}k`, "Toplam"]} contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 8px 24px rgba(0,0,0,0.12)", fontSize: "12px" }} />
+                <Tooltip formatter={(v) => [`$${v}k`, "Toplam"]} contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 2px 0 rgb(15 23 42 / 0.04)", fontSize: "12px" }} />
                 <Bar dataKey="usd" radius={[5, 5, 0, 0]}>
                   {[...modifiedKesifA, ...localKesifB].filter((g) => Math.round(getGrpTot(g, s) / 1000) > 0).map((g, i) => (
                     <Cell key={g.code} fill={PIE_COLORS[i % PIE_COLORS.length]} />
@@ -695,33 +720,40 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
       {/* ── Döviz Duyarlılığı + Kârlılık Analizi ── */}
       <div className="grid lg:grid-cols-2 gap-3">
         {/* Döviz Duyarlılığı */}
-        <Card className="border-0 shadow-md shadow-slate-200/60 overflow-hidden">
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0891b2, #0e7490)" }}>
-              <TrendingUp className="w-4 h-4 text-white" />
+        <Card className="shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-4 py-3 border-b">
+            <div className={cn("size-8 rounded-xl flex items-center justify-center", SECTION_TONE.info.iconBg)}>
+              <TrendingUp className={cn("size-4", SECTION_TONE.info.iconText)} />
             </div>
             <div>
-              <h3 className="font-bold text-slate-800 text-sm">Döviz Duyarlılığı</h3>
-              <p className="text-xs text-slate-400">USD/TRY kur senaryolarına göre TL satış</p>
+              <h3 className="font-semibold text-foreground text-sm">Döviz Duyarlılığı</h3>
+              <p className="text-xs text-muted-foreground">USD/TRY kur senaryolarına göre TL satış</p>
             </div>
           </div>
           <CardContent className="p-0">
             <table className="w-full text-xs">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-100">
-                  <th className="px-4 py-2 text-left text-slate-500 font-semibold">Senaryo</th>
-                  <th className="px-4 py-2 text-right text-slate-500 font-semibold">USD/TRY</th>
-                  <th className="px-4 py-2 text-right text-slate-500 font-semibold">TL Satış</th>
-                  <th className="px-4 py-2 text-right text-slate-500 font-semibold">Fark</th>
+                <tr className="bg-muted border-b">
+                  <th className="px-4 py-2 text-left text-muted-foreground font-semibold">Senaryo</th>
+                  <th className="px-4 py-2 text-right text-muted-foreground font-semibold">USD/TRY</th>
+                  <th className="px-4 py-2 text-right text-muted-foreground font-semibold">TL Satış</th>
+                  <th className="px-4 py-2 text-right text-muted-foreground font-semibold">Fark</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y">
                 {sensitivityRates.map((r) => (
-                  <tr key={r.label} className={r.isBase ? "bg-amber-50 font-semibold" : "hover:bg-slate-50"}>
-                    <td className={`px-4 py-2 ${r.isBase ? "text-amber-800" : "text-slate-600"}`}>{r.label}</td>
-                    <td className={`px-4 py-2 text-right ${r.isBase ? "text-amber-700" : "text-slate-500"}`}>{fmt(r.rate, 2)}</td>
-                    <td className={`px-4 py-2 text-right font-semibold ${r.isBase ? "text-amber-700" : "text-slate-800"}`}>₺{fmt(r.tryAmt)}</td>
-                    <td className={`px-4 py-2 text-right text-xs ${r.isBase ? "text-slate-400" : r.tryAmt > result.salePriceTry ? "text-emerald-600" : "text-red-500"}`}>
+                  <tr key={r.label} className={cn(r.isBase ? "bg-primary-soft font-semibold" : "hover:bg-muted/60")}>
+                    <td className={cn("px-4 py-2", r.isBase ? "text-primary-soft-foreground" : "text-muted-foreground")}>{r.label}</td>
+                    <td className={cn("px-4 py-2 text-right", r.isBase ? "text-primary-soft-foreground" : "text-muted-foreground")}>{fmt(r.rate, 2)}</td>
+                    <td className={cn("px-4 py-2 text-right font-semibold", r.isBase ? "text-primary-soft-foreground" : "text-foreground")}>₺{fmt(r.tryAmt)}</td>
+                    <td className={cn(
+                      "px-4 py-2 text-right text-xs",
+                      r.isBase
+                        ? "text-muted-foreground"
+                        : r.tryAmt > result.salePriceTry
+                          ? "text-success-soft-foreground"
+                          : "text-destructive-soft-foreground",
+                    )}>
                       {r.isBase ? "—" : `${r.tryAmt > result.salePriceTry ? "+" : ""}₺${fmt(r.tryAmt - result.salePriceTry)}`}
                     </td>
                   </tr>
@@ -732,14 +764,14 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
         </Card>
 
         {/* Kârlılık Analizi — Direktör Görünümü */}
-        <Card className="border-0 shadow-md shadow-slate-200/60 overflow-hidden">
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
-              <BarChart2 className="w-4 h-4 text-white" />
+        <Card className="shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-4 py-3 border-b">
+            <div className={cn("size-8 rounded-xl flex items-center justify-center", SECTION_TONE.primary.iconBg)}>
+              <BarChart2 className={cn("size-4", SECTION_TONE.primary.iconText)} />
             </div>
             <div>
-              <h3 className="font-bold text-slate-800 text-sm">Kârlılık Analizi</h3>
-              <p className="text-xs text-slate-400">Satış fiyatı üzerinden marj dağılımı</p>
+              <h3 className="font-semibold text-foreground text-sm">Kârlılık Analizi</h3>
+              <p className="text-xs text-muted-foreground">Satış fiyatı üzerinden marj dağılımı</p>
             </div>
           </div>
           <CardContent className="p-4 space-y-4">
@@ -752,25 +784,25 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
               const karPct = result.netKarAmt / result.salePriceUsd * 100;
               return (
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Satış Fiyatı Bileşimi</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Satış Fiyatı Bileşimi</p>
                   <div className="flex h-8 rounded-xl overflow-hidden w-full gap-px">
-                    <div className="flex items-center justify-center text-[9px] font-bold text-white overflow-hidden" style={{ width: `${kaPct}%`, background: "#f59e0b" }} title={`Kesif-A ${kaPct.toFixed(1)}%`}>A</div>
-                    <div className="flex items-center justify-center text-[9px] font-bold text-white overflow-hidden" style={{ width: `${kbPct}%`, background: "#8b5cf6" }} title={`Kesif-B ${kbPct.toFixed(1)}%`}>B</div>
-                    <div className="flex items-center justify-center text-[9px] font-bold text-white overflow-hidden" style={{ width: `${contPct}%`, background: "#64748b" }} title={`Contingency ${contPct.toFixed(1)}%`}>C</div>
-                    <div className="flex items-center justify-center text-[9px] font-bold text-white overflow-hidden" style={{ width: `${ohcPct}%`, background: "#3b82f6" }} title={`OHC ${ohcPct.toFixed(1)}%`}>O</div>
-                    <div className="flex items-center justify-center text-[9px] font-bold text-white overflow-hidden" style={{ width: `${karPct}%`, background: "#10b981" }} title={`Net Kar ${karPct.toFixed(1)}%`}>K</div>
+                    <div className="flex items-center justify-center text-[9px] font-semibold text-primary-foreground overflow-hidden bg-primary" style={{ width: `${kaPct}%` }} title={`Kesif-A ${kaPct.toFixed(1)}%`}>A</div>
+                    <div className="flex items-center justify-center text-[9px] font-semibold text-primary-foreground overflow-hidden bg-info" style={{ width: `${kbPct}%` }} title={`Kesif-B ${kbPct.toFixed(1)}%`}>B</div>
+                    <div className="flex items-center justify-center text-[9px] font-semibold text-primary-foreground overflow-hidden bg-muted-foreground" style={{ width: `${contPct}%` }} title={`Contingency ${contPct.toFixed(1)}%`}>C</div>
+                    <div className="flex items-center justify-center text-[9px] font-semibold text-primary-foreground overflow-hidden bg-warning" style={{ width: `${ohcPct}%` }} title={`OHC ${ohcPct.toFixed(1)}%`}>O</div>
+                    <div className="flex items-center justify-center text-[9px] font-semibold text-primary-foreground overflow-hidden bg-success" style={{ width: `${karPct}%` }} title={`Net Kar ${karPct.toFixed(1)}%`}>K</div>
                   </div>
                   <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
                     {[
-                      { label: "Kesif-A", pct: kaPct, color: "#f59e0b" },
-                      { label: "Kesif-B", pct: kbPct, color: "#8b5cf6" },
+                      { label: "Kesif-A", pct: kaPct, color: "#059669" },
+                      { label: "Kesif-B", pct: kbPct, color: "#2563eb" },
                       { label: "Contingency", pct: contPct, color: "#64748b" },
-                      { label: "OHC", pct: ohcPct, color: "#3b82f6" },
-                      { label: "Net Kar", pct: karPct, color: "#10b981" },
+                      { label: "OHC", pct: ohcPct, color: "#d97706" },
+                      { label: "Net Kar", pct: karPct, color: "#059669" },
                     ].map((s) => (
-                      <span key={s.label} className="flex items-center gap-1 text-[10px] text-slate-500">
-                        <span className="w-2 h-2 rounded-sm inline-block flex-shrink-0" style={{ backgroundColor: s.color }} />
-                        {s.label} <span className="font-semibold text-slate-700">{s.pct.toFixed(1)}%</span>
+                      <span key={s.label} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <span className="size-2 rounded-sm inline-block flex-shrink-0" style={{ backgroundColor: s.color }} />
+                        {s.label} <span className="font-semibold text-foreground">{s.pct.toFixed(1)}%</span>
                       </span>
                     ))}
                   </div>
@@ -785,31 +817,31 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                   label: "Brüt Kar Marjı",
                   value: result.salePriceUsd > 0 ? `${(result.brutKar / result.salePriceUsd * 100).toFixed(1)}%` : "—",
                   sub: `$${fmt(result.brutKar)}`,
-                  color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-100",
+                  color: "text-success-soft-foreground", bg: "bg-success-soft border-success/30",
                 },
                 {
                   label: "Net Kar Marjı",
                   value: result.salePriceUsd > 0 ? `${(result.netKarAmt / result.salePriceUsd * 100).toFixed(1)}%` : "—",
                   sub: `$${fmt(result.netKarAmt)}`,
-                  color: "text-blue-700", bg: "bg-blue-50 border-blue-100",
+                  color: "text-info-soft-foreground", bg: "bg-info-soft border-info/30",
                 },
                 {
                   label: "Kesif-A / Toplam",
                   value: result.directCost > 0 ? `${(result.kaTotal / result.directCost * 100).toFixed(1)}%` : "—",
                   sub: `$${fmt(result.kaTotal)}`,
-                  color: "text-amber-700", bg: "bg-amber-50 border-amber-100",
+                  color: "text-primary-soft-foreground", bg: "bg-primary-soft border-primary/30",
                 },
                 {
                   label: "Markup Oranı",
                   value: result.totalCost > 0 ? `${((result.salePriceUsd / result.totalCost - 1) * 100).toFixed(1)}%` : "—",
                   sub: "Satış / Maliyet − 1",
-                  color: "text-violet-700", bg: "bg-violet-50 border-violet-100",
+                  color: "text-primary-soft-foreground", bg: "bg-primary-soft border-primary/30",
                 },
               ].map((m) => (
-                <div key={m.label} className={`rounded-xl p-3 border ${m.bg}`}>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">{m.label}</p>
-                  <p className={`text-xl font-black ${m.color}`}>{m.value}</p>
-                  <p className="text-[10px] text-slate-400">{m.sub}</p>
+                <div key={m.label} className={cn("rounded-xl p-3 border", m.bg)}>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">{m.label}</p>
+                  <p className={cn("text-xl font-bold", m.color)}>{m.value}</p>
+                  <p className="text-[10px] text-muted-foreground">{m.sub}</p>
                 </div>
               ))}
             </div>
@@ -822,52 +854,52 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
         <CardHeader className="pb-2 pt-3 px-4">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm">Tüm Kalemler Özet</CardTitle>
-            <p className="text-xs text-slate-400">Bir gruba tıklayarak düzenleyebilirsiniz</p>
+            <p className="text-xs text-muted-foreground">Bir gruba tıklayarak düzenleyebilirsiniz</p>
           </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="px-3 py-2 text-left text-slate-500 font-medium">Kod</th>
-                  <th className="px-3 py-2 text-left text-slate-500 font-medium">Grup</th>
-                  <th className="px-3 py-2 text-right text-slate-500 font-medium">Toplam USD</th>
-                  <th className="px-3 py-2 text-right text-slate-500 font-medium">$/Wp</th>
-                  <th className="px-3 py-2 text-right text-slate-500 font-medium">Pay %</th>
-                  <th className="px-3 py-2 text-right text-emerald-600 font-medium">% Satış</th>
-                  <th className="px-3 py-2 text-center text-slate-400 font-medium w-8"></th>
+                <tr className="bg-muted border-b">
+                  <th className="px-3 py-2 text-left text-muted-foreground font-medium">Kod</th>
+                  <th className="px-3 py-2 text-left text-muted-foreground font-medium">Grup</th>
+                  <th className="px-3 py-2 text-right text-muted-foreground font-medium">Toplam USD</th>
+                  <th className="px-3 py-2 text-right text-muted-foreground font-medium">$/Wp</th>
+                  <th className="px-3 py-2 text-right text-muted-foreground font-medium">Pay %</th>
+                  <th className="px-3 py-2 text-right text-success-soft-foreground font-medium">% Satış</th>
+                  <th className="px-3 py-2 text-center text-muted-foreground font-medium w-8"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y">
                 {modifiedKesifA.map((g) => {
                   const total = getGrpTot(g, s);
                   const pct = result.directCost > 0 ? (total / result.directCost) * 100 : 0;
                   const perWp = dcWp > 0 ? total / dcWp : 0;
                   return (
-                    <tr key={g.code} className="hover:bg-violet-50/40 cursor-pointer transition-colors group"
+                    <tr key={g.code} className="hover:bg-primary-soft/40 cursor-pointer transition-colors group"
                       onClick={() => openGroupEditor(localKesifA.find((x) => x.code === g.code) ?? g, true)}>
-                      <td className="px-3 py-2 font-mono text-slate-400">{g.code}</td>
-                      <td className="px-3 py-2 text-slate-700">{g.name}</td>
-                      <td className="px-3 py-2 text-right font-semibold text-slate-800">${fmt(total)}</td>
-                      <td className="px-3 py-2 text-right text-blue-500">{perWp > 0 ? `$${perWp.toFixed(4)}` : "—"}</td>
+                      <td className="px-3 py-2 font-mono text-muted-foreground">{g.code}</td>
+                      <td className="px-3 py-2 text-foreground">{g.name}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-foreground">${fmt(total)}</td>
+                      <td className="px-3 py-2 text-right text-muted-foreground">{perWp > 0 ? `$${perWp.toFixed(4)}` : "—"}</td>
                       <td className="px-3 py-2 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          <div className="w-14 bg-slate-100 rounded-full h-1"><div className="h-1 bg-amber-400 rounded-full" style={{ width: `${Math.min(pct, 100)}%` }} /></div>
-                          <span className="text-slate-500 w-8">{pct.toFixed(1)}%</span>
+                          <div className="w-14 bg-muted rounded-full h-1"><div className="h-1 bg-primary rounded-full" style={{ width: `${Math.min(pct, 100)}%` }} /></div>
+                          <span className="text-muted-foreground w-8">{pct.toFixed(1)}%</span>
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-right text-emerald-600 font-medium">{result.salePriceUsd > 0 ? `${(total/result.salePriceUsd*100).toFixed(1)}%` : "—"}</td>
-                      <td className="px-3 py-2 text-center"><ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-violet-400 transition-colors" /></td>
+                      <td className="px-3 py-2 text-right text-success-soft-foreground font-medium">{result.salePriceUsd > 0 ? `${(total/result.salePriceUsd*100).toFixed(1)}%` : "—"}</td>
+                      <td className="px-3 py-2 text-center"><ChevronRight className="size-3.5 text-muted-foreground group-hover:text-primary-soft-foreground transition-colors" /></td>
                     </tr>
                   );
                 })}
-                <tr className="bg-amber-50 border-y-2 border-amber-200">
-                  <td colSpan={2} className="px-3 py-2 font-bold text-amber-800">Kesif-A Ara Toplam</td>
-                  <td className="px-3 py-2 text-right font-bold text-amber-700">${fmt(result.kaTotal)}</td>
-                  <td className="px-3 py-2 text-right font-bold text-blue-500">{dcWp > 0 ? `$${(result.kaTotal/dcWp).toFixed(4)}/Wp` : ""}</td>
-                  <td className="px-3 py-2 text-right font-bold text-amber-600">{result.directCost > 0 ? (result.kaTotal/result.directCost*100).toFixed(1) : "0"}%</td>
-                  <td className="px-3 py-2 text-right font-bold text-emerald-600">{result.salePriceUsd > 0 ? `${(result.kaTotal/result.salePriceUsd*100).toFixed(1)}%` : "—"}</td>
+                <tr className="bg-primary-soft border-y-2 border-primary/30">
+                  <td colSpan={2} className="px-3 py-2 font-semibold text-primary-soft-foreground">Kesif-A Ara Toplam</td>
+                  <td className="px-3 py-2 text-right font-semibold text-primary-soft-foreground">${fmt(result.kaTotal)}</td>
+                  <td className="px-3 py-2 text-right font-semibold text-muted-foreground">{dcWp > 0 ? `$${(result.kaTotal/dcWp).toFixed(4)}/Wp` : ""}</td>
+                  <td className="px-3 py-2 text-right font-semibold text-primary-soft-foreground">{result.directCost > 0 ? (result.kaTotal/result.directCost*100).toFixed(1) : "0"}%</td>
+                  <td className="px-3 py-2 text-right font-semibold text-success-soft-foreground">{result.salePriceUsd > 0 ? `${(result.kaTotal/result.salePriceUsd*100).toFixed(1)}%` : "—"}</td>
                   <td />
                 </tr>
                 {localKesifB.map((g) => {
@@ -875,84 +907,84 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                   const pct = result.directCost > 0 ? (total / result.directCost) * 100 : 0;
                   const perWp = dcWp > 0 ? total / dcWp : 0;
                   return (
-                    <tr key={g.code} className="hover:bg-violet-50/40 cursor-pointer transition-colors group"
+                    <tr key={g.code} className="hover:bg-primary-soft/40 cursor-pointer transition-colors group"
                       onClick={() => openGroupEditor(g, false)}>
-                      <td className="px-3 py-2 font-mono text-slate-400">{g.code}</td>
-                      <td className="px-3 py-2 text-slate-700">{g.name}</td>
-                      <td className="px-3 py-2 text-right font-semibold text-slate-800">${fmt(total)}</td>
-                      <td className="px-3 py-2 text-right text-blue-500">{perWp > 0 ? `$${perWp.toFixed(4)}` : "—"}</td>
+                      <td className="px-3 py-2 font-mono text-muted-foreground">{g.code}</td>
+                      <td className="px-3 py-2 text-foreground">{g.name}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-foreground">${fmt(total)}</td>
+                      <td className="px-3 py-2 text-right text-muted-foreground">{perWp > 0 ? `$${perWp.toFixed(4)}` : "—"}</td>
                       <td className="px-3 py-2 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          <div className="w-14 bg-slate-100 rounded-full h-1"><div className="h-1 bg-purple-400 rounded-full" style={{ width: `${Math.min(pct, 100)}%` }} /></div>
-                          <span className="text-slate-500 w-8">{pct.toFixed(1)}%</span>
+                          <div className="w-14 bg-muted rounded-full h-1"><div className="h-1 bg-info rounded-full" style={{ width: `${Math.min(pct, 100)}%` }} /></div>
+                          <span className="text-muted-foreground w-8">{pct.toFixed(1)}%</span>
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-right text-emerald-600 font-medium">{result.salePriceUsd > 0 ? `${(total/result.salePriceUsd*100).toFixed(1)}%` : "—"}</td>
-                      <td className="px-3 py-2 text-center"><ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-violet-400 transition-colors" /></td>
+                      <td className="px-3 py-2 text-right text-success-soft-foreground font-medium">{result.salePriceUsd > 0 ? `${(total/result.salePriceUsd*100).toFixed(1)}%` : "—"}</td>
+                      <td className="px-3 py-2 text-center"><ChevronRight className="size-3.5 text-muted-foreground group-hover:text-primary-soft-foreground transition-colors" /></td>
                     </tr>
                   );
                 })}
-                <tr className="bg-purple-50 border-y-2 border-purple-200">
-                  <td colSpan={2} className="px-3 py-2 font-bold text-purple-800">Kesif-B Ara Toplam</td>
-                  <td className="px-3 py-2 text-right font-bold text-purple-700">${fmt(result.kbTotal)}</td>
-                  <td className="px-3 py-2 text-right font-bold text-blue-500">{dcWp > 0 ? `$${(result.kbTotal/dcWp).toFixed(4)}/Wp` : ""}</td>
-                  <td className="px-3 py-2 text-right font-bold text-purple-600">{result.directCost > 0 ? (result.kbTotal/result.directCost*100).toFixed(1) : "0"}%</td>
-                  <td className="px-3 py-2 text-right font-bold text-emerald-600">{result.salePriceUsd > 0 ? `${(result.kbTotal/result.salePriceUsd*100).toFixed(1)}%` : "—"}</td>
+                <tr className="bg-info-soft border-y-2 border-info/30">
+                  <td colSpan={2} className="px-3 py-2 font-semibold text-info-soft-foreground">Kesif-B Ara Toplam</td>
+                  <td className="px-3 py-2 text-right font-semibold text-info-soft-foreground">${fmt(result.kbTotal)}</td>
+                  <td className="px-3 py-2 text-right font-semibold text-muted-foreground">{dcWp > 0 ? `$${(result.kbTotal/dcWp).toFixed(4)}/Wp` : ""}</td>
+                  <td className="px-3 py-2 text-right font-semibold text-info-soft-foreground">{result.directCost > 0 ? (result.kbTotal/result.directCost*100).toFixed(1) : "0"}%</td>
+                  <td className="px-3 py-2 text-right font-semibold text-success-soft-foreground">{result.salePriceUsd > 0 ? `${(result.kbTotal/result.salePriceUsd*100).toFixed(1)}%` : "—"}</td>
                   <td />
                 </tr>
               </tbody>
-              <tfoot className="border-t-2 border-slate-300">
-                <tr className="bg-slate-50 text-slate-600">
+              <tfoot className="border-t-2">
+                <tr className="bg-muted text-muted-foreground">
                   <td colSpan={2} className="px-3 py-2">Contingency (%{s.contingency})</td>
                   <td className="px-3 py-2 text-right font-semibold">${fmt(result.contingencyAmt)}</td>
-                  <td className="px-3 py-2 text-right text-blue-400">{dcWp > 0 ? `$${(result.contingencyAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
+                  <td className="px-3 py-2 text-right text-muted-foreground">{dcWp > 0 ? `$${(result.contingencyAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
                   <td />
-                  <td className="px-3 py-2 text-right text-emerald-600 font-semibold">{result.salePriceUsd > 0 ? `${(result.contingencyAmt/result.salePriceUsd*100).toFixed(1)}%` : ""}</td>
+                  <td className="px-3 py-2 text-right text-success-soft-foreground font-semibold">{result.salePriceUsd > 0 ? `${(result.contingencyAmt/result.salePriceUsd*100).toFixed(1)}%` : ""}</td>
                   <td />
                 </tr>
-                <tr className="bg-slate-100 border-y-2 border-slate-300 font-bold text-slate-900">
+                <tr className="bg-muted border-y-2 font-semibold text-foreground">
                   <td colSpan={2} className="px-3 py-2">Maliyet</td>
                   <td className="px-3 py-2 text-right">${fmt(result.totalCost)}</td>
-                  <td className="px-3 py-2 text-right text-blue-500 text-xs font-semibold">{dcWp > 0 ? `$${(result.totalCost/dcWp).toFixed(4)}/Wp` : ""}</td>
+                  <td className="px-3 py-2 text-right text-muted-foreground text-xs font-semibold">{dcWp > 0 ? `$${(result.totalCost/dcWp).toFixed(4)}/Wp` : ""}</td>
                   <td />
-                  <td className="px-3 py-2 text-right text-emerald-600">{result.salePriceUsd > 0 ? `${(result.totalCost/result.salePriceUsd*100).toFixed(1)}%` : ""}</td>
+                  <td className="px-3 py-2 text-right text-success-soft-foreground">{result.salePriceUsd > 0 ? `${(result.totalCost/result.salePriceUsd*100).toFixed(1)}%` : ""}</td>
                   <td />
                 </tr>
-                <tr className="bg-slate-50 text-blue-600">
+                <tr className="bg-muted text-info-soft-foreground">
                   <td colSpan={2} className="px-3 py-2">Overhead Cost (%{s.genelGider})</td>
                   <td className="px-3 py-2 text-right font-semibold">${fmt(result.genelGiderAmt)}</td>
-                  <td className="px-3 py-2 text-right text-blue-400">{dcWp > 0 ? `$${(result.genelGiderAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
+                  <td className="px-3 py-2 text-right text-muted-foreground">{dcWp > 0 ? `$${(result.genelGiderAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
                   <td />
-                  <td className="px-3 py-2 text-right text-emerald-600 font-semibold">{result.salePriceUsd > 0 ? `${(result.genelGiderAmt/result.salePriceUsd*100).toFixed(1)}%` : ""}</td>
+                  <td className="px-3 py-2 text-right text-success-soft-foreground font-semibold">{result.salePriceUsd > 0 ? `${(result.genelGiderAmt/result.salePriceUsd*100).toFixed(1)}%` : ""}</td>
                   <td />
                 </tr>
-                <tr className="bg-slate-50 text-green-600 font-semibold">
+                <tr className="bg-muted text-success-soft-foreground font-semibold">
                   <td colSpan={2} className="px-3 py-2">Net Kar (%{s.netKar})</td>
                   <td className="px-3 py-2 text-right">${fmt(result.netKarAmt)}</td>
-                  <td className="px-3 py-2 text-right text-blue-400">{dcWp > 0 ? `$${(result.netKarAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
+                  <td className="px-3 py-2 text-right text-muted-foreground">{dcWp > 0 ? `$${(result.netKarAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
                   <td />
-                  <td className="px-3 py-2 text-right text-emerald-600">{result.salePriceUsd > 0 ? `${(result.netKarAmt/result.salePriceUsd*100).toFixed(1)}%` : ""}</td>
+                  <td className="px-3 py-2 text-right text-success-soft-foreground">{result.salePriceUsd > 0 ? `${(result.netKarAmt/result.salePriceUsd*100).toFixed(1)}%` : ""}</td>
                   <td />
                 </tr>
-                <tr className="bg-emerald-50 border-y-2 border-emerald-300 font-bold text-emerald-800">
+                <tr className="bg-success-soft border-y-2 border-success/30 font-semibold text-success-soft-foreground">
                   <td colSpan={2} className="px-3 py-2">Brüt Kar</td>
                   <td className="px-3 py-2 text-right">${fmt(result.brutKar)}</td>
-                  <td className="px-3 py-2 text-right text-blue-500 text-xs font-semibold">{dcWp > 0 ? `$${(result.brutKar/dcWp).toFixed(4)}/Wp` : ""}</td>
+                  <td className="px-3 py-2 text-right text-muted-foreground text-xs font-semibold">{dcWp > 0 ? `$${(result.brutKar/dcWp).toFixed(4)}/Wp` : ""}</td>
                   <td />
-                  <td className="px-3 py-2 text-right text-emerald-700">{result.salePriceUsd > 0 ? `${(result.brutKar/result.salePriceUsd*100).toFixed(1)}%` : ""}</td>
-                  <td />
-                </tr>
-                <tr className="bg-amber-50 border-t-2 border-amber-300">
-                  <td colSpan={2} className="px-3 py-3 font-bold text-amber-800">EPC SATIŞ FİYATI</td>
-                  <td className="px-3 py-3 text-right font-bold text-amber-700 text-sm">${fmt(result.salePriceUsd)}</td>
-                  <td className="px-3 py-3 text-right text-blue-500 font-medium text-xs">{dcWp > 0 ? `$${(result.salePriceUsd/dcWp).toFixed(4)}/Wp` : ""}</td>
-                  <td />
-                  <td className="px-3 py-3 text-right font-bold text-emerald-700">100%</td>
+                  <td className="px-3 py-2 text-right text-success-soft-foreground">{result.salePriceUsd > 0 ? `${(result.brutKar/result.salePriceUsd*100).toFixed(1)}%` : ""}</td>
                   <td />
                 </tr>
-                <tr className="bg-amber-50">
-                  <td colSpan={2} className="px-3 py-1.5 text-xs text-amber-600">TL Karşılığı</td>
-                  <td className="px-3 py-1.5 text-right text-xs text-amber-600">₺{fmt(result.salePriceTry)}</td>
+                <tr className="bg-primary-soft border-t-2 border-primary/30">
+                  <td colSpan={2} className="px-3 py-3 font-semibold text-primary-soft-foreground">EPC SATIŞ FİYATI</td>
+                  <td className="px-3 py-3 text-right font-bold text-primary-soft-foreground text-sm">${fmt(result.salePriceUsd)}</td>
+                  <td className="px-3 py-3 text-right text-muted-foreground font-medium text-xs">{dcWp > 0 ? `$${(result.salePriceUsd/dcWp).toFixed(4)}/Wp` : ""}</td>
+                  <td />
+                  <td className="px-3 py-3 text-right font-semibold text-success-soft-foreground">100%</td>
+                  <td />
+                </tr>
+                <tr className="bg-primary-soft">
+                  <td colSpan={2} className="px-3 py-1.5 text-xs text-primary-soft-foreground">TL Karşılığı</td>
+                  <td className="px-3 py-1.5 text-right text-xs text-primary-soft-foreground">₺{fmt(result.salePriceTry)}</td>
                   <td colSpan={4} />
                 </tr>
               </tfoot>
@@ -963,42 +995,42 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
 
       {/* ── Cash Flow Chart (combined) ── */}
       {cfData.length > 0 && (
-        <Card className="border-0 shadow-md shadow-slate-200/60 overflow-hidden">
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #10b981, #059669)" }}>
-              <TrendingUp className="w-4 h-4 text-white" />
+        <Card className="shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-4 py-3 border-b">
+            <div className={cn("size-8 rounded-xl flex items-center justify-center", SECTION_TONE.success.iconBg)}>
+              <TrendingUp className={cn("size-4", SECTION_TONE.success.iconText)} />
             </div>
-            <h3 className="font-bold text-slate-800 text-sm">Aylık Nakit Akışı ve Kümülatif Pozisyon</h3>
+            <h3 className="font-semibold text-foreground text-sm">Aylık Nakit Akışı ve Kümülatif Pozisyon</h3>
           </div>
           <CardContent className="px-4 pb-4 pt-3">
             <ResponsiveContainer width="100%" height={320}>
               <ComposedChart data={cfData} barGap={2} margin={{ top: 5, right: 40, bottom: 0, left: 0 }}>
                 <defs>
                   <linearGradient id="cfGirisGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#059669" stopOpacity={0.8} />
+                    <stop offset="0%" stopColor="#059669" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#047857" stopOpacity={0.8} />
                   </linearGradient>
                   <linearGradient id="cfCikisGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#f87171" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#ef4444" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="#dc2626" stopOpacity={0.8} />
                   </linearGradient>
                   <linearGradient id="cumGradPos" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#059669" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#059669" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 9, fill: "#94a3b8", fontWeight: 500 }} axisLine={false} tickLine={false} />
                 <YAxis yAxisId="bars" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                <YAxis yAxisId="cum" orientation="right" tick={{ fontSize: 10, fill: "#f59e0b" }} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="cum" orientation="right" tick={{ fontSize: 10, fill: "#059669" }} axisLine={false} tickLine={false} />
                 <ReferenceLine yAxisId="bars" y={0} stroke="#e2e8f0" strokeWidth={1.5} />
-                <ReferenceLine yAxisId="cum" y={0} stroke="#fbbf2440" strokeWidth={1} strokeDasharray="4 2" />
-                <Tooltip formatter={(v, name) => [`$${Number(v).toFixed(1)}k`, name]} contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 8px 24px rgba(0,0,0,0.12)", fontSize: "12px" }} />
+                <ReferenceLine yAxisId="cum" y={0} stroke="#05966940" strokeWidth={1} strokeDasharray="4 2" />
+                <Tooltip formatter={(v, name) => [`$${Number(v).toFixed(1)}k`, name]} contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 2px 0 rgb(15 23 42 / 0.04)", fontSize: "12px" }} />
                 <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
                 <Bar yAxisId="bars" dataKey="Giriş" fill="url(#cfGirisGrad)" radius={[4, 4, 0, 0]} maxBarSize={32} />
                 <Bar yAxisId="bars" dataKey="Çıkış" fill="url(#cfCikisGrad)" radius={[4, 4, 0, 0]} maxBarSize={32} />
-                <Area yAxisId="cum" type="monotone" dataKey="Kümülatif" stroke="#f59e0b" strokeWidth={2.5} fill="url(#cumGradPos)" dot={false}
-                  activeDot={{ r: 5, fill: "#f59e0b", stroke: "white", strokeWidth: 2 }} />
+                <Area yAxisId="cum" type="monotone" dataKey="Kümülatif" stroke="#059669" strokeWidth={2.5} fill="url(#cumGradPos)" dot={false}
+                  activeDot={{ r: 5, fill: "#059669", stroke: "white", strokeWidth: 2 }} />
               </ComposedChart>
             </ResponsiveContainer>
           </CardContent>
@@ -1009,18 +1041,18 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
       {((s.notes?.length ?? 0) > 0 || (s.risks?.length ?? 0) > 0 || (s.customerInsights?.length ?? 0) > 0) && (
         <div className="grid md:grid-cols-3 gap-3">
           {s.notes && s.notes.length > 0 && (
-            <Card className="border-0 shadow-md shadow-slate-200/60 overflow-hidden">
-              <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #f59e0b, #ea580c)" }}>
-                  <FileDown className="w-3.5 h-3.5 text-white" />
+            <Card className="shadow-sm overflow-hidden">
+              <div className="px-4 py-3 border-b flex items-center gap-2.5">
+                <div className={cn("size-7 rounded-lg flex items-center justify-center", SECTION_TONE.primary.iconBg)}>
+                  <FileDown className={cn("size-3.5", SECTION_TONE.primary.iconText)} />
                 </div>
-                <h3 className="font-bold text-slate-800 text-sm">Teklif Notları</h3>
+                <h3 className="font-semibold text-foreground text-sm">Teklif Notları</h3>
               </div>
               <CardContent className="p-4">
                 <ul className="space-y-1.5">
                   {s.notes.map((n, i) => (
-                    <li key={i} className="text-xs text-slate-600 flex gap-2 leading-relaxed">
-                      <span className="w-4 h-4 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5"><span className="text-amber-600 text-xs font-bold">•</span></span>
+                    <li key={i} className="text-xs text-muted-foreground flex gap-2 leading-relaxed">
+                      <span className="size-4 rounded-full bg-primary-soft flex items-center justify-center flex-shrink-0 mt-0.5"><span className="text-primary-soft-foreground text-xs font-bold">•</span></span>
                       {n}
                     </li>
                   ))}
@@ -1029,16 +1061,16 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
             </Card>
           )}
           {s.risks && s.risks.length > 0 && (
-            <Card className="border-0 shadow-md shadow-red-100/60 overflow-hidden">
-              <div className="px-4 py-3 border-b border-red-50 flex items-center gap-2.5" style={{ background: "linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%)" }}>
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-red-500"><span className="text-white text-xs font-bold">!</span></div>
-                <h3 className="font-bold text-red-700 text-sm">Riskler</h3>
+            <Card className="shadow-sm overflow-hidden">
+              <div className="px-4 py-3 border-b bg-destructive-soft flex items-center gap-2.5">
+                <div className="size-7 rounded-lg flex items-center justify-center bg-destructive"><span className="text-destructive-foreground text-xs font-bold">!</span></div>
+                <h3 className="font-semibold text-destructive-soft-foreground text-sm">Riskler</h3>
               </div>
               <CardContent className="p-4">
                 <ul className="space-y-1.5">
                   {s.risks.map((r, i) => (
-                    <li key={i} className="text-xs text-slate-600 flex gap-2 leading-relaxed">
-                      <span className="w-4 h-4 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5"><span className="text-red-500 text-xs">⚠</span></span>
+                    <li key={i} className="text-xs text-muted-foreground flex gap-2 leading-relaxed">
+                      <span className="size-4 rounded-full bg-destructive-soft flex items-center justify-center flex-shrink-0 mt-0.5"><span className="text-destructive-soft-foreground text-xs">⚠</span></span>
                       {r}
                     </li>
                   ))}
@@ -1047,16 +1079,16 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
             </Card>
           )}
           {s.customerInsights && s.customerInsights.length > 0 && (
-            <Card className="border-0 shadow-md shadow-blue-100/60 overflow-hidden">
-              <div className="px-4 py-3 border-b border-blue-50 flex items-center gap-2.5" style={{ background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)" }}>
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-blue-500"><span className="text-white text-xs font-bold">→</span></div>
-                <h3 className="font-bold text-blue-700 text-sm">Müşteri Öngörüleri</h3>
+            <Card className="shadow-sm overflow-hidden">
+              <div className="px-4 py-3 border-b bg-info-soft flex items-center gap-2.5">
+                <div className="size-7 rounded-lg flex items-center justify-center bg-info"><span className="text-info-foreground text-xs font-bold">→</span></div>
+                <h3 className="font-semibold text-info-soft-foreground text-sm">Müşteri Öngörüleri</h3>
               </div>
               <CardContent className="p-4">
                 <ul className="space-y-1.5">
                   {s.customerInsights.map((c, i) => (
-                    <li key={i} className="text-xs text-slate-600 flex gap-2 leading-relaxed">
-                      <span className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5"><span className="text-blue-500 text-xs font-bold">→</span></span>
+                    <li key={i} className="text-xs text-muted-foreground flex gap-2 leading-relaxed">
+                      <span className="size-4 rounded-full bg-info-soft flex items-center justify-center flex-shrink-0 mt-0.5"><span className="text-info-soft-foreground text-xs font-bold">→</span></span>
                       {c}
                     </li>
                   ))}

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TARIFF_LABELS } from "@/lib/utils";
+import { TARIFF_LABELS, cn } from "@/lib/utils";
 import type { GesSettings } from "@/lib/ges-defaults";
 import { Save, ArrowRight, Zap, TrendingUp, Leaf, Sun, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
@@ -19,6 +19,41 @@ interface Props {
   projectId: string;
   settings: GesSettings;
   totalPowerKw: number;
+}
+
+type SectionTone = "primary" | "info" | "success" | "warning" | "destructive";
+
+const SECTION_TONE: Record<SectionTone, { iconBg: string; iconText: string }> = {
+  primary: { iconBg: "bg-primary-soft", iconText: "text-primary-soft-foreground" },
+  info: { iconBg: "bg-info-soft", iconText: "text-info-soft-foreground" },
+  success: { iconBg: "bg-success-soft", iconText: "text-success-soft-foreground" },
+  warning: { iconBg: "bg-warning-soft", iconText: "text-warning-soft-foreground" },
+  destructive: { iconBg: "bg-destructive-soft", iconText: "text-destructive-soft-foreground" },
+};
+
+function SectionHeader({
+  icon: Icon,
+  title,
+  subtitle,
+  tone,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  subtitle?: string;
+  tone: SectionTone;
+}) {
+  const t = SECTION_TONE[tone];
+  return (
+    <div className="flex items-center gap-3 border-b px-6 py-4">
+      <div className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", t.iconBg)}>
+        <Icon className={cn("size-4", t.iconText)} />
+      </div>
+      <div>
+        <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
+        {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
+      </div>
+    </div>
+  );
 }
 
 function calcFeasibility(settings: GesSettings, totalPowerKw: number) {
@@ -83,24 +118,21 @@ export function FizibiliteForm({ projectId, settings, totalPowerKw }: Props) {
 
   return (
     <div className="space-y-5">
-      <div className="grid lg:grid-cols-3 gap-5">
+      <div className="grid gap-5 lg:grid-cols-3">
         {/* Sol: Form */}
-        <div className="lg:col-span-2 space-y-5">
+        <div className="space-y-5 lg:col-span-2">
           {/* Tüketim verileri */}
-          <Card className="border-0 shadow-md shadow-slate-200/60 overflow-hidden">
-            <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(135deg, #3b82f6, #6366f1)", boxShadow: "0 4px 12px rgba(99,102,241,0.3)" }}>
-                <BarChart3 className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h3 className="font-bold text-slate-800 text-sm">Elektrik Tüketim Verileri</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Aylık tüketim kWh değerleri</p>
-              </div>
-            </div>
-            <CardContent className="p-6 space-y-5">
+          <Card className="overflow-hidden">
+            <SectionHeader
+              icon={BarChart3}
+              title="Elektrik Tüketim Verileri"
+              subtitle="Aylık tüketim kWh değerleri"
+              tone="info"
+            />
+            <CardContent className="space-y-5 p-6">
               {/* Hızlı giriş */}
-              <div className="rounded-xl p-4" style={{ background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)", border: "1px solid #bae6fd" }}>
-                <p className="text-xs font-bold text-blue-700 mb-3 uppercase tracking-wider">Hızlı Giriş: Aylık Ortalama</p>
+              <div className="rounded-xl border bg-info-soft p-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-info-soft-foreground">Hızlı Giriş: Aylık Ortalama</p>
                 <div className="flex gap-2.5">
                   <div className="flex-1">
                     <Input
@@ -109,10 +141,10 @@ export function FizibiliteForm({ projectId, settings, totalPowerKw }: Props) {
                       value={annualAvg}
                       onChange={(e) => setAnnualAvg(e.target.value)}
                     />
-                    <p className="text-xs text-blue-600 mt-1.5 font-medium">Mevsimsel ağırlıklarla 12 aya otomatik dağıtılır</p>
+                    <p className="mt-1.5 text-xs font-medium text-info-soft-foreground">Mevsimsel ağırlıklarla 12 aya otomatik dağıtılır</p>
                   </div>
-                  <Button variant="outline" onClick={applyAnnualAvg} type="button" className="flex-shrink-0">
-                    <Zap className="w-4 h-4" />
+                  <Button variant="outline" onClick={applyAnnualAvg} type="button" className="shrink-0">
+                    <Zap className="size-4" />
                     Dağıt
                   </Button>
                 </div>
@@ -121,10 +153,10 @@ export function FizibiliteForm({ projectId, settings, totalPowerKw }: Props) {
               <div className="grid grid-cols-3 gap-3">
                 {MONTHS.map((m, i) => (
                   <div key={m} className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-500">{m}</Label>
+                    <Label className="text-xs font-semibold text-muted-foreground">{m}</Label>
                     <Input
                       type="number"
-                      className="h-10 text-sm text-center"
+                      className="h-10 text-center text-sm"
                       value={s.monthlyConsumptionKwh[i] || ""}
                       onChange={(e) => {
                         const arr = [...s.monthlyConsumptionKwh];
@@ -136,25 +168,22 @@ export function FizibiliteForm({ projectId, settings, totalPowerKw }: Props) {
                   </div>
                 ))}
               </div>
-              <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                <span className="text-sm text-slate-500">Yıllık Toplam</span>
-                <span className="font-bold text-slate-800 text-base">{fmtKwh(result.annualConsumption)}</span>
+              <div className="flex items-center justify-between border-t pt-2">
+                <span className="text-sm text-muted-foreground">Yıllık Toplam</span>
+                <span className="text-base font-semibold text-foreground">{fmtKwh(result.annualConsumption)}</span>
               </div>
             </CardContent>
           </Card>
 
           {/* Finansal parametreler */}
-          <Card className="border-0 shadow-md shadow-slate-200/60 overflow-hidden">
-            <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(135deg, #f59e0b, #ea580c)", boxShadow: "0 4px 12px rgba(245,158,11,0.35)" }}>
-                <TrendingUp className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h3 className="font-bold text-slate-800 text-sm">Finansal Parametreler</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Tarife, fiyat ve proje ömrü</p>
-              </div>
-            </div>
-            <CardContent className="p-6 grid grid-cols-2 gap-5">
+          <Card className="overflow-hidden">
+            <SectionHeader
+              icon={TrendingUp}
+              title="Finansal Parametreler"
+              subtitle="Tarife, fiyat ve proje ömrü"
+              tone="warning"
+            />
+            <CardContent className="grid grid-cols-2 gap-5 p-6">
               <div className="space-y-2">
                 <Label>Tarife Tipi</Label>
                 <Select
@@ -199,44 +228,46 @@ export function FizibiliteForm({ projectId, settings, totalPowerKw }: Props) {
 
         {/* Sağ: Sonuçlar */}
         <div className="space-y-4">
-          {/* Yıllık üretim - gradient card */}
-          <div className="rounded-2xl p-5 text-white relative overflow-hidden" style={{ background: "linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)", boxShadow: "0 8px 24px rgba(245,158,11,0.35)" }}>
-            <div className="absolute right-4 top-4 opacity-15">
-              <Sun className="w-16 h-16" />
-            </div>
-            <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">Yıllık Üretim</p>
-            <p className="text-3xl font-bold">{fmtKwh(result.annualProduction)}</p>
-            <p className="text-xs opacity-75 mt-1.5 leading-relaxed">
-              {totalPowerKw > 0 ? `${totalPowerKw.toFixed(1)} kWp × ${s.peakSunHoursPerDay ?? 4.5}h × 365 gün` : "Teknik parametreler girilmedi"}
-            </p>
-          </div>
+          {/* Yıllık üretim - hero card */}
+          <Card className="overflow-hidden">
+            <CardContent className="relative p-5">
+              <div className="absolute right-4 top-4 opacity-10">
+                <Sun className="size-16 text-primary" />
+              </div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Yıllık Üretim</p>
+              <p className="text-3xl font-bold text-primary-soft-foreground">{fmtKwh(result.annualProduction)}</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                {totalPowerKw > 0 ? `${totalPowerKw.toFixed(1)} kWp × ${s.peakSunHoursPerDay ?? 4.5}h × 365 gün` : "Teknik parametreler girilmedi"}
+              </p>
+            </CardContent>
+          </Card>
 
           {/* KPI metrics */}
-          <Card className="border-0 shadow-md shadow-slate-200/60">
-            <CardContent className="p-5 space-y-4">
+          <Card>
+            <CardContent className="space-y-4 p-5">
               {[
-                { icon: Zap, color: "text-blue-500", bg: "bg-blue-50", label: "İlk Yıl Tasarruf", value: fmtTry(result.firstYearSaving), valueColor: "text-emerald-600" },
-                { icon: TrendingUp, color: "text-amber-500", bg: "bg-amber-50", label: `${(s.projectLifeYears ?? 25)}Y Toplam Tasarruf`, value: fmtTry(result.totalSaving), valueColor: "text-slate-800" },
-                { icon: Sun, color: "text-yellow-500", bg: "bg-yellow-50", label: "Öz Tüketim", value: fmtKwh(result.selfConsumption), valueColor: "text-slate-700" },
-                { icon: Leaf, color: "text-green-500", bg: "bg-green-50", label: "Yıllık CO₂ Azaltım", value: `${result.co2Annual.toFixed(1)} ton`, valueColor: "text-green-600" },
+                { icon: Zap, iconBg: "bg-info-soft", iconText: "text-info-soft-foreground", label: "İlk Yıl Tasarruf", value: fmtTry(result.firstYearSaving), valueColor: "text-success-soft-foreground" },
+                { icon: TrendingUp, iconBg: "bg-warning-soft", iconText: "text-warning-soft-foreground", label: `${(s.projectLifeYears ?? 25)}Y Toplam Tasarruf`, value: fmtTry(result.totalSaving), valueColor: "text-foreground" },
+                { icon: Sun, iconBg: "bg-warning-soft", iconText: "text-warning-soft-foreground", label: "Öz Tüketim", value: fmtKwh(result.selfConsumption), valueColor: "text-foreground" },
+                { icon: Leaf, iconBg: "bg-success-soft", iconText: "text-success-soft-foreground", label: "Yıllık CO₂ Azaltım", value: `${result.co2Annual.toFixed(1)} ton`, valueColor: "text-success-soft-foreground" },
               ].map((item) => (
                 <div key={item.label} className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${item.bg}`}>
-                      <item.icon className={`w-4 h-4 ${item.color}`} />
+                    <div className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", item.iconBg)}>
+                      <item.icon className={cn("size-4", item.iconText)} />
                     </div>
-                    <span className="text-sm text-slate-600 font-medium">{item.label}</span>
+                    <span className="text-sm font-medium text-muted-foreground">{item.label}</span>
                   </div>
-                  <span className={`font-bold text-sm ${item.valueColor}`}>{item.value}</span>
+                  <span className={cn("text-sm font-semibold", item.valueColor)}>{item.value}</span>
                 </div>
               ))}
             </CardContent>
           </Card>
 
           {/* Projeksiyon barları */}
-          <Card className="border-0 shadow-md shadow-slate-200/60">
-            <div className="px-5 py-3.5 border-b border-slate-100">
-              <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Yıllık Tasarruf Projeksiyonu</p>
+          <Card>
+            <div className="border-b px-5 py-3.5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Yıllık Tasarruf Projeksiyonu</p>
             </div>
             <CardContent className="p-4">
               <div className="space-y-2">
@@ -245,16 +276,19 @@ export function FizibiliteForm({ projectId, settings, totalPowerKw }: Props) {
                     ? (v / result.yearlySavings[result.yearlySavings.length - 1]) * 100 : 0;
                   return (
                     <div key={i} className="flex items-center gap-2.5 text-xs">
-                      <span className="text-slate-400 w-8 font-medium">Y{i + 1}</span>
-                      <div className="flex-1 bg-slate-100 rounded-full h-2">
-                        <div className="h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min(pct, 100)}%`, background: "linear-gradient(90deg, #f59e0b, #ea580c)" }} />
+                      <span className="w-8 font-medium text-muted-foreground">Y{i + 1}</span>
+                      <div className="h-2 flex-1 rounded-full bg-muted">
+                        <div
+                          className="h-2 rounded-full bg-primary transition-all duration-500"
+                          style={{ width: `${Math.min(pct, 100)}%` }}
+                        />
                       </div>
-                      <span className="text-slate-600 font-semibold w-20 text-right">₺{(v / 1000).toFixed(0)}k</span>
+                      <span className="w-20 text-right font-semibold text-foreground">₺{(v / 1000).toFixed(0)}k</span>
                     </div>
                   );
                 })}
                 {result.yearlySavings.length > 10 && (
-                  <p className="text-xs text-slate-400 text-center pt-1">+{result.yearlySavings.length - 10} yıl daha...</p>
+                  <p className="pt-1 text-center text-xs text-muted-foreground">+{result.yearlySavings.length - 10} yıl daha...</p>
                 )}
               </div>
             </CardContent>
@@ -262,13 +296,13 @@ export function FizibiliteForm({ projectId, settings, totalPowerKw }: Props) {
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-2.5 bg-white rounded-2xl border border-slate-200/70 shadow-sm px-5 py-4">
+      <div className="flex items-center justify-end gap-2.5 rounded-xl border bg-card px-5 py-4 shadow-sm">
         <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
-          <Save className="w-4 h-4" />
+          <Save className="size-4" />
           {saving ? "Kaydediliyor..." : "Kaydet"}
         </Button>
         <Button onClick={() => handleSave(true)} disabled={saving}>
-          Kaydet & Kesif-A <ArrowRight className="w-4 h-4" />
+          Kaydet & Kesif-A <ArrowRight className="size-4" />
         </Button>
       </div>
     </div>

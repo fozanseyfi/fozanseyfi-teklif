@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import type { DorGroup } from "@/lib/ges-defaults";
 import { Save, ChevronDown, ChevronRight, Search, FileDown } from "lucide-react";
 import { toast } from "sonner";
@@ -13,10 +14,10 @@ import { toast } from "sonner";
 const RESP_OPTIONS = ["Yüklenici", "İşveren", "Paylaşımlı", "—"];
 
 const RESP_COLORS: Record<string, string> = {
-  "Yüklenici": "bg-blue-100 text-blue-700 border-blue-200",
-  "İşveren": "bg-orange-100 text-orange-700 border-orange-200",
-  "Paylaşımlı": "bg-purple-100 text-purple-700 border-purple-200",
-  "—": "bg-slate-100 text-slate-500 border-slate-200",
+  "Yüklenici": "bg-info-soft text-info-soft-foreground border-info-soft-foreground/20",
+  "İşveren": "bg-warning-soft text-warning-soft-foreground border-warning-soft-foreground/20",
+  "Paylaşımlı": "bg-primary-soft text-primary-soft-foreground border-primary-soft-foreground/20",
+  "—": "bg-muted text-muted-foreground border-border",
 };
 
 interface Props {
@@ -90,7 +91,7 @@ export function DorEditor({ projectId, data }: Props) {
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>DoR</title>
     <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:10px;padding:20px}
     h1{font-size:16px;margin-bottom:12px}table{width:100%;border-collapse:collapse}
-    th{background:#1f2937;color:#fff;padding:5px 8px;text-align:left}
+    th{background:#047857;color:#fff;padding:5px 8px;text-align:left}
     td{padding:4px 8px;border-bottom:1px solid #e5e7eb}tr:nth-child(even){background:#fafafa}</style></head><body>
     <h1>DoR — Division of Responsibilities</h1>
     <table><thead><tr>
@@ -107,35 +108,35 @@ export function DorEditor({ projectId, data }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">DoR — Division of Responsibilities</h2>
-          <p className="text-sm text-slate-500">{groups.reduce((s, g) => s + g.items.length, 0)} madde</p>
+          <h2 className="text-lg font-semibold text-foreground">DoR — Division of Responsibilities</h2>
+          <p className="text-sm text-muted-foreground">{groups.reduce((s, g) => s + g.items.length, 0)} madde</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
-              className="pl-8 h-8 text-sm w-44"
+              className="h-8 w-44 pl-8 text-sm"
               placeholder="Ara..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <Button variant="outline" size="sm" onClick={handlePrint}>
-            <FileDown className="w-4 h-4" />
+            <FileDown className="size-4" />
             PDF
           </Button>
           <Button onClick={handleSave} disabled={saving} size="sm">
-            <Save className="w-4 h-4" />
+            <Save className="size-4" />
             {saving ? "Kaydediliyor..." : "Kaydet"}
           </Button>
         </div>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex flex-wrap gap-2">
         {Object.entries(RESP_COLORS).map(([label, cls]) => (
-          <span key={label} className={`text-xs px-2 py-0.5 rounded border font-medium ${cls}`}>{label}</span>
+          <span key={label} className={cn("rounded border px-2 py-0.5 text-xs font-medium", cls)}>{label}</span>
         ))}
       </div>
 
@@ -145,17 +146,17 @@ export function DorEditor({ projectId, data }: Props) {
         return (
           <Card key={gi} className="overflow-hidden">
             <CardHeader
-              className="py-3 cursor-pointer select-none"
+              className="cursor-pointer select-none py-3"
               onClick={() => setCollapsed((p) => ({ ...p, [realGi]: !p[realGi] }))}
             >
               <div className="flex items-center gap-2">
                 {isCollapsed ? (
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                  <ChevronRight className="size-4 text-muted-foreground" />
                 ) : (
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                  <ChevronDown className="size-4 text-muted-foreground" />
                 )}
                 <CardTitle className="text-sm font-semibold">{group.name}</CardTitle>
-                <Badge variant="outline" className="text-xs ml-auto">{group.items.length} madde</Badge>
+                <Badge variant="outline" className="ml-auto text-xs">{group.items.length} madde</Badge>
               </div>
             </CardHeader>
 
@@ -164,20 +165,20 @@ export function DorEditor({ projectId, data }: Props) {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200">
-                        <th className="px-3 py-2 text-left text-slate-500 font-medium">Madde</th>
-                        <th className="px-3 py-2 text-center text-slate-500 font-medium w-32">Tedarik</th>
-                        <th className="px-3 py-2 text-center text-slate-500 font-medium w-32">Montaj</th>
-                        <th className="px-3 py-2 text-center text-slate-500 font-medium w-32">Devreye Alma</th>
-                        <th className="px-3 py-2 text-left text-slate-500 font-medium w-56">Notlar</th>
+                      <tr className="border-b bg-muted">
+                        <th className="px-3 py-2 text-left font-medium text-muted-foreground">Madde</th>
+                        <th className="w-32 px-3 py-2 text-center font-medium text-muted-foreground">Tedarik</th>
+                        <th className="w-32 px-3 py-2 text-center font-medium text-muted-foreground">Montaj</th>
+                        <th className="w-32 px-3 py-2 text-center font-medium text-muted-foreground">Devreye Alma</th>
+                        <th className="w-56 px-3 py-2 text-left font-medium text-muted-foreground">Notlar</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y">
                       {group.items.map((item, ii) => (
-                        <tr key={ii} className="hover:bg-slate-50">
+                        <tr key={ii} className="hover:bg-muted/60">
                           <td className="px-3 py-1.5">
                             <Input
-                              className="h-7 text-xs border-transparent hover:border-slate-200 focus:border-amber-300 bg-transparent px-1 min-w-[180px]"
+                              className="h-7 min-w-[180px] border-transparent bg-transparent px-1 text-xs hover:border-border focus:border-primary"
                               value={item.description}
                               onChange={(e) => updateItem(realGi, ii, "description", e.target.value)}
                             />
@@ -185,7 +186,10 @@ export function DorEditor({ projectId, data }: Props) {
                           {(["tedarik", "montaj", "devreAma"] as const).map((field) => (
                             <td key={field} className="px-3 py-1.5 text-center">
                               <select
-                                className={`text-xs px-2 py-1 rounded border font-medium w-full ${RESP_COLORS[item[field]] || "bg-white border-slate-200"}`}
+                                className={cn(
+                                  "w-full rounded border px-2 py-1 text-xs font-medium",
+                                  RESP_COLORS[item[field]] || "border-border bg-card",
+                                )}
                                 value={item[field]}
                                 onChange={(e) => updateItem(realGi, ii, field, e.target.value)}
                               >
@@ -197,7 +201,7 @@ export function DorEditor({ projectId, data }: Props) {
                           ))}
                           <td className="px-3 py-1.5">
                             <Input
-                              className="h-7 text-xs border-transparent hover:border-slate-200 focus:border-slate-300 bg-transparent px-1 min-w-[140px]"
+                              className="h-7 min-w-[140px] border-transparent bg-transparent px-1 text-xs hover:border-border focus:border-border"
                               value={item.notes}
                               onChange={(e) => updateItem(realGi, ii, "notes", e.target.value)}
                             />

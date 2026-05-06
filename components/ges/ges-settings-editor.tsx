@@ -42,11 +42,11 @@ export function GesSettingsEditor({ projectId, data }: Props) {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-slate-900">Proje Parametreleri</h2>
+        <h2 className="text-lg font-semibold text-foreground">Proje Parametreleri</h2>
         <Button onClick={handleSave} disabled={saving}>
-          <Save className="w-4 h-4" />
+          <Save className="size-4" />
           {saving ? "Kaydediliyor..." : "Kaydet"}
         </Button>
       </div>
@@ -165,7 +165,7 @@ export function GesSettingsEditor({ projectId, data }: Props) {
 
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving} size="lg">
-          <Save className="w-4 h-4" />
+          <Save className="size-4" />
           {saving ? "Kaydediliyor..." : "Parametreleri Kaydet"}
         </Button>
       </div>

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { calc } from "@/lib/ges-engine";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
 import {
@@ -111,25 +111,25 @@ export function TeklifEditor({ projectId, projectName, customerName, kesifA, kes
   }
 
   return (
-    <div className="space-y-5 max-w-4xl">
+    <div className="max-w-4xl space-y-5">
       {/* Satış Fiyatı Banner */}
-      <div className="rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 p-6 text-white shadow-lg">
-        <p className="text-amber-100 text-sm font-medium mb-1">EPC Satış Fiyatı</p>
-        <p className="text-4xl font-black tracking-tight">{fmtUsd(result.salePriceUsd)}</p>
-        <div className="flex items-center gap-4 mt-2">
-          <span className="text-amber-100 text-sm">{fmtTry(result.salePriceTry)}</span>
-          <span className="bg-amber-400/40 rounded-full px-2.5 py-0.5 text-xs font-semibold">
+      <div className="rounded-2xl bg-primary p-6 text-primary-foreground shadow-sm">
+        <p className="mb-1 text-sm font-medium opacity-90">EPC Satış Fiyatı</p>
+        <p className="text-4xl font-bold tracking-tight">{fmtUsd(result.salePriceUsd)}</p>
+        <div className="mt-2 flex items-center gap-4">
+          <span className="text-sm opacity-90">{fmtTry(result.salePriceTry)}</span>
+          <span className="rounded-full bg-primary-foreground/20 px-2.5 py-0.5 text-xs font-semibold">
             {result.perKwUsd.toFixed(0)} $/kWp
           </span>
-          <span className="bg-amber-400/40 rounded-full px-2.5 py-0.5 text-xs font-semibold">
+          <span className="rounded-full bg-primary-foreground/20 px-2.5 py-0.5 text-xs font-semibold">
             Net Kâr: %{settings.netKar}
           </span>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-5">
+      <div className="grid gap-5 lg:grid-cols-3">
         {/* Sol: Bölüm Seçimi + Ayarlar */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="space-y-4 lg:col-span-2">
           <Card>
             <CardHeader><CardTitle className="text-sm">Teklif Bölümleri</CardTitle></CardHeader>
             <CardContent className="space-y-2">
@@ -140,18 +140,22 @@ export function TeklifEditor({ projectId, projectName, customerName, kesifA, kes
                   <button
                     key={sec.id}
                     onClick={() => toggleSection(sec.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left ${
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all",
                       active
-                        ? "bg-amber-50 border-amber-300 text-amber-900"
-                        : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
-                    }`}
+                        ? "border-primary bg-primary-soft text-primary-soft-foreground"
+                        : "border-border bg-card text-muted-foreground hover:border-border hover:bg-muted/50",
+                    )}
                   >
-                    <div className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors ${
-                      active ? "bg-amber-500 border-amber-500" : "border-slate-300"
-                    }`}>
-                      {active && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                    <div
+                      className={cn(
+                        "flex size-5 items-center justify-center rounded border-2 transition-colors",
+                        active ? "border-primary bg-primary" : "border-border",
+                      )}
+                    >
+                      {active && <CheckCircle2 className="size-3.5 text-primary-foreground" />}
                     </div>
-                    <Icon className={`w-4 h-4 ${active ? "text-amber-600" : "text-slate-400"}`} />
+                    <Icon className={cn("size-4", active ? "text-primary-soft-foreground" : "text-muted-foreground")} />
                     <span className="text-sm font-medium">{sec.label}</span>
                   </button>
                 );
@@ -190,48 +194,48 @@ export function TeklifEditor({ projectId, projectName, customerName, kesifA, kes
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-sm">Maliyet Özeti</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <div className="flex justify-between text-slate-600">
+              <div className="flex justify-between text-muted-foreground">
                 <span>Kesif-A</span>
-                <span className="font-medium text-slate-800">{fmtUsd(result.kaTotal)}</span>
+                <span className="font-medium text-foreground">{fmtUsd(result.kaTotal)}</span>
               </div>
-              <div className="flex justify-between text-slate-600">
+              <div className="flex justify-between text-muted-foreground">
                 <span>Kesif-B</span>
-                <span className="font-medium text-slate-800">{fmtUsd(result.kbTotal)}</span>
+                <span className="font-medium text-foreground">{fmtUsd(result.kbTotal)}</span>
               </div>
-              <div className="flex justify-between text-slate-500 text-xs">
+              <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Contingency %{settings.contingency}</span>
                 <span>{fmtUsd(result.contingencyAmt)}</span>
               </div>
-              <div className="flex justify-between text-slate-500 text-xs">
+              <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Genel Gider %{settings.genelGider}</span>
                 <span>{fmtUsd(result.genelGiderAmt)}</span>
               </div>
-              <div className="flex justify-between text-slate-500 text-xs">
+              <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Net Kâr %{settings.netKar}</span>
                 <span>{fmtUsd(result.netKarAmt)}</span>
               </div>
-              <div className="flex justify-between pt-2 border-t font-bold text-amber-600">
+              <div className="flex justify-between border-t pt-2 font-semibold text-primary-soft-foreground">
                 <span>TOPLAM</span>
                 <span>{fmtUsd(result.salePriceUsd)}</span>
               </div>
-              <div className="text-xs text-slate-400 text-right">
+              <div className="text-right text-xs text-muted-foreground">
                 {fmtTry(result.salePriceTry)}
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="pt-4 space-y-2">
-              <p className="text-xs text-slate-500 font-medium">Seçili Bölümler: {selected.size}/{SECTIONS.length}</p>
+            <CardContent className="space-y-2 pt-4">
+              <p className="text-xs font-medium text-muted-foreground">Seçili Bölümler: {selected.size}/{SECTIONS.length}</p>
               <Button
                 className="w-full"
                 onClick={handleDownload}
                 disabled={generating || selected.size === 0}
               >
                 {generating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="size-4 animate-spin" />
                 ) : (
-                  <FileDown className="w-4 h-4" />
+                  <FileDown className="size-4" />
                 )}
                 {generating ? "Oluşturuluyor..." : "PDF İndir"}
               </Button>
@@ -239,24 +243,24 @@ export function TeklifEditor({ projectId, projectName, customerName, kesifA, kes
           </Card>
 
           {status !== "COMPLETED" && (
-            <Card className="border-emerald-200 bg-emerald-50">
-              <CardContent className="pt-4 space-y-2">
+            <Card className="border-success/30 bg-success-soft">
+              <CardContent className="space-y-2 pt-4">
                 <div className="flex items-start gap-2">
-                  <Leaf className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-                  <p className="text-xs text-emerald-700">
+                  <Leaf className="mt-0.5 size-4 shrink-0 text-success-soft-foreground" />
+                  <p className="text-xs text-success-soft-foreground">
                     Teklif hazır ve müşteriye iletildi. Projeyi tamamlandı olarak işaretleyebilirsiniz.
                   </p>
                 </div>
                 <Button
                   variant="outline"
-                  className="w-full border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+                  className="w-full border-success/40 text-success-soft-foreground hover:bg-success-soft"
                   onClick={handleComplete}
                   disabled={completing}
                 >
                   {completing ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="size-4 animate-spin" />
                   ) : (
-                    <CheckCircle2 className="w-4 h-4" />
+                    <CheckCircle2 className="size-4" />
                   )}
                   {completing ? "İşleniyor..." : "Projeyi Tamamla"}
                 </Button>
@@ -265,9 +269,9 @@ export function TeklifEditor({ projectId, projectName, customerName, kesifA, kes
           )}
 
           {status === "COMPLETED" && (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span className="text-xs text-emerald-700 font-medium">Proje tamamlandı</span>
+            <div className="flex items-center gap-2 rounded-xl border border-success/30 bg-success-soft p-3">
+              <CheckCircle2 className="size-4 shrink-0 text-success-soft-foreground" />
+              <span className="text-xs font-medium text-success-soft-foreground">Proje tamamlandı</span>
             </div>
           )}
         </div>

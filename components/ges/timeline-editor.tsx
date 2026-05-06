@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { Save, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
@@ -121,28 +122,34 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
   function renderTable(items: typeof inflowRows, isInflow: boolean) {
     return (
       <div className="overflow-x-auto">
-        <table className="w-full text-xs min-w-[800px]">
+        <table className="w-full min-w-[800px] text-xs">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="px-3 py-2 text-left text-slate-500 sticky left-0 bg-slate-50 z-10 min-w-[180px]">Kalem</th>
+            <tr className="border-b bg-muted">
+              <th className="sticky left-0 z-10 min-w-[180px] bg-muted px-3 py-2 text-left text-muted-foreground">Kalem</th>
               {monthLabels.map((m) => (
-                <th key={m} className="px-2 py-2 text-center text-slate-500 min-w-[56px] text-xs">{m}</th>
+                <th key={m} className="min-w-[56px] px-2 py-2 text-center text-xs text-muted-foreground">{m}</th>
               ))}
-              <th className="px-2 py-2 text-center text-slate-500 min-w-[56px]">Eşit</th>
-              <th className="px-3 py-2 text-right text-slate-500 min-w-[56px]">Toplam %</th>
+              <th className="min-w-[56px] px-2 py-2 text-center text-muted-foreground">Eşit</th>
+              <th className="min-w-[56px] px-3 py-2 text-right text-muted-foreground">Toplam %</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y">
             {items.map(({ row, idx }) => {
               const total = row.values.reduce((s, v) => s + v, 0);
               const ok = isInflow ? Math.abs(total - 100) < 1 : Math.abs(total - 100) < 1;
               return (
-                <tr key={idx} className={`hover:bg-slate-50/50 ${isInflow ? "hover:bg-green-50/30" : "hover:bg-red-50/30"}`}>
-                  <td className="px-3 py-1.5 font-medium text-slate-700 sticky left-0 bg-white text-xs">{row.name}</td>
+                <tr
+                  key={idx}
+                  className={cn(
+                    "hover:bg-muted/50",
+                    isInflow ? "hover:bg-success-soft/40" : "hover:bg-destructive-soft/40",
+                  )}
+                >
+                  <td className="sticky left-0 bg-card px-3 py-1.5 text-xs font-medium text-foreground">{row.name}</td>
                   {row.values.map((val, mi) => (
                     <td key={mi} className="px-1 py-1">
                       <Input
-                        className="h-6 text-xs text-center w-16 border-slate-200"
+                        className="h-6 w-16 text-center text-xs"
                         type="number"
                         step="1"
                         min="0"
@@ -157,12 +164,21 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
                       type="button"
                       title="Eşit dağıt"
                       onClick={() => evenDistribute(idx)}
-                      className="p-1 rounded hover:bg-slate-100"
+                      className="rounded p-1 hover:bg-muted"
                     >
-                      <RefreshCw className="w-3 h-3 text-slate-400" />
+                      <RefreshCw className="size-3 text-muted-foreground" />
                     </button>
                   </td>
-                  <td className={`px-3 py-1.5 text-right font-bold ${ok ? "text-green-600" : total > 100 ? "text-red-600" : "text-slate-500"}`}>
+                  <td
+                    className={cn(
+                      "px-3 py-1.5 text-right font-semibold",
+                      ok
+                        ? "text-success-soft-foreground"
+                        : total > 100
+                          ? "text-destructive-soft-foreground"
+                          : "text-muted-foreground",
+                    )}
+                  >
                     {total.toFixed(0)}%
                   </td>
                 </tr>
@@ -176,17 +192,17 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Cash Flow Timeline</h2>
-          <p className="text-sm text-slate-500">{tl.months} ay · Satış Fiyatı: ${result.salePriceUsd.toLocaleString("tr-TR", { maximumFractionDigits: 0 })}</p>
+          <h2 className="text-lg font-semibold text-foreground">Cash Flow Timeline</h2>
+          <p className="text-sm text-muted-foreground">{tl.months} ay · Satış Fiyatı: ${result.salePriceUsd.toLocaleString("tr-TR", { maximumFractionDigits: 0 })}</p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <Label className="text-xs whitespace-nowrap">Başlangıç Tarihi</Label>
+            <Label className="whitespace-nowrap text-xs">Başlangıç Tarihi</Label>
             <Input
               type="month"
-              className="h-8 text-xs w-36"
+              className="h-8 w-36 text-xs"
               value={`${tl.startYear}-${String((tl.startMonth ?? 0) + 1).padStart(2, "0")}`}
               onChange={(e) => {
                 const [y, m] = e.target.value.split("-");
@@ -195,10 +211,10 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
             />
           </div>
           <div className="flex items-center gap-2">
-            <Label className="text-xs whitespace-nowrap">Ay Sayısı</Label>
+            <Label className="whitespace-nowrap text-xs">Ay Sayısı</Label>
             <Input
               type="number"
-              className="h-8 text-xs w-20"
+              className="h-8 w-20 text-xs"
               value={tl.months}
               min={1}
               max={60}
@@ -206,31 +222,31 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
             />
           </div>
           <Button onClick={handleSave} disabled={saving} size="sm">
-            <Save className="w-4 h-4" />
+            <Save className="size-4" />
             {saving ? "Kaydediliyor..." : "Kaydet"}
           </Button>
         </div>
       </div>
 
       <div className="flex gap-3 text-xs">
-        <span className="px-2 py-1 rounded bg-green-100 text-green-700 border border-green-200 font-medium">
-          Giriş — Satış Fiyatının %'si (0–100)
+        <span className="rounded border border-success/30 bg-success-soft px-2 py-1 font-medium text-success-soft-foreground">
+          Giriş — Satış Fiyatının %&apos;si (0–100)
         </span>
-        <span className="px-2 py-1 rounded bg-red-100 text-red-700 border border-red-200 font-medium">
-          Çıkış — Kalem Toplamının %'si (0–100)
+        <span className="rounded border border-destructive/30 bg-destructive-soft px-2 py-1 font-medium text-destructive-soft-foreground">
+          Çıkış — Kalem Toplamının %&apos;si (0–100)
         </span>
       </div>
 
       <Card className="overflow-hidden">
-        <CardHeader className="py-2 bg-green-50 border-b border-green-100">
-          <CardTitle className="text-xs font-semibold text-green-700">HAKEDİŞ / GİRİŞLER</CardTitle>
+        <CardHeader className="border-b bg-success-soft py-2">
+          <CardTitle className="text-xs font-semibold text-success-soft-foreground">HAKEDİŞ / GİRİŞLER</CardTitle>
         </CardHeader>
         <CardContent className="p-0">{renderTable(inflowRows, true)}</CardContent>
       </Card>
 
       <Card className="overflow-hidden">
-        <CardHeader className="py-2 bg-red-50 border-b border-red-100">
-          <CardTitle className="text-xs font-semibold text-red-700">ÖDEMELER / ÇIKIŞLAR</CardTitle>
+        <CardHeader className="border-b bg-destructive-soft py-2">
+          <CardTitle className="text-xs font-semibold text-destructive-soft-foreground">ÖDEMELER / ÇIKIŞLAR</CardTitle>
         </CardHeader>
         <CardContent className="p-0">{renderTable(outflowRows, false)}</CardContent>
       </Card>

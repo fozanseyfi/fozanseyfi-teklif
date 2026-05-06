@@ -14,8 +14,8 @@ export default async function FirmSettingsPage() {
   if (!firm) return null;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <h1 className="text-2xl font-bold text-gray-100">Firma Ayarları</h1>
+    <div className="mx-auto max-w-4xl space-y-8">
+      <h1 className="text-2xl font-semibold tracking-tight text-foreground">Firma Ayarları</h1>
       <FirmSettingsForm firm={firm} users={users} currentUserId={user.id} />
     </div>
   );
