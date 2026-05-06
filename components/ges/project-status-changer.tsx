@@ -14,16 +14,16 @@ const STATUSES = [
     dot: "bg-muted-foreground/60",
   },
   {
-    value: "SENT",
-    label: "Müşteriye Gönderildi",
-    pill: "bg-info-soft text-info-soft-foreground border-info-soft",
-    dot: "bg-info",
+    value: "COMPLETED",
+    label: "Tamamlandı",
+    pill: "bg-success-soft text-success-soft-foreground border-success-soft",
+    dot: "bg-success",
   },
   {
     value: "CLOSE_WIN",
     label: "Close Win",
-    pill: "bg-success-soft text-success-soft-foreground border-success-soft",
-    dot: "bg-success",
+    pill: "bg-success text-success-foreground border-success/30",
+    dot: "bg-success-foreground/70",
   },
   {
     value: "CLOSE_LOST",
@@ -39,9 +39,17 @@ const STATUSES = [
   },
 ];
 
+const COMPLETION_TRANSITIONS = ["COMPLETED", "CLOSE_WIN", "CLOSE_LOST", "CANCELLED"];
+
 interface Props {
   projectId: string;
   currentStatus: string;
+  /**
+   * Hangi gecislere izin verilsin? Verilmezse hepsi gosterilir.
+   * Dashboard'da yalniz tamamlanmis projeler icin
+   * COMPLETION_TRANSITIONS ile sinirlanir.
+   */
+  allowedTransitions?: string[];
 }
 
 interface DropdownPos {
@@ -49,7 +57,11 @@ interface DropdownPos {
   left: number;
 }
 
-export function ProjectStatusChanger({ projectId, currentStatus }: Props) {
+export function ProjectStatusChanger({
+  projectId,
+  currentStatus,
+  allowedTransitions,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState(currentStatus);
   const [isPending, startTransition] = useTransition();
@@ -61,7 +73,13 @@ export function ProjectStatusChanger({ projectId, currentStatus }: Props) {
     setMounted(true);
   }, []);
 
-  function openDropdown() {
+  const visibleStatuses = STATUSES.filter((s) =>
+    allowedTransitions ? allowedTransitions.includes(s.value) : true,
+  );
+
+  function openDropdown(e: React.MouseEvent) {
+    e.stopPropagation();
+    e.preventDefault();
     if (!btnRef.current) return;
     const r = btnRef.current.getBoundingClientRect();
     setPos({ top: r.bottom + 6, left: r.left });
@@ -89,7 +107,7 @@ export function ProjectStatusChanger({ projectId, currentStatus }: Props) {
         className="fixed z-[500] min-w-[200px] overflow-hidden rounded-md border bg-popover shadow-xl"
         style={{ top: pos.top, left: pos.left }}
       >
-        {STATUSES.map((s) => (
+        {visibleStatuses.map((s) => (
           <button
             key={s.value}
             type="button"
@@ -121,10 +139,7 @@ export function ProjectStatusChanger({ projectId, currentStatus }: Props) {
         <span className={cn("size-1.5 rounded-full", current.dot)} />
         {current.label}
         <ChevronDown
-          className={cn(
-            "size-2.5 transition-transform",
-            open && "rotate-180",
-          )}
+          className={cn("size-2.5 transition-transform", open && "rotate-180")}
         />
       </button>
 
@@ -132,3 +147,5 @@ export function ProjectStatusChanger({ projectId, currentStatus }: Props) {
     </>
   );
 }
+
+export const COMPLETION_TRANSITION_VALUES = COMPLETION_TRANSITIONS;

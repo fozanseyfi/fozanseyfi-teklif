@@ -12,6 +12,10 @@ import {
 } from "@/lib/utils";
 import { Plus, FolderOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  ProjectStatusChanger,
+  COMPLETION_TRANSITION_VALUES,
+} from "@/components/ges/project-status-changer";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "success" | "warning" | "destructive" | "info"> = {
   DRAFT: "secondary",
@@ -180,9 +184,17 @@ export default async function ProjectsPage({ searchParams }: Props) {
                           : "—"}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <Badge variant={STATUS_VARIANT[project.status]}>
-                          {PROJECT_STATUS_LABELS[project.status]}
-                        </Badge>
+                        {COMPLETION_TRANSITION_VALUES.includes(project.status) ? (
+                          <ProjectStatusChanger
+                            projectId={project.id}
+                            currentStatus={project.status}
+                            allowedTransitions={COMPLETION_TRANSITION_VALUES}
+                          />
+                        ) : (
+                          <Badge variant={STATUS_VARIANT[project.status]}>
+                            {PROJECT_STATUS_LABELS[project.status]}
+                          </Badge>
+                        )}
                       </td>
                       <td className="hidden px-6 py-4 text-right text-xs text-muted-foreground sm:table-cell">
                         {formatDate(project.updatedAt)}

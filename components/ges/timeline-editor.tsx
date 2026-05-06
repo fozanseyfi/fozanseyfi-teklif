@@ -92,13 +92,52 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
     });
   }
 
+  /**
+   * Smart % distribution: bir ay degistiginde toplam %100'e otomatik
+   * tamamlanir. Kullanicinin son aya elle gitmesine gerek kalmaz.
+   * - Eger toplam > 100: fazlayi diger aylardan (son aydan basa) eksiltir.
+   * - Eger toplam < 100: eksigi son BOS ayda toplar (kullanicinin yazdigi
+   *   ay haric). Bos ay yoksa eksik kalir, kullanici manual dengeler.
+   */
   function updateValue(rowIdx: number, mIdx: number, val: string) {
+    const parsed = parseFloat(val);
+    const newVal = Math.max(0, Number.isFinite(parsed) ? parsed : 0);
     setTl((prev) => ({
       ...prev,
       rows: prev.rows.map((r, ri) => {
         if (ri !== rowIdx) return r;
         const values = [...r.values];
-        values[mIdx] = parseFloat(val) || 0;
+        values[mIdx] = newVal;
+        let total = values.reduce((s, v) => s + v, 0);
+
+        // Fazla varsa diger aylardan kirpalim
+        if (total > 100) {
+          let excess = total - 100;
+          for (let i = values.length - 1; i >= 0 && excess > 0; i--) {
+            if (i === mIdx) continue;
+            if (values[i] > 0) {
+              const take = Math.min(values[i], excess);
+              values[i] = Math.round((values[i] - take) * 10) / 10;
+              excess = Math.round((excess - take) * 10) / 10;
+            }
+          }
+          total = values.reduce((s, v) => s + v, 0);
+        }
+
+        // Eksik varsa son bos aya yerlestirelim
+        if (total < 100) {
+          const deficit = Math.round((100 - total) * 10) / 10;
+          let lastEmpty = -1;
+          for (let i = values.length - 1; i >= 0; i--) {
+            if (i === mIdx) continue;
+            if (values[i] === 0) {
+              lastEmpty = i;
+              break;
+            }
+          }
+          if (lastEmpty >= 0) values[lastEmpty] = deficit;
+        }
+
         return { ...r, values };
       }),
     }));
