@@ -10,7 +10,8 @@ import { ChevronUp, ChevronDown, Heart, ShieldCheck, Check } from "lucide-react"
  */
 
 export function PlatformNoteCard() {
-  const [open, setOpen] = useState(true);
+  // Login sayfasi ilk acilista not kapali gelir, kullanici merak ederse acar.
+  const [open, setOpen] = useState(false);
   return (
     <div className="w-full rounded-2xl border border-primary/20 bg-emerald-50/60 p-4">
       <div className="flex items-center gap-2.5">

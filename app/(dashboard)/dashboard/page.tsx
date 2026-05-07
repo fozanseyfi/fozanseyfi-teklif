@@ -14,6 +14,8 @@ import {
   Zap,
   BarChart3,
   DollarSign,
+  LayoutTemplate,
+  Sparkles,
 } from "lucide-react";
 import { calc } from "@/lib/ges-engine";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
@@ -114,22 +116,46 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Merhaba, {user.name.split(" ")[0]}
+      {/* Hero welcome banner — emerald gradient, karşılama */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary to-emerald-700 px-5 py-6 text-primary-foreground shadow-lg sm:px-8 sm:py-7">
+        {/* Dekoratif arkaplan parıltıları */}
+        <div className="pointer-events-none absolute -right-20 -top-20 size-64 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-10 size-48 rounded-full bg-emerald-300/15 blur-3xl" />
+
+        <div className="relative">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary-foreground backdrop-blur-sm">
+            <Sparkles className="size-3" />
+            Solar EPC Teklif Platformu
+          </div>
+          <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
+            Hoş geldin, {user.name.split(" ")[0]}
           </h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            İşte projelerinizin genel durumu
+          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-emerald-50/90 sm:text-[15px]">
+            Solar EPC projelerinde malzeme & iş kalemlerini fiyatlandır,
+            müşteriye gönderilecek profesyonel teklifi hazırla. Şablonlardan
+            başlayarak hızlıca yeni proje oluşturabilirsin.
           </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Button
+              asChild
+              variant="secondary"
+              className="bg-white text-primary shadow-sm hover:bg-white/95"
+            >
+              <Link href="/projects/new">
+                <Plus className="size-4" /> Yeni Proje
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="border-white/30 bg-white/10 text-primary-foreground backdrop-blur-sm hover:bg-white/20 hover:text-primary-foreground"
+            >
+              <Link href="/templates">
+                <LayoutTemplate className="size-4" /> Şablonları Gör
+              </Link>
+            </Button>
+          </div>
         </div>
-        <Button asChild>
-          <Link href="/projects/new">
-            <Plus className="size-4" />
-            Yeni Proje
-          </Link>
-        </Button>
       </div>
 
       {/* MWp Stats — clean stat cards */}

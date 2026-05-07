@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -17,6 +17,7 @@ import {
   Bell,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Menu,
   X,
 } from "lucide-react";
@@ -26,6 +27,7 @@ import { cn } from "@/lib/utils";
 interface SidebarProps {
   userName: string;
   firmName: string;
+  userRole: string;
 }
 
 interface NavGroup {
@@ -60,6 +62,13 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
+const ROLE_LABEL: Record<string, string> = {
+  FIRM_ADMIN: "Yönetici",
+  MANAGER: "Müdür",
+  MEMBER: "Üye",
+  VIEWER: "Gözlemci",
+};
+
 const STORAGE_KEY = "solar-sidebar-collapsed";
 
 interface NavLinkProps {
@@ -79,8 +88,9 @@ function NavLink({ href, icon: Icon, label, active, collapsed, onNavigate }: Nav
       onClick={onNavigate}
       className={cn(
         "group flex items-center rounded-lg text-sm font-medium transition-colors",
-        // Mobilde dokunma alani buyuk olsun (44px hedef yukseklik)
-        collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2.5",
+        // Mobil drawer'da her zaman tam genişlik + label; collapsed sadece desktop'ta uygulanır
+        "gap-3 px-3 py-2.5",
+        collapsed && "lg:justify-center lg:gap-0 lg:px-2 lg:py-2",
         active
           ? "bg-sidebar-accent/20 text-sidebar-accent-foreground"
           : "text-sidebar-foreground hover:bg-sidebar-border/40 hover:text-sidebar-accent-foreground",
@@ -94,26 +104,82 @@ function NavLink({ href, icon: Icon, label, active, collapsed, onNavigate }: Nav
             : "text-sidebar-muted group-hover:text-sidebar-foreground",
         )}
       />
-      {!collapsed && (
-        <>
-          <span className="truncate">{label}</span>
-          {active && (
-            <span className="ml-auto size-1.5 rounded-full bg-sidebar-accent-foreground" />
+      {/* Label her zaman render edilir; desktop collapsed'da gizlenir */}
+      <span className={cn("truncate", collapsed && "lg:hidden")}>{label}</span>
+      {active && (
+        <span
+          className={cn(
+            "ml-auto size-1.5 rounded-full bg-sidebar-accent-foreground",
+            collapsed && "lg:hidden",
           )}
-        </>
+        />
       )}
     </Link>
   );
 }
 
-export function Sidebar({ userName, firmName }: SidebarProps) {
+function UserMenu({ name, role }: { name: string; role: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onClick(e: MouseEvent) {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted"
+        aria-label="Kullanıcı menüsü"
+      >
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+          {name.charAt(0).toUpperCase()}
+        </div>
+        <div className="hidden min-w-0 text-left sm:block">
+          <p className="truncate text-xs font-semibold leading-tight text-foreground">{name}</p>
+          <p className="truncate text-[10px] leading-tight text-muted-foreground">{role}</p>
+        </div>
+        <ChevronDown
+          className={cn(
+            "hidden size-3.5 text-muted-foreground transition-transform sm:block",
+            open && "rotate-180",
+          )}
+        />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-1 w-48 overflow-hidden rounded-lg border bg-card shadow-lg">
+          {/* Mobile-only user header (since name/role hidden in trigger) */}
+          <div className="border-b bg-muted/40 px-3 py-2 sm:hidden">
+            <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+            <p className="text-xs text-muted-foreground">{role}</p>
+          </div>
+          <form action={logout}>
+            <button
+              type="submit"
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+            >
+              <LogOut className="size-4 text-muted-foreground" />
+              Çıkış Yap
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function Sidebar({ userName, firmName, userRole }: SidebarProps) {
   const pathname = usePathname();
-  // Desktop'ta collapse durumu (lg breakpoint ve üstü); persist edilir.
   const [collapsed, setCollapsed] = useState(false);
-  // Mobil'de drawer açık/kapalı; persist edilmez, route değiştikçe kapanır.
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Mevcut tercihi yükle + CSS var'ı set et — layout padding bunu kullanır.
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     const initial = saved === "1";
@@ -121,13 +187,10 @@ export function Sidebar({ userName, firmName }: SidebarProps) {
     document.documentElement.style.setProperty("--sidebar-w", initial ? "4rem" : "16rem");
   }, []);
 
-  // Route değiştikçe mobile drawer'ı kapat (link tıklanınca da onNavigate çalışır
-  // ama programatik route değişiklikleri için ek güvence).
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
 
-  // Drawer açıkken body scroll'u kilitle (mobil UX standardı).
   useEffect(() => {
     if (mobileOpen) {
       document.body.style.overflow = "hidden";
@@ -146,34 +209,61 @@ export function Sidebar({ userName, firmName }: SidebarProps) {
     });
   }
 
-  // Mobilde sidebar her zaman 16rem (collapse desktop-only). Drawer'ın görünürlüğü
-  // translate-x ile, padding/width ile değil.
-  const showCollapsed = collapsed; // sadece desktop'ta uygulanır CSS ile
+  const showCollapsed = collapsed;
+  const roleLabel = ROLE_LABEL[userRole] ?? userRole;
 
   return (
     <>
-      {/* Mobile top bar — yalnızca lg altında görünür, sticky */}
-      <header className="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/85 px-3 backdrop-blur-md lg:hidden">
-        <button
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          aria-label="Menüyü aç"
-          className="flex size-10 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-muted"
+      {/* Sticky top bar — mobil + desktop, içerik responsive değişir */}
+      <header
+        className="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/90 px-3 backdrop-blur-md sm:px-4 lg:px-6"
+        style={{
+          paddingLeft: undefined,
+        }}
+      >
+        {/* Desktop: padding-left sidebar genişliğine göre */}
+        <div className="contents lg:hidden">
+          {/* Mobile: hamburger + brand */}
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Menüyü aç"
+            className="flex size-10 shrink-0 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-muted"
+          >
+            <Menu className="size-5" />
+          </button>
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+              <Sun className="size-4" />
+            </div>
+            <p className="truncate text-sm font-semibold text-foreground">SolarTeklif</p>
+          </div>
+        </div>
+
+        {/* Desktop: Panel: <firmName> */}
+        <div
+          className="hidden min-w-0 items-center gap-2 lg:flex"
+          style={{ marginLeft: "var(--sidebar-w, 16rem)", transition: "margin-left 200ms" }}
         >
-          <Menu className="size-5" />
-        </button>
-        <div className="flex min-w-0 items-center gap-2.5">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-            <Sun className="size-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold tracking-tight text-foreground">SolarTeklif</p>
-            <p className="truncate text-[11px] leading-tight text-muted-foreground">{firmName}</p>
-          </div>
+          <FolderOpen className="size-4 shrink-0 text-muted-foreground" />
+          <span className="shrink-0 text-sm text-muted-foreground">Panel:</span>
+          <span className="truncate text-sm font-semibold text-foreground">{firmName}</span>
+        </div>
+
+        {/* Right: bell + user */}
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+          <Link
+            href="/notifications"
+            aria-label="Bildirimler"
+            className="flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <Bell className="size-4" />
+          </Link>
+          <UserMenu name={userName} role={roleLabel} />
         </div>
       </header>
 
-      {/* Mobile backdrop — drawer açıkken */}
+      {/* Mobile backdrop */}
       {mobileOpen && (
         <button
           type="button"
@@ -183,19 +273,17 @@ export function Sidebar({ userName, firmName }: SidebarProps) {
         />
       )}
 
-      {/* Sidebar — mobilde drawer (translate-x), desktop'ta fixed */}
+      {/* Sidebar — mobilde drawer, desktop'ta fixed */}
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex flex-col bg-sidebar text-sidebar-foreground",
           "transition-[transform,width] duration-200",
-          // Mobil: 16rem genişlik sabit, drawer açıkken görünür
           "w-64",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
-          // Desktop (lg+): her zaman görünür, genişlik CSS var ile
           "lg:translate-x-0 lg:[width:var(--sidebar-w,16rem)]",
         )}
       >
-        {/* Toggle button (desktop) — collapse/expand chevron */}
+        {/* Toggle button (desktop) */}
         <button
           type="button"
           onClick={toggleCollapse}
@@ -220,7 +308,7 @@ export function Sidebar({ userName, firmName }: SidebarProps) {
           <X className="size-5" />
         </button>
 
-        {/* Logo / firm */}
+        {/* Logo / firm — sidebar başlığı */}
         <div
           className={cn(
             "flex h-16 items-center border-b border-sidebar-border",
@@ -249,7 +337,6 @@ export function Sidebar({ userName, firmName }: SidebarProps) {
               >
                 {group.label}
               </p>
-              {/* Collapsed iken gruplar arasinda kucuk ayirma cizgisi */}
               {showCollapsed && gi > 0 && (
                 <div className="mx-2 mb-2 hidden h-px bg-sidebar-border lg:block" />
               )}
@@ -272,7 +359,7 @@ export function Sidebar({ userName, firmName }: SidebarProps) {
           ))}
         </nav>
 
-        {/* Hint card — mobil drawer'da hep görünür, desktop collapsed'da gizli */}
+        {/* Hint card — desktop collapsed'da gizli */}
         <div
           className={cn(
             "mx-3 mb-3 rounded-lg border border-sidebar-border bg-sidebar-border/30 p-3",
@@ -284,45 +371,6 @@ export function Sidebar({ userName, firmName }: SidebarProps) {
             <p className="text-xs font-semibold text-white">Solar EPC Platform</p>
           </div>
           <p className="text-xs text-sidebar-muted">Güneş enerjisi teklif yönetimi</p>
-        </div>
-
-        {/* User */}
-        <div
-          className={cn(
-            "border-t border-sidebar-border",
-            showCollapsed ? "lg:p-2" : "lg:p-3",
-            "max-lg:p-3",
-          )}
-        >
-          <div
-            className={cn(
-              "mb-1 flex items-center rounded-lg bg-sidebar-border/30",
-              showCollapsed ? "lg:justify-center lg:p-2" : "lg:gap-3 lg:px-3 lg:py-2",
-              "max-lg:gap-3 max-lg:px-3 max-lg:py-2",
-            )}
-            title={showCollapsed ? userName : undefined}
-          >
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-              {userName.charAt(0).toUpperCase()}
-            </div>
-            <div className={cn("min-w-0 flex-1", showCollapsed ? "lg:hidden" : "")}>
-              <p className="truncate text-sm font-medium text-white">{userName}</p>
-            </div>
-          </div>
-          <form action={logout}>
-            <button
-              type="submit"
-              title={showCollapsed ? "Çıkış Yap" : undefined}
-              className={cn(
-                "flex w-full items-center rounded-lg text-sm font-medium text-sidebar-muted transition-colors hover:bg-sidebar-border/40 hover:text-white",
-                showCollapsed ? "lg:justify-center lg:p-2" : "lg:gap-3 lg:px-3 lg:py-2",
-                "max-lg:gap-3 max-lg:px-3 max-lg:py-2.5",
-              )}
-            >
-              <LogOut className="size-4 shrink-0" />
-              <span className={cn(showCollapsed ? "lg:hidden" : "")}>Çıkış Yap</span>
-            </button>
-          </form>
         </div>
       </aside>
     </>
