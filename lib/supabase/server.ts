@@ -23,8 +23,11 @@ export async function createSupabaseServer() {
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, withSharedDomain(options));
             });
-          } catch {
-            // Server Component context — ignore (proxy handles refresh)
+          } catch (e) {
+            // Server Component context'inde cookies().set() fail eder — beklenen.
+            // Server Action / Route Handler context'inde fail ederse asil sorun
+            // burada; loglayip Vercel Logs'tan goruyoruz.
+            console.error("[supabase/server] setAll failed:", e);
           }
         },
       },
