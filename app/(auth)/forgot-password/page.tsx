@@ -7,11 +7,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Sun } from "lucide-react";
 
 export default function ForgotPasswordPage() {
   const [result, action, pending] = useActionState(forgotPassword, undefined);
 
   return (
+    <div className="bg-soft-gradient flex min-h-screen items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="mb-8 text-center">
+          <div className="mb-3 inline-flex items-center gap-2.5">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+              <Sun className="size-5" />
+            </div>
+            <span className="text-2xl font-semibold tracking-tight text-foreground">SolarTeklif</span>
+          </div>
+          <p className="text-sm text-muted-foreground">Güneş Enerjisi Teklif Yönetim Platformu</p>
+        </div>
     <Card>
       <CardHeader>
         <CardTitle>Şifremi Unuttum</CardTitle>
@@ -44,5 +56,7 @@ export default function ForgotPasswordPage() {
         </p>
       </CardContent>
     </Card>
+      </div>
+    </div>
   );
 }

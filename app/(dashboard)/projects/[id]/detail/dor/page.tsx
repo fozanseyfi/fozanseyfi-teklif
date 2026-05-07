@@ -21,6 +21,7 @@ export default async function DorPage({ params }: Props) {
   return (
     <DorEditor
       projectId={id}
+      projectName={project.name || "İsimsiz Proje"}
       data={detail.dor as unknown as DorGroup[]}
     />
   );

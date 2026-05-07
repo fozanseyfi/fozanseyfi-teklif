@@ -18,6 +18,7 @@ export default async function TeknikPage({ params }: Props) {
   return (
     <TeknikForm
       projectId={id}
+      projectName={project.name || "İsimsiz Proje"}
       settings={detail.settings as unknown as GesSettings}
     />
   );

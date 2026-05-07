@@ -43,6 +43,7 @@ export default async function ProjectsPage({ searchParams }: Props) {
   const projects = await prisma.project.findMany({
     where: {
       firmId: user.firmId,
+      isTemplate: false,
       ...(q
         ? {
             OR: [

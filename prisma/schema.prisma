@@ -26,28 +26,21 @@ model Firm {
   @@schema("solar")
 }
 
+// Profile-pattern row: kimlik (email + parola) Supabase Auth (`auth.users`)
+// tarafindan yonetiliyor. Burada sadece domain extension alanlari tutuluyor.
+// `id` her satirda Supabase'in `auth.users.id` (uuid) ile bire-bir eslesir;
+// signup/signIn akisinda set edilir, otomatik default yok.
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         UserRole @default(MEMBER)
-  firmId       String
-  firm         Firm     @relation(fields: [firmId], references: [id])
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
+  id        String   @id
+  name      String
+  email     String   @unique
+  role      UserRole @default(MEMBER)
+  firmId    String
+  firm      Firm     @relation(fields: [firmId], references: [id])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
 
   projects Project[]
-
-  @@schema("solar")
-}
-
-model PasswordResetToken {
-  id        String   @id @default(cuid())
-  email     String
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
 
   @@schema("solar")
 }
@@ -108,6 +101,15 @@ model Project {
   status      ProjectStatus @default(DRAFT)
   currentStep Int           @default(1)
 
+  // Sablonlar — ana proje listesinde gozukmez, /templates'de gosterilir.
+  // "Bu sablonu kullan" deyince yeni bir Project olarak klonlanir.
+  isTemplate    Boolean @default(false)
+  templateLabel String?
+  templateOrder Int     @default(0)
+  // false: sablon hala duzenleniyor (form'lar acik). true: son hali —
+  // tum save action'lari engellenir, sayfada CSS read-only kilidi kalkar.
+  templateLocked Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -117,6 +119,7 @@ model Project {
   proposal        Proposal?
   projectDetail   ProjectDetail?
 
+  @@index([isTemplate, templateOrder])
   @@schema("solar")
 }
 

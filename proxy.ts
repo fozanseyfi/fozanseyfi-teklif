@@ -1,35 +1,48 @@
-import { NextRequest, NextResponse } from "next/server";
-import { decrypt } from "@/lib/session";
+import { NextResponse, type NextRequest } from "next/server";
+import { refreshSupabaseSession } from "@/lib/supabase/proxy";
 
 const publicRoutes = ["/", "/login", "/register", "/forgot-password", "/reset-password"];
 const authRoutes = ["/login", "/register", "/forgot-password", "/reset-password"];
 
+// Auth callback (Supabase email link redirect) ve API route'lari guard'in
+// disinda tutulur — kendi yetkilendirmelerini yapar veya zaten public'tir.
+function isExempt(pathname: string): boolean {
+  return (
+    pathname.startsWith("/auth/callback") ||
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/_next/") ||
+    pathname === "/favicon.ico"
+  );
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (isExempt(pathname)) {
+    // Sadece session cookie'sini refresh et, yonlendirme yapma.
+    const { response } = await refreshSupabaseSession(request);
+    return response;
+  }
+
+  const { response, authed } = await refreshSupabaseSession(request);
 
   const isPublicRoute = publicRoutes.some((r) => pathname === r || pathname.startsWith(r + "?"));
   const isAuthRoute = authRoutes.some((r) => pathname === r || pathname.startsWith(r + "?"));
 
-  const sessionCookie = request.cookies.get("session")?.value;
-  const session = await decrypt(sessionCookie);
-
-  if (!session && !isPublicRoute) {
+  if (!authed && !isPublicRoute) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (session && isAuthRoute) {
+  if (authed && isAuthRoute) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  if (pathname.startsWith("/admin") && session?.role !== "FIRM_ADMIN") {
-    // Platform admin kontrolü için ayrı bir env veya flag gerekir
-    // Şimdilik FIRM_ADMIN rolünü platform admin olarak değerlendiriyoruz
-    // TODO: platform_admin flag ekle
-  }
-
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    // Statik asset'ler ve favicon disindaki tum istekleri kapsa.
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };

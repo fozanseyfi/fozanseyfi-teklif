@@ -21,6 +21,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
+import { DetailPageHeader, prevHref } from "@/components/ges/detail-page-header";
 
 function fmt(n: number, d = 0) {
   return n.toLocaleString("tr-TR", {
@@ -31,6 +32,7 @@ function fmt(n: number, d = 0) {
 
 interface Props {
   projectId: string;
+  projectName: string;
   type: "A" | "B";
   data: KesifGroup[];
   settings: GesSettings;
@@ -158,7 +160,7 @@ function printKesif(
   }, 300);
 }
 
-export function KesifEditor({ projectId, type, data, settings }: Props) {
+export function KesifEditor({ projectId, projectName, type, data, settings }: Props) {
   const [groups, setGroups] = useState<KesifGroup[]>(data);
   const [saving, setSaving] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
@@ -197,12 +199,27 @@ export function KesifEditor({ projectId, type, data, settings }: Props) {
     [settings],
   );
 
+  // Bir grubu ardisik sirala: items[i].code = `${group.code}.${i+1}`. Kullanici
+  // bir kalem ekleyip/silince numaralar bosluksuz sirali kalsin.
+  function renumber(g: KesifGroup): KesifGroup {
+    return {
+      ...g,
+      items: g.items.map((it, idx) => ({
+        ...it,
+        code: `${g.code}.${idx + 1}`,
+      })),
+    };
+  }
+
   function addItem(gi: number) {
     setGroups((prev) =>
       prev.map((grp, i) =>
         i !== gi
           ? grp
-          : { ...grp, items: [...grp.items, newItem(grp.code, grp.items.length)] },
+          : renumber({
+              ...grp,
+              items: [...grp.items, newItem(grp.code, grp.items.length)],
+            }),
       ),
     );
   }
@@ -210,7 +227,7 @@ export function KesifEditor({ projectId, type, data, settings }: Props) {
   function removeItem(gi: number, ii: number) {
     setGroups((prev) =>
       prev.map((g, i) =>
-        i !== gi ? g : { ...g, items: g.items.filter((_, idx) => idx !== ii) },
+        i !== gi ? g : renumber({ ...g, items: g.items.filter((_, idx) => idx !== ii) }),
       ),
     );
   }
@@ -261,50 +278,54 @@ export function KesifEditor({ projectId, type, data, settings }: Props) {
 
   return (
     <div className="space-y-4">
+      <DetailPageHeader
+        kicker={title}
+        title={projectName}
+        backHref={prevHref(projectId, type === "A" ? "/kesif-a" : "/kesif-b")}
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => printKesif(title, groups, settings, grandTotal)}
+            >
+              <FileDown className="size-3.5" />
+              PDF
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleSave(false)}
+              disabled={saving}
+              size="sm"
+            >
+              <Save className="size-3.5" />
+              {saving ? "Kaydediliyor…" : "Kaydet"}
+            </Button>
+            <Button onClick={() => handleSave(true)} disabled={saving} size="sm">
+              Kaydet &amp; İlerle <ArrowRight className="size-3.5" />
+            </Button>
+          </>
+        }
+      />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-          <p className="text-sm text-muted-foreground">
-            Toplam:{" "}
-            <span className="font-semibold text-foreground">${fmt(grandTotal)}</span>{" "}
-            / <span>₺{fmt(grandTotal * settings.usd)}</span>
-            {dcWp > 0 && (
-              <span className="ml-2 font-medium text-primary">
-                ${(grandTotal / dcWp).toFixed(4)}/Wp
-              </span>
-            )}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="h-8 w-44 pl-8 text-sm"
-              placeholder="Ara..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => printKesif(title, groups, settings, grandTotal)}
-          >
-            <FileDown className="size-4" />
-            PDF
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => handleSave(false)}
-            disabled={saving}
-            size="sm"
-          >
-            <Save className="size-4" />
-            {saving ? "Kaydediliyor…" : "Kaydet"}
-          </Button>
-          <Button onClick={() => handleSave(true)} disabled={saving} size="sm">
-            Kaydet &amp; {nextLabel} <ArrowRight className="size-4" />
-          </Button>
+        <p className="text-sm text-muted-foreground">
+          Toplam:{" "}
+          <span className="font-semibold text-foreground">${fmt(grandTotal)}</span>{" "}
+          / <span>₺{fmt(grandTotal * settings.usd)}</span>
+          {dcWp > 0 && (
+            <span className="ml-2 font-medium text-primary">
+              ${(grandTotal / dcWp).toFixed(4)}/Wp
+            </span>
+          )}
+        </p>
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="h-8 w-44 pl-8 text-sm"
+            placeholder="Ara..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
       </div>
 
@@ -428,7 +449,17 @@ export function KesifEditor({ projectId, type, data, settings }: Props) {
                         const totalUsd =
                           item.miktar * toUSD(item.rawFiyat, item.fiyatCur, settings);
                         const perWp = dcWp > 0 ? totalUsd / dcWp : 0;
-                        const isReadOnly = type === "B" && group.code === "B.6";
+                        // Kritik malzeme kalemleri (A.1.1 panel, A.2.1 inverter,
+                        // A.3.1 konstrüksiyon) ve B.6.1 finans maliyeti otomatik
+                        // gelir; bu kalemler Analiz/Teknik'teki alt seçimleriyle
+                        // yönetilir, burada düzenlenmez.
+                        const isCriticalAlt =
+                          type === "A" &&
+                          (item.code === "A.1.1" ||
+                            item.code === "A.2.1" ||
+                            item.code === "A.3.1");
+                        const isFinancing = type === "B" && group.code === "B.6";
+                        const isReadOnly = isCriticalAlt || isFinancing;
                         return (
                           <tr
                             key={item.code}
@@ -501,12 +532,13 @@ export function KesifEditor({ projectId, type, data, settings }: Props) {
                             <td className="px-2 py-1.5">
                               {isReadOnly ? (
                                 <span className="block px-1 text-right text-xs text-muted-foreground">
-                                  {fmt(item.miktar, 0)}
+                                  {fmt(item.miktar, item.code.startsWith("A.3") ? 3 : 0)}
                                 </span>
                               ) : (
                                 <Input
                                   className={cn(inputRowClass, "w-22 text-right")}
                                   type="number"
+                                  step={item.code.startsWith("A.3") ? "0.001" : "any"}
                                   value={item.miktar}
                                   onChange={(e) =>
                                     updateItem(
@@ -546,7 +578,9 @@ export function KesifEditor({ projectId, type, data, settings }: Props) {
                             <td className="px-2 py-1.5">
                               {isReadOnly ? (
                                 <span className="block px-1 text-right text-xs font-semibold text-info-soft-foreground">
-                                  ${fmt(item.rawFiyat)}
+                                  {item.code.startsWith("A.1")
+                                    ? `$${fmt(item.rawFiyat, 3)}`
+                                    : `$${fmt(item.rawFiyat)}`}
                                 </span>
                               ) : (
                                 <Input
@@ -573,8 +607,15 @@ export function KesifEditor({ projectId, type, data, settings }: Props) {
                             </td>
                             <td className="px-2 py-1.5 text-center">
                               {isReadOnly ? (
-                                <span className="px-1 text-[9px] font-semibold text-info-soft-foreground">
-                                  CF Auto
+                                <span
+                                  className="px-1 text-[9px] font-semibold text-info-soft-foreground"
+                                  title={
+                                    isCriticalAlt
+                                      ? "Kritik malzeme — Analiz/Teknik'ten otomatik gelir"
+                                      : "Cash Flow'dan otomatik hesaplanır"
+                                  }
+                                >
+                                  {isCriticalAlt ? "Otomatik" : "CF Auto"}
                                 </span>
                               ) : (
                                 <button

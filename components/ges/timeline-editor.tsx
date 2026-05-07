@@ -13,9 +13,11 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Save, RefreshCw, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { DetailPageHeader, prevHref } from "@/components/ges/detail-page-header";
 
 interface Props {
   projectId: string;
+  projectName: string;
   data: TimelineData;
   kesifA: KesifGroup[];
   kesifB: KesifGroup[];
@@ -49,7 +51,7 @@ function normalizeTl(tl: TimelineData | undefined | null): TimelineData {
   };
 }
 
-export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Props) {
+export function TimelineEditor({ projectId, projectName, data, kesifA, kesifB, settings }: Props) {
   const router = useRouter();
   const [tl, setTl] = useState<TimelineData>(() => normalizeTl(data));
   const [saving, setSaving] = useState(false);
@@ -264,37 +266,38 @@ export function TimelineEditor({ projectId, data, kesifA, kesifB, settings }: Pr
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Cash Flow Timeline</h2>
-          <p className="text-sm text-muted-foreground">{tl.months} ay · Satış Fiyatı: ${result.salePriceUsd.toLocaleString("tr-TR", { maximumFractionDigits: 0 })}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Label className="whitespace-nowrap text-xs">Ay Sayısı</Label>
-            <Input
-              type="number"
-              className="h-8 w-20 text-xs"
-              value={tl.months}
-              min={1}
-              max={60}
-              onChange={(e) => changeMonths(parseInt(e.target.value) || 12)}
-            />
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => handleSave(false)}
-            disabled={saving}
-            size="sm"
-          >
-            <Save className="size-4" />
-            {saving ? "Kaydediliyor..." : "Kaydet"}
-          </Button>
-          <Button onClick={() => handleSave(true)} disabled={saving} size="sm">
-            Kaydet &amp; Analiz <ArrowRight className="size-4" />
-          </Button>
-        </div>
-      </div>
+      <DetailPageHeader
+        kicker={`Cash Flow Timeline · ${tl.months} ay`}
+        title={projectName}
+        backHref={prevHref(projectId, "/timeline")}
+        actions={
+          <>
+            <div className="flex items-center gap-1.5">
+              <Label className="whitespace-nowrap text-[11px]">Ay</Label>
+              <Input
+                type="number"
+                className="h-8 w-16 text-xs"
+                value={tl.months}
+                min={1}
+                max={60}
+                onChange={(e) => changeMonths(parseInt(e.target.value) || 12)}
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => handleSave(false)}
+              disabled={saving}
+              size="sm"
+            >
+              <Save className="size-3.5" />
+              {saving ? "Kaydediliyor..." : "Kaydet"}
+            </Button>
+            <Button onClick={() => handleSave(true)} disabled={saving} size="sm">
+              Kaydet &amp; İlerle <ArrowRight className="size-3.5" />
+            </Button>
+          </>
+        }
+      />
 
       <div className="flex gap-3 text-xs">
         <span className="rounded border border-success/30 bg-success-soft px-2 py-1 font-medium text-success-soft-foreground">

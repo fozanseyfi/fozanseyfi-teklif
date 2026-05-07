@@ -21,6 +21,7 @@ export default async function KesifAPage({ params }: Props) {
   return (
     <KesifEditor
       projectId={id}
+      projectName={project.name || "İsimsiz Proje"}
       type="A"
       data={detail.kesifA as unknown as KesifGroup[]}
       settings={detail.settings as unknown as GesSettings}

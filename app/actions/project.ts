@@ -256,4 +256,7 @@ async function ensureOwner(projectId: string, firmId: string) {
   if (!project || project.firmId !== firmId) {
     redirect("/projects");
   }
+  if (project.isTemplate && project.templateLocked) {
+    throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
+  }
 }

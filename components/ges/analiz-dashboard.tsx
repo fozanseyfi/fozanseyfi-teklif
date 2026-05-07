@@ -24,11 +24,12 @@ import {
 import {
   DollarSign, Zap, FileDown, Save, Plus, X,
   TrendingUp, ChevronRight, Edit2, BarChart2,
-  ChevronDown,
+  ChevronDown, ChevronUp, Minus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { NavActions } from "@/components/ges/nav-actions";
+import { printAnaliz } from "@/components/ges/analiz-print";
 
 type SectionTone = "primary" | "info" | "success" | "warning" | "destructive";
 
@@ -53,8 +54,7 @@ interface Props {
   timeline: TimelineData;
 }
 
-export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAInit, kesifB: kesifBInit, settings, timeline }: Props) {
-  void _project;
+export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB: kesifBInit, settings, timeline }: Props) {
   const [s, setS] = useState<GesSettings>(settings);
   const [localKesifA, setLocalKesifA] = useState<KesifGroup[]>(kesifAInit);
   const [localKesifB, setLocalKesifB] = useState<KesifGroup[]>(kesifBInit);
@@ -67,6 +67,7 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
 
   // Alt modal
   const [addAltOpen, setAddAltOpen] = useState<"panel" | "konstr" | "inv" | null>(null);
+  const [editAltsOpen, setEditAltsOpen] = useState(false);
   const [newAltName, setNewAltName] = useState("");
   const [newAltPrice, setNewAltPrice] = useState("");
 
@@ -179,28 +180,17 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
     });
   }, [timeline, result, groupTotals, s]);
 
-  // Total interest cost — cashflow-view ile birebir ayni hesap
+  /**
+   * Finans Maliyeti — Cash Flow sayfasi B.6.1'i auto-save ediyor.
+   * Burada o degeri direkt okuyoruz; iteratif hesap yok ki Analiz hizli
+   * kalsin. Cash Flow ziyaret edilince yakinsayan dogru deger DB'ye yazilir.
+   */
   const totalInterestCost = useMemo(() => {
-    if (!timeline?.rows?.length) return 0;
-    let cum = 0;
-    let totalInterest = 0;
-    for (let m = 0; m < timeline.months; m++) {
-      let inflow = 0, outflow = 0;
-      for (const row of timeline.rows) {
-        const pct = row.values[m] / 100;
-        if (!pct) continue;
-        if (row.type === "inflow") inflow += pct * result.salePriceUsd;
-        else outflow += pct * getRowAmount(row.name, groupTotals);
-      }
-      const net = inflow - outflow;
-      cum += net;
-      const creditInterest = cum < 0 ? Math.abs(cum) * (s.krediFaiz / 100 / 12) : 0;
-      const depositInterest = cum > 0 ? cum * ((s.mevduat ?? 0) / 100 / 12) : 0;
-      totalInterest += creditInterest;
-      cum = cum - creditInterest + depositInterest;
-    }
-    return totalInterest;
-  }, [timeline, result, groupTotals, s]);
+    const b6 = localKesifB.find((g) => g.code === "B.6");
+    const it = b6?.items[0];
+    if (!it) return 0;
+    return it.miktar * toUSD(it.rawFiyat, it.fiyatCur, s);
+  }, [localKesifB, s]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   async function handleAltChange(field: "selPanel" | "selKonstr" | "selInv", idx: number) {
@@ -234,8 +224,16 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
 
     setSaving(true);
     try {
+      // Race condition'ı önlemek için en güncel alt listelerini de
+      // gönderiyoruz: handleAddAlt'tan dönen pending save varsa, bu yazımın
+      // alts'ı da en güncel olur, yeni eklenen alt kaybolmaz.
       await Promise.all([
-        saveGesSettings(projectId, { [field]: idx } as never),
+        saveGesSettings(projectId, {
+          [field]: idx,
+          panelAlts: newS.panelAlts,
+          konstrAlts: newS.konstrAlts,
+          invAlts: newS.invAlts,
+        } as never),
         alt && updatedKesifA !== localKesifA
           ? saveKesifA(projectId, updatedKesifA as never)
           : Promise.resolve(),
@@ -409,7 +407,9 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
   const top5Total = top5Items.reduce((a, b) => a + b.value, 0);
 
   // 5 KPI hesaplari (sketch)
-  const directCostPlusCont = result.totalCost; // = direct + contingency = "Maliyet"
+  // Maliyet = sadece A + B; Contingency ayrı satır olarak Maliyetin altında durur,
+  // ve hala Brüt Kar ile birlikte satış fiyatına eklenir (engine aynı kalır).
+  const maliyet = result.directCost;
   const finansMaliyeti = totalInterestCost;
   const sale = result.salePriceUsd;
   const pctOf = (x: number) => (sale > 0 ? (x / sale) * 100 : 0);
@@ -418,6 +418,197 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
     <div className="space-y-6">
 
       {/* ─── Modals ────────────────────────────────────────────────────────── */}
+      {/* Tüm Kritik Malzeme Alternatiflerini Düzenle Modalı */}
+      {editAltsOpen && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-foreground/50 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border bg-card shadow-md">
+            <div className="flex items-center justify-between border-b px-5 py-3.5">
+              <div className="flex items-center gap-3">
+                <div className={cn("flex size-9 items-center justify-center rounded-xl", SECTION_TONE.primary.iconBg)}>
+                  <Edit2 className={cn("size-4", SECTION_TONE.primary.iconText)} />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">Kritik Malzeme Alternatifleri</h2>
+                  <p className="text-xs text-muted-foreground">
+                    Düzenlemeler Teknik sayfasındaki listeyle senkronize çalışır
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditAltsOpen(false)}
+                className="flex size-8 items-center justify-center rounded-lg border hover:bg-muted"
+              >
+                <X className="size-4 text-muted-foreground" />
+              </button>
+            </div>
+            <div className="flex-1 space-y-5 overflow-auto px-5 py-4">
+              {([
+                { label: "Panel Alternatifleri", key: "panelAlts" as const, sel: "selPanel" as const, unit: "$/Wp" },
+                { label: "İnverter Alternatifleri", key: "invAlts" as const, sel: "selInv" as const, unit: "$/adet" },
+                { label: "Konstrüksiyon Alternatifleri", key: "konstrAlts" as const, sel: "selKonstr" as const, unit: "$/MW" },
+              ] as const).map(({ label, key, sel, unit }) => (
+                <div key={key}>
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {label}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setS((p) => {
+                          const a = [...(p[key] as { name: string; price: number }[])];
+                          a.push({ name: "Yeni", price: 0 });
+                          return { ...p, [key]: a } as typeof p;
+                        })
+                      }
+                      className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary-soft px-2 py-1 text-[11px] font-semibold text-primary-soft-foreground hover:bg-primary-soft/70"
+                    >
+                      <Plus className="size-3" /> Ekle
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {s[key].map((alt, i) => (
+                      <div
+                        key={i}
+                        className="grid grid-cols-[1fr_110px_70px_36px] items-center gap-2"
+                      >
+                        <Input
+                          className="h-9 text-sm"
+                          value={alt.name}
+                          placeholder="Malzeme / Model adı"
+                          onChange={(e) =>
+                            setS((p) => {
+                              const a = [...p[key]] as typeof s[typeof key];
+                              (a[i] as typeof a[0]) = { ...a[i], name: e.target.value };
+                              return { ...p, [key]: a };
+                            })
+                          }
+                        />
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            step="0.001"
+                            className="h-9 pr-12 text-sm"
+                            value={alt.price}
+                            onChange={(e) =>
+                              setS((p) => {
+                                const a = [...p[key]] as typeof s[typeof key];
+                                (a[i] as typeof a[0]) = { ...a[i], price: parseFloat(e.target.value) || 0 };
+                                return { ...p, [key]: a };
+                              })
+                            }
+                          />
+                          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
+                            {unit}
+                          </span>
+                        </div>
+                        <label
+                          className={cn(
+                            "flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs transition-colors",
+                            s[sel] === i
+                              ? "border-primary bg-primary-soft font-semibold text-primary-soft-foreground"
+                              : "border-border text-muted-foreground hover:bg-muted",
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            name={`edit_sel_${key}`}
+                            checked={s[sel] === i}
+                            onChange={() => setS((p) => ({ ...p, [sel]: i }))}
+                            className="accent-primary"
+                          />
+                          {s[sel] === i ? "✓" : "Seç"}
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setS((p) => {
+                              const a = [...(p[key] as { name: string; price: number }[])];
+                              if (a.length <= 1) return p;
+                              a.splice(i, 1);
+                              const newSelIdx = Math.max(
+                                0,
+                                Math.min((p[sel] as number) ?? 0, a.length - 1),
+                              );
+                              return { ...p, [key]: a, [sel]: newSelIdx } as typeof p;
+                            })
+                          }
+                          disabled={s[key].length <= 1}
+                          title={s[key].length <= 1 ? "En az bir alternatif olmalı" : "Sil"}
+                          className="flex size-9 items-center justify-center rounded-md border text-destructive/70 transition-colors hover:bg-destructive-soft hover:text-destructive-soft-foreground disabled:cursor-not-allowed disabled:opacity-30"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end gap-3 border-t px-5 py-3.5">
+              <button
+                onClick={() => setEditAltsOpen(false)}
+                className="h-9 rounded-xl border px-4 text-sm font-semibold text-muted-foreground hover:bg-muted"
+              >
+                Vazgeç
+              </button>
+              <button
+                onClick={async () => {
+                  setSaving(true);
+                  try {
+                    // Tüm üç alt listesi + seçimleri toplu kaydet, ardından
+                    // seçili alt'ın fiyatını/markasını kesifA'ya da yansıt.
+                    const updatedKesifA = localKesifA.map((g) => {
+                      if (g.code === "A.1") {
+                        const alt = s.panelAlts[s.selPanel];
+                        return alt
+                          ? { ...g, items: g.items.map((it) => it.code === "A.1.1" ? { ...it, marka: alt.name, tip: alt.name, rawFiyat: alt.price, birimFiyat: alt.price, fiyatCur: "USD" as const } : it) }
+                          : g;
+                      }
+                      if (g.code === "A.2") {
+                        const alt = s.invAlts[s.selInv];
+                        return alt
+                          ? { ...g, items: g.items.map((it) => it.code === "A.2.1" ? { ...it, marka: alt.name, tip: alt.name, rawFiyat: alt.price, birimFiyat: alt.price, fiyatCur: "USD" as const } : it) }
+                          : g;
+                      }
+                      if (g.code === "A.3") {
+                        const alt = s.konstrAlts[s.selKonstr];
+                        return alt
+                          ? { ...g, items: g.items.map((it) => it.code === "A.3.1" ? { ...it, marka: alt.name, tip: alt.name, rawFiyat: alt.price, birimFiyat: alt.price, fiyatCur: "USD" as const } : it) }
+                          : g;
+                      }
+                      return g;
+                    });
+                    setLocalKesifA(updatedKesifA);
+                    await Promise.all([
+                      saveGesSettings(projectId, {
+                        panelAlts: s.panelAlts,
+                        invAlts: s.invAlts,
+                        konstrAlts: s.konstrAlts,
+                        selPanel: s.selPanel,
+                        selInv: s.selInv,
+                        selKonstr: s.selKonstr,
+                      } as never),
+                      saveKesifA(projectId, updatedKesifA as never),
+                    ]);
+                    toast.success("Kritik malzemeler güncellendi");
+                    setEditAltsOpen(false);
+                  } catch {
+                    toast.error("Kayıt hatası");
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                disabled={saving}
+                className="inline-flex h-9 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
+              >
+                <Save className="size-4" /> Kaydet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {addAltOpen && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center bg-foreground/50 backdrop-blur-sm">
           <div className="bg-card rounded-2xl shadow-md w-full max-w-sm mx-4 overflow-hidden border">
@@ -530,13 +721,21 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
       {/* ╔═══════════════════════════════════════════════════════════════════╗ */}
       {/* ║ TOP SECTION — KPIs sol sutunda yiginli, Kritik Malzeme sag tepe  ║ */}
       {/* ╚═══════════════════════════════════════════════════════════════════╝ */}
-      {/* Yazdır — sekme barının en sağına portallanır */}
+      {/* Yazdır — yönetici özeti PDF'i; sekme barının en sağına portallanır */}
       <NavActions>
         <button
           type="button"
-          onClick={() => window.print()}
-          className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground"
-          title="Analizi yazdır"
+          onClick={() =>
+            printAnaliz({
+              project,
+              settings: s,
+              kesifA: localKesifA,
+              kesifB: localKesifB,
+              timeline,
+            })
+          }
+          className="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+          title="Yönetici özetini yazdır (PDF)"
         >
           <FileDown className="size-3.5" /> Yazdır
         </button>
@@ -554,17 +753,20 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
             <p className="text-[10px] font-semibold uppercase tracking-widest opacity-80">
               Toplam EPC Satış Fiyatı
             </p>
-            <p className="mt-2 text-3xl font-bold tracking-tight tabular-nums">
-              ${fmt(result.salePriceUsd)}
+            <p className="mt-2 flex items-baseline gap-2 tracking-tight tabular-nums">
+              <span className="text-3xl font-bold">${fmt(result.salePriceUsd)}</span>
+              <span className="text-base font-semibold">
+                / {Math.round(result.perKwUsd).toLocaleString("tr-TR")} USD/kWp
+              </span>
             </p>
             <div className="mt-1 flex items-center gap-3 text-xs opacity-85 tabular-nums">
               <span>₺{fmt(result.salePriceTry)}</span>
               <span className="size-1 rounded-full bg-primary-foreground/40" />
-              <span>{result.perKwUsd.toFixed(3)} USD/kWp</span>
+              <span>€{fmt(s.eur > 0 ? (result.salePriceTry / s.eur) : 0)}</span>
             </div>
             <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary-foreground/15 px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm">
               <TrendingUp className="size-3" />
-              Brüt Kar Oranı %{pctOf(result.brutKar).toFixed(1)}
+              Brüt Kâr Marjı %{pctOf(result.brutKar).toFixed(1)} · ${fmt(result.brutKar)}
             </div>
           </CardContent>
         </Card>
@@ -580,64 +782,111 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
                 Sistem Bilgileri
               </p>
             </div>
-            <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-              <SysRow label="DC" value={`${s.dcGuc.toFixed(2)} MWp`} />
-              <SysRow label="AC" value={`${s.acGuc.toFixed(2)} MWe`} />
-              <SysRow label="DC/AC" value={s.dcGuc > 0 && s.acGuc > 0 ? `${(s.dcGuc / s.acGuc).toFixed(2)}` : "—"} />
+            <dl className="mt-2.5 space-y-1 text-xs">
+              {(() => {
+                const dc = Number(s.dcGuc) || 0;
+                const ac = Number(s.acGuc) || 0;
+                // < 1 MW ise kW olarak göster ki 0,008 MW = 8 kW gibi küçük
+                // değerler yuvarlanıp kaybolmasın. tr-TR locale: ondalık ","
+                // binlik ayırıcı ".".
+                const fmtPower = (mw: number, suffix: "MWp" | "MWe") => {
+                  if (mw <= 0) return "—";
+                  if (mw < 1) {
+                    const kw = mw * 1000;
+                    const kwSuffix = suffix === "MWp" ? "kWp" : "kWe";
+                    const decimals = kw < 10 ? 2 : kw < 100 ? 1 : 0;
+                    return `${kw.toLocaleString("tr-TR", {
+                      minimumFractionDigits: decimals,
+                      maximumFractionDigits: decimals,
+                    })} ${kwSuffix}`;
+                  }
+                  return `${mw.toLocaleString("tr-TR", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })} ${suffix}`;
+                };
+                const ratio =
+                  dc > 0 && ac > 0
+                    ? (dc / ac).toLocaleString("tr-TR", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })
+                    : "—";
+                return (
+                  <>
+                    <SysRow
+                      label="DC / AC Güç"
+                      value={`${fmtPower(dc, "MWp")} / ${fmtPower(ac, "MWe")}`}
+                    />
+                    <SysRow label="DC / AC Oranı" value={ratio} />
+                  </>
+                );
+              })()}
               {s.trafoSayisi > 0 && <SysRow label="Trafo" value={`${s.trafoSayisi} adet`} />}
-              <SysRow label="Panel" value={`${fmt(panelAdetCalc)} × ${s.panelGuc} Wp`} fullWidth />
-              <SysRow label="İnverter" value={`${s.invAdet || 0} × ${s.invGuc || 0} kVA`} fullWidth />
+              <SysRow label="Panel" value={`${fmt(panelAdetCalc)} × ${s.panelGuc} Wp`} />
+              <SysRow label="İnverter" value={`${s.invAdet || 0} × ${s.invGuc || 0} kVA`} />
             </dl>
           </CardContent>
         </Card>
       </div>
 
-      {/* 5 Cost-Breakdown KPIs */}
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
-        <RatioKpi
-          tone="muted"
-          label="Maliyet"
-          value={`$${fmt(directCostPlusCont)}`}
-          pct={pctOf(directCostPlusCont)}
-        />
-        <RatioKpi
-          tone="primary"
-          label="Contingency"
-          value={`$${fmt(result.contingencyAmt)}`}
-          pct={pctOf(result.contingencyAmt)}
-          ratePct={s.contingency}
-          maxRate={10}
-          onRateChange={(v) => saveOneMargin("contingency", v)}
-        />
-        <RatioKpi
-          tone="info"
-          label="OHC"
-          value={`$${fmt(result.genelGiderAmt)}`}
-          pct={pctOf(result.genelGiderAmt)}
-          ratePct={s.genelGider}
-          maxRate={20}
-          onRateChange={(v) => saveOneMargin("genelGider", v)}
-        />
-        <RatioKpi
-          tone="success"
-          label="Net Kar"
-          value={`$${fmt(result.netKarAmt)}`}
-          pct={pctOf(result.netKarAmt)}
-          ratePct={s.netKar}
-          maxRate={30}
-          onRateChange={(v) => saveOneMargin("netKar", v)}
-        />
-        <RatioKpi
-          tone="warning"
-          label="Finans Maliyeti"
-          value={`$${fmt(finansMaliyeti)}`}
-          pct={pctOf(finansMaliyeti)}
-          ratePct={s.krediFaiz}
-          rateLabel="Faiz"
-          maxRate={20}
-          onRateChange={(v) => saveOneMargin("krediFaiz", v)}
-        />
-      </div>
+      {/* 5 Cost-Breakdown KPIs — yan yana, ana fiyat + birim kWp */}
+      {(() => {
+        const dcKw = s.dcGuc * 1000;
+        const perKw = (n: number) =>
+          dcKw > 0
+            ? `${Math.round(n / dcKw).toLocaleString("tr-TR")} USD/kWp`
+            : undefined;
+        return (
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+            <RatioKpi
+              tone="muted"
+              label="Maliyet (A + B)"
+              value={`$${fmt(maliyet)}`}
+              perKw={perKw(maliyet)}
+              pct={pctOf(maliyet)}
+            />
+            <RatioKpi
+              tone="primary"
+              label="Contingency"
+              value={`$${fmt(result.contingencyAmt)}`}
+              perKw={perKw(result.contingencyAmt)}
+              pct={pctOf(result.contingencyAmt)}
+              ratePct={s.contingency}
+              maxRate={10}
+              onRateChange={(v) => saveOneMargin("contingency", v)}
+            />
+            <RatioKpi
+              tone="info"
+              label="OHC"
+              value={`$${fmt(result.genelGiderAmt)}`}
+              perKw={perKw(result.genelGiderAmt)}
+              pct={pctOf(result.genelGiderAmt)}
+              ratePct={s.genelGider}
+              maxRate={20}
+              onRateChange={(v) => saveOneMargin("genelGider", v)}
+            />
+            <RatioKpi
+              tone="success"
+              label="Net Kar"
+              value={`$${fmt(result.netKarAmt)}`}
+              perKw={perKw(result.netKarAmt)}
+              pct={pctOf(result.netKarAmt)}
+              ratePct={s.netKar}
+              maxRate={30}
+              onRateChange={(v) => saveOneMargin("netKar", v)}
+            />
+            <RatioKpi
+              tone="warning"
+              label="Finans Maliyeti"
+              value={`$${fmt(finansMaliyeti)}`}
+              perKw={perKw(finansMaliyeti)}
+              pct={pctOf(finansMaliyeti)}
+              sub={`Yıllık %${s.krediFaiz.toFixed(1)}`}
+            />
+          </div>
+        );
+      })()}
 
         </div>{/* SOL kapanis */}
 
@@ -651,7 +900,15 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
                   <Zap className={cn("size-2.5", SECTION_TONE.primary.iconText)} />
                 </div>
                 <CardTitle className="text-[11px] leading-tight">Kritik Malzeme Seçimi</CardTitle>
-                <span className="ml-auto text-[9px] text-muted-foreground">+/− delta</span>
+                <button
+                  type="button"
+                  onClick={() => setEditAltsOpen(true)}
+                  title="Tüm alternatifleri düzenle"
+                  className="ml-auto inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary-soft px-1.5 py-0.5 text-[9px] font-semibold text-primary-soft-foreground transition-colors hover:bg-primary-soft/70"
+                >
+                  <Edit2 className="size-2.5" />
+                  Düzenle
+                </button>
               </div>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-2 p-2.5 sm:grid-cols-3 lg:flex-1">
@@ -739,7 +996,10 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
           <CardHeader className="pb-2 pt-3 px-4">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm">Tüm Kalemler Özet</CardTitle>
-              <p className="text-xs text-muted-foreground">Bir gruba tıklayarak düzenleyebilirsiniz</p>
+              <p className="text-xs text-muted-foreground">
+                Bir gruba tıklayarak <strong className="font-semibold text-foreground">miktar ve fiyatları</strong> düzenleyebilirsiniz —
+                yapılan değişiklikler <strong className="font-semibold text-foreground">Keşif-A / Keşif-B</strong> sayfalarına da otomatik yansır.
+              </p>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -791,9 +1051,22 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
                     const total = getGrpTot(g, s);
                     const pct = result.directCost > 0 ? (total / result.directCost) * 100 : 0;
                     const perWp = dcWp > 0 ? total / dcWp : 0;
+                    const isAuto = g.code === "B.6";
                     return (
-                      <tr key={g.code} className="hover:bg-primary-soft/40 cursor-pointer transition-colors group"
-                        onClick={() => openGroupEditor(g, false)}>
+                      <tr key={g.code}
+                        className={cn(
+                          "transition-colors group",
+                          isAuto
+                            ? "cursor-not-allowed bg-info-soft/20 hover:bg-info-soft/30"
+                            : "cursor-pointer hover:bg-primary-soft/40",
+                        )}
+                        onClick={() => {
+                          if (isAuto) {
+                            toast.info("Finans Maliyeti Cash Flow'dan otomatik hesaplanır");
+                            return;
+                          }
+                          openGroupEditor(g, false);
+                        }}>
                         <td className="px-2.5 py-1 font-mono text-muted-foreground">{g.code}</td>
                         <td className="px-2.5 py-1 text-foreground">{g.name}</td>
                         <td className="px-2.5 py-1 text-right font-semibold text-foreground">${fmt(total)}</td>
@@ -819,20 +1092,20 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
                   </tr>
                 </tbody>
                 <tfoot className="border-t-2">
+                  <tr className="bg-muted border-y-2 font-semibold text-foreground">
+                    <td colSpan={2} className="px-2.5 py-1">Maliyet (A + B)</td>
+                    <td className="px-2.5 py-1 text-right">${fmt(result.directCost)}</td>
+                    <td className="px-2.5 py-1 text-right text-muted-foreground text-xs font-semibold">{dcWp > 0 ? `$${(result.directCost/dcWp).toFixed(4)}/Wp` : ""}</td>
+                    <td />
+                    <td className="px-2.5 py-1 text-right text-success-soft-foreground">{pctOf(result.directCost).toFixed(1)}%</td>
+                    <td />
+                  </tr>
                   <tr className="bg-muted text-muted-foreground">
                     <td colSpan={2} className="px-2.5 py-1">Contingency (%{s.contingency})</td>
                     <td className="px-2.5 py-1 text-right font-semibold">${fmt(result.contingencyAmt)}</td>
                     <td className="px-2.5 py-1 text-right text-muted-foreground">{dcWp > 0 ? `$${(result.contingencyAmt/dcWp).toFixed(4)}/Wp` : ""}</td>
                     <td />
                     <td className="px-2.5 py-1 text-right text-success-soft-foreground font-semibold">{pctOf(result.contingencyAmt).toFixed(1)}%</td>
-                    <td />
-                  </tr>
-                  <tr className="bg-muted border-y-2 font-semibold text-foreground">
-                    <td colSpan={2} className="px-2.5 py-1">Maliyet</td>
-                    <td className="px-2.5 py-1 text-right">${fmt(result.totalCost)}</td>
-                    <td className="px-2.5 py-1 text-right text-muted-foreground text-xs font-semibold">{dcWp > 0 ? `$${(result.totalCost/dcWp).toFixed(4)}/Wp` : ""}</td>
-                    <td />
-                    <td className="px-2.5 py-1 text-right text-success-soft-foreground">{pctOf(result.totalCost).toFixed(1)}%</td>
                     <td />
                   </tr>
                   <tr className="bg-muted text-info-soft-foreground">
@@ -862,6 +1135,13 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
                   <tr className="bg-primary-soft">
                     <td colSpan={2} className="px-3 py-1.5 text-xs text-primary-soft-foreground">TL Karşılığı</td>
                     <td className="px-3 py-1.5 text-right text-xs text-primary-soft-foreground">₺{fmt(result.salePriceTry)}</td>
+                    <td colSpan={4} />
+                  </tr>
+                  <tr className="bg-primary-soft">
+                    <td colSpan={2} className="px-3 py-1.5 text-xs text-primary-soft-foreground">EUR Karşılığı</td>
+                    <td className="px-3 py-1.5 text-right text-xs text-primary-soft-foreground">
+                      €{fmt(s.eur > 0 ? result.salePriceTry / s.eur : 0)}
+                    </td>
                     <td colSpan={4} />
                   </tr>
                 </tfoot>
@@ -1040,15 +1320,18 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
                     <PieChart>
                       <Tooltip
                         contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 2px 0 rgb(15 23 42 / 0.04)", fontSize: "12px" }}
-                        formatter={(value: number, name: string) => {
+                        itemStyle={{ color: "#0f172a" }}
+                        labelStyle={{ color: "#0f172a", fontWeight: 600 }}
+                        formatter={((value: unknown, name: unknown) => {
+                          const v = typeof value === "number" ? value : 0;
                           const total = drilledGroupCode ? donutInnerTotal : donutOuterTotal;
-                          const pct = total > 0 ? (value / total * 100).toFixed(1) : "0.0";
-                          return [`$${fmt(value)} · ${pct}%`, name];
-                        }}
+                          const pct = total > 0 ? (v / total * 100).toFixed(1) : "0.0";
+                          return [`$${fmt(v)} · ${pct}%`, name as string];
+                        }) as never}
                       />
                       <Pie data={donutOuter} dataKey="value" nameKey="name" cx="50%" cy="50%"
                         outerRadius={130} innerRadius={92} paddingAngle={1} stroke="#fff" strokeWidth={2}
-                        onClick={(d: { key?: string }) => { if (d?.key) setDrilledGroupCode(d.key); }}
+                        onClick={((d: { key?: string | null }) => { if (d?.key) setDrilledGroupCode(d.key); }) as never}
                         style={{ cursor: "pointer" }}>
                         {donutOuter.map((d) => (
                           <Cell key={d.key} fill={d.isA ? "#059669" : "#2563eb"}
@@ -1058,9 +1341,12 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
                       {drilledGroupCode && donutInner.length > 0 && (
                         <Pie data={donutInner} dataKey="value" nameKey="name" cx="50%" cy="50%"
                           outerRadius={88} innerRadius={50} paddingAngle={1} stroke="#fff" strokeWidth={1.5}>
-                          {donutInner.map((d) => (
-                            <Cell key={d.key} fill={d.isA ? "#a7f3d0" : "#bfdbfe"} />
-                          ))}
+                          {donutInner.map((d, i) => {
+                            const greenPalette = ["#047857", "#059669", "#10b981", "#22c55e", "#34d399", "#4ade80", "#6ee7b7", "#86efac"];
+                            const bluePalette = ["#1e40af", "#1d4ed8", "#2563eb", "#3b82f6", "#0ea5e9", "#06b6d4", "#0891b2", "#0284c7"];
+                            const palette = d.isA ? greenPalette : bluePalette;
+                            return <Cell key={d.key} fill={palette[i % palette.length]} />;
+                          })}
                         </Pie>
                       )}
                     </PieChart>
@@ -1291,7 +1577,7 @@ export function AnalizDashboard({ projectId, project: _project, kesifA: kesifAIn
                     { label: "Brüt Kar Marjı", value: result.salePriceUsd > 0 ? `${(result.brutKar / result.salePriceUsd * 100).toFixed(1)}%` : "—", sub: `$${fmt(result.brutKar)}`, color: "text-success-soft-foreground", bg: "bg-success-soft border-success/30" },
                     { label: "Net Kar Marjı", value: result.salePriceUsd > 0 ? `${(result.netKarAmt / result.salePriceUsd * 100).toFixed(1)}%` : "—", sub: `$${fmt(result.netKarAmt)}`, color: "text-info-soft-foreground", bg: "bg-info-soft border-info/30" },
                     { label: "Kesif-A / Toplam", value: result.directCost > 0 ? `${(result.kaTotal / result.directCost * 100).toFixed(1)}%` : "—", sub: `$${fmt(result.kaTotal)}`, color: "text-primary-soft-foreground", bg: "bg-primary-soft border-primary/30" },
-                    { label: "Markup Oranı", value: result.totalCost > 0 ? `${((result.salePriceUsd / result.totalCost - 1) * 100).toFixed(1)}%` : "—", sub: "Satış / Maliyet − 1", color: "text-primary-soft-foreground", bg: "bg-primary-soft border-primary/30" },
+                    { label: "Markup Oranı", value: result.directCost > 0 ? `${((result.salePriceUsd / result.directCost - 1) * 100).toFixed(1)}%` : "—", sub: "Satış / Maliyet − 1", color: "text-primary-soft-foreground", bg: "bg-primary-soft border-primary/30" },
                   ].map((m) => (
                     <div key={m.label} className={cn("rounded-xl p-3 border", m.bg)}>
                       <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">{m.label}</p>
@@ -1387,12 +1673,12 @@ function SysRow({
   return (
     <div
       className={cn(
-        "flex items-baseline justify-between gap-2",
+        "flex items-baseline gap-2",
         fullWidth && "col-span-2",
       )}
     >
-      <dt className="text-[10px] text-muted-foreground">{label}</dt>
-      <dd className="text-xs font-semibold tabular-nums tracking-tight">{value}</dd>
+      <dt className="w-[100px] shrink-0 whitespace-nowrap text-[10px] text-muted-foreground">{label}</dt>
+      <dd className="whitespace-nowrap text-xs font-semibold tabular-nums tracking-tight">{value}</dd>
     </div>
   );
 }
@@ -1442,6 +1728,7 @@ function RatioKpi({
   tone,
   label,
   value,
+  perKw,
   pct,
   ratePct,
   rateLabel,
@@ -1452,6 +1739,8 @@ function RatioKpi({
   tone: keyof typeof RATIO_TONE;
   label: string;
   value: string;
+  /** Birim fiyat (\$X.XX/kWp) — ana rakamın yanında küçük puntoda. */
+  perKw?: string;
   pct: number;
   ratePct?: number;
   rateLabel?: string;
@@ -1462,22 +1751,10 @@ function RatioKpi({
   const t = RATIO_TONE[tone];
   const editable = ratePct !== undefined && !!onRateChange;
 
-  // Manuel giris (input) state'i
-  const [manualEditing, setManualEditing] = useState(false);
-  const [tempRate, setTempRate] = useState("");
-
-  function startManualEdit() {
-    if (!editable) return;
-    setTempRate(String(ratePct));
-    setManualEditing(true);
-  }
-
-  async function commitManual() {
-    setManualEditing(false);
-    const v = parseFloat(tempRate);
-    if (!isNaN(v) && onRateChange && Math.abs(v - (ratePct ?? 0)) > 0.001) {
-      await onRateChange(v);
-    }
+  function bump(delta: number) {
+    if (!onRateChange) return;
+    const next = Math.max(0, Math.min(maxRate, parseFloat(((ratePct ?? 0) + delta).toFixed(2))));
+    if (Math.abs(next - (ratePct ?? 0)) > 0.001) onRateChange(next);
   }
 
   return (
@@ -1488,66 +1765,58 @@ function RatioKpi({
       <p className={cn("mt-1 text-lg font-bold tabular-nums tracking-tight", t.value)}>
         {value}
       </p>
+      {perKw && (
+        <p className={cn("text-[10px] font-medium tabular-nums tracking-normal opacity-70", t.sub)}>
+          {perKw}
+        </p>
+      )}
 
       {editable ? (
         <>
-          {/* Slider — surukleyerek 0.1 adimda oran ver */}
-          <div className="mt-2.5">
-            <input
-              type="range"
-              min={0}
-              max={maxRate}
-              step={0.1}
-              value={ratePct ?? 0}
-              onChange={(e) => onRateChange?.(parseFloat(e.target.value))}
-              className="h-1.5 w-full cursor-ew-resize appearance-none rounded-full bg-foreground/10 accent-current"
-              style={{ accentColor: "currentColor" }}
-            />
-            <div className="mt-1 flex items-center justify-between gap-2 text-[10px]">
-              <span className={cn(t.sub)}>
-                {rateLabel ?? "Oran"}:{" "}
-                <span className={cn("font-semibold tabular-nums", t.value)}>
-                  %{(ratePct ?? 0).toFixed(1)}
-                </span>
-              </span>
-              <span className={cn("tabular-nums", t.sub)}>
-                %{pct.toFixed(1)} satış
-              </span>
-            </div>
-          </div>
-
-          {/* Manuel giris input — dursun ki elle de yazabilsin */}
-          {manualEditing ? (
+          {/* Stepper: ± butonlari + anlik input. Tiklayinca debounced auto-save. */}
+          <div className="mt-2.5 flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => bump(-0.5)}
+              className={cn(
+                "flex size-7 shrink-0 items-center justify-center rounded-md border border-foreground/10 bg-background transition-colors hover:bg-foreground/10",
+                t.value,
+              )}
+              title="-0.5"
+            >
+              <Minus className="size-3.5" />
+            </button>
             <input
               type="number"
               step="0.1"
-              value={tempRate}
-              onChange={(e) => setTempRate(e.target.value)}
-              onBlur={commitManual}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                if (e.key === "Escape") setManualEditing(false);
+              min={0}
+              max={maxRate}
+              value={(ratePct ?? 0).toFixed(1)}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                if (!isNaN(v)) onRateChange?.(Math.max(0, Math.min(maxRate, v)));
               }}
-              autoFocus
               className={cn(
-                "mt-1.5 h-6 w-full rounded-md border bg-background px-2 text-[11px] font-semibold tabular-nums shadow-sm focus:outline-none focus:ring-2 focus:ring-ring",
+                "h-7 w-full min-w-0 rounded-md border bg-background px-1 text-center text-sm font-bold tabular-nums shadow-sm focus:outline-none focus:ring-2 focus:ring-ring",
                 t.value,
               )}
             />
-          ) : (
             <button
               type="button"
-              onClick={startManualEdit}
+              onClick={() => bump(0.5)}
               className={cn(
-                "mt-1.5 flex w-full items-center justify-between gap-1 rounded-md border border-foreground/10 bg-foreground/5 px-2 py-0.5 text-[10px] transition-colors hover:bg-foreground/10",
-                t.sub,
+                "flex size-7 shrink-0 items-center justify-center rounded-md border border-foreground/10 bg-background transition-colors hover:bg-foreground/10",
+                t.value,
               )}
-              title="Oranı manuel gir"
+              title="+0.5"
             >
-              <span>Manuel: %{(ratePct ?? 0).toFixed(1)}</span>
-              <Edit2 className="size-2.5 opacity-60" />
+              <Plus className="size-3.5" />
             </button>
-          )}
+          </div>
+          <div className="mt-1.5 flex items-center justify-between text-[10px]">
+            <span className={cn(t.sub)}>{rateLabel ?? "Oran"}</span>
+            <span className={cn("tabular-nums", t.sub)}>%{pct.toFixed(1)} satış</span>
+          </div>
         </>
       ) : (
         <>

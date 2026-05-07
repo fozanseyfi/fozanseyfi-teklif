@@ -8,7 +8,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar userName={user.name} firmName={user.firm.name} role={user.role} />
+      <Sidebar userName={user.name} firmName={user.firm.name} />
       <div className="flex min-h-screen flex-col pl-64">
         <main key="dashboard-main" className="flex-1 p-8 animate-in-up">
           {children}

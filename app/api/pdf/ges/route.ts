@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/session";
+import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { calc } from "@/lib/ges-engine";
 import { formatDate } from "@/lib/utils";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
 
 export async function POST(request: NextRequest) {
-  const session = await getSession();
+  const session = await getCurrentUser();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
@@ -293,8 +293,8 @@ ${has("ozet") ? (() => {
         </tr>
         <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:4px 8px;">Kesif-A</td><td style="text-align:right;padding:4px 8px;">${fmtUsd(result.kaTotal)}</td><td style="text-align:right;padding:4px 8px;color:#6b7280;">%${kaPct}</td></tr>
         <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:4px 8px;">Kesif-B</td><td style="text-align:right;padding:4px 8px;">${fmtUsd(result.kbTotal)}</td><td style="text-align:right;padding:4px 8px;color:#6b7280;">%${kbPct}</td></tr>
+        <tr style="border-bottom:2px solid #cbd5e1;background:#f1f5f9;font-weight:700;"><td style="padding:5px 8px;">Maliyet (A + B)</td><td style="text-align:right;padding:5px 8px;">${fmtUsd(result.directCost)}</td><td style="text-align:right;padding:5px 8px;color:#6b7280;"></td></tr>
         <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:4px 8px;">Contingency (%${settings.contingency})</td><td style="text-align:right;padding:4px 8px;">${fmtUsd(result.contingencyAmt)}</td><td style="text-align:right;padding:4px 8px;color:#6b7280;">%${contPct}</td></tr>
-        <tr style="border-bottom:2px solid #cbd5e1;background:#f1f5f9;font-weight:700;"><td style="padding:5px 8px;">Maliyet</td><td style="text-align:right;padding:5px 8px;">${fmtUsd(result.totalCost)}</td><td style="text-align:right;padding:5px 8px;color:#6b7280;"></td></tr>
         <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:4px 8px;">Overhead Cost (%${settings.genelGider})</td><td style="text-align:right;padding:4px 8px;color:#2563eb;">${fmtUsd(result.genelGiderAmt)}</td><td style="text-align:right;padding:4px 8px;color:#6b7280;">%${ohcPct}</td></tr>
         <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:4px 8px;">Net Kâr (%${settings.netKar})</td><td style="text-align:right;padding:4px 8px;color:#059669;">${fmtUsd(result.netKarAmt)}</td><td style="text-align:right;padding:4px 8px;color:#6b7280;">%${karPctBar}</td></tr>
         <tr style="background:#ecfdf5;border-bottom:2px solid #6ee7b7;font-weight:700;"><td style="padding:5px 8px;color:#065f46;">Brüt Kâr</td><td style="text-align:right;padding:5px 8px;color:#065f46;">${fmtUsd(result.brutKar)}</td><td style="text-align:right;padding:5px 8px;color:#065f46;">%${brutKarPct}</td></tr>

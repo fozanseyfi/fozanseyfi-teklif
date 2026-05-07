@@ -15,6 +15,8 @@ import {
   Table2,
   DollarSign,
   Lock,
+  CheckCircle2,
+  Sparkles,
 } from "lucide-react";
 
 export interface DetailNavProgress {
@@ -28,28 +30,37 @@ export interface DetailNavProgress {
 interface NavItem {
   label: string;
   href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  primary?: boolean;
-  /** Returns true if the tab is unlocked given the project's progress. */
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  doneFlag?: keyof DetailNavProgress;
+  hero?: boolean;
   isUnlocked?: (p: DetailNavProgress) => boolean;
-  /** Helpful message shown in tooltip when locked. */
   lockHint?: string;
 }
 
-// Permissive helper: if any later step has data, all earlier ones unlock.
 const downstream = (...flags: (keyof DetailNavProgress)[]) => (p: DetailNavProgress) =>
   flags.some((f) => p[f]);
 
-const GROUPS: { id: string; label: string; items: NavItem[] }[] = [
+interface Stage {
+  id: string;
+  num: string;
+  label: string;
+  accent: "input" | "core" | "output";
+  items: NavItem[];
+}
+
+const STAGES: Stage[] = [
   {
     id: "input",
-    label: "Veri Giriş",
+    num: "01",
+    label: "VERİ GİRİŞ",
+    accent: "input",
     items: [
-      { label: "Proje", href: "", icon: Info },
+      { label: "Proje", href: "", icon: Info, doneFlag: "info" },
       {
         label: "Teknik",
         href: "/teknik",
         icon: Settings2,
+        doneFlag: "teknik",
         isUnlocked: downstream("info", "teknik", "kesifA", "kesifB", "timeline"),
         lockHint: "Önce Proje bilgilerini doldurup kaydedin",
       },
@@ -57,6 +68,7 @@ const GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         label: "Keşif-A",
         href: "/kesif-a",
         icon: List,
+        doneFlag: "kesifA",
         isUnlocked: downstream("teknik", "kesifA", "kesifB", "timeline"),
         lockHint: "Önce Teknik parametreleri doldurun",
       },
@@ -64,27 +76,31 @@ const GROUPS: { id: string; label: string; items: NavItem[] }[] = [
         label: "Keşif-B",
         href: "/kesif-b",
         icon: FileText,
+        doneFlag: "kesifB",
         isUnlocked: downstream("kesifA", "kesifB", "timeline"),
         lockHint: "Önce Keşif-A kalemlerini doldurun",
       },
       {
-        label: "CF Timeline",
+        label: "Timeline",
         href: "/timeline",
         icon: Calendar,
+        doneFlag: "timeline",
         isUnlocked: downstream("kesifB", "timeline"),
         lockHint: "Önce Keşif-B kalemlerini doldurun",
       },
     ],
   },
   {
-    id: "analysis",
-    label: "Analiz & Akış",
+    id: "core",
+    num: "02",
+    label: "KARAR & AKIŞ",
+    accent: "core",
     items: [
       {
         label: "ANALİZ",
         href: "/analiz",
         icon: BarChart3,
-        primary: true,
+        hero: true,
         isUnlocked: downstream("timeline"),
         lockHint: "Önce CF Timeline'ı doldurup kaydedin",
       },
@@ -98,8 +114,10 @@ const GROUPS: { id: string; label: string; items: NavItem[] }[] = [
     ],
   },
   {
-    id: "outputs",
-    label: "Çıktılar",
+    id: "output",
+    num: "03",
+    label: "ÇIKTILAR",
+    accent: "output",
     items: [
       {
         label: "BoQ",
@@ -126,6 +144,18 @@ const GROUPS: { id: string; label: string; items: NavItem[] }[] = [
   },
 ];
 
+const STAGE_BG: Record<Stage["accent"], string> = {
+  input:  "bg-white/70 ring-1 ring-border/50",
+  core:   "bg-gradient-to-br from-emerald-50 via-emerald-50/40 to-white ring-1 ring-emerald-200/60",
+  output: "bg-white/70 ring-1 ring-border/50",
+};
+
+const STAGE_NUM: Record<Stage["accent"], string> = {
+  input:  "text-info-soft-foreground",
+  core:   "text-primary",
+  output: "text-success-soft-foreground",
+};
+
 interface Props {
   projectId: string;
   progress: DetailNavProgress;
@@ -136,84 +166,105 @@ export function GesDetailNav({ projectId, progress }: Props) {
   const base = `/projects/${projectId}/detail`;
 
   return (
-    <nav className="rounded-xl border bg-card p-2 shadow-sm">
-      <div className="flex flex-wrap items-stretch gap-1 lg:flex-nowrap">
-        {/* Sol: sekmeler */}
-        <div className="flex flex-1 flex-wrap items-stretch gap-1 lg:flex-nowrap">
-        {GROUPS.map((group, gi) => (
+    <nav>
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.55fr_1fr_1.05fr]">
+        {STAGES.map((stage) => (
           <div
-            key={group.id}
+            key={stage.id}
             className={cn(
-              "flex items-center gap-1",
-              gi > 0 && "ml-0 lg:ml-1 lg:border-l lg:pl-2",
+              "flex flex-col gap-2 rounded-xl px-3 py-2.5",
+              STAGE_BG[stage.accent],
             )}
           >
-            {group.items.map((item) => {
-              const href = `${base}${item.href}`;
-              const isActive =
-                item.href === ""
-                  ? pathname === base || pathname === `${base}/`
-                  : pathname.startsWith(`${base}${item.href}`);
-              const unlocked = item.isUnlocked?.(progress) ?? true;
+            {/* Stage label — düz metin, tıklanmaz */}
+            <div className="flex select-none items-baseline gap-1.5 px-1">
+              <span className={cn("font-mono text-[10.5px] font-extrabold tabular-nums", STAGE_NUM[stage.accent])}>
+                {stage.num}
+              </span>
+              <span className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-foreground/85">
+                {stage.label}
+              </span>
+            </div>
+            {/* Tabs */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {stage.items.map((item) => {
+                const href = `${base}${item.href}`;
+                const isActive =
+                  item.href === ""
+                    ? pathname === base || pathname === `${base}/`
+                    : pathname.startsWith(`${base}${item.href}`);
+                const unlocked = item.isUnlocked?.(progress) ?? true;
+                const isDone = item.doneFlag ? !!progress[item.doneFlag] : false;
 
-              if (!unlocked) {
-                return (
-                  <span
-                    key={item.href}
-                    title={item.lockHint}
-                    aria-disabled="true"
-                    className="flex shrink-0 cursor-not-allowed select-none items-center gap-1.5 whitespace-nowrap rounded-md border border-dashed px-3 py-1.5 text-xs font-medium text-muted-foreground/60"
-                  >
-                    <Lock className="size-3" />
-                    {item.label}
-                  </span>
-                );
-              }
+                if (!unlocked) {
+                  return (
+                    <span
+                      key={item.href}
+                      title={item.lockHint}
+                      aria-disabled="true"
+                      className="inline-flex shrink-0 cursor-not-allowed select-none items-center gap-1 whitespace-nowrap rounded-md border border-dashed border-border/60 bg-card px-2 py-1.5 text-[11px] font-medium text-muted-foreground/60"
+                    >
+                      <Lock className="size-2.5" />
+                      {item.label}
+                    </span>
+                  );
+                }
 
-              if (item.primary) {
+                if (item.hero) {
+                  return (
+                    <Link
+                      key={item.href}
+                      href={href}
+                      title="Tüm resmi tek ekranda — KPI, sale price, marjlar"
+                      className={cn(
+                        "group relative inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-4 py-2 text-[13px] font-extrabold uppercase tracking-[0.06em] transition-all",
+                        isActive
+                          ? "scale-[1.05] bg-gradient-to-br from-emerald-600 to-emerald-700 text-primary-foreground shadow-[0_12px_26px_-10px_rgb(5_150_105_/_0.65)] ring-2 ring-emerald-300/70"
+                          : "bg-gradient-to-br from-emerald-500 to-emerald-600 text-primary-foreground shadow-[0_6px_20px_-10px_rgb(5_150_105_/_0.5)] hover:scale-[1.05] hover:shadow-[0_12px_26px_-10px_rgb(5_150_105_/_0.6)]",
+                      )}
+                    >
+                      <Sparkles
+                        className={cn(
+                          "size-4 transition-transform",
+                          isActive ? "rotate-12" : "group-hover:rotate-12",
+                        )}
+                        strokeWidth={2.6}
+                      />
+                      {item.label}
+                    </Link>
+                  );
+                }
+
                 return (
                   <Link
                     key={item.href}
                     href={href}
                     className={cn(
-                      "flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-3.5 py-1.5 text-xs font-bold tracking-wide transition-colors",
+                      "group relative inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-2 text-[12px] font-semibold transition-all",
                       isActive
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "border border-primary/30 bg-primary-soft text-primary-soft-foreground hover:bg-primary-soft/70",
+                        ? "scale-[1.03] border-primary bg-primary text-primary-foreground shadow-[0_8px_18px_-6px_rgb(5_150_105_/_0.5)] ring-2 ring-primary/30"
+                        : "border-border/60 bg-card text-foreground hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary-soft hover:text-primary-soft-foreground hover:shadow-sm",
                     )}
                   >
-                    <item.icon className="size-3.5" />
+                    <item.icon className="size-3.5" strokeWidth={2.3} />
                     {item.label}
+                    {isDone && !isActive && (
+                      <CheckCircle2 className="size-3 text-success" strokeWidth={2.8} />
+                    )}
                   </Link>
                 );
-              }
-
-              return (
-                <Link
-                  key={item.href}
-                  href={href}
-                  className={cn(
-                    "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                    isActive
-                      ? "bg-foreground text-background shadow-sm"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  )}
-                >
-                  <item.icon className="size-3.5" />
-                  {item.label}
-                </Link>
-              );
-            })}
+              })}
+              {/* NavActions slot (Yazdır vs.) — Çıktılar grubunun sonuna,
+                  output bölümünün doğal devamı olarak. */}
+              {stage.id === "output" && (
+                <div
+                  id="ges-nav-actions"
+                  className="ml-auto flex shrink-0 items-center gap-1.5"
+                />
+              )}
+            </div>
           </div>
         ))}
-        </div>
-        {/* Sag: page-level action slot — `NavActions` portal hedefi.
-            Sayfalar <NavActions>...</NavActions> ile buraya buton koyar.
-            Bos olabilir. */}
-        <div
-          id="ges-nav-actions"
-          className="ml-auto flex shrink-0 items-center gap-1.5"
-        />
       </div>
     </nav>
   );

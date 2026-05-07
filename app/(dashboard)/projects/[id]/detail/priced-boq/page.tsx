@@ -21,6 +21,8 @@ export default async function PricedBoQPage({ params }: Props) {
   return (
     <PricedBoQ
       projectId={id}
+      projectName={project.name || "İsimsiz Proje"}
+      project={project}
       kesifA={detail.kesifA as unknown as KesifGroup[]}
       kesifB={detail.kesifB as unknown as KesifGroup[]}
       settings={detail.settings as unknown as GesSettings}

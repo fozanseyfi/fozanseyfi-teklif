@@ -3,6 +3,7 @@ import { ContactForm } from "@/components/shared/contact-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { siteConfig } from "@/lib/site-config";
 import { LinkedInIcon } from "@/components/shared/footer";
+import { OtherPlatforms } from "@/components/auth/other-platforms";
 import {
   MessageSquare,
   Phone,
@@ -149,6 +150,9 @@ export default function ContactPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Diğer platformlar — fozanseyfi.com altındaki kardeş siteler */}
+      <OtherPlatforms />
     </div>
   );
 }

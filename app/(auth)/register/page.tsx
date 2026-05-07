@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Sun } from "lucide-react";
 
 function RegisterForm() {
   const [result, action, pending] = useActionState(register, undefined);
@@ -95,8 +96,21 @@ function RegisterForm() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="text-center text-muted-foreground">Yükleniyor...</div>}>
-      <RegisterForm />
-    </Suspense>
+    <div className="bg-soft-gradient flex min-h-screen items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="mb-8 text-center">
+          <div className="mb-3 inline-flex items-center gap-2.5">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+              <Sun className="size-5" />
+            </div>
+            <span className="text-2xl font-semibold tracking-tight text-foreground">SolarTeklif</span>
+          </div>
+          <p className="text-sm text-muted-foreground">Güneş Enerjisi Teklif Yönetim Platformu</p>
+        </div>
+        <Suspense fallback={<div className="text-center text-muted-foreground">Yükleniyor...</div>}>
+          <RegisterForm />
+        </Suspense>
+      </div>
+    </div>
   );
 }

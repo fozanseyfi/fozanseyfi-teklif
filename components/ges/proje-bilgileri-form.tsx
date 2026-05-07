@@ -14,7 +14,6 @@ import Link from "next/link";
 import {
   CheckCircle2,
   ArrowRight,
-  ArrowLeft,
   Building2,
   User,
   FileText,
@@ -28,6 +27,7 @@ import {
   UserPlus,
   ChevronDown,
 } from "lucide-react";
+import { DetailPageHeader } from "@/components/ges/detail-page-header";
 
 interface Customer {
   name: string;
@@ -479,50 +479,36 @@ export function ProjeBilgileriForm({
         value={insights.filter(Boolean).join("\n")}
       />
 
-      {/* Top nav */}
-      <div className="flex items-center justify-between rounded-xl border bg-card px-5 py-3 shadow-sm">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/projects"
-            className="flex size-8 items-center justify-center rounded-md border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
-            aria-label="Projelere dön"
-          >
-            <ArrowLeft className="size-4" />
-          </Link>
-          <div>
-            <p className="text-[11px] leading-none text-muted-foreground">
-              Proje Bilgileri
-            </p>
-            <p className="mt-0.5 max-w-xs truncate text-sm font-semibold leading-tight">
-              {nameVal || "Yeni Proje"}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            type="submit"
-            variant="outline"
-            size="sm"
-            disabled={pending}
-          >
-            <CheckCircle2 className="size-3.5" />
-            {pending ? "Kaydediliyor…" : "Kaydet"}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleAdvance}
-            disabled={pending || !isValid}
-            title={
-              !isValid
-                ? `Önce zorunlu alanları doldurun: ${missingFields.join(", ")}`
-                : undefined
-            }
-          >
-            Kaydet &amp; İlerle <ArrowRight className="size-3.5" />
-          </Button>
-        </div>
-      </div>
+      <DetailPageHeader
+        kicker="Proje Bilgileri"
+        title={nameVal || "Yeni Proje"}
+        actions={
+          <>
+            <Button
+              type="submit"
+              variant="outline"
+              size="sm"
+              disabled={pending}
+            >
+              <CheckCircle2 className="size-3.5" />
+              {pending ? "Kaydediliyor…" : "Kaydet"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleAdvance}
+              disabled={pending || !isValid}
+              title={
+                !isValid
+                  ? `Önce zorunlu alanları doldurun: ${missingFields.join(", ")}`
+                  : undefined
+              }
+            >
+              Kaydet &amp; İlerle <ArrowRight className="size-3.5" />
+            </Button>
+          </>
+        }
+      />
       {!isValid && (
         <div className="rounded-md border border-warning/30 bg-warning-soft px-4 py-2 text-xs text-warning-soft-foreground">
           <strong>Eksik alanlar:</strong> {missingFields.join(", ")}. İlerlemek

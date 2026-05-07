@@ -1,17 +1,21 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { createSession, deleteSession } from "@/lib/session";
+import { createSupabaseServer } from "@/lib/supabase/server";
 import { validateEmail, validatePassword, validateRequired } from "@/lib/validations";
-import { generateToken } from "@/lib/utils";
 import { PlanType, SubStatus, UserRole } from "@prisma/client";
-import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 
 export type ActionResult = {
   error?: string;
   success?: string;
 };
+
+// Bootstrap: ilk kayit olan ve fozanseyfi@gmail.com olan hesap otomatik olarak
+// platform sahibi (FIRM_ADMIN) yapilir. Diger sitelerden ortak Supabase Auth
+// uzerinden gelen kullanicilar default firma altinda MEMBER baslar; davet
+// linki ile farkli firma altina alinabilirler.
+const PLATFORM_OWNER_EMAIL = "fozanseyfi@gmail.com";
 
 export async function register(_state: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
   const name = formData.get("name") as string;
@@ -27,48 +31,90 @@ export async function register(_state: ActionResult | undefined, formData: FormD
   const passwordError = validatePassword(password);
   if (passwordError) return { error: passwordError };
 
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) return { error: "Bu e-posta adresi zaten kullanılıyor" };
-
-  const passwordHash = await bcrypt.hash(password, 12);
-
-  if (inviteToken) {
-    const invite = await prisma.inviteToken.findUnique({ where: { token: inviteToken } });
-    if (!invite || invite.expiresAt < new Date() || invite.usedAt) {
-      return { error: "Davet linki geçersiz veya süresi dolmuş" };
-    }
-
-    const user = await prisma.user.create({
-      data: { name, email, passwordHash, role: invite.role, firmId: invite.firmId },
-    });
-    await prisma.inviteToken.update({ where: { id: invite.id }, data: { usedAt: new Date() } });
-    await createSession({ userId: user.id, firmId: user.firmId, role: user.role, expiresAt: new Date() });
-  } else {
+  // Davet akisi disindaki kullanicilar firma adi girmek zorunda
+  if (!inviteToken) {
     const firmNameError = validateRequired(firmName, "Firma Adı");
     if (firmNameError) return { error: firmNameError };
+  }
 
-    const now = new Date();
-    const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+  const supabase = await createSupabaseServer();
 
-    const result = await prisma.$transaction(async (tx) => {
-      const firm = await tx.firm.create({ data: { name: firmName } });
-      const user = await tx.user.create({
-        data: { name, email, passwordHash, role: UserRole.FIRM_ADMIN, firmId: firm.id },
+  // Eger ayni email ile mevcut bir Profile satiri varsa, baska bir siteden
+  // (paylasilan auth.users uzerinden) kayit olmus demektir; tekrar kayit
+  // yerine uyari verip giris sayfasina yonlendiriyoruz.
+  const existingProfile = await prisma.user.findUnique({ where: { email } });
+  if (existingProfile) {
+    return {
+      error:
+        "Bu e-posta diğer platformlarımızdan biriyle zaten kayıtlı. Aynı şifreyle giriş yapabilirsiniz.",
+    };
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { name },
+    },
+  });
+
+  if (error || !data.user) {
+    return { error: error?.message || "Kayıt sırasında bir hata oluştu." };
+  }
+
+  const authUserId = data.user.id;
+
+  try {
+    if (inviteToken) {
+      const invite = await prisma.inviteToken.findUnique({ where: { token: inviteToken } });
+      if (!invite || invite.expiresAt < new Date() || invite.usedAt) {
+        return { error: "Davet linki geçersiz veya süresi dolmuş" };
+      }
+
+      await prisma.$transaction(async (tx) => {
+        await tx.user.create({
+          data: {
+            id: authUserId,
+            name,
+            email,
+            role: invite.role,
+            firmId: invite.firmId,
+          },
+        });
+        await tx.inviteToken.update({ where: { id: invite.id }, data: { usedAt: new Date() } });
       });
-      await tx.subscription.create({
-        data: {
-          firmId: firm.id,
-          plan: PlanType.FREE,
-          status: SubStatus.ACTIVE,
-          monthlyProposalLimit: 3,
-          periodStart: now,
-          periodEnd,
-        },
-      });
-      return user;
-    });
+    } else {
+      const now = new Date();
+      const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+      const isPlatformOwner = email.trim().toLowerCase() === PLATFORM_OWNER_EMAIL;
 
-    await createSession({ userId: result.id, firmId: result.firmId, role: result.role, expiresAt: new Date() });
+      await prisma.$transaction(async (tx) => {
+        const firm = await tx.firm.create({ data: { name: firmName } });
+        await tx.user.create({
+          data: {
+            id: authUserId,
+            name,
+            email,
+            role: UserRole.FIRM_ADMIN,
+            firmId: firm.id,
+          },
+        });
+        await tx.subscription.create({
+          data: {
+            firmId: firm.id,
+            // Platform sahibi sınırsız, diğerleri FREE plandan başlar.
+            plan: isPlatformOwner ? PlanType.ENTERPRISE : PlanType.FREE,
+            status: SubStatus.ACTIVE,
+            monthlyProposalLimit: isPlatformOwner ? 99999 : 3,
+            periodStart: now,
+            periodEnd,
+          },
+        });
+      });
+    }
+  } catch (e) {
+    console.error("Profile creation failed after Supabase signUp", e);
+    return { error: "Profil oluşturulamadı. Lütfen daha sonra tekrar deneyin." };
   }
 
   redirect("/dashboard");
@@ -82,18 +128,56 @@ export async function login(_state: ActionResult | undefined, formData: FormData
   if (emailError) return { error: emailError };
   if (!password) return { error: "Şifre zorunludur" };
 
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !user.isActive) return { error: "E-posta veya şifre hatalı" };
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) return { error: "E-posta veya şifre hatalı" };
+  if (error || !data.user) {
+    return { error: "E-posta veya şifre hatalı" };
+  }
 
-  await createSession({ userId: user.id, firmId: user.firmId, role: user.role, expiresAt: new Date() });
+  // Diger sitelerden olusturulmus auth.users satirlari icin bu sitede henuz
+  // Profile yok olabilir — ortak hesap havuzunda yeni siteye ilk girisi yapan
+  // kullaniciya default Firma + MEMBER profili otomatik aciliyor.
+  const profile = await prisma.user.findUnique({ where: { id: data.user.id } });
+  if (!profile) {
+    const fullName = (data.user.user_metadata?.name as string | undefined) || email.split("@")[0];
+    const isPlatformOwner = email.trim().toLowerCase() === PLATFORM_OWNER_EMAIL;
+    const now = new Date();
+    const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+
+    await prisma.$transaction(async (tx) => {
+      const firm = await tx.firm.create({ data: { name: `${fullName} (Otomatik)` } });
+      await tx.user.create({
+        data: {
+          id: data.user.id,
+          name: fullName,
+          email,
+          role: UserRole.FIRM_ADMIN,
+          firmId: firm.id,
+        },
+      });
+      await tx.subscription.create({
+        data: {
+          firmId: firm.id,
+          plan: isPlatformOwner ? PlanType.ENTERPRISE : PlanType.FREE,
+          status: SubStatus.ACTIVE,
+          monthlyProposalLimit: isPlatformOwner ? 99999 : 3,
+          periodStart: now,
+          periodEnd,
+        },
+      });
+    });
+  } else if (!profile.isActive) {
+    await supabase.auth.signOut();
+    return { error: "Hesabınız devre dışı bırakılmış. Yöneticinizle iletişime geçin." };
+  }
+
   redirect("/dashboard");
 }
 
 export async function logout() {
-  await deleteSession();
+  const supabase = await createSupabaseServer();
+  await supabase.auth.signOut();
   redirect("/login");
 }
 
@@ -102,36 +186,32 @@ export async function forgotPassword(_state: ActionResult | undefined, formData:
   const emailError = validateEmail(email);
   if (emailError) return { error: emailError };
 
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) return { success: "Şifre sıfırlama linki gönderildi (eğer hesap varsa)" };
+  const supabase = await createSupabaseServer();
+  // Supabase'in gonderdigi link once /auth/callback'e dusup code -> session
+  // takasini yapacak, sonra /reset-password'a redirect olacak.
+  const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/auth/callback?next=/reset-password`;
 
-  await prisma.passwordResetToken.deleteMany({ where: { email } });
+  // Hesap olup olmadigini ifsa etmemek icin hata mesaji ne olursa olsun
+  // ayni success mesajini donduruyoruz.
+  await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 
-  const token = generateToken(64);
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 saat
-
-  await prisma.passwordResetToken.create({ data: { email, token, expiresAt } });
-
-  // TODO: Resend ile e-posta gönder
-  console.log(`Reset link: ${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`);
-
-  return { success: "Şifre sıfırlama linki e-posta adresinize gönderildi" };
+  return { success: "Şifre sıfırlama linki gönderildi (eğer hesap varsa)" };
 }
 
 export async function resetPassword(_state: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
-  const token = formData.get("token") as string;
   const password = formData.get("password") as string;
-
-  if (!token) return { error: "Geçersiz link" };
   const passwordError = validatePassword(password);
   if (passwordError) return { error: passwordError };
 
-  const resetToken = await prisma.passwordResetToken.findUnique({ where: { token } });
-  if (!resetToken || resetToken.expiresAt < new Date()) return { error: "Link geçersiz veya süresi dolmuş" };
+  // Bu action, kullanici Supabase'in gonderdigi reset link'inden /reset-password
+  // sayfasina geldikten sonra calisir; o sayfada exchangeCodeForSession ile
+  // gecerli bir oturum elde edilmis olmali.
+  const supabase = await createSupabaseServer();
+  const { error } = await supabase.auth.updateUser({ password });
 
-  const passwordHash = await bcrypt.hash(password, 12);
-  await prisma.user.update({ where: { email: resetToken.email }, data: { passwordHash } });
-  await prisma.passwordResetToken.delete({ where: { id: resetToken.id } });
+  if (error) {
+    return { error: error.message || "Şifre güncellenemedi. Lütfen linki yenileyip tekrar deneyin." };
+  }
 
   return { success: "Şifreniz başarıyla güncellendi. Giriş yapabilirsiniz." };
 }

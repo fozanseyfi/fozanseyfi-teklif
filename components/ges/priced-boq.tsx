@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import type { Project } from "@prisma/client";
 import { saveGesSettings } from "@/app/actions/ges";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
-import { calc, getGrpTot, toUSD } from "@/lib/ges-engine";
+import { calc, toUSD } from "@/lib/ges-engine";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +18,19 @@ import {
   AlertTriangle,
   Eye,
   EyeOff,
+  RotateCcw,
+  FileSpreadsheet,
 } from "lucide-react";
+import { downloadExcel } from "@/lib/excel-export";
+import { DetailPageHeader, prevHref } from "@/components/ges/detail-page-header";
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
 function fmt(n: number, d = 0) {
   return n.toLocaleString("tr-TR", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -25,9 +38,20 @@ function fmt(n: number, d = 0) {
 
 interface Props {
   projectId: string;
+  projectName: string;
+  project: Project;
   kesifA: KesifGroup[];
   kesifB: KesifGroup[];
   settings: GesSettings;
+}
+
+interface PrintMeta {
+  projectName: string;
+  customerName?: string | null;
+  location?: string;
+  dcLabel?: string;
+  acLabel?: string;
+  installationLabel?: string;
 }
 
 /**
@@ -37,14 +61,18 @@ interface Props {
  *             olacagi pay diger gorunur (karli) kalemlere dagitilir.
  * - excluded (karsiz): gorunur ama uzerine kar yansitilmaz; sadece
  *             maliyet kadar toplanir, kar diger karli kalemlere dagitilir.
- * - default : gorunur, karli — fazla kari emer.
+ * - margin override (overrides[code]): kalem `cost × (1 + kar%/100)`
+ *             ile sabitlenir; kalan butce diger override edilmemis karli
+ *             kalemlere maliyetleri orantisinda dagitilir.
+ * - default : gorunur, karli — kalan butceyi emer (uniform kar%).
  */
 function buildSalePrices(
   allGroups: KesifGroup[],
   settings: GesSettings,
   excludedCodes: Set<string>,
   hiddenCodes: Set<string>,
-): Map<string, number> {
+  overrides: Record<string, number>,
+): { map: Map<string, number>; defaultMarginPct: number } {
   const result = calc(
     allGroups.filter((g) => g.code.startsWith("A")),
     allGroups.filter((g) => g.code.startsWith("B")),
@@ -52,21 +80,29 @@ function buildSalePrices(
   );
   const salePrice = result.salePriceUsd;
 
-  let totalIncludedCost = 0;
   let totalExcludedCost = 0;
+  let totalOverrideSale = 0;
+  let totalActiveCost = 0; // override edilmemis karli kalemler
+  const costMap = new Map<string, number>();
+
   for (const g of allGroups) {
     for (const it of g.items) {
       if (hiddenCodes.has(it.code)) continue;
       const cost = it.miktar * toUSD(it.rawFiyat, it.fiyatCur, settings);
-      if (excludedCodes.has(it.code)) totalExcludedCost += cost;
-      else totalIncludedCost += cost;
+      costMap.set(it.code, cost);
+      if (excludedCodes.has(it.code)) {
+        totalExcludedCost += cost;
+      } else if (overrides[it.code] !== undefined) {
+        totalOverrideSale += cost * (1 + overrides[it.code] / 100);
+      } else {
+        totalActiveCost += cost;
+      }
     }
   }
 
-  // Visible total = salePrice — hidden kalemler tamamen elendi, sale price
-  // visible kalemlere dagitiliyor.
-  const scaleFactor =
-    totalIncludedCost > 0 ? (salePrice - totalExcludedCost) / totalIncludedCost : 1;
+  const remaining = salePrice - totalExcludedCost - totalOverrideSale;
+  const scaleFactor = totalActiveCost > 0 ? remaining / totalActiveCost : 1;
+  const defaultMarginPct = (scaleFactor - 1) * 100;
 
   const map = new Map<string, number>();
   for (const g of allGroups) {
@@ -75,18 +111,54 @@ function buildSalePrices(
         map.set(it.code, 0);
         continue;
       }
-      const cost = it.miktar * toUSD(it.rawFiyat, it.fiyatCur, settings);
+      const cost = costMap.get(it.code) ?? 0;
       if (excludedCodes.has(it.code)) {
         map.set(it.code, cost);
+      } else if (overrides[it.code] !== undefined) {
+        map.set(it.code, cost * (1 + overrides[it.code] / 100));
       } else {
         map.set(it.code, cost * scaleFactor);
       }
     }
   }
-  return map;
+  return { map, defaultMarginPct };
 }
 
-export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
+export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, settings }: Props) {
+  // Müşteriye giden PDF kapağında kullanılan başlık meta-bilgileri
+  const printMeta = useMemo<PrintMeta>(() => {
+    const dcLabel =
+      settings.dcGuc >= 1
+        ? `${settings.dcGuc.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MWp`
+        : settings.dcGuc > 0
+          ? `${(settings.dcGuc * 1000).toLocaleString("tr-TR", { maximumFractionDigits: 0 })} kWp`
+          : "—";
+    const acLabel =
+      settings.acGuc >= 1
+        ? `${settings.acGuc.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MWe`
+        : settings.acGuc > 0
+          ? `${(settings.acGuc * 1000).toLocaleString("tr-TR", { maximumFractionDigits: 0 })} kWe`
+          : "";
+    // settings.il / settings.ilce yapısal değer; project.projectLocation
+    // serbest metin — aynı bilgiyi tekrar yazmamak için yapısal varsa onu
+    // kullan, yoksa serbest metne düş.
+    const structuredLoc = [settings.il, settings.ilce]
+      .filter((x): x is string => !!x && !!x.trim())
+      .join(" / ");
+    const location =
+      structuredLoc ||
+      (project.projectLocation && project.projectLocation.trim()) ||
+      "";
+    return {
+      projectName,
+      customerName: project.customerName,
+      location,
+      dcLabel,
+      acLabel,
+      installationLabel: project.installationType === "ROOFTOP" ? "Çatı GES" : "Arazi GES",
+    };
+  }, [projectName, project.customerName, project.projectLocation, project.installationType, settings.dcGuc, settings.acGuc, settings.il, settings.ilce]);
+
   const [search, setSearch] = useState("");
   // Karsiz/gizli isaretler proje bazli persisted — settings.pboqExcluded
   // ve settings.pboqHidden alanlari Prisma'da JSON olarak duruyor.
@@ -96,6 +168,9 @@ export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
   const [hiddenCodes, setHiddenCodes] = useState<Set<string>>(
     () => new Set(settings.pboqHidden ?? []),
   );
+  const [marginOverrides, setMarginOverrides] = useState<Record<string, number>>(
+    () => settings.pboqMargins ?? {},
+  );
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
     const all = [...kesifA, ...kesifB];
     return Object.fromEntries(all.map((g) => [g.code, false]));
@@ -104,10 +179,11 @@ export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
 
   // Set degisiminde server'a yaz — ayri bir useEffect yerine toggle anlik
   // olarak save eder; debounce'a gerek yok cunku islem tek tikla olur.
-  function persistSets(newExcluded: Set<string>, newHidden: Set<string>) {
+  function persistSets(newExcluded: Set<string>, newHidden: Set<string>, newMargins: Record<string, number>) {
     saveGesSettings(projectId, {
       pboqExcluded: Array.from(newExcluded),
       pboqHidden: Array.from(newHidden),
+      pboqMargins: newMargins,
     } as never).catch(() => {});
   }
 
@@ -116,10 +192,31 @@ export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
   const result = useMemo(() => calc(kesifA, kesifB, settings), [kesifA, kesifB, settings]);
   const salePrice = result.salePriceUsd;
 
-  const salePriceMap = useMemo(
-    () => buildSalePrices(allGroups, settings, excludedCodes, hiddenCodes),
-    [allGroups, settings, excludedCodes, hiddenCodes],
+  const { map: salePriceMap, defaultMarginPct } = useMemo(
+    () => buildSalePrices(allGroups, settings, excludedCodes, hiddenCodes, marginOverrides),
+    [allGroups, settings, excludedCodes, hiddenCodes, marginOverrides],
   );
+
+  // Display group code map — gorunur (en az bir gorunur kalemi olan) gruplar
+  // harf-bazinda yeniden numaralandirilir. Boylece gizli/silinmis kalemler
+  // sebebiyle olusan A.6 -> A.8 atlamalari engellenir, musteri butun kodlari
+  // ardisik gorur.
+  const displayGroupCodeMap = useMemo(() => {
+    const map = new Map<string, string>();
+    let aIdx = 0;
+    let bIdx = 0;
+    for (const g of allGroups) {
+      const visibleCount = g.items.filter((it) => !hiddenCodes.has(it.code)).length;
+      if (visibleCount === 0) continue;
+      const isA = g.code.startsWith("A");
+      map.set(g.code, isA ? `A.${++aIdx}` : `B.${++bIdx}`);
+    }
+    return map;
+  }, [allGroups, hiddenCodes]);
+
+  function getDisplayGroupCode(originalCode: string): string {
+    return displayGroupCodeMap.get(originalCode) ?? originalCode;
+  }
 
   // Group-level visible totals (gizli kalemler dahil edilmez)
   const groupSaleTotals = useMemo(() => {
@@ -139,7 +236,14 @@ export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
       const next = new Set(prev);
       if (next.has(code)) next.delete(code);
       else next.add(code);
-      persistSets(next, hiddenCodes);
+      // Karsiz isaretlenince override anlamsiz — temizle
+      let nextMargins = marginOverrides;
+      if (next.has(code) && marginOverrides[code] !== undefined) {
+        nextMargins = { ...marginOverrides };
+        delete nextMargins[code];
+        setMarginOverrides(nextMargins);
+      }
+      persistSets(next, hiddenCodes, nextMargins);
       return next;
     });
   }
@@ -149,9 +253,29 @@ export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
       const next = new Set(prev);
       if (next.has(code)) next.delete(code);
       else next.add(code);
-      persistSets(excludedCodes, next);
+      let nextMargins = marginOverrides;
+      if (next.has(code) && marginOverrides[code] !== undefined) {
+        nextMargins = { ...marginOverrides };
+        delete nextMargins[code];
+        setMarginOverrides(nextMargins);
+      }
+      persistSets(excludedCodes, next, nextMargins);
       return next;
     });
+  }
+
+  function setMarginOverride(code: string, pct: number) {
+    const next = { ...marginOverrides, [code]: pct };
+    setMarginOverrides(next);
+    persistSets(excludedCodes, hiddenCodes, next);
+  }
+
+  function clearMarginOverride(code: string) {
+    if (marginOverrides[code] === undefined) return;
+    const next = { ...marginOverrides };
+    delete next[code];
+    setMarginOverrides(next);
+    persistSets(excludedCodes, hiddenCodes, next);
   }
 
   const filteredGroups = useMemo(() => {
@@ -181,8 +305,9 @@ export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
       .map((g) => {
         const total = groupSaleTotals.get(g.code) ?? 0;
         const isA = g.code.startsWith("A");
+        const dispCode = getDisplayGroupCode(g.code);
         return `<tr>
-        <td><span class="${isA ? "badge-a" : "badge-b"}">${g.code}</span></td>
+        <td><span class="${isA ? "badge-a" : "badge-b"}">${dispCode}</span></td>
         <td>${g.name}</td>
         <td style="text-align:center">${g.items.length}</td>
         <td style="text-align:right;font-weight:700">$${fmt(total)}</td>
@@ -208,6 +333,7 @@ export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
       </table>`,
       salePrice,
       settings.usd,
+      printMeta,
     );
     openPrint(html);
   }
@@ -221,26 +347,29 @@ export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
       .map((g) => {
         const grpTotal = groupSaleTotals.get(g.code) ?? 0;
         const isA = g.code.startsWith("A");
+        const dispCode = getDisplayGroupCode(g.code);
         const itemRows = g.items
-          .map((it) => {
+          .map((it, idx) => {
             const sp = salePriceMap.get(it.code) ?? 0;
+            const unitPrice = it.miktar > 0 ? sp / it.miktar : 0;
+            // Display: yeniden numaralandırılmış grup koduyla birlikte
+            const displayCode = `${dispCode}.${idx + 1}`;
             return `<tr class="item-row">
-          <td class="code-cell">${it.code}</td>
+          <td class="code-cell">${displayCode}</td>
           <td style="padding-left:18px">${it.tanim}</td>
           <td class="dim">${it.tip || ""}</td>
           <td class="dim">${it.marka || ""}</td>
           <td style="text-align:center" class="dim">${it.birim}</td>
           <td style="text-align:right" class="num">${fmt(it.miktar, it.miktar < 100 ? 2 : 0)}</td>
+          <td style="text-align:right">$${fmt(unitPrice, it.code.startsWith("A.1") ? 3 : 2)}</td>
           <td style="text-align:right;font-weight:700">$${fmt(sp)}</td>
-          <td style="text-align:right;color:#64748b">₺${fmt(sp * settings.usd)}</td>
         </tr>`;
           })
           .join("");
         return `<tr class="group-row">
-        <td colspan="2"><span class="${isA ? "badge-a" : "badge-b"}">${g.code}</span> <strong>${g.name}</strong></td>
-        <td colspan="4"></td>
+        <td colspan="2"><span class="${isA ? "badge-a" : "badge-b"}">${dispCode}</span> <strong>${g.name}</strong></td>
+        <td colspan="5"></td>
         <td style="text-align:right;font-weight:800;color:${isA ? "#059669" : "#047857"}">$${fmt(grpTotal)}</td>
-        <td style="text-align:right;color:#64748b">₺${fmt(grpTotal * settings.usd)}</td>
       </tr>${itemRows}`;
       })
       .join("");
@@ -252,55 +381,75 @@ export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
           <th style="width:52px">Kod</th><th>Tanım</th>
           <th style="width:110px">Tip</th><th style="width:90px">Marka</th>
           <th style="text-align:center;width:44px">Birim</th><th style="text-align:right;width:60px">Miktar</th>
-          <th style="text-align:right;width:100px">USD</th><th style="text-align:right;width:100px">TRY</th>
+          <th style="text-align:right;width:90px">Birim Fiyat</th><th style="text-align:right;width:100px">Tutar (USD)</th>
         </tr></thead>
         <tbody>${groupRows}
           <tr class="total-row">
-            <td colspan="6" style="text-align:right">GENEL TOPLAM</td>
+            <td colspan="7" style="text-align:right">GENEL TOPLAM</td>
             <td style="text-align:right">$${fmt(salePrice)}</td>
-            <td style="text-align:right">₺${fmt(salePrice * settings.usd)}</td>
           </tr>
         </tbody>
       </table>`,
       salePrice,
       settings.usd,
+      printMeta,
     );
     openPrint(html);
   }
 
   function handleExcel() {
-    const rows: string[] = [];
-    rows.push(
-      ["Kod", "Grup", "Tanım", "Tip", "Marka", "Birim", "Miktar", "USD", "TRY"].join("\t"),
-    );
-    for (const g of allGroups) {
-      for (const it of g.items) {
-        if (hiddenCodes.has(it.code)) continue;
-        const sp = salePriceMap.get(it.code) ?? 0;
-        rows.push(
-          [
-            it.code,
-            g.name,
-            it.tanim,
-            it.tip || "",
-            it.marka || "",
-            it.birim,
-            String(it.miktar),
-            sp.toFixed(2),
-            (sp * settings.usd).toFixed(2),
-          ].join("\t"),
-        );
-      }
-    }
-    const blob = new Blob(["﻿" + rows.join("\n")], {
-      type: "text/tab-separated-values;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "birim-fiyat-cetveli.xls";
-    a.click();
-    URL.revokeObjectURL(url);
+    const groupRows = allGroups
+      .map((g) => {
+        const visibleItems = g.items.filter((it) => !hiddenCodes.has(it.code));
+        if (visibleItems.length === 0) return "";
+        const grpTotal = groupSaleTotals.get(g.code) ?? 0;
+        const dispCode = getDisplayGroupCode(g.code);
+        const itemRows = visibleItems
+          .map((it, idx) => {
+            const sp = salePriceMap.get(it.code) ?? 0;
+            const unitPrice = it.miktar > 0 ? sp / it.miktar : 0;
+            const displayCode = `${dispCode}.${idx + 1}`;
+            return `<tr class="item-row${idx % 2 ? " alt" : ""}">
+              <td>${displayCode}</td>
+              <td>${escapeHtml(it.tanim)}</td>
+              <td class="dim">${escapeHtml(it.tip || "")}</td>
+              <td class="dim">${escapeHtml(it.marka || "")}</td>
+              <td class="center">${escapeHtml(it.birim)}</td>
+              <td class="num">${it.miktar}</td>
+              <td class="num">${unitPrice.toFixed(it.code.startsWith("A.1") ? 3 : 2)}</td>
+              <td class="num">${sp.toFixed(2)}</td>
+            </tr>`;
+          })
+          .join("");
+        return `<tr class="group-row">
+          <td colspan="7">${dispCode} — ${escapeHtml(g.name)}</td>
+          <td class="num">${grpTotal.toFixed(2)}</td>
+        </tr>${itemRows}`;
+      })
+      .join("");
+
+    const html = `<table>
+      <thead>
+        <tr>
+          <th>Kod</th>
+          <th>Tanım</th>
+          <th>Tip / Model</th>
+          <th>Marka</th>
+          <th>Birim</th>
+          <th>Miktar</th>
+          <th>Birim Fiyat (USD)</th>
+          <th>Tutar (USD)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${groupRows}
+        <tr class="grand-total">
+          <td colspan="7">GENEL TOPLAM (USD)</td>
+          <td class="num">${salePrice.toFixed(2)}</td>
+        </tr>
+      </tbody>
+    </table>`;
+    downloadExcel(`Birim-Fiyat-Cetveli-${projectName.replace(/[^a-zA-Z0-9_-]/g, "_")}`, html);
   }
 
   return (
@@ -316,82 +465,115 @@ export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
             Bu sekmede toplam tutarın kalemlere orantısal dağıtımını
             düzenleyebilirsiniz. <strong>⊘ Karsız</strong> ile bir kalemin üzerine
             kar yansıtılmaz; <strong>🚫 Gizle</strong> ile kalem PDF'ten tamamen
-            çıkarılır ve onun payı diğer kalemlere otomatik dağıtılır. Çıktı
-            dahili "satış" terimi kullanmaz, doğrudan müşteriye iletilebilir.
+            çıkarılır ve onun payı diğer kalemlere otomatik dağıtılır.{" "}
+            <strong>Kar %</strong> sütunundan bir kaleme özel marj girince diğer
+            kalemler kalan bütçeyi orantısal absorbe eder. Kar oranları sadece
+            editör için — PDF/Excel'de gözükmez.
           </p>
         </div>
       </div>
 
-      {/* Header row */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight text-foreground">
-            Birim Fiyat Cetveli
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Toplam:{" "}
-            <span className="font-semibold text-primary">${fmt(salePrice)}</span>
-            {" / "}₺{fmt(salePrice * settings.usd)}
-            {excludedCodes.size > 0 && (
-              <span className="ml-2 text-muted-foreground">
-                · {excludedCodes.size} karsız
-              </span>
-            )}
-            {hiddenCodes.size > 0 && (
-              <span className="ml-2 text-muted-foreground">
-                · {hiddenCodes.size} gizli
-              </span>
-            )}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="h-8 w-44 pl-8 text-sm"
-              placeholder="Ara..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowHidden((v) => !v)}
-            title={showHidden ? "Gizli kalemleri gizle" : "Gizli kalemleri göster"}
-          >
-            {showHidden ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
-            {showHidden ? "Gizliler görünür" : "Gizliler kapalı"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              setCollapsed(Object.fromEntries(allGroups.map((g) => [g.code, true])))
+      {(() => {
+        const allOpen = filteredGroups.every((g) => !collapsed[g.code]);
+        return (
+          <DetailPageHeader
+            kicker="Birim Fiyat Cetveli"
+            title={projectName}
+            backHref={prevHref(projectId, "/priced-boq")}
+            stats={
+              <>
+                <span className="inline-flex items-center gap-1 rounded-md bg-primary-soft px-2 py-0.5 font-bold text-primary-soft-foreground">
+                  Toplam ${fmt(salePrice)} / ₺{fmt(salePrice * settings.usd)}
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  · varsayılan kar %{defaultMarginPct.toFixed(1)}
+                </span>
+                {excludedCodes.size > 0 && (
+                  <span className="text-[11px] text-muted-foreground">
+                    · {excludedCodes.size} karsız
+                  </span>
+                )}
+                {hiddenCodes.size > 0 && (
+                  <span className="text-[11px] text-muted-foreground">
+                    · {hiddenCodes.size} gizli
+                  </span>
+                )}
+                {Object.keys(marginOverrides).length > 0 && (
+                  <span className="text-[11px] text-info-soft-foreground">
+                    · {Object.keys(marginOverrides).length} kalemde özel kar
+                  </span>
+                )}
+              </>
             }
-          >
-            Tümünü Kapat
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              setCollapsed(Object.fromEntries(allGroups.map((g) => [g.code, false])))
+            actions={
+              <>
+                <Button variant="outline" size="sm" onClick={handlePrintSummary}>
+                  <FileDown className="size-3.5" /> Özet PDF
+                </Button>
+                <Button variant="outline" size="sm" onClick={handlePrintDetail}>
+                  <FileDown className="size-3.5" /> Detay PDF
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleExcel}>
+                  <FileSpreadsheet className="size-3.5" /> Excel
+                </Button>
+              </>
             }
-          >
-            Tümünü Aç
-          </Button>
-          <Button variant="outline" size="sm" onClick={handlePrintSummary}>
-            <FileDown className="size-4" /> Özet PDF
-          </Button>
-          <Button variant="outline" size="sm" onClick={handlePrintDetail}>
-            <FileDown className="size-4" /> Detay PDF
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleExcel}>
-            <FileDown className="size-4" /> Excel
-          </Button>
-        </div>
-      </div>
+            secondary={
+              <>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="h-8 w-44 pl-8 text-sm"
+                    placeholder="Ara..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowHidden((v) => !v)}
+                  title={showHidden ? "Gizli kalemleri gizle" : "Gizli kalemleri göster"}
+                >
+                  {showHidden ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
+                  {showHidden ? "Gizliler görünür" : "Gizliler kapalı"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setCollapsed(
+                      Object.fromEntries(allGroups.map((g) => [g.code, allOpen])),
+                    )
+                  }
+                >
+                  {allOpen ? (
+                    <>
+                      <ChevronRight className="size-3.5" />
+                      Tümünü Kapat
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="size-3.5" />
+                      Tümünü Aç
+                    </>
+                  )}
+                </Button>
+              </>
+            }
+            notice={
+              hiddenCodes.size > 0 ? (
+                <span>
+                  <strong>Bilgi:</strong> Gizlenen {hiddenCodes.size} kalem listede görünmüyor; kod
+                  numaraları görünür kalemlere göre <strong>yeniden sıralandı</strong>. Orijinal
+                  kodlar yerine pozisyon-bazlı numaralar gösterilir, böylece müşteri kod boşluğu
+                  görmez.
+                </span>
+              ) : undefined
+            }
+          />
+        );
+      })()}
 
       {/* Groups */}
       <div className="space-y-2">
@@ -406,6 +588,18 @@ export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
             : group.items.filter((it) => !hiddenCodes.has(it.code));
 
           if (renderedItems.length === 0) return null;
+
+          // Goruntu kodu: gizli kalemler atlanir, sadece visible'lar
+          // ardisik numaralanir. Grup kodu da yeniden numaralandırılmış
+          // displayGroupCode kullanır (örn. orijinal A.6 boş kaldıysa A.5).
+          const dispGroupCode = getDisplayGroupCode(group.code);
+          const displayCodeMap = new Map<string, string>();
+          let visIdx = 0;
+          for (const it of group.items) {
+            if (hiddenCodes.has(it.code)) continue;
+            visIdx += 1;
+            displayCodeMap.set(it.code, `${dispGroupCode}.${visIdx}`);
+          }
 
           return (
             <Card key={group.code} className="overflow-hidden shadow-sm">
@@ -429,7 +623,7 @@ export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
                           : "border-info/30 bg-info-soft text-info-soft-foreground",
                       )}
                     >
-                      {group.code}
+                      {dispGroupCode}
                     </Badge>
                     <CardTitle className="text-sm font-semibold text-foreground">
                       {group.name}
@@ -477,10 +671,13 @@ export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
                             Miktar
                           </th>
                           <th className="w-28 px-3 py-2 text-right font-medium text-muted-foreground">
-                            USD
+                            Birim Fiyat
                           </th>
                           <th className="w-28 px-3 py-2 text-right font-medium text-muted-foreground">
-                            TRY
+                            Tutar (USD)
+                          </th>
+                          <th className="w-28 px-3 py-2 text-center font-medium text-muted-foreground">
+                            Kar %
                           </th>
                           <th className="w-44 px-3 py-2 text-center font-medium text-muted-foreground">
                             Durum
@@ -490,8 +687,12 @@ export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
                       <tbody className="divide-y">
                         {renderedItems.map((item) => {
                           const sp = salePriceMap.get(item.code) ?? 0;
+                          const cost = item.miktar * toUSD(item.rawFiyat, item.fiyatCur, settings);
                           const excluded = excludedCodes.has(item.code);
                           const hidden = hiddenCodes.has(item.code);
+                          const overrideVal = marginOverrides[item.code];
+                          const hasOverride = overrideVal !== undefined;
+                          const currentKarPct = cost > 0 ? (sp / cost - 1) * 100 : 0;
                           return (
                             <tr
                               key={item.code}
@@ -512,7 +713,7 @@ export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
                                     : "text-muted-foreground",
                                 )}
                               >
-                                {item.code}
+                                {hidden ? item.code : (displayCodeMap.get(item.code) ?? item.code)}
                               </td>
                               <td
                                 className={cn(
@@ -532,6 +733,18 @@ export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
                               </td>
                               <td
                                 className={cn(
+                                  "px-3 py-1.5 text-right tabular-nums",
+                                  hidden
+                                    ? "text-muted-foreground line-through"
+                                    : excluded
+                                      ? "text-muted-foreground"
+                                      : "text-foreground",
+                                )}
+                              >
+                                ${fmt(item.miktar > 0 ? sp / item.miktar : 0, item.code.startsWith("A.1") ? 3 : 2)}
+                              </td>
+                              <td
+                                className={cn(
                                   "px-3 py-1.5 text-right font-semibold tabular-nums",
                                   hidden
                                     ? "text-muted-foreground line-through"
@@ -542,8 +755,17 @@ export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
                               >
                                 ${fmt(sp)}
                               </td>
-                              <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground">
-                                ₺{fmt(sp * settings.usd)}
+                              <td className="px-2 py-1.5">
+                                {hidden || excluded ? (
+                                  <span className="block text-center text-[11px] text-muted-foreground/60">—</span>
+                                ) : (
+                                  <KarPctEditor
+                                    value={currentKarPct}
+                                    isOverride={hasOverride}
+                                    onCommit={(v) => setMarginOverride(item.code, v)}
+                                    onClear={() => clearMarginOverride(item.code)}
+                                  />
+                                )}
                               </td>
                               <td className="px-3 py-1.5">
                                 <div className="flex items-center justify-center gap-1.5">
@@ -590,15 +812,13 @@ export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 border-primary/30 bg-primary-soft">
-                          <td colSpan={6} className="px-3 py-2 text-right font-semibold text-primary-soft-foreground">
-                            {group.code} Toplam:
+                          <td colSpan={7} className="px-3 py-2 text-right font-semibold text-primary-soft-foreground">
+                            {dispGroupCode} Toplam:
                           </td>
                           <td className="px-3 py-2 text-right font-bold text-primary-soft-foreground">
                             ${fmt(grpTotal)}
                           </td>
-                          <td className="px-3 py-2 text-right font-semibold text-primary-soft-foreground">
-                            ₺{fmt(grpTotal * settings.usd)}
-                          </td>
+                          <td />
                           <td />
                         </tr>
                       </tfoot>
@@ -631,48 +851,152 @@ export function PricedBoQ({ projectId, kesifA, kesifB, settings }: Props) {
   );
 }
 
-function buildPrintHtml(title: string, tableHtml: string, salePrice: number, usd: number): string {
+/**
+ * Kalem-bazli kar% editoru. Override yokken otomatik dagitilan kar% gri
+ * gosterilir; kullanici input'a yazip Enter/blur yapinca override olur,
+ * kucuk reset butonu ile geri otomatik moda doner.
+ */
+function KarPctEditor({
+  value,
+  isOverride,
+  onCommit,
+  onClear,
+}: {
+  value: number;
+  isOverride: boolean;
+  onCommit: (v: number) => void;
+  onClear: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  function startEdit() {
+    setDraft(value.toFixed(1));
+    setEditing(true);
+  }
+
+  function commit() {
+    setEditing(false);
+    const v = parseFloat(draft);
+    if (!isNaN(v) && Math.abs(v - value) > 0.01) onCommit(parseFloat(v.toFixed(2)));
+  }
+
+  return (
+    <div className="flex items-center justify-center gap-1">
+      {editing ? (
+        <input
+          type="number"
+          step="0.1"
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+            if (e.key === "Escape") setEditing(false);
+          }}
+          className="h-6 w-16 rounded-md border bg-background px-1.5 text-center text-[11px] font-semibold tabular-nums shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={startEdit}
+          title={isOverride ? "Özel kar oranı — değiştirmek için tıkla" : "Otomatik dağıtım — özelleştirmek için tıkla"}
+          className={cn(
+            "rounded-md border px-2 py-0.5 text-[11px] font-semibold tabular-nums transition-colors",
+            isOverride
+              ? "border-info/30 bg-info-soft text-info-soft-foreground hover:bg-info-soft/70"
+              : "border-border bg-card text-muted-foreground hover:bg-muted",
+          )}
+        >
+          %{value.toFixed(1)}
+        </button>
+      )}
+      {isOverride && !editing && (
+        <button
+          type="button"
+          onClick={onClear}
+          title="Otomatik dağıtıma dön"
+          className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <RotateCcw className="size-3" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function buildPrintHtml(
+  title: string,
+  tableHtml: string,
+  salePrice: number,
+  usd: number,
+  meta: PrintMeta,
+): string {
   function fmt2(n: number) {
     return n.toLocaleString("tr-TR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   }
-  // PDF: tarafsiz dil, "satis" kelimesi yok, dahili "kar/maliyet" terimleri
-  // de yer almaz. Musteri-yuzlu belge.
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
+  const safe = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title} — ${safe(meta.projectName)}</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:"Inter","Segoe UI",Arial,sans-serif;font-size:9.5px;color:#0f172a;padding:0}
-    .header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);color:#fff;padding:16px 20px 14px;display:flex;justify-content:space-between;align-items:flex-end}
-    .header h1{font-size:17px;font-weight:700;color:#fff}
-    .header .sub{font-size:9px;color:rgba(255,255,255,0.5);margin-top:3px}
-    .header .total-badge .label{font-size:8px;color:rgba(110,231,183,0.7);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px}
-    .header .total-badge .amount{font-size:22px;font-weight:800;color:#34d399}
-    .accent-bar{height:3px;background:linear-gradient(90deg,#047857,#34d399,transparent)}
-    .content{padding:14px 20px 20px}
-    table{width:100%;border-collapse:collapse}
-    th{background:#1e293b;color:#fff;padding:5px 7px;text-align:left;font-size:8.5px;font-weight:600}
-    td{padding:3.5px 7px;border-bottom:1px solid #f1f5f9}
-    .group-row td{background:#f8fafc;border-top:2px solid #e2e8f0;border-bottom:1px solid #cbd5e1;font-size:10px;color:#1e293b;padding:5px 7px}
+    @page{size:A4;margin:14mm}
+    .cover{background:linear-gradient(135deg,#064e3b 0%,#047857 50%,#10b981 100%);color:#fff;padding:22px 24px 18px;border-radius:0 0 12px 12px;margin-bottom:6px}
+    .cover .top{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}
+    .cover .badge{display:inline-block;background:rgba(255,255,255,0.18);color:#fff;padding:3px 10px;border-radius:99px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px}
+    .cover h1{font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.02em;line-height:1.15}
+    .cover .date{font-size:10.5px;color:rgba(255,255,255,0.75);margin-top:5px;font-weight:500}
+    .cover .badge-r{text-align:right;color:#fff;flex-shrink:0;padding-left:18px}
+    .cover .badge-r .label{font-size:8.5px;color:rgba(167,243,208,0.85);text-transform:uppercase;letter-spacing:0.14em;font-weight:600;margin-bottom:4px}
+    .cover .badge-r .amount{font-size:24px;font-weight:900;color:#fff;line-height:1}
+    .cover .badge-r .alt{font-size:10px;color:rgba(167,243,208,0.95);font-weight:600;margin-top:5px}
+    .meta-grid{margin-top:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .meta-grid .item{background:rgba(255,255,255,0.12);border-radius:8px;padding:8px 10px}
+    .meta-grid .item .l{font-size:8px;color:rgba(167,243,208,0.85);text-transform:uppercase;letter-spacing:0.14em;font-weight:600;margin-bottom:3px}
+    .meta-grid .item .v{font-size:11.5px;color:#fff;font-weight:700;letter-spacing:-0.01em;line-height:1.2;word-break:break-word}
+    .accent-bar{height:3px;background:linear-gradient(90deg,#047857,#10b981,transparent)}
+    .content{padding:14px 22px 6px}
+    table{width:100%;border-collapse:collapse;font-size:9.5px}
+    th{background:#1e293b;color:#fff;padding:7px 9px;text-align:left;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em}
+    td{padding:5px 9px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+    .group-row td{background:#f8fafc;border-top:2px solid #e2e8f0;border-bottom:1px solid #cbd5e1;font-size:10.5px;color:#0f172a;padding:6px 9px;font-weight:700}
     .item-row:nth-child(even) td{background:#fcfcfd}
-    .code-cell{color:#94a3b8;font-family:monospace;font-size:8px;width:52px}
+    .code-cell{color:#94a3b8;font-family:"Courier New",monospace;font-size:8.5px;width:58px}
     .dim{color:#64748b}
-    .num{font-variant-numeric:tabular-nums}
-    .total-row td{background:#ecfdf5;font-weight:700;font-size:10px;border-top:3px double #34d399;color:#047857}
-    .badge-a{display:inline-block;padding:1px 5px;border-radius:4px;font-size:8px;font-weight:700;background:#ecfdf5;color:#047857;border:1px solid #34d399}
-    .badge-b{display:inline-block;padding:1px 5px;border-radius:4px;font-size:8px;font-weight:700;background:#eff6ff;color:#1d4ed8;border:1px solid #93c5fd}
+    .num{font-variant-numeric:tabular-nums;text-align:right}
+    .total-row td{background:linear-gradient(135deg,#d1fae5,#a7f3d0);font-weight:800;font-size:11px;color:#065f46;border-top:3px double #10b981;padding:7px 9px}
+    .badge-a{display:inline-block;padding:2px 6px;border-radius:5px;font-size:8.5px;font-weight:800;background:#ecfdf5;color:#047857;border:1px solid #34d399}
+    .badge-b{display:inline-block;padding:2px 6px;border-radius:5px;font-size:8.5px;font-weight:800;background:#eff6ff;color:#1d4ed8;border:1px solid #93c5fd}
+    .footer{margin-top:14px;padding:10px 22px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:8.5px;color:#94a3b8}
     @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
   </style></head><body>
-  <div class="header">
-    <div>
-      <div class="header h1">${title}</div>
-      <div class="sub">${new Date().toLocaleDateString("tr-TR")}</div>
+  <div class="cover">
+    <div class="top">
+      <div>
+        <span class="badge">${safe(title)}</span>
+        <h1>${safe(meta.projectName)}</h1>
+        <div class="date">${new Date().toLocaleDateString("tr-TR", { dateStyle: "long" })}</div>
+      </div>
+      <div class="badge-r">
+        <div class="label">Toplam Tutar</div>
+        <div class="amount">$${fmt2(salePrice)}</div>
+        <div class="alt">₺${fmt2(salePrice * usd)}</div>
+      </div>
     </div>
-    <div class="total-badge">
-      <div class="label">Toplam Tutar</div>
-      <div class="amount">$${fmt2(salePrice)}</div>
+    <div class="meta-grid">
+      ${meta.customerName ? `<div class="item"><div class="l">Yatırımcı</div><div class="v">${safe(meta.customerName)}</div></div>` : ""}
+      ${meta.location ? `<div class="item"><div class="l">Lokasyon</div><div class="v">${safe(meta.location)}</div></div>` : ""}
+      <div class="item"><div class="l">DC Güç</div><div class="v">${meta.dcLabel ?? "—"}${meta.acLabel ? ` <span style="opacity:0.7;font-weight:600">/ ${meta.acLabel}</span>` : ""}</div></div>
+      <div class="item"><div class="l">Kurulum Tipi</div><div class="v">${meta.installationLabel ?? "—"}</div></div>
     </div>
   </div>
   <div class="accent-bar"></div>
   <div class="content">${tableHtml}</div>
+  <div class="footer">
+    <span>SolarTeklif · Birim Fiyat Cetveli · USD/TRY ${fmt2(usd)}</span>
+    <span>${new Date().toLocaleString("tr-TR")}</span>
+  </div>
   </body></html>`;
 }
 

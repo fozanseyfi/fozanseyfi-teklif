@@ -21,6 +21,7 @@ export default async function TimelinePage({ params }: Props) {
   return (
     <TimelineEditor
       projectId={id}
+      projectName={project.name || "İsimsiz Proje"}
       data={detail.timeline as unknown as TimelineData}
       kesifA={detail.kesifA as unknown as KesifGroup[]}
       kesifB={detail.kesifB as unknown as KesifGroup[]}

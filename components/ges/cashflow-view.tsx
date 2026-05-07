@@ -2,7 +2,7 @@
 
 import { useMemo, useEffect, useRef, useState } from "react";
 import { calc, getGrpTot } from "@/lib/ges-engine";
-import { saveKesifB } from "@/app/actions/ges";
+import { saveKesifB, saveGesSettings } from "@/app/actions/ges";
 import type { KesifGroup, GesSettings, TimelineData } from "@/lib/ges-defaults";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,7 @@ import {
 } from "recharts";
 import { TrendingDown, TrendingUp, DollarSign, Activity } from "lucide-react";
 import { toast } from "sonner";
+import { DetailPageHeader, prevHref } from "@/components/ges/detail-page-header";
 
 function fmt(n: number, d = 0) {
   return n.toLocaleString("tr-TR", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -34,6 +35,7 @@ function kFmt(n: number) {
 
 interface Props {
   projectId: string;
+  projectName: string;
   kesifA: KesifGroup[];
   kesifB: KesifGroup[];
   settings: GesSettings;
@@ -95,12 +97,24 @@ function getRowAmount(rowName: string, groupTotals: Record<string, number>): num
 }
 
 
-export function CashFlowView({ projectId, kesifA, kesifB: kesifBProp, settings, timeline }: Props) {
+export function CashFlowView({ projectId, projectName, kesifA, kesifB: kesifBProp, settings, timeline }: Props) {
   const [localKesifB, setLocalKesifB] = useState<KesifGroup[]>(kesifBProp);
+  const [krediFaiz, setKrediFaiz] = useState<number>(settings.krediFaiz ?? 0);
   const lastSavedInterest = useRef<number | null>(null);
+  const rateSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const result = useMemo(() => calc(kesifA, localKesifB, settings), [kesifA, localKesifB, settings]);
-  const groupTotals = useMemo(() => buildGroupTotals(kesifA, localKesifB, settings), [kesifA, localKesifB, settings]);
+  const effectiveSettings = useMemo(() => ({ ...settings, krediFaiz }), [settings, krediFaiz]);
+
+  const result = useMemo(() => calc(kesifA, localKesifB, effectiveSettings), [kesifA, localKesifB, effectiveSettings]);
+  const groupTotals = useMemo(() => buildGroupTotals(kesifA, localKesifB, effectiveSettings), [kesifA, localKesifB, effectiveSettings]);
+
+  function updateKrediFaiz(v: number) {
+    setKrediFaiz(v);
+    if (rateSaveTimer.current) clearTimeout(rateSaveTimer.current);
+    rateSaveTimer.current = setTimeout(() => {
+      saveGesSettings(projectId, { krediFaiz: v } as never).catch(() => toast.error("Faiz oranı kaydedilemedi"));
+    }, 400);
+  }
 
   const cfRows = useMemo(() => {
     const months = timeline.months;
@@ -124,8 +138,8 @@ export function CashFlowView({ projectId, kesifA, kesifB: kesifBProp, settings, 
 
       const net = inflow - outflow;
       cumulative += net;
-      const creditInterest = cumulative < 0 ? Math.abs(cumulative) * (settings.krediFaiz / 100 / 12) : 0;
-      const depositInterest = cumulative > 0 ? cumulative * (settings.mevduat / 100 / 12) : 0;
+      const creditInterest = cumulative < 0 ? Math.abs(cumulative) * (krediFaiz / 100 / 12) : 0;
+      const depositInterest = cumulative > 0 ? cumulative * ((settings.mevduat ?? 0) / 100 / 12) : 0;
       const finalCumulative = cumulative - creditInterest + depositInterest;
 
       const months2 = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
@@ -136,7 +150,7 @@ export function CashFlowView({ projectId, kesifA, kesifB: kesifBProp, settings, 
       cumulative = finalCumulative;
     }
     return rows;
-  }, [timeline, result, groupTotals, settings]);
+  }, [timeline, result, groupTotals, krediFaiz, settings.mevduat]);
 
   // Auto-save total interest to B.6.1
   const totalInterest = useMemo(() => cfRows.reduce((s, r) => s + r.creditInterest, 0), [cfRows]);
@@ -179,16 +193,37 @@ export function CashFlowView({ projectId, kesifA, kesifB: kesifBProp, settings, 
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-3 rounded-xl border bg-card px-5 py-3 shadow-sm">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary-soft-foreground">
-          <Activity className="size-4" />
-        </div>
-        <div>
-          <h2 className="text-sm font-semibold tracking-tight">Cash Flow Analizi</h2>
-          <p className="text-xs text-muted-foreground">{timeline.months} aylık nakit akışı simülasyonu</p>
-        </div>
-      </div>
+      <DetailPageHeader
+        kicker={`Cash Flow · ${timeline.months} aylık nakit akışı`}
+        title={projectName}
+        backHref={prevHref(projectId, "/cashflow")}
+        actions={
+          <div className="flex items-center gap-2 rounded-lg border bg-warning-soft/40 px-2.5 py-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-warning-soft-foreground/80">
+              Yıllık Kredi Faizi
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={50}
+              step={0.1}
+              value={krediFaiz}
+              onChange={(e) => updateKrediFaiz(parseFloat(e.target.value))}
+              className="h-1.5 w-32 cursor-ew-resize appearance-none rounded-full bg-foreground/10"
+              style={{ accentColor: "#b45309" }}
+            />
+            <input
+              type="number"
+              step="0.1"
+              min={0}
+              max={100}
+              value={krediFaiz}
+              onChange={(e) => updateKrediFaiz(parseFloat(e.target.value) || 0)}
+              className="h-7 w-14 rounded-md border bg-background px-1.5 text-xs font-semibold tabular-nums shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+        }
+      />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

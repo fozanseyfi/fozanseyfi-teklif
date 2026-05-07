@@ -8,34 +8,53 @@ import {
   Settings,
   LogOut,
   Sun,
-  ShieldCheck,
   Users,
   Zap,
   MessageCircle,
+  LayoutTemplate,
+  HelpCircle,
+  Bell,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
-import type { UserRole } from "@prisma/client";
 
 interface SidebarProps {
   userName: string;
   firmName: string;
-  role: UserRole;
 }
 
-const navItems = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/projects", icon: FolderOpen, label: "Projeler" },
-  { href: "/customers", icon: Users, label: "Müşteriler" },
-  { href: "/firm-settings", icon: Settings, label: "Firma Ayarları" },
-];
+interface NavGroup {
+  label: string;
+  items: { href: string; icon: React.ComponentType<{ className?: string }>; label: string }[];
+}
 
-const supportItems = [
-  { href: "/contact", icon: MessageCircle, label: "İletişime Geç" },
-];
-
-const adminItems = [
-  { href: "/admin", icon: ShieldCheck, label: "Admin Panel" },
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "Ana Menü",
+    items: [
+      { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+      { href: "/help", icon: HelpCircle, label: "Nasıl Çalışır" },
+      { href: "/notifications", icon: Bell, label: "Bildirimler" },
+    ],
+  },
+  {
+    label: "Çalışma Alanı",
+    items: [
+      { href: "/projects", icon: FolderOpen, label: "Projeler" },
+      { href: "/templates", icon: LayoutTemplate, label: "Şablonlar" },
+      { href: "/customers", icon: Users, label: "Müşteriler" },
+    ],
+  },
+  {
+    label: "Yönetim",
+    items: [
+      { href: "/firm-settings", icon: Settings, label: "Firma Ayarları" },
+    ],
+  },
+  {
+    label: "Destek",
+    items: [{ href: "/contact", icon: MessageCircle, label: "İletişime Geç" }],
+  },
 ];
 
 interface NavLinkProps {
@@ -70,7 +89,7 @@ function NavLink({ href, icon: Icon, label, active }: NavLinkProps) {
   );
 }
 
-export function Sidebar({ userName, firmName, role }: SidebarProps) {
+export function Sidebar({ userName, firmName }: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -86,58 +105,26 @@ export function Sidebar({ userName, firmName, role }: SidebarProps) {
         </div>
       </div>
 
-      {/* Navigation */}
+      {/* Navigation — gruplu */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
-        <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted">
-          Menü
-        </p>
-        <div className="space-y-0.5">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.href}
-              href={item.href}
-              icon={item.icon}
-              label={item.label}
-              active={pathname === item.href || pathname.startsWith(item.href + "/")}
-            />
-          ))}
-        </div>
-
-        {role === "FIRM_ADMIN" && (
-          <div className="mt-6">
+        {NAV_GROUPS.map((group, gi) => (
+          <div key={group.label} className={gi > 0 ? "mt-5" : ""}>
             <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted">
-              Platform
+              {group.label}
             </p>
             <div className="space-y-0.5">
-              {adminItems.map((item) => (
+              {group.items.map((item) => (
                 <NavLink
                   key={item.href}
                   href={item.href}
                   icon={item.icon}
                   label={item.label}
-                  active={pathname.startsWith(item.href)}
+                  active={pathname === item.href || pathname.startsWith(item.href + "/")}
                 />
               ))}
             </div>
           </div>
-        )}
-
-        <div className="mt-6">
-          <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted">
-            Destek
-          </p>
-          <div className="space-y-0.5">
-            {supportItems.map((item) => (
-              <NavLink
-                key={item.href}
-                href={item.href}
-                icon={item.icon}
-                label={item.label}
-                active={pathname.startsWith(item.href)}
-              />
-            ))}
-          </div>
-        </div>
+        ))}
       </nav>
 
       {/* Hint card */}

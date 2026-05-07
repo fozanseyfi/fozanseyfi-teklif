@@ -15,11 +15,15 @@ import {
   Zap,
   DollarSign,
   Layers,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { DetailPageHeader, prevHref } from "@/components/ges/detail-page-header";
 
 interface Props {
   projectId: string;
+  projectName: string;
   settings: GesSettings;
 }
 
@@ -81,7 +85,7 @@ async function fetchExchangeRates(): Promise<{ usd?: number; eur?: number }> {
   }
 }
 
-export function TeknikForm({ projectId, settings }: Props) {
+export function TeknikForm({ projectId, projectName, settings }: Props) {
   const [s, setS] = useState<GesSettings>(settings);
   const [saving, setSaving] = useState(false);
   const [fxLoading, setFxLoading] = useState(false);
@@ -178,44 +182,37 @@ export function TeknikForm({ projectId, settings }: Props) {
   }
 
   return (
-    <div className="max-w-5xl space-y-5">
-      {/* ── Top action bar ── */}
-      <div className="flex items-center justify-between rounded-xl border bg-card px-5 py-3 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Zap className="size-4" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold">Teknik Parametreler</p>
-            <p className="text-xs text-muted-foreground">
-              Kaydedince Keşif-A ve Keşif-B otomatik hesaplanır
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleSave(false)}
-            disabled={saving}
-          >
-            <Save className="size-3.5" />
-            {saving ? "Kaydediliyor…" : "Kaydet"}
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => handleSave(true)}
-            disabled={saving || !isValid}
-            title={
-              !isValid
-                ? `Önce zorunlu alanları doldurun: ${missingFields.join(", ")}`
-                : undefined
-            }
-          >
-            Kaydet &amp; Keşif A <ArrowRight className="size-3.5" />
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-5">
+      <DetailPageHeader
+        kicker="Teknik Parametreler"
+        title={projectName}
+        backHref={prevHref(projectId, "/teknik")}
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleSave(false)}
+              disabled={saving}
+            >
+              <Save className="size-3.5" />
+              {saving ? "Kaydediliyor…" : "Kaydet"}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => handleSave(true)}
+              disabled={saving || !isValid}
+              title={
+                !isValid
+                  ? `Önce zorunlu alanları doldurun: ${missingFields.join(", ")}`
+                  : undefined
+              }
+            >
+              Kaydet &amp; İlerle <ArrowRight className="size-3.5" />
+            </Button>
+          </>
+        }
+      />
       {!isValid && (
         <div className="rounded-md border border-warning/30 bg-warning-soft px-4 py-2 text-xs text-warning-soft-foreground">
           <strong>Eksik alanlar:</strong> {missingFields.join(", ")}. İlerlemek
@@ -224,7 +221,7 @@ export function TeknikForm({ projectId, settings }: Props) {
       )}
 
       {/* ── Two-column layout ── */}
-      <div className="grid items-start gap-5 lg:grid-cols-[1fr_360px]">
+      <div className="grid items-start gap-5 lg:grid-cols-[1.5fr_1fr]">
         {/* Left column */}
         <div className="space-y-5">
           {/* Power & system */}
@@ -396,14 +393,30 @@ export function TeknikForm({ projectId, settings }: Props) {
                 },
               ].map(({ label, key, sel, placeholder }) => (
                 <div key={key}>
-                  <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    {label}
-                  </p>
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {label}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setS((p) => {
+                          const a = [...(p[key] as { name: string; price: number }[])];
+                          a.push({ name: "Yeni", price: 0 });
+                          return { ...p, [key]: a } as typeof p;
+                        })
+                      }
+                    >
+                      <Plus className="size-3" /> Ekle
+                    </Button>
+                  </div>
                   <div className="space-y-2">
                     {s[key].map((alt, i) => (
                       <div
                         key={i}
-                        className="grid grid-cols-[1fr_90px_70px] items-center gap-2"
+                        className="grid grid-cols-[1fr_100px_70px_36px] items-center gap-2"
                       >
                         <Input
                           className="h-9 text-sm"
@@ -453,6 +466,26 @@ export function TeknikForm({ projectId, settings }: Props) {
                           />
                           {s[sel] === i ? "✓" : "Seç"}
                         </label>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setS((p) => {
+                              const a = [...(p[key] as { name: string; price: number }[])];
+                              if (a.length <= 1) return p;
+                              a.splice(i, 1);
+                              const newSelIdx = Math.max(
+                                0,
+                                Math.min((p[sel] as number) ?? 0, a.length - 1),
+                              );
+                              return { ...p, [key]: a, [sel]: newSelIdx } as typeof p;
+                            })
+                          }
+                          disabled={s[key].length <= 1}
+                          title={s[key].length <= 1 ? "En az bir alternatif olmalı" : "Sil"}
+                          className="flex size-9 items-center justify-center rounded-md border border-border text-destructive/70 transition-colors hover:bg-destructive-soft hover:text-destructive-soft-foreground disabled:cursor-not-allowed disabled:opacity-30"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
                       </div>
                     ))}
                   </div>

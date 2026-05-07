@@ -21,6 +21,7 @@ export default async function CashFlowPage({ params }: Props) {
   return (
     <CashFlowView
       projectId={id}
+      projectName={project.name || "İsimsiz Proje"}
       kesifA={detail.kesifA as unknown as KesifGroup[]}
       kesifB={detail.kesifB as unknown as KesifGroup[]}
       settings={detail.settings as unknown as GesSettings}

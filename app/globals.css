@@ -214,6 +214,13 @@
   .animate-in-up {
     animation: fade-in-up var(--duration-slow) var(--ease-out-soft);
   }
+  .animate-pulse-soft {
+    animation: pulse-soft 2.6s ease-in-out infinite;
+  }
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 0; }
+    50%      { opacity: 1; }
+  }
   .animate-in-stagger > * {
     animation: fade-in-up var(--duration-slow) var(--ease-out-soft) backwards;
   }
@@ -282,4 +289,109 @@
     70%  { opacity: 0; transform: scale(2.4); }
     100% { opacity: 0; transform: scale(2.4); }
   }
+
+  /* Login demo carousel — bilesen animasyonlari */
+  @keyframes demo-sweep {
+    0%   { left: 0%; }
+    50%  { left: calc(100% - 24px); }
+    100% { left: 0%; }
+  }
+  @keyframes demo-fade-row {
+    0%, 40%   { opacity: 1; transform: translateX(0); }
+    50%, 90%  { opacity: 0.25; transform: translateX(-6px); }
+    100%      { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes demo-toggle {
+    0%, 45%   { background-color: rgb(5 150 105); transform: translateX(0); }
+    50%, 95%  { background-color: rgb(148 163 184); transform: translateX(0); }
+    100%      { background-color: rgb(5 150 105); transform: translateX(0); }
+  }
+  @keyframes demo-toggle-knob {
+    0%, 45%   { transform: translateX(14px); }
+    50%, 95%  { transform: translateX(0); }
+    100%      { transform: translateX(14px); }
+  }
+  @keyframes demo-bar-grow {
+    0%   { transform: scaleY(0.6); }
+    50%  { transform: scaleY(1.05); }
+    100% { transform: scaleY(0.6); }
+  }
+  @keyframes demo-cursor-move {
+    0%   { transform: translate(8%, 12%); }
+    33%  { transform: translate(45%, 60%); }
+    66%  { transform: translate(75%, 30%); }
+    100% { transform: translate(8%, 12%); }
+  }
+  @keyframes demo-donut-spin {
+    from { transform: rotate(0); }
+    to   { transform: rotate(360deg); }
+  }
+  @keyframes demo-counter {
+    0%   { content: "$890,000"; }
+    33%  { content: "$910,500"; }
+    66%  { content: "$875,250"; }
+    100% { content: "$890,000"; }
+  }
+  @keyframes demo-thumb {
+    0%, 100% { left: 35%; }
+    50%      { left: 75%; }
+  }
+  @keyframes demo-line-draw {
+    0%   { stroke-dashoffset: 600; }
+    50%  { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -600; }
+  }
+  @keyframes demo-dot-pulse {
+    0%, 100% { r: 3; opacity: 1; }
+    50%      { r: 5; opacity: 0.6; }
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────
+   Şablon (Template) salt-okunur modu
+   isTemplate=true projelerde detay sayfası children container'ına
+   `.template-readonly` eklenir. Tüm form kontrolleri ve etkileşimli
+   buton/dropdown/slider devre dışı bırakılır; sadece a/Link tabları
+   ile gezinme açık kalır.
+   --------------------------------------------------------------- */
+.template-readonly input,
+.template-readonly textarea,
+.template-readonly select,
+.template-readonly button,
+.template-readonly [role="button"],
+.template-readonly [role="combobox"],
+.template-readonly [role="switch"],
+.template-readonly [role="checkbox"],
+.template-readonly [role="slider"],
+.template-readonly [contenteditable="true"] {
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+  user-select: text !important;
+}
+
+.template-readonly input,
+.template-readonly textarea,
+.template-readonly select {
+  background-color: rgb(241 245 249 / 0.6) !important; /* slate-100 soft */
+  color: rgb(15 23 42 / 0.85);
+}
+
+.template-readonly button,
+.template-readonly [role="button"] {
+  opacity: 0.55;
+}
+
+/* Şablon banner — sayfa basinda sabit gozuksun ki kullanici neden
+   hicbir seyi degistiremedigini hemen anlasin. */
+.template-readonly::before {
+  content: "🔒 Bu sayfa salt okunurdur — şablonu kullanmak için yukarıdaki “Bu şablonu kullan” butonuna tıkla";
+  display: block;
+  margin-bottom: 12px;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(30 64 175);
+  background: rgb(219 234 254 / 0.6);
+  border: 1px dashed rgb(96 165 250);
+  border-radius: 12px;
 }

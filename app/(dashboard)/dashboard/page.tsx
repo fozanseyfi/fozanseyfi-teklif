@@ -18,7 +18,7 @@ import {
 import { calc } from "@/lib/ges-engine";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
 import { DeleteProjectButton } from "@/components/project/delete-project-button";
-import { TurkeyMap } from "@/components/dashboard/turkey-map";
+import { TurkeyMapLazy as TurkeyMap } from "@/components/dashboard/turkey-map-lazy";
 import { ProjectStatusChanger } from "@/components/ges/project-status-changer";
 import {
   COMPLETION_TRANSITION_VALUES,
@@ -50,7 +50,7 @@ export default async function DashboardPage() {
 
   const [projects, allProjects, allForMap] = await Promise.all([
     prisma.project.findMany({
-      where: { firmId: user.firmId },
+      where: { firmId: user.firmId, isTemplate: false },
       orderBy: { updatedAt: "desc" },
       take: 10,
       include: {
@@ -59,14 +59,14 @@ export default async function DashboardPage() {
       },
     }),
     prisma.project.findMany({
-      where: { firmId: user.firmId, totalPowerKw: { gt: 0 } },
+      where: { firmId: user.firmId, isTemplate: false, totalPowerKw: { gt: 0 } },
       select: {
         totalPowerKw: true,
         projectDetail: { select: { kesifA: true, kesifB: true, settings: true } },
       },
     }),
     prisma.project.findMany({
-      where: { firmId: user.firmId },
+      where: { firmId: user.firmId, isTemplate: false },
       select: { projectDetail: { select: { settings: true } } },
     }),
   ]);
@@ -89,7 +89,7 @@ export default async function DashboardPage() {
     }
   }
 
-  const totalCount = await prisma.project.count({ where: { firmId: user.firmId } });
+  const totalCount = await prisma.project.count({ where: { firmId: user.firmId, isTemplate: false } });
   const inProgressCount = projects.filter(
     (p) => p.status === "IN_PROGRESS" || p.status === "DRAFT",
   ).length;

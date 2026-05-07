@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { hasPermission } from "@/lib/auth";
+import { getCurrentUser, hasPermission } from "@/lib/auth";
 import {
   calculateAnnualProductionKwh,
   calculateCashFlow,
@@ -20,7 +19,7 @@ import {
 } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
-  const session = await getSession();
+  const session = await getCurrentUser();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   if (!hasPermission(session.role, "canGeneratePDF")) {

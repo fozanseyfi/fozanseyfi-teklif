@@ -13,6 +13,8 @@ export async function getOrCreateProjectDetail(projectId: string) {
     where: { id: projectId, firmId: user.firmId },
   });
   if (!project) throw new Error("Proje bulunamadı");
+  // Sablonlar icin auto-create yok — ensureTemplates onu zaten yarattı.
+  // Detail varolan kayit oldugu icin bu fonksiyon read-only davranir.
 
   let detail = await prisma.projectDetail.findUnique({ where: { projectId } });
 
@@ -102,6 +104,7 @@ export async function saveProjectInfo(projectId: string, formData: FormData) {
     where: { id: projectId, firmId: user.firmId },
   });
   if (!project) throw new Error("Proje bulunamadı");
+  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
 
   const name = formData.get("name") as string;
   const customerName = formData.get("customerName") as string;
@@ -179,7 +182,7 @@ export async function saveProjectInfo(projectId: string, formData: FormData) {
     }
   }
 
-  revalidatePath(`/projects/${projectId}/detail`);
+  revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 
 export async function saveTeknik(projectId: string, data: Record<string, unknown>) {
@@ -188,6 +191,7 @@ export async function saveTeknik(projectId: string, data: Record<string, unknown
     where: { id: projectId, firmId: user.firmId },
   });
   if (!project) throw new Error("Proje bulunamadı");
+  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
 
   const dcGuc = Number(data.dcGuc) || 0;
   const panelCount = Number(data.panelAdet) || 0;
@@ -211,13 +215,17 @@ export async function saveTeknik(projectId: string, data: Record<string, unknown
   const oldSettings = (detail?.settings as Record<string, unknown>) || DEF_S;
   const newSettings = { ...oldSettings, ...data };
 
+  // applyAutoQty oldSettings ile cagrilir ki formul-takipli kalemler
+  // guncellensin, kullanicinin manuel duzelttigi miktarlar korunsun.
   const kesifA = applyAutoQty(
     JSON.parse(JSON.stringify(detail?.kesifA || DEF_KA)),
-    newSettings as never
+    newSettings as never,
+    oldSettings as never,
   );
   const kesifB = applyAutoQtyKB(
     JSON.parse(JSON.stringify(detail?.kesifB || DEF_KB)),
-    newSettings as never
+    newSettings as never,
+    oldSettings as never,
   );
 
   await prisma.projectDetail.upsert({
@@ -237,7 +245,7 @@ export async function saveTeknik(projectId: string, data: Record<string, unknown
     },
   });
 
-  revalidatePath(`/projects/${projectId}/detail`);
+  revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 
 export async function saveFizibilite(projectId: string, data: Record<string, unknown>) {
@@ -246,6 +254,7 @@ export async function saveFizibilite(projectId: string, data: Record<string, unk
     where: { id: projectId, firmId: user.firmId },
   });
   if (!project) throw new Error("Proje bulunamadı");
+  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
 
   await prisma.project.update({
     where: { id: projectId },
@@ -275,7 +284,7 @@ export async function saveFizibilite(projectId: string, data: Record<string, unk
     update: { settings: newSettings as never },
   });
 
-  revalidatePath(`/projects/${projectId}/detail`);
+  revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 
 export async function saveGesSettings(projectId: string, settings: Record<string, unknown>) {
@@ -284,6 +293,7 @@ export async function saveGesSettings(projectId: string, settings: Record<string
     where: { id: projectId, firmId: user.firmId },
   });
   if (!project) throw new Error("Proje bulunamadı");
+  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
 
   const detail = await prisma.projectDetail.findUnique({ where: { projectId } });
   const oldSettings = (detail?.settings as Record<string, unknown>) || {};
@@ -302,7 +312,28 @@ export async function saveGesSettings(projectId: string, settings: Record<string
     update: { settings: newSettings as never },
   });
 
-  revalidatePath(`/projects/${projectId}/detail`);
+  revalidatePath(`/projects/${projectId}/detail`, "layout");
+}
+
+/**
+ * Bir kesif grubunu ardisik kod ile yeniden numaralandirir:
+ * `${group.code}.${idx+1}` — eklenmis/silinmis kalemlerden sonra bosluksuz
+ * sirali kalsin diye.
+ */
+function renumberGroups(groups: unknown[]): unknown[] {
+  if (!Array.isArray(groups)) return groups;
+  return groups.map((g) => {
+    if (!g || typeof g !== "object") return g;
+    const grp = g as { code?: string; items?: unknown[] };
+    if (!grp.code || !Array.isArray(grp.items)) return g;
+    return {
+      ...grp,
+      items: grp.items.map((it, idx) => {
+        if (!it || typeof it !== "object") return it;
+        return { ...it, code: `${grp.code}.${idx + 1}` };
+      }),
+    };
+  });
 }
 
 export async function saveKesifA(projectId: string, kesifA: unknown[]) {
@@ -311,21 +342,23 @@ export async function saveKesifA(projectId: string, kesifA: unknown[]) {
     where: { id: projectId, firmId: user.firmId },
   });
   if (!project) throw new Error("Proje bulunamadı");
+  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
 
+  const normalized = renumberGroups(kesifA);
   await prisma.projectDetail.upsert({
     where: { projectId },
     create: {
       projectId,
-      kesifA: kesifA as never,
+      kesifA: normalized as never,
       settings: DEF_S as never,
       kesifB: DEF_KB as never,
       timeline: DEF_TL as never,
       dor: DEF_DOR as never,
     },
-    update: { kesifA: kesifA as never },
+    update: { kesifA: normalized as never },
   });
 
-  revalidatePath(`/projects/${projectId}/detail`);
+  revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 
 export async function saveKesifB(projectId: string, kesifB: unknown[]) {
@@ -334,21 +367,23 @@ export async function saveKesifB(projectId: string, kesifB: unknown[]) {
     where: { id: projectId, firmId: user.firmId },
   });
   if (!project) throw new Error("Proje bulunamadı");
+  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
 
+  const normalized = renumberGroups(kesifB);
   await prisma.projectDetail.upsert({
     where: { projectId },
     create: {
       projectId,
-      kesifB: kesifB as never,
+      kesifB: normalized as never,
       settings: DEF_S as never,
       kesifA: DEF_KA as never,
       timeline: DEF_TL as never,
       dor: DEF_DOR as never,
     },
-    update: { kesifB: kesifB as never },
+    update: { kesifB: normalized as never },
   });
 
-  revalidatePath(`/projects/${projectId}/detail`);
+  revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 
 export async function saveTimeline(projectId: string, timeline: unknown) {
@@ -357,6 +392,7 @@ export async function saveTimeline(projectId: string, timeline: unknown) {
     where: { id: projectId, firmId: user.firmId },
   });
   if (!project) throw new Error("Proje bulunamadı");
+  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
 
   await prisma.projectDetail.upsert({
     where: { projectId },
@@ -374,7 +410,7 @@ export async function saveTimeline(projectId: string, timeline: unknown) {
   // Timeline doldugunda proje TASLAK -> TAMAMLANDI'ya otomatik geçer
   await recomputeProjectStatus(projectId);
 
-  revalidatePath(`/projects/${projectId}/detail`);
+  revalidatePath(`/projects/${projectId}/detail`, "layout");
   revalidatePath("/dashboard");
   revalidatePath("/projects");
 }
@@ -385,6 +421,7 @@ export async function saveDor(projectId: string, dor: unknown[]) {
     where: { id: projectId, firmId: user.firmId },
   });
   if (!project) throw new Error("Proje bulunamadı");
+  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
 
   await prisma.projectDetail.upsert({
     where: { projectId },
@@ -399,7 +436,7 @@ export async function saveDor(projectId: string, dor: unknown[]) {
     update: { dor: dor as never },
   });
 
-  revalidatePath(`/projects/${projectId}/detail`);
+  revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 
 export async function saveRoofs(
@@ -409,6 +446,7 @@ export async function saveRoofs(
   const user = await requireAuth();
   const project = await prisma.project.findFirst({ where: { id: projectId, firmId: user.firmId } });
   if (!project) throw new Error("Proje bulunamadı");
+  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
 
   const detail = await prisma.projectDetail.findUnique({ where: { projectId } });
   const old = (detail?.settings as Record<string, unknown>) || {};
@@ -427,7 +465,7 @@ export async function saveRoofs(
     update: { settings: newSettings as never },
   });
 
-  revalidatePath(`/projects/${projectId}/detail`);
+  revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 
 export async function saveDrawing(
@@ -440,6 +478,7 @@ export async function saveDrawing(
   const user = await requireAuth();
   const project = await prisma.project.findFirst({ where: { id: projectId, firmId: user.firmId } });
   if (!project) throw new Error("Proje bulunamadı");
+  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
 
   const detail = await prisma.projectDetail.findUnique({ where: { projectId } });
   const old = (detail?.settings as Record<string, unknown>) || {};
@@ -464,7 +503,7 @@ export async function saveDrawing(
     update: { settings: newSettings as never },
   });
 
-  revalidatePath(`/projects/${projectId}/detail`);
+  revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 
 export async function markProjectCompleted(projectId: string) {
@@ -473,6 +512,6 @@ export async function markProjectCompleted(projectId: string) {
     where: { id: projectId, firmId: user.firmId },
     data: { status: "COMPLETED" },
   });
-  revalidatePath(`/projects/${projectId}/detail`);
+  revalidatePath(`/projects/${projectId}/detail`, "layout");
   revalidatePath("/projects");
 }

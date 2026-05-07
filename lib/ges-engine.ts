@@ -280,24 +280,55 @@ export function calcQty(code: string, s: GesSettings): number | null {
   return T[code] !== undefined ? T[code] : null;
 }
 
-export function applyAutoQty(kesifA: KesifGroup[], s: GesSettings): KesifGroup[] {
-  return kesifA.map((group) => ({
+/**
+ * Formul-tracked kalemlerin miktarini yeni ayara gore gunceller, AMA
+ * kullanicinin manuel edit ettigi kalemleri korur.
+ *
+ * Mantik: bir kalemin mevcut miktari, ESKI ayardaki formulun sonucuna
+ * esitse "hala formul-takipli" demektir → yeni ayarin formuluyle
+ * guncellenir. Eger mevcut miktar eski formulden farkliysa, kullanici
+ * manual girmis demektir → dokunmaz.
+ *
+ * `oldSettings` verilmezse (ilk seed) — tum formul kalemlerini formulle
+ * doldurur. Mevcut projeler icin getOrCreateProjectDetail / saveTeknik
+ * her zaman oldSettings gecmeli.
+ */
+function applyAuto(
+  groups: KesifGroup[],
+  newS: GesSettings,
+  oldS?: GesSettings,
+): KesifGroup[] {
+  return groups.map((group) => ({
     ...group,
     items: group.items.map((item) => {
-      const qty = calcQty(item.code, s);
-      return qty !== null ? { ...item, miktar: qty } : item;
+      const newQty = calcQty(item.code, newS);
+      if (newQty === null) return item; // formul yok — dokunma
+      // Ilk seed: oldS yok, hep formul.
+      if (!oldS) return { ...item, miktar: newQty };
+      const oldQty = calcQty(item.code, oldS);
+      if (oldQty === null) return { ...item, miktar: newQty };
+      // Manual override: mevcut miktar eski formulden farkli.
+      // Yuvarlama tolerans: 0.001 USD'ye kadar
+      if (Math.abs(item.miktar - oldQty) > 0.001) return item;
+      return { ...item, miktar: newQty };
     }),
   }));
 }
 
-export function applyAutoQtyKB(kesifB: KesifGroup[], s: GesSettings): KesifGroup[] {
-  return kesifB.map((group) => ({
-    ...group,
-    items: group.items.map((item) => {
-      const qty = calcQty(item.code, s);
-      return qty !== null ? { ...item, miktar: qty } : item;
-    }),
-  }));
+export function applyAutoQty(
+  kesifA: KesifGroup[],
+  s: GesSettings,
+  oldS?: GesSettings,
+): KesifGroup[] {
+  return applyAuto(kesifA, s, oldS);
+}
+
+export function applyAutoQtyKB(
+  kesifB: KesifGroup[],
+  s: GesSettings,
+  oldS?: GesSettings,
+): KesifGroup[] {
+  return applyAuto(kesifB, s, oldS);
 }
 
 export interface BoqRow {

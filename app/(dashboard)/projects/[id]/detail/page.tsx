@@ -23,7 +23,7 @@ export default async function ProjeDetailPage({ params }: Props) {
 
   // Derive unique customers from all projects of this firm
   const projectsWithCustomers = await prisma.project.findMany({
-    where: { firmId: user.firmId, customerName: { not: "" } },
+    where: { firmId: user.firmId, isTemplate: false, customerName: { not: "" } },
     orderBy: { updatedAt: "desc" },
     select: { customerName: true, customerEmail: true, customerPhone: true, customerAddress: true },
   });

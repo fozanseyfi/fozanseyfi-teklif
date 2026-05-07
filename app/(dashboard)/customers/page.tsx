@@ -10,7 +10,7 @@ export default async function CustomersPage() {
   const user = await requireAuth();
 
   const projects = await prisma.project.findMany({
-    where: { firmId: user.firmId, customerName: { not: "" } },
+    where: { firmId: user.firmId, isTemplate: false, customerName: { not: "" } },
     orderBy: { updatedAt: "desc" },
     include: { projectDetail: { select: { settings: true } } },
   });

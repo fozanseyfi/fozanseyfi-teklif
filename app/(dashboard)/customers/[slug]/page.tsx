@@ -54,7 +54,7 @@ export default async function CustomerDetailPage({ params }: Props) {
   const user = await requireAuth();
 
   const projects = await prisma.project.findMany({
-    where: { firmId: user.firmId, customerName },
+    where: { firmId: user.firmId, isTemplate: false, customerName },
     orderBy: { updatedAt: "desc" },
     include: {
       pricingSnapshot: true,
