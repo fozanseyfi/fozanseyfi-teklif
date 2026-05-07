@@ -44,13 +44,14 @@ export function DetailPageHeader({
   const hasSecondaryRow = !!secondary || !!stats;
   return (
     <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+      {/* Mobil: title ve actions dikey stack; tablet+: yan yana */}
+      <div className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-4">
         <div className="flex min-w-0 items-center gap-3">
           {backHref && (
             <Link
               href={backHref}
               aria-label="Önceki sekme"
-              className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-card text-muted-foreground transition-colors hover:border-primary/30 hover:bg-muted hover:text-foreground"
+              className="flex size-9 shrink-0 items-center justify-center rounded-md border bg-card text-muted-foreground transition-colors hover:border-primary/30 hover:bg-muted hover:text-foreground sm:size-8"
             >
               <ArrowLeft className="size-4" />
             </Link>
@@ -59,16 +60,22 @@ export function DetailPageHeader({
             <p className={cn("text-[11px] font-semibold leading-none text-primary-soft-foreground")}>
               {kicker}
             </p>
-            <p className="mt-1 max-w-md truncate text-sm font-bold leading-tight tracking-tight text-foreground">
+            <p className="mt-1 truncate text-sm font-bold leading-tight tracking-tight text-foreground sm:max-w-md">
               {title}
             </p>
           </div>
         </div>
-        {actions && <div className="flex flex-wrap shrink-0 items-center gap-2">{actions}</div>}
+        {actions && (
+          <div className="flex flex-wrap items-center gap-2 sm:shrink-0">{actions}</div>
+        )}
       </div>
       {hasSecondaryRow && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t bg-muted/30 px-4 py-2">
-          {stats && <div className="flex items-center gap-2 text-xs text-muted-foreground">{stats}</div>}
+        <div className="flex flex-col gap-2 border-t bg-muted/30 px-3 py-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-4">
+          {stats && (
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              {stats}
+            </div>
+          )}
           {secondary && (
             <div className="flex flex-wrap items-center gap-2">{secondary}</div>
           )}

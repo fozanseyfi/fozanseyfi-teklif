@@ -163,6 +163,15 @@
    Component-style utilities
    --------------------------------------------------------------- */
 @layer utilities {
+  /* Sidebar-aware layout — desktop (lg+) sidebar genisliginde sol padding alir,
+     mobilde sidebar overlay drawer oldugu icin padding 0. */
+  @media (min-width: 1024px) {
+    .sidebar-aware {
+      padding-left: var(--sidebar-w, 16rem);
+      transition: padding-left 200ms;
+    }
+  }
+
   /* Sticky translucent header (karardestek pattern) */
   .glass-header {
     position: sticky;
