@@ -1,28 +1,37 @@
 import { createProject } from "@/app/actions/project";
 import { Button } from "@/components/ui/button";
-import { Sun, Zap, BarChart3, FileText, ArrowRight } from "lucide-react";
+import { Sun, ClipboardList, BarChart3, FileDown, ArrowRight } from "lucide-react";
 
 export default function NewProjectPage() {
+  // Sidebar nav yapisi ile birebir: VERI GIRIS -> KARAR & AKIS -> CIKTILAR
   const steps = [
     {
-      icon: FileText,
-      label: "Proje Bilgileri",
-      desc: "Müşteri ve konum bilgilerini girin",
-    },
-    {
-      icon: Zap,
-      label: "Teknik Parametreler",
-      desc: "DC/AC güç, panel ve inverter ayarları",
+      icon: ClipboardList,
+      label: "Veri Girişi",
+      bullets: [
+        "Proje bilgileri (müşteri, il/ilçe, kurulum tipi)",
+        "Teknik: DC/AC güç, panel & inverter modelleri",
+        "Keşif-A (malzeme) + Keşif-B (iş kalemleri)",
+        "Timeline: aylık nakit akış planı",
+      ],
     },
     {
       icon: BarChart3,
-      label: "Fizibilite",
-      desc: "Tüketim ve tasarruf analizi",
+      label: "Karar & Akış",
+      bullets: [
+        "Maliyet kalemlerini karda dağıt, marj kontrol et",
+        "Sale price + duyarlılık senaryoları",
+        "Aylık nakit akış grafiği ve kümülatif bakiye",
+      ],
     },
     {
-      icon: Sun,
-      label: "Keşif & Analiz",
-      desc: "EPC maliyet hesaplama ve teklif",
+      icon: FileDown,
+      label: "Çıktılar",
+      bullets: [
+        "BoQ — Malzeme ve fiyat listelerini çıktı al, müşteriyle incele",
+        "Birim Fiyat Cetveli — Satış fiyatı esaslı kâr yüzdelerini istediğin kalemlere uygula",
+        "DoR — Taraflar arası sorumluluk dağılımı",
+      ],
     },
   ];
 
@@ -46,7 +55,7 @@ export default function NewProjectPage() {
         {steps.map((step, i) => (
           <div
             key={i}
-            className="flex items-center gap-4 rounded-xl border bg-card px-5 py-4 shadow-sm"
+            className="flex gap-4 rounded-xl border bg-card px-5 py-4 shadow-sm"
           >
             <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary-soft">
               <step.icon className="size-5 text-primary-soft-foreground" />
@@ -56,7 +65,17 @@ export default function NewProjectPage() {
                 Adım {i + 1}
               </span>
               <p className="text-sm font-medium">{step.label}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{step.desc}</p>
+              <ul className="mt-1.5 space-y-0.5">
+                {step.bullets.map((b, bi) => (
+                  <li
+                    key={bi}
+                    className="flex gap-1.5 text-[11.5px] leading-snug text-muted-foreground"
+                  >
+                    <span className="text-primary/60">•</span>
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         ))}
