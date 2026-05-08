@@ -79,6 +79,9 @@ export async function inviteUser(formData: FormData) {
   // customize etmis ve {{ .SiteURL }}/auth/callback'e hardcoded yonlendirme
   // yapiyor). Invite template default `{{ .ConfirmationURL }}` kullanir,
   // bu URL bizim redirectTo'yu honored eder.
+  console.log("[invite] DEBUG inviteUrl =", inviteUrl);
+  console.log("[invite] DEBUG NEXT_PUBLIC_APP_URL =", process.env.NEXT_PUBLIC_APP_URL);
+
   try {
     const admin = createSupabaseAdmin();
     const result = await admin.auth.admin.inviteUserByEmail(email, {
@@ -90,6 +93,7 @@ export async function inviteUser(formData: FormData) {
         platform: PLATFORM_KEY,
       },
     });
+    console.log("[invite] DEBUG admin invite result error =", result.error?.message ?? "(yok)");
     if (result.error) {
       // Eger user zaten varsa, inviteUserByEmail "User already registered" hatasi verir.
       // Bu durumda Supabase email gondermez — biz manuel link'i admin'e veririz.
