@@ -16,6 +16,7 @@ import {
   LayoutTemplate,
   HelpCircle,
   Bell,
+  Boxes,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -57,6 +58,10 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/firm-settings", icon: Settings, label: "Firma Ayarları" },
       { href: "/notifications", icon: Bell, label: "Bildirimler" },
     ],
+  },
+  {
+    label: "Diğer Platformlar",
+    items: [{ href: "/platforms", icon: Boxes, label: "Diğer Platformlar" }],
   },
   {
     label: "Destek",
