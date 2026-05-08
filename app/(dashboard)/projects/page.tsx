@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,7 @@ export default async function ProjectsPage({ searchParams }: Props) {
 
   const projects = await prisma.project.findMany({
     where: {
-      firmId: user.firmId,
+      organizationId: user.organizationId,
       isTemplate: false,
       ...(q
         ? {
@@ -59,7 +59,7 @@ export default async function ProjectsPage({ searchParams }: Props) {
   });
 
   const filters = [
-    { value: undefined, label: "Tümü" },
+    { value: undefined, label: "TÃ¼mÃ¼" },
     { value: "DRAFT", label: PROJECT_STATUS_LABELS.DRAFT },
     { value: "IN_PROGRESS", label: PROJECT_STATUS_LABELS.IN_PROGRESS },
     { value: "COMPLETED", label: PROJECT_STATUS_LABELS.COMPLETED },
@@ -110,14 +110,14 @@ export default async function ProjectsPage({ searchParams }: Props) {
             <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-secondary">
               <FolderOpen className="size-7 text-muted-foreground" />
             </div>
-            <p className="font-semibold text-foreground">Proje bulunamadı</p>
+            <p className="font-semibold text-foreground">Proje bulunamadÄ±</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Yeni bir proje oluşturarak başlayın
+              Yeni bir proje oluÅŸturarak baÅŸlayÄ±n
             </p>
             <Button asChild className="mt-5">
               <Link href="/projects/new">
                 <Plus className="size-4" />
-                İlk Projeyi Oluştur
+                Ä°lk Projeyi OluÅŸtur
               </Link>
             </Button>
           </CardContent>
@@ -133,10 +133,10 @@ export default async function ProjectsPage({ searchParams }: Props) {
                       Proje
                     </th>
                     <th className="hidden px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground md:table-cell">
-                      Müşteri
+                      MÃ¼ÅŸteri
                     </th>
                     <th className="hidden px-6 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground lg:table-cell">
-                      Güç
+                      GÃ¼Ã§
                     </th>
                     <th className="hidden px-6 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground lg:table-cell">
                       Fiyat
@@ -178,12 +178,12 @@ export default async function ProjectsPage({ searchParams }: Props) {
                       <td className="hidden px-6 py-4 text-right font-medium text-muted-foreground lg:table-cell">
                         {project.totalPowerKw > 0
                           ? `${project.totalPowerKw.toFixed(1)} kWp`
-                          : "—"}
+                          : "â€”"}
                       </td>
                       <td className="hidden px-6 py-4 text-right font-semibold text-foreground lg:table-cell">
                         {project.pricingSnapshot
                           ? formatCurrency(project.pricingSnapshot.finalSalePrice)
-                          : "—"}
+                          : "â€”"}
                       </td>
                       <td className="px-6 py-4 text-center">
                         {isCompletionStatus(project.status) ? (
@@ -205,7 +205,7 @@ export default async function ProjectsPage({ searchParams }: Props) {
                         <div className="flex items-center justify-end">
                           <Button variant="ghost" size="sm" asChild>
                             <Link href={`/projects/${project.id}/detail`}>
-                              Düzenle
+                              DÃ¼zenle
                             </Link>
                           </Button>
                         </div>

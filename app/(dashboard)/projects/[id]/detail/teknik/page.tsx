@@ -12,7 +12,7 @@ interface Props {
 export default async function TeknikPage({ params }: Props) {
   const { id } = await params;
   const user = await requireAuth();
-  const project = await prisma.project.findFirst({ where: { id, firmId: user.firmId } });
+  const project = await prisma.project.findFirst({ where: { id, organizationId: user.organizationId } });
   if (!project) notFound();
   const detail = await getOrCreateProjectDetail(id);
   return (

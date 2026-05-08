@@ -35,7 +35,7 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
   const user = await requireAuth();
 
   const project = await prisma.project.findFirst({
-    where: { id, firmId: user.firmId },
+    where: { id, organizationId: user.organizationId },
     include: {
       projectDetail: {
         select: { kesifA: true, kesifB: true, settings: true, timeline: true },

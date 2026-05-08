@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -10,10 +10,10 @@ import { InstallationType, SystemSize, TariffType } from "@prisma/client";
 export async function getOrCreateProjectDetail(projectId: string) {
   const user = await requireAuth();
   const project = await prisma.project.findFirst({
-    where: { id: projectId, firmId: user.firmId },
+    where: { id: projectId, organizationId: user.organizationId },
   });
-  if (!project) throw new Error("Proje bulunamadı");
-  // Sablonlar icin auto-create yok — ensureTemplates onu zaten yarattı.
+  if (!project) throw new Error("Proje bulunamadÄ±");
+  // Sablonlar icin auto-create yok â€” ensureTemplates onu zaten yarattÄ±.
   // Detail varolan kayit oldugu icin bu fonksiyon read-only davranir.
 
   let detail = await prisma.projectDetail.findUnique({ where: { projectId } });
@@ -46,7 +46,7 @@ export async function getOrCreateProjectDetail(projectId: string) {
         projectId,
         kesifA: kesifA as never,
         kesifB: kesifB as never,
-        // Timeline bos baslar — kullanici dolduracak ki Analiz acilsin
+        // Timeline bos baslar â€” kullanici dolduracak ki Analiz acilsin
         timeline: {} as never,
         dor: DEF_DOR as never,
         settings: settings as never,
@@ -101,10 +101,10 @@ async function recomputeProjectStatus(projectId: string) {
 export async function saveProjectInfo(projectId: string, formData: FormData) {
   const user = await requireAuth();
   const project = await prisma.project.findFirst({
-    where: { id: projectId, firmId: user.firmId },
+    where: { id: projectId, organizationId: user.organizationId },
   });
-  if (!project) throw new Error("Proje bulunamadı");
-  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
+  if (!project) throw new Error("Proje bulunamadÄ±");
+  if (project.isTemplate && project.templateLocked) throw new Error("Åablon kilitli â€” dÃ¼zenlenemez. 'Bu ÅŸablonu kullan' ile yeni proje oluÅŸturun.");
 
   const name = formData.get("name") as string;
   const customerName = formData.get("customerName") as string;
@@ -188,10 +188,10 @@ export async function saveProjectInfo(projectId: string, formData: FormData) {
 export async function saveTeknik(projectId: string, data: Record<string, unknown>) {
   const user = await requireAuth();
   const project = await prisma.project.findFirst({
-    where: { id: projectId, firmId: user.firmId },
+    where: { id: projectId, organizationId: user.organizationId },
   });
-  if (!project) throw new Error("Proje bulunamadı");
-  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
+  if (!project) throw new Error("Proje bulunamadÄ±");
+  if (project.isTemplate && project.templateLocked) throw new Error("Åablon kilitli â€” dÃ¼zenlenemez. 'Bu ÅŸablonu kullan' ile yeni proje oluÅŸturun.");
 
   const dcGuc = Number(data.dcGuc) || 0;
   const panelCount = Number(data.panelAdet) || 0;
@@ -251,10 +251,10 @@ export async function saveTeknik(projectId: string, data: Record<string, unknown
 export async function saveFizibilite(projectId: string, data: Record<string, unknown>) {
   const user = await requireAuth();
   const project = await prisma.project.findFirst({
-    where: { id: projectId, firmId: user.firmId },
+    where: { id: projectId, organizationId: user.organizationId },
   });
-  if (!project) throw new Error("Proje bulunamadı");
-  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
+  if (!project) throw new Error("Proje bulunamadÄ±");
+  if (project.isTemplate && project.templateLocked) throw new Error("Åablon kilitli â€” dÃ¼zenlenemez. 'Bu ÅŸablonu kullan' ile yeni proje oluÅŸturun.");
 
   await prisma.project.update({
     where: { id: projectId },
@@ -290,10 +290,10 @@ export async function saveFizibilite(projectId: string, data: Record<string, unk
 export async function saveGesSettings(projectId: string, settings: Record<string, unknown>) {
   const user = await requireAuth();
   const project = await prisma.project.findFirst({
-    where: { id: projectId, firmId: user.firmId },
+    where: { id: projectId, organizationId: user.organizationId },
   });
-  if (!project) throw new Error("Proje bulunamadı");
-  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
+  if (!project) throw new Error("Proje bulunamadÄ±");
+  if (project.isTemplate && project.templateLocked) throw new Error("Åablon kilitli â€” dÃ¼zenlenemez. 'Bu ÅŸablonu kullan' ile yeni proje oluÅŸturun.");
 
   const detail = await prisma.projectDetail.findUnique({ where: { projectId } });
   const oldSettings = (detail?.settings as Record<string, unknown>) || {};
@@ -317,7 +317,7 @@ export async function saveGesSettings(projectId: string, settings: Record<string
 
 /**
  * Bir kesif grubunu ardisik kod ile yeniden numaralandirir:
- * `${group.code}.${idx+1}` — eklenmis/silinmis kalemlerden sonra bosluksuz
+ * `${group.code}.${idx+1}` â€” eklenmis/silinmis kalemlerden sonra bosluksuz
  * sirali kalsin diye.
  */
 function renumberGroups(groups: unknown[]): unknown[] {
@@ -339,10 +339,10 @@ function renumberGroups(groups: unknown[]): unknown[] {
 export async function saveKesifA(projectId: string, kesifA: unknown[]) {
   const user = await requireAuth();
   const project = await prisma.project.findFirst({
-    where: { id: projectId, firmId: user.firmId },
+    where: { id: projectId, organizationId: user.organizationId },
   });
-  if (!project) throw new Error("Proje bulunamadı");
-  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
+  if (!project) throw new Error("Proje bulunamadÄ±");
+  if (project.isTemplate && project.templateLocked) throw new Error("Åablon kilitli â€” dÃ¼zenlenemez. 'Bu ÅŸablonu kullan' ile yeni proje oluÅŸturun.");
 
   const normalized = renumberGroups(kesifA);
   await prisma.projectDetail.upsert({
@@ -364,10 +364,10 @@ export async function saveKesifA(projectId: string, kesifA: unknown[]) {
 export async function saveKesifB(projectId: string, kesifB: unknown[]) {
   const user = await requireAuth();
   const project = await prisma.project.findFirst({
-    where: { id: projectId, firmId: user.firmId },
+    where: { id: projectId, organizationId: user.organizationId },
   });
-  if (!project) throw new Error("Proje bulunamadı");
-  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
+  if (!project) throw new Error("Proje bulunamadÄ±");
+  if (project.isTemplate && project.templateLocked) throw new Error("Åablon kilitli â€” dÃ¼zenlenemez. 'Bu ÅŸablonu kullan' ile yeni proje oluÅŸturun.");
 
   const normalized = renumberGroups(kesifB);
   await prisma.projectDetail.upsert({
@@ -389,10 +389,10 @@ export async function saveKesifB(projectId: string, kesifB: unknown[]) {
 export async function saveTimeline(projectId: string, timeline: unknown) {
   const user = await requireAuth();
   const project = await prisma.project.findFirst({
-    where: { id: projectId, firmId: user.firmId },
+    where: { id: projectId, organizationId: user.organizationId },
   });
-  if (!project) throw new Error("Proje bulunamadı");
-  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
+  if (!project) throw new Error("Proje bulunamadÄ±");
+  if (project.isTemplate && project.templateLocked) throw new Error("Åablon kilitli â€” dÃ¼zenlenemez. 'Bu ÅŸablonu kullan' ile yeni proje oluÅŸturun.");
 
   await prisma.projectDetail.upsert({
     where: { projectId },
@@ -407,7 +407,7 @@ export async function saveTimeline(projectId: string, timeline: unknown) {
     update: { timeline: timeline as never },
   });
 
-  // Timeline doldugunda proje TASLAK -> TAMAMLANDI'ya otomatik geçer
+  // Timeline doldugunda proje TASLAK -> TAMAMLANDI'ya otomatik geÃ§er
   await recomputeProjectStatus(projectId);
 
   revalidatePath(`/projects/${projectId}/detail`, "layout");
@@ -418,10 +418,10 @@ export async function saveTimeline(projectId: string, timeline: unknown) {
 export async function saveDor(projectId: string, dor: unknown[]) {
   const user = await requireAuth();
   const project = await prisma.project.findFirst({
-    where: { id: projectId, firmId: user.firmId },
+    where: { id: projectId, organizationId: user.organizationId },
   });
-  if (!project) throw new Error("Proje bulunamadı");
-  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
+  if (!project) throw new Error("Proje bulunamadÄ±");
+  if (project.isTemplate && project.templateLocked) throw new Error("Åablon kilitli â€” dÃ¼zenlenemez. 'Bu ÅŸablonu kullan' ile yeni proje oluÅŸturun.");
 
   await prisma.projectDetail.upsert({
     where: { projectId },
@@ -444,9 +444,9 @@ export async function saveRoofs(
   roofs: { id: string; vertices: [number, number][]; color: string; height: number; elevations?: number[] }[],
 ) {
   const user = await requireAuth();
-  const project = await prisma.project.findFirst({ where: { id: projectId, firmId: user.firmId } });
-  if (!project) throw new Error("Proje bulunamadı");
-  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
+  const project = await prisma.project.findFirst({ where: { id: projectId, organizationId: user.organizationId } });
+  if (!project) throw new Error("Proje bulunamadÄ±");
+  if (project.isTemplate && project.templateLocked) throw new Error("Åablon kilitli â€” dÃ¼zenlenemez. 'Bu ÅŸablonu kullan' ile yeni proje oluÅŸturun.");
 
   const detail = await prisma.projectDetail.findUnique({ where: { projectId } });
   const old = (detail?.settings as Record<string, unknown>) || {};
@@ -476,9 +476,9 @@ export async function saveDrawing(
   panelCount: number,
 ) {
   const user = await requireAuth();
-  const project = await prisma.project.findFirst({ where: { id: projectId, firmId: user.firmId } });
-  if (!project) throw new Error("Proje bulunamadı");
-  if (project.isTemplate && project.templateLocked) throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
+  const project = await prisma.project.findFirst({ where: { id: projectId, organizationId: user.organizationId } });
+  if (!project) throw new Error("Proje bulunamadÄ±");
+  if (project.isTemplate && project.templateLocked) throw new Error("Åablon kilitli â€” dÃ¼zenlenemez. 'Bu ÅŸablonu kullan' ile yeni proje oluÅŸturun.");
 
   const detail = await prisma.projectDetail.findUnique({ where: { projectId } });
   const old = (detail?.settings as Record<string, unknown>) || {};
@@ -509,7 +509,7 @@ export async function saveDrawing(
 export async function markProjectCompleted(projectId: string) {
   const user = await requireAuth();
   await prisma.project.update({
-    where: { id: projectId, firmId: user.firmId },
+    where: { id: projectId, organizationId: user.organizationId },
     data: { status: "COMPLETED" },
   });
   revalidatePath(`/projects/${projectId}/detail`, "layout");

@@ -14,8 +14,8 @@ export async function POST(request: NextRequest) {
 
   const [project, detail] = await Promise.all([
     prisma.project.findFirst({
-      where: { id: projectId, firmId: session.firmId },
-      include: { firm: true },
+      where: { id: projectId, organizationId: session.organizationId },
+      include: { organization: true },
     }),
     prisma.projectDetail.findUnique({ where: { projectId } }),
   ]);
@@ -76,7 +76,7 @@ function buildGESpdf(data: {
   validUntil: Date;
 }): string {
   const { project, settings, kesifA, kesifB, result, includedSections, coverNote, today, validUntil } = data;
-  const acc = project.firm.themeColor ?? "#F59E0B";
+  const acc = project.organization.themeColor ?? "#F59E0B";
   const has = (s: string) => includedSections.includes(s);
 
   const annualProduction = settings.dcGuc * 1000 * (settings.peakSunHoursPerDay ?? 4.5) * 365 * (settings.systemEfficiency ?? 0.80);
@@ -198,7 +198,7 @@ function buildGESpdf(data: {
 <!-- KAPAK -->
 ${has("kapak") ? `
 <div class="page cover">
-  <div class="firm-name">☀ ${project.firm.name}</div>
+  <div class="firm-name">☀ ${project.organization.name}</div>
   <h1>EPC SOLAR ENERJİ SİSTEMİ</h1>
   <h2>TEKLİF SUNUMU</h2>
   ${coverNote ? `<p style="margin-top:20px;color:#9CA3AF;max-width:380px;font-size:11px;line-height:1.6">${coverNote}</p>` : ""}
@@ -234,7 +234,7 @@ ${has("ozet") ? (() => {
   <!-- TOP BAR -->
   <div style="background:linear-gradient(135deg,#071120 0%,#0c1e3c 50%,#122448 100%);padding:14px 24px;display:flex;justify-content:space-between;align-items:center;">
     <div>
-      <div style="font-size:9px;font-weight:700;letter-spacing:0.12em;color:rgba(251,191,36,0.6);text-transform:uppercase;margin-bottom:3px">☀ ${project.firm.name}</div>
+      <div style="font-size:9px;font-weight:700;letter-spacing:0.12em;color:rgba(251,191,36,0.6);text-transform:uppercase;margin-bottom:3px">☀ ${project.organization.name}</div>
       <div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.02em;">${project.name}</div>
       ${project.customerName ? `<div style="font-size:10px;color:#94a3b8;margin-top:2px">İşveren: ${project.customerName}</div>` : ""}
     </div>
@@ -331,8 +331,8 @@ ${has("ozet") ? (() => {
       <div style="font-size:11px;font-weight:800;color:#1e293b;margin-bottom:10px;padding-bottom:4px;border-bottom:2px solid #fbbf24;display:inline-block;">ONAY VE İMZA</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
         <div style="border:1px solid #d1d5db;border-radius:8px;padding:12px;min-height:90px;">
-          <div style="font-weight:700;font-size:10px;margin-bottom:4px;">${project.firm.name}</div>
-          <div style="font-size:8.5px;color:#9ca3af;margin-bottom:30px;">${project.firm.address ?? ""}</div>
+          <div style="font-weight:700;font-size:10px;margin-bottom:4px;">${project.organization.name}</div>
+          <div style="font-size:8.5px;color:#9ca3af;margin-bottom:30px;">${project.organization.address ?? ""}</div>
           <div style="border-top:1px solid #d1d5db;padding-top:5px;font-size:8.5px;color:#9ca3af;">İmza / Kaşe / Tarih</div>
         </div>
         <div style="border:1px solid #d1d5db;border-radius:8px;padding:12px;min-height:90px;">
@@ -352,7 +352,7 @@ ${has("ozet") ? (() => {
 
   <!-- FOOTER -->
   <div style="background:#071120;padding:8px 24px;display:flex;justify-content:space-between;align-items:center;">
-    <span style="font-size:8.5px;color:#475569;">${project.firm.name} · EPC Yönetici Özeti</span>
+    <span style="font-size:8.5px;color:#475569;">${project.organization.name} · EPC Yönetici Özeti</span>
     <span style="font-size:8.5px;color:#475569;">${formatDate(today)}</span>
   </div>
 </div>
@@ -361,29 +361,29 @@ ${has("ozet") ? (() => {
 <!-- KESİF-A -->
 ${has("kesif-a") ? `
 <div class="page">
-  <div class="header-bar"><span class="firm">${project.firm.name}</span><span>${project.name}</span></div>
+  <div class="header-bar"><span class="firm">${project.organization.name}</span><span>${project.name}</span></div>
   <div class="inner">
     ${kesifTable(kesifA, "KESİF-A — DOĞRUDAN MALİYETLER")}
   </div>
-  <div class="footer-bar"><span>${formatDate(today)}</span><span>EPC Teklif · ${project.firm.name}</span></div>
+  <div class="footer-bar"><span>${formatDate(today)}</span><span>EPC Teklif · ${project.organization.name}</span></div>
 </div>
 ` : ""}
 
 <!-- KESİF-B -->
 ${has("kesif-b") ? `
 <div class="page">
-  <div class="header-bar"><span class="firm">${project.firm.name}</span><span>${project.name}</span></div>
+  <div class="header-bar"><span class="firm">${project.organization.name}</span><span>${project.name}</span></div>
   <div class="inner">
     ${kesifTable(kesifB, "KESİF-B — DOLAYLI MALİYETLER")}
   </div>
-  <div class="footer-bar"><span>${formatDate(today)}</span><span>EPC Teklif · ${project.firm.name}</span></div>
+  <div class="footer-bar"><span>${formatDate(today)}</span><span>EPC Teklif · ${project.organization.name}</span></div>
 </div>
 ` : ""}
 
 <!-- FİZİBİLİTE -->
 ${has("fizibilite") ? `
 <div class="page">
-  <div class="header-bar"><span class="firm">${project.firm.name}</span><span>${project.name}</span></div>
+  <div class="header-bar"><span class="firm">${project.organization.name}</span><span>${project.name}</span></div>
   <div class="inner">
     <div class="section-title">FİZİBİLİTE ANALİZİ</div>
     <div class="kpi-grid" style="margin-bottom:12px">
@@ -417,23 +417,23 @@ ${has("fizibilite") ? `
       </div>
     </div>
   </div>
-  <div class="footer-bar"><span>${formatDate(today)}</span><span>EPC Teklif · ${project.firm.name}</span></div>
+  <div class="footer-bar"><span>${formatDate(today)}</span><span>EPC Teklif · ${project.organization.name}</span></div>
 </div>
 ` : ""}
 
 <!-- İMZA -->
 ${has("imza") ? `
 <div class="page">
-  <div class="header-bar"><span class="firm">${project.firm.name}</span><span>${project.name}</span></div>
+  <div class="header-bar"><span class="firm">${project.organization.name}</span><span>${project.name}</span></div>
   <div class="inner">
     <div class="section-title">İMZA & ONAY</div>
     <p style="color:#6B7280;margin-bottom:20px;font-size:10px">Bu teklif ${formatDate(validUntil)} tarihine kadar geçerlidir.</p>
     <div class="two-col">
       <div class="signature-box" style="min-height:120px">
-        <div style="font-weight:600;margin-bottom:6px;font-size:11px">Teklifi Veren — ${project.firm.name}</div>
+        <div style="font-weight:600;margin-bottom:6px;font-size:11px">Teklifi Veren — ${project.organization.name}</div>
         <div style="font-size:9px;color:#9CA3AF;margin-bottom:40px">
-          ${project.firm.address ?? ""}<br>
-          ${project.firm.phone ?? ""} ${project.firm.email ? "· " + project.firm.email : ""}
+          ${project.organization.address ?? ""}<br>
+          ${project.organization.phone ?? ""} ${project.organization.email ? "· " + project.organization.email : ""}
         </div>
         <div style="border-top:1px solid #D1D5DB;padding-top:6px;font-size:9px;color:#9CA3AF">İmza & Kaşe</div>
       </div>
@@ -443,7 +443,7 @@ ${has("imza") ? `
       </div>
     </div>
   </div>
-  <div class="footer-bar"><span>${project.firm.name} · ${formatDate(today)}</span><span>EPC Teklif</span></div>
+  <div class="footer-bar"><span>${project.organization.name} · ${formatDate(today)}</span><span>EPC Teklif</span></div>
 </div>
 ` : ""}
 

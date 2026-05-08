@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   FolderOpen,
@@ -16,19 +16,28 @@ import {
   HelpCircle,
   Bell,
   Boxes,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Menu,
   X,
 } from "lucide-react";
-import { logout } from "@/app/actions/auth";
+import { logout, switchOrganization } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
+
+interface OrganizationOption {
+  id: string;
+  name: string;
+  role: string;
+  isActive: boolean;
+}
 
 interface SidebarProps {
   userName: string;
   firmName: string;
   userRole: string;
+  organizations?: OrganizationOption[];
 }
 
 interface NavGroup {
@@ -72,10 +81,9 @@ const NAV_GROUPS: NavGroup[] = [
 ];
 
 const ROLE_LABEL: Record<string, string> = {
-  FIRM_ADMIN: "Yönetici",
-  MANAGER: "Müdür",
-  MEMBER: "Üye",
-  VIEWER: "Gözlemci",
+  admin: "Yönetici",
+  user: "Kullanıcı",
+  viewer: "Görüntüleyici",
 };
 
 const STORAGE_KEY = "solar-sidebar-collapsed";
@@ -161,6 +169,112 @@ function NavLink({ href, icon: Icon, label, active, collapsed, onNavigate }: Nav
   );
 }
 
+// Top bar'da "Panel: <ad>" yerine dropdown — kullanicinin uye oldugu tum
+// organizasyonlar listelenir, secim profile.organizationId'yi guncelleyip
+// router.refresh() ile sayfayi yeniler.
+function PanelSwitcher({
+  firmName,
+  organizations,
+}: {
+  firmName: string;
+  organizations: OrganizationOption[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState<string | null>(null);
+  const router = useRouter();
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onClick(e: MouseEvent) {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [open]);
+
+  const hasMultiple = organizations.length > 1;
+
+  async function handleSwitch(orgId: string) {
+    if (pending) return;
+    setPending(orgId);
+    try {
+      await switchOrganization(orgId);
+      setOpen(false);
+      router.refresh();
+    } finally {
+      setPending(null);
+    }
+  }
+
+  return (
+    <div ref={ref} className="relative min-w-0">
+      <button
+        type="button"
+        onClick={() => hasMultiple && setOpen((o) => !o)}
+        className={cn(
+          "flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left",
+          hasMultiple ? "transition-colors hover:bg-muted" : "cursor-default",
+        )}
+        disabled={!hasMultiple}
+      >
+        <FolderOpen className="size-4 shrink-0 text-muted-foreground" />
+        <span className="shrink-0 text-sm text-muted-foreground">Panel:</span>
+        <span className="truncate text-sm font-semibold text-foreground">{firmName}</span>
+        {hasMultiple && (
+          <ChevronDown
+            className={cn(
+              "size-3.5 shrink-0 text-muted-foreground transition-transform",
+              open && "rotate-180",
+            )}
+          />
+        )}
+      </button>
+      {open && hasMultiple && (
+        <div className="absolute left-0 top-full z-50 mt-1 w-72 overflow-hidden rounded-lg border bg-card shadow-lg">
+          <div className="border-b bg-muted/40 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Üye olduğun paneller
+            </p>
+          </div>
+          <ul className="max-h-72 overflow-y-auto py-1">
+            {organizations.map((o) => (
+              <li key={o.id}>
+                <button
+                  type="button"
+                  onClick={() => handleSwitch(o.id)}
+                  disabled={o.isActive || pending !== null}
+                  className={cn(
+                    "flex w-full items-center gap-2 px-3 py-2 text-left transition-colors",
+                    o.isActive
+                      ? "bg-primary-soft/40 cursor-default"
+                      : "hover:bg-muted",
+                    pending === o.id && "opacity-50",
+                  )}
+                >
+                  <FolderOpen
+                    className={cn(
+                      "size-4 shrink-0",
+                      o.isActive ? "text-primary" : "text-muted-foreground",
+                    )}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-foreground">{o.name}</p>
+                    <p className="text-[10.5px] text-muted-foreground">
+                      {ROLE_LABEL[o.role] ?? o.role}
+                    </p>
+                  </div>
+                  {o.isActive && <Check className="size-4 shrink-0 text-primary" />}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function UserMenu({ name, role }: { name: string; role: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -218,7 +332,7 @@ function UserMenu({ name, role }: { name: string; role: string }) {
   );
 }
 
-export function Sidebar({ userName, firmName, userRole }: SidebarProps) {
+export function Sidebar({ userName, firmName, userRole, organizations }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -283,14 +397,12 @@ export function Sidebar({ userName, firmName, userRole }: SidebarProps) {
           </div>
         </div>
 
-        {/* Desktop: Panel: <firmName> */}
+        {/* Desktop: Panel switcher (dropdown) */}
         <div
           className="hidden min-w-0 items-center gap-2 lg:flex"
           style={{ marginLeft: "var(--sidebar-w, 16rem)", transition: "margin-left 200ms" }}
         >
-          <FolderOpen className="size-4 shrink-0 text-muted-foreground" />
-          <span className="shrink-0 text-sm text-muted-foreground">Panel:</span>
-          <span className="truncate text-sm font-semibold text-foreground">{firmName}</span>
+          <PanelSwitcher firmName={firmName} organizations={organizations ?? []} />
         </div>
 
         {/* Right: bell + user */}

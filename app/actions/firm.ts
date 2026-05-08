@@ -1,96 +1,112 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth";
-import { generateToken } from "@/lib/utils";
-import { UserRole } from "@prisma/client";
+import { requireAuth } from "@/lib/auth";
+import { isAdmin, type Role } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 
+// Karardestek pattern'inde Organization tablosu sadece (id, name, owner_id)
+// alanlarini tutar — eski Firm.themeColor/address/logo gibi alanlar yok.
+// Firma adi guncellemesi tek desteklenen alan.
 export async function updateFirmProfile(formData: FormData) {
-  const user = await requireRole([UserRole.FIRM_ADMIN]);
+  const user = await requireAuth();
+  if (!isAdmin(user)) return;
 
   const name = formData.get("name") as string;
-  const address = formData.get("address") as string;
-  const phone = formData.get("phone") as string;
-  const email = formData.get("email") as string;
-  const website = formData.get("website") as string;
-  const taxNumber = formData.get("taxNumber") as string;
-  const themeColor = formData.get("themeColor") as string;
+  if (!name || name.trim() === "") return;
 
-  await prisma.firm.update({
-    where: { id: user.firmId },
-    data: {
-      name: name || undefined,
-      address: address || null,
-      phone: phone || null,
-      email: email || null,
-      website: website || null,
-      taxNumber: taxNumber || null,
-      themeColor: themeColor || "#F59E0B",
-    },
+  await prisma.organization.update({
+    where: { id: user.organizationId },
+    data: { name: name.trim() },
   });
 
   revalidatePath("/firm-settings");
 }
 
+// Davet sistemi public.invitations tablosu uzerinden ilerler. Burada
+// invitation INSERT yapariz; davet kabul edilince /invite/[token] sayfasi
+// organization_members kaydi acar.
 export async function inviteUser(formData: FormData) {
-  const user = await requireRole([UserRole.FIRM_ADMIN]);
+  const user = await requireAuth();
+  if (!isAdmin(user)) return { error: "Bu islem icin yetkin yok" };
 
   const email = formData.get("email") as string;
-  const role = formData.get("role") as UserRole;
+  const role = formData.get("role") as Role;
 
   if (!email || !role) return { error: "E-posta ve rol zorunludur" };
+  if (!["admin", "user", "viewer"].includes(role)) return { error: "Gecersiz rol" };
 
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) return { error: "Bu e-posta zaten kayıtlı" };
+  // Mevcut davet varsa kaldir (yenisi olusturulacak)
+  // Note: invitations tablosu public schema'da, Prisma'da henuz model yok.
+  // Bu islemi raw SQL veya Supabase client ile yapmak gerekecek — simdilik TODO.
 
-  await prisma.inviteToken.deleteMany({ where: { firmId: user.firmId, email } });
+  const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invite/accept`;
 
-  const token = generateToken(64);
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  // TODO: invitations tablosuna INSERT (Karardestek pattern), Resend ile e-posta gonder.
+  console.log(`Davet linki (${email}, role=${role}): ${inviteUrl}`);
 
-  await prisma.inviteToken.create({
-    data: { firmId: user.firmId, email, role, token, expiresAt },
+  revalidatePath("/firm-settings");
+  return { success: `${email} adresine davet linki olusturuldu (e-posta gonderimi henuz aktif degil)`, inviteUrl };
+}
+
+// Kullanici rolunu degistir — organization_members.role guncellenir.
+// Profile.role o anda aktif org icin uretilir; eger hedef kullanici bu org'u
+// active tutuyorsa onun profile.role'unu de yenilemek gerekir.
+export async function updateUserRole(userId: string, role: Role) {
+  const admin = await requireAuth();
+  if (!isAdmin(admin)) return;
+  if (!["admin", "user", "viewer"].includes(role)) return;
+
+  // Hedef kullanici bizim org'a uye mi?
+  const membership = await prisma.organizationMember.findUnique({
+    where: { userId_organizationId: { userId, organizationId: admin.organizationId } },
+  });
+  if (!membership) return;
+
+  // Kendi rolumuzu degistirmemize izin verme
+  if (userId === admin.id) return;
+
+  await prisma.organizationMember.update({
+    where: { userId_organizationId: { userId, organizationId: admin.organizationId } },
+    data: { role },
   });
 
-  const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/register?token=${token}`;
+  // Hedef kullanici bu org'u aktif tutuyorsa profile.role'unu da senkronla
+  const target = await prisma.profile.findUnique({ where: { id: userId } });
+  if (target && target.organizationId === admin.organizationId) {
+    await prisma.profile.update({ where: { id: userId }, data: { role } });
+  }
 
-  // TODO: Resend ile e-posta gönder
-  console.log(`Davet linki (${email}): ${inviteUrl}`);
-
-  revalidatePath("/firm-settings");
-  return { success: `${email} adresine davet gönderildi`, inviteUrl };
-}
-
-export async function updateUserRole(userId: string, role: UserRole) {
-  const admin = await requireRole([UserRole.FIRM_ADMIN]);
-
-  const target = await prisma.user.findUnique({ where: { id: userId } });
-  if (!target || target.firmId !== admin.firmId) return;
-  if (target.role === UserRole.FIRM_ADMIN) return; // FIRM_ADMIN rolü değiştirilemez
-
-  await prisma.user.update({ where: { id: userId }, data: { role } });
+  revalidatePath("/admin/users");
   revalidatePath("/firm-settings");
 }
 
-export async function toggleUserActive(userId: string) {
-  const admin = await requireRole([UserRole.FIRM_ADMIN]);
-
-  const target = await prisma.user.findUnique({ where: { id: userId } });
-  if (!target || target.firmId !== admin.firmId) return;
-  if (target.role === UserRole.FIRM_ADMIN) return;
-
-  await prisma.user.update({ where: { id: userId }, data: { isActive: !target.isActive } });
-  revalidatePath("/firm-settings");
-}
-
+// Kullaniciyi org'dan cikar — organization_members kaydi silinir.
+// Eger hedef bu org'u aktif tutuyorsa, kendi org'una geri at (default).
 export async function removeUser(userId: string) {
-  const admin = await requireRole([UserRole.FIRM_ADMIN]);
+  const admin = await requireAuth();
+  if (!isAdmin(admin)) return;
+  if (userId === admin.id) return;
 
-  const target = await prisma.user.findUnique({ where: { id: userId } });
-  if (!target || target.firmId !== admin.firmId) return;
-  if (target.role === UserRole.FIRM_ADMIN) return;
+  await prisma.organizationMember.deleteMany({
+    where: { userId, organizationId: admin.organizationId },
+  });
 
-  await prisma.user.delete({ where: { id: userId } });
+  // Eger hedef bu org'u aktif tutuyorsa, kullanicinin sahip oldugu bir org'a yonlendir
+  const target = await prisma.profile.findUnique({
+    where: { id: userId },
+    include: { memberships: { include: { organization: true }, take: 1 } },
+  });
+  if (target && target.organizationId === admin.organizationId) {
+    const fallback = target.memberships[0];
+    if (fallback) {
+      await prisma.profile.update({
+        where: { id: userId },
+        data: { organizationId: fallback.organizationId, role: fallback.role },
+      });
+    }
+  }
+
+  revalidatePath("/admin/users");
   revalidatePath("/firm-settings");
 }

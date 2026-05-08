@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
-import { hasPermission } from "@/lib/auth";
+import { canGeneratePDF as canGenPdf } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { StepIndicator } from "@/components/project/step-indicator";
 import { ProposalEditor } from "@/components/project/proposal-editor";
@@ -16,21 +16,21 @@ export default async function ProposalPage({ params }: Props) {
 
   const [project, subscription] = await Promise.all([
     prisma.project.findFirst({
-      where: { id, firmId: user.firmId },
+      where: { id, organizationId: user.organizationId },
       include: {
         pricingSnapshot: true,
         equipmentItems: { orderBy: { sortOrder: "asc" } },
         costItems: true,
         proposal: true,
-        firm: true,
+        organization: true,
       },
     }),
-    prisma.subscription.findUnique({ where: { firmId: user.firmId } }),
+    prisma.subscription.findUnique({ where: { organizationId: user.organizationId } }),
   ]);
 
   if (!project) notFound();
 
-  const canGeneratePDF = hasPermission(user.role, "canGeneratePDF");
+  const canGeneratePDF = canGenPdf(user);
   const isLimitReached =
     subscription &&
     subscription.monthlyProposalLimit !== -1 &&

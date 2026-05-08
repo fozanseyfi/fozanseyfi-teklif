@@ -1,103 +1,67 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseServer } from "@/lib/supabase/server";
-import { PlanType, SubStatus, UserRole } from "@prisma/client";
+import type { Profile, Organization } from "@prisma/client";
 import { redirect } from "next/navigation";
 
 const PLATFORM_OWNER_EMAIL = "fozanseyfi@gmail.com";
 
-// Paylasilan auth.users uzerinden ilk defa bu siteye giris yapan kullanici
-// icin Profile (solar.User) + default Firm + Subscription olusturur.
-// Idempotent: mevcut Profile varsa hicbir sey yapmaz, ayni satiri doner.
-// 4 site arasinda click-through SSO icin kritik — Karardestek'ten gelen
-// kullanici otomatik olarak buraya da onboarding yapilmis sayilir.
-type AuthLike = {
+export type ProfileWithOrg = Profile & { organization: Organization };
+
+// Karardestek pattern: kimlik public.profiles + public.organizations'tan
+// gelir; bu projedeki tablolar (Project, Subscription) profile.organizationId
+// uzerinden filtrelenir. profiles ve organizations Karardestek tarafindan
+// trigger ile signup'ta otomatik yaratilir.
+//
+// Profile yoksa default org acan onboarding fallback'i: kullanici Karardestek
+// trigger'i calismadan dogrudan bu siteye gelmisse (eski kullanicilar veya
+// trigger devre disi) burada yedek olarak yaratiliyor.
+async function ensureProfile(authUser: {
   id: string;
   email?: string | null;
-  user_metadata?: { name?: unknown } | null;
-};
-
-async function ensureProfile(authUser: AuthLike) {
-  // Once mevcut auth.users.id ile bagli Profile var mi?
-  const byId = await prisma.user.findUnique({
+  user_metadata?: { name?: unknown; full_name?: unknown } | null;
+}): Promise<ProfileWithOrg> {
+  const existing = await prisma.profile.findUnique({
     where: { id: authUser.id },
-    include: { firm: true },
+    include: { organization: true },
   });
-  if (byId) return byId;
+  if (existing) return existing;
 
   const email = (authUser.email ?? "").trim();
-
-  // ID ile bulunmadi ama ayni email'le bir Profile varsa: muhtemelen Supabase
-  // signUp obfuscation veya Karardestek'ten gelen kullanici icin daha onceki
-  // baska bir id ile yaratilmis. ID'yi gercek auth.users.id ile senkron et —
-  // Project FK'lari yoksa basit update, varsa cascade gerek (simdilik User
-  // henuz proje olusturmamissa cascade'siz update calisir).
-  if (email) {
-    const byEmail = await prisma.user.findFirst({
-      where: { email: { equals: email, mode: "insensitive" } },
-      include: { firm: true },
-    });
-    if (byEmail) {
-      try {
-        const synced = await prisma.user.update({
-          where: { id: byEmail.id },
-          data: { id: authUser.id },
-          include: { firm: true },
-        });
-        return synced;
-      } catch (e) {
-        // Cascade yoksa update fail edebilir — fallback: eski satiri sil, yeni id ile yarat (firmId ayni).
-        console.warn("User.id sync failed, falling back to delete+create", e);
-        await prisma.user.delete({ where: { id: byEmail.id } });
-        return prisma.user.create({
-          data: {
-            id: authUser.id,
-            name: byEmail.name,
-            email: byEmail.email,
-            role: byEmail.role,
-            firmId: byEmail.firmId,
-            isActive: byEmail.isActive,
-          },
-          include: { firm: true },
-        });
-      }
-    }
-  }
-
-  const metaName = typeof authUser.user_metadata?.name === "string" ? authUser.user_metadata.name : "";
-  const name = metaName || email.split("@")[0] || "Kullanıcı";
-  const isPlatformOwner = email.toLowerCase() === PLATFORM_OWNER_EMAIL;
-
-  const now = new Date();
-  const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+  const meta = authUser.user_metadata ?? {};
+  const metaName =
+    typeof meta.full_name === "string"
+      ? meta.full_name
+      : typeof meta.name === "string"
+        ? meta.name
+        : "";
+  const fullName = metaName || email.split("@")[0] || "Kullanıcı";
 
   return prisma.$transaction(async (tx) => {
-    const firm = await tx.firm.create({ data: { name } });
-    const user = await tx.user.create({
+    const org = await tx.organization.create({
+      data: { name: `${fullName} Paneli`, ownerId: authUser.id },
+    });
+    const profile = await tx.profile.create({
       data: {
         id: authUser.id,
-        name,
         email,
-        role: UserRole.FIRM_ADMIN,
-        firmId: firm.id,
+        fullName,
+        role: "admin",
+        organizationId: org.id,
+        onboardingCompleted: true,
       },
-      include: { firm: true },
+      include: { organization: true },
     });
-    await tx.subscription.create({
-      data: {
-        firmId: firm.id,
-        plan: isPlatformOwner ? PlanType.ENTERPRISE : PlanType.FREE,
-        status: SubStatus.ACTIVE,
-        monthlyProposalLimit: isPlatformOwner ? 99999 : 3,
-        periodStart: now,
-        periodEnd,
-      },
+    await tx.organizationMember.create({
+      data: { userId: authUser.id, organizationId: org.id, role: "admin" },
     });
-    return user;
+    return profile;
   });
 }
 
-export async function getCurrentUser() {
+// Aktif organizasyonu doner. Profile.organizationId = "active" olarak kullanilir;
+// kullanici panel switcher ile bu degeri degistirir, RLS otomatik filtreler.
+export async function getCurrentUser(): Promise<ProfileWithOrg | null> {
   const supabase = await createSupabaseServer();
   const {
     data: { user: authUser },
@@ -105,36 +69,44 @@ export async function getCurrentUser() {
 
   if (!authUser) return null;
 
-  const user = await ensureProfile(authUser);
-  if (!user.isActive) return null;
-  return user;
+  return await ensureProfile(authUser);
 }
 
-export async function requireAuth() {
+export async function requireAuth(): Promise<ProfileWithOrg> {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   return user;
 }
 
-export async function requireRole(allowedRoles: UserRole[]) {
+export type Role = "admin" | "user" | "viewer";
+
+export async function requireRole(allowed: Role[]): Promise<ProfileWithOrg> {
   const user = await requireAuth();
-  if (!allowedRoles.includes(user.role)) redirect("/dashboard");
+  if (!allowed.includes(user.role as Role)) redirect("/dashboard");
   return user;
 }
 
-export const ROLE_PERMISSIONS = {
-  canCreateProject: [UserRole.FIRM_ADMIN, UserRole.MANAGER, UserRole.MEMBER],
-  canEditOwnProject: [UserRole.FIRM_ADMIN, UserRole.MANAGER, UserRole.MEMBER],
-  canEditAllProjects: [UserRole.FIRM_ADMIN, UserRole.MANAGER],
-  canGeneratePDF: [UserRole.FIRM_ADMIN, UserRole.MANAGER],
-  canViewProjects: [UserRole.FIRM_ADMIN, UserRole.MANAGER, UserRole.MEMBER, UserRole.VIEWER],
-  canManageUsers: [UserRole.FIRM_ADMIN],
-  canManageFirm: [UserRole.FIRM_ADMIN],
-  canManageSubscription: [UserRole.FIRM_ADMIN],
-  isAdmin: [] as UserRole[],
-} as const;
-
-export function hasPermission(role: UserRole, permission: keyof typeof ROLE_PERMISSIONS): boolean {
-  const allowed = ROLE_PERMISSIONS[permission] as readonly UserRole[];
-  return allowed.includes(role);
+// Kullanicinin uye oldugu tum organizasyonlar (panel switcher icin).
+export async function getUserOrganizations(userId: string) {
+  return prisma.organizationMember.findMany({
+    where: { userId },
+    include: { organization: true },
+    orderBy: { joinedAt: "asc" },
+  });
 }
+
+// Aktif organizasyonu degistirme — profile.organizationId + profile.role
+// guncellenir, RLS uyumlu kalir.
+export async function switchActiveOrganization(userId: string, newOrgId: string) {
+  const membership = await prisma.organizationMember.findUnique({
+    where: { userId_organizationId: { userId, organizationId: newOrgId } },
+  });
+  if (!membership) throw new Error("Bu organizasyona uyeligin yok");
+
+  return prisma.profile.update({
+    where: { id: userId },
+    data: { organizationId: newOrgId, role: membership.role },
+  });
+}
+
+export const PLATFORM_OWNER = PLATFORM_OWNER_EMAIL;

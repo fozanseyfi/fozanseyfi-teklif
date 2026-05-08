@@ -26,14 +26,14 @@ import {
 } from "@/lib/pricing-engine";
 import { FileDown, CheckCircle, ArrowLeft, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import type { Project, PricingSnapshot, EquipmentItem, CostItem, Proposal, Firm } from "@prisma/client";
+import type { Project, PricingSnapshot, EquipmentItem, CostItem, Proposal, Organization } from "@prisma/client";
 
 type FullProject = Project & {
   pricingSnapshot: PricingSnapshot | null;
   equipmentItems: EquipmentItem[];
   costItems: CostItem[];
   proposal: Proposal | null;
-  firm: Firm;
+  organization: Organization;
 };
 
 const SECTIONS = [
@@ -207,7 +207,7 @@ export function ProposalEditor({
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600">
               <span className="text-xl">☀</span>
             </div>
-            <p className="text-lg font-bold text-emerald-400">{project.firm.name}</p>
+            <p className="text-lg font-bold text-emerald-400">{project.organization.name}</p>
             <h1 className="mt-4 text-2xl font-bold text-white">SOLAR ENERJİ SİSTEMİ</h1>
             <h2 className="text-xl text-white">PROJE TEKLİFİ</h2>
             <div className="mx-auto mt-6 inline-block w-full max-w-xs rounded-lg bg-slate-700 p-4 text-left">

@@ -15,7 +15,7 @@ export default async function FinancialsPage({ params }: Props) {
   const user = await requireAuth();
 
   const project = await prisma.project.findFirst({
-    where: { id, firmId: user.firmId },
+    where: { id, organizationId: user.organizationId },
     include: { pricingSnapshot: true },
   });
   if (!project) notFound();

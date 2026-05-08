@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { updateFirmProfile, inviteUser, updateUserRole, toggleUserActive, removeUser } from "@/app/actions/firm";
+import { updateFirmProfile, inviteUser, updateUserRole, removeUser } from "@/app/actions/firm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,15 +9,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ROLE_LABELS } from "@/lib/utils";
-import { UserRole } from "@prisma/client";
+import { ROLE_LABELS, type Role } from "@/lib/permissions";
 import { UserPlus, Trash2, Settings } from "lucide-react";
 import { toast } from "sonner";
-import type { Firm, User } from "@prisma/client";
+import type { Organization } from "@prisma/client";
+
+interface MemberRow {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+  createdAt: Date;
+}
 
 interface Props {
-  firm: Firm;
-  users: User[];
+  firm: Organization;
+  users: MemberRow[];
   currentUserId: string;
 }
 
@@ -35,59 +43,20 @@ export function FirmSettingsForm({ firm, users, currentUserId }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Firma Profili */}
+      {/* Firma Profili — sadece isim (Karardestek pattern) */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Settings className="size-4" /> Firma Profili
+            <Settings className="size-4" /> Panel Adı
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={updateFirmProfile} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Firma Adı *</Label>
-                <Input name="name" defaultValue={firm.name} required />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Vergi Numarası</Label>
-                <Input name="taxNumber" defaultValue={firm.taxNumber ?? ""} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>E-posta</Label>
-                <Input name="email" type="email" defaultValue={firm.email ?? ""} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Telefon</Label>
-                <Input name="phone" defaultValue={firm.phone ?? ""} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Web Sitesi</Label>
-                <Input name="website" defaultValue={firm.website ?? ""} placeholder="https://" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Tema Rengi (Aksan)</Label>
-                <div className="flex gap-2">
-                  <Input name="themeColor" defaultValue={firm.themeColor} placeholder="#059669" />
-                  <input
-                    type="color"
-                    defaultValue={firm.themeColor}
-                    className="size-10 cursor-pointer rounded border bg-card"
-                    onChange={(e) => {
-                      const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                      if (input) input.value = e.target.value;
-                    }}
-                  />
-                </div>
-              </div>
+          <form action={updateFirmProfile} className="flex items-end gap-3">
+            <div className="flex-1 space-y-1.5">
+              <Label>Panel Adı</Label>
+              <Input name="name" defaultValue={firm.name} required />
             </div>
-            <div className="space-y-1.5">
-              <Label>Adres</Label>
-              <Input name="address" defaultValue={firm.address ?? ""} />
-            </div>
-            <div className="flex justify-end">
-              <Button type="submit">Kaydet</Button>
-            </div>
+            <Button type="submit">Kaydet</Button>
           </form>
         </CardContent>
       </Card>
@@ -96,11 +65,10 @@ export function FirmSettingsForm({ firm, users, currentUserId }: Props) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <UserPlus className="size-4" /> Kullanıcı Yönetimi
+            <UserPlus className="size-4" /> Ekip Yönetimi
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Mevcut Kullanıcılar */}
           <div className="overflow-hidden rounded-lg border">
             <table className="w-full text-sm">
               <thead>
@@ -108,7 +76,6 @@ export function FirmSettingsForm({ firm, users, currentUserId }: Props) {
                   <th className="px-4 py-2.5 text-left font-medium">İsim</th>
                   <th className="px-4 py-2.5 text-left font-medium">E-posta</th>
                   <th className="px-4 py-2.5 text-left font-medium">Rol</th>
-                  <th className="px-4 py-2.5 text-center font-medium">Durum</th>
                   <th className="px-4 py-2.5" />
                 </tr>
               </thead>
@@ -118,54 +85,40 @@ export function FirmSettingsForm({ firm, users, currentUserId }: Props) {
                     <td className="px-4 py-3 font-medium text-foreground">{u.name}</td>
                     <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
                     <td className="px-4 py-3">
-                      {u.role === UserRole.FIRM_ADMIN || u.id === currentUserId ? (
-                        <span className="text-xs font-medium text-primary">{ROLE_LABELS[u.role]}</span>
+                      {u.id === currentUserId ? (
+                        <Badge variant="default" className="text-xs">
+                          {ROLE_LABELS[u.role as Role] ?? u.role}
+                        </Badge>
                       ) : (
-                        <form action={async (fd) => {
-                          const role = fd.get("role") as UserRole;
-                          await updateUserRole(u.id, role);
-                        }}>
-                          <Select name="role" defaultValue={u.role} onValueChange={async (val) => {
-                            const fd = new FormData();
-                            fd.set("role", val);
-                            await updateUserRole(u.id, val as UserRole);
-                          }}>
-                            <SelectTrigger className="h-7 w-36 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Object.entries(ROLE_LABELS)
-                                .filter(([v]) => v !== "FIRM_ADMIN")
-                                .map(([v, l]) => (
-                                  <SelectItem key={v} value={v}>{l}</SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                        </form>
+                        <Select
+                          defaultValue={u.role}
+                          onValueChange={async (val) => {
+                            await updateUserRole(u.id, val as Role);
+                            toast.success("Rol güncellendi");
+                          }}
+                        >
+                          <SelectTrigger className="h-7 w-36 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(Object.entries(ROLE_LABELS) as [Role, string][]).map(([v, l]) => (
+                              <SelectItem key={v} value={v}>{l}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-center">
-                      <Badge variant={u.isActive ? "success" : "secondary"}>
-                        {u.isActive ? "Aktif" : "Pasif"}
-                      </Badge>
-                    </td>
                     <td className="px-4 py-3 text-right">
-                      {u.id !== currentUserId && u.role !== UserRole.FIRM_ADMIN && (
-                        <div className="flex items-center justify-end gap-1">
-                          <form action={toggleUserActive.bind(null, u.id)}>
-                            <Button type="submit" variant="ghost" size="sm" className="h-7 text-xs">
-                              {u.isActive ? "Pasifleştir" : "Aktifleştir"}
-                            </Button>
-                          </form>
-                          <form action={removeUser.bind(null, u.id)}>
-                            <button
-                              type="submit"
-                              className="ml-1 text-muted-foreground transition-colors hover:text-destructive"
-                            >
-                              <Trash2 className="size-4" />
-                            </button>
-                          </form>
-                        </div>
+                      {u.id !== currentUserId && (
+                        <form action={removeUser.bind(null, u.id)}>
+                          <button
+                            type="submit"
+                            className="text-muted-foreground transition-colors hover:text-destructive"
+                            title="Panelden çıkar"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </form>
                       )}
                     </td>
                   </tr>
@@ -176,7 +129,6 @@ export function FirmSettingsForm({ firm, users, currentUserId }: Props) {
 
           <Separator />
 
-          {/* Davet Et */}
           <div>
             <h3 className="mb-3 text-sm font-semibold text-foreground">Kullanıcı Davet Et</h3>
             <form action={handleInvite} className="flex flex-wrap items-end gap-3">
@@ -186,16 +138,14 @@ export function FirmSettingsForm({ firm, users, currentUserId }: Props) {
               </div>
               <div className="space-y-1.5">
                 <Label>Rol</Label>
-                <Select name="role" defaultValue="MEMBER">
+                <Select name="role" defaultValue="user">
                   <SelectTrigger className="w-44">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(ROLE_LABELS)
-                      .filter(([v]) => v !== "FIRM_ADMIN")
-                      .map(([v, l]) => (
-                        <SelectItem key={v} value={v}>{l}</SelectItem>
-                      ))}
+                    {(Object.entries(ROLE_LABELS) as [Role, string][]).map(([v, l]) => (
+                      <SelectItem key={v} value={v}>{l}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

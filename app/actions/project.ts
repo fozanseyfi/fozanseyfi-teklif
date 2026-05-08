@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
@@ -12,7 +12,7 @@ export async function createProject() {
   const project = await prisma.project.create({
     data: {
       name: "",
-      firmId: user.firmId,
+      organizationId: user.organizationId,
       createdById: user.id,
       customerName: "",
       projectLocation: "",
@@ -28,7 +28,7 @@ export async function createProject() {
 export async function deleteProject(projectId: string) {
   const user = await requireAuth();
   await prisma.project.deleteMany({
-    where: { id: projectId, firmId: user.firmId },
+    where: { id: projectId, organizationId: user.organizationId },
   });
   revalidatePath("/projects");
   revalidatePath("/dashboard");
@@ -37,7 +37,7 @@ export async function deleteProject(projectId: string) {
 export async function saveStep1(projectId: string, formData: FormData) {
   const user = await requireAuth();
 
-  await ensureOwner(projectId, user.firmId);
+  await ensureOwner(projectId, user.organizationId);
 
   const name = formData.get("name") as string;
   const customerName = formData.get("customerName") as string;
@@ -74,7 +74,7 @@ export async function saveStep1(projectId: string, formData: FormData) {
 
 export async function saveStep2(projectId: string, formData: FormData) {
   const user = await requireAuth();
-  await ensureOwner(projectId, user.firmId);
+  await ensureOwner(projectId, user.organizationId);
 
   const panelCount = parseInt(formData.get("panelCount") as string) || 0;
   const panelPowerWp = parseFloat(formData.get("panelPowerWp") as string) || 0;
@@ -103,7 +103,7 @@ export async function saveStep2(projectId: string, formData: FormData) {
   }
 
   const costs = distributeCosts(baseTotalPrice);
-  finalSalePrice = baseTotalPrice * 1.2; // %20 kâr marjı varsayılan
+  finalSalePrice = baseTotalPrice * 1.2; // %20 kÃ¢r marjÄ± varsayÄ±lan
 
   await prisma.$transaction([
     prisma.project.update({
@@ -144,11 +144,11 @@ export async function saveStep2(projectId: string, formData: FormData) {
 
 export async function saveStep3(projectId: string, formData: FormData) {
   const user = await requireAuth();
-  await ensureOwner(projectId, user.firmId);
+  await ensureOwner(projectId, user.organizationId);
 
   const profitMargin = parseFloat(formData.get("profitMargin") as string) / 100 || 0.2;
 
-  // Ekipman ve maliyet toplamlarını DB'den hesapla
+  // Ekipman ve maliyet toplamlarÄ±nÄ± DB'den hesapla
   const [equipmentItems, costItems] = await Promise.all([
     prisma.equipmentItem.findMany({ where: { projectId } }),
     prisma.costItem.findMany({ where: { projectId } }),
@@ -201,7 +201,7 @@ export async function saveStep3(projectId: string, formData: FormData) {
 
 export async function saveStep4(projectId: string, formData: FormData) {
   const user = await requireAuth();
-  await ensureOwner(projectId, user.firmId);
+  await ensureOwner(projectId, user.organizationId);
 
   const annualInflationRate = parseFloat(formData.get("annualInflationRate") as string) / 100 || 0.4;
   const electricityEscalationRate =
@@ -225,7 +225,7 @@ export async function saveStep4(projectId: string, formData: FormData) {
 
 export async function markCompleted(projectId: string) {
   const user = await requireAuth();
-  await ensureOwner(projectId, user.firmId);
+  await ensureOwner(projectId, user.organizationId);
 
   await prisma.project.update({
     where: { id: projectId },
@@ -238,7 +238,7 @@ export async function markCompleted(projectId: string) {
 
 export async function updateProjectStatus(projectId: string, status: string) {
   const user = await requireAuth();
-  await ensureOwner(projectId, user.firmId);
+  await ensureOwner(projectId, user.organizationId);
 
   await prisma.project.update({
     where: { id: projectId },
@@ -251,12 +251,12 @@ export async function updateProjectStatus(projectId: string, status: string) {
 }
 
 
-async function ensureOwner(projectId: string, firmId: string) {
+async function ensureOwner(projectId: string, organizationId: string) {
   const project = await prisma.project.findUnique({ where: { id: projectId } });
-  if (!project || project.firmId !== firmId) {
+  if (!project || project.organizationId !== organizationId) {
     redirect("/projects");
   }
   if (project.isTemplate && project.templateLocked) {
-    throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
+    throw new Error("Åablon kilitli â€” dÃ¼zenlenemez. 'Bu ÅŸablonu kullan' ile yeni proje oluÅŸturun.");
   }
 }

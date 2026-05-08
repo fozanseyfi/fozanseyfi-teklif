@@ -4,75 +4,74 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["solar"]
+  schemas  = ["solar", "public"]
 }
 
-model Firm {
-  id         String   @id @default(cuid())
-  name       String
-  logoUrl    String?
-  address    String?
-  phone      String?
-  email      String?
-  taxNumber  String?
-  website    String?
-  themeColor String   @default("#F59E0B")
-  createdAt  DateTime @default(now())
+// =============================================================================
+// Paylasilan kimlik tablolari (public schema) — Karardestek tarafindan yonetilir.
+// 4 site arasinda ortak. Bu projenin tablolari `solar` schema'sinda izole tutulur.
+// =============================================================================
 
-  users        User[]
-  projects     Project[]
-  subscription Subscription?
+model Profile {
+  id                  String   @id @db.Uuid // = auth.users.id
+  email               String?
+  fullName            String?  @map("full_name")
+  avatarUrl           String?  @map("avatar_url")
+  role                String   // 'admin' | 'user' | 'viewer' — active org icindeki rol
+  organizationId     String   @map("organization_id") @db.Uuid
+  organization       Organization @relation("ActiveOrg", fields: [organizationId], references: [id])
+  onboardingCompleted Boolean  @default(false) @map("onboarding_completed")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
 
-  @@schema("solar")
+  memberships  OrganizationMember[]
+  ownedOrgs    Organization[]       @relation("OrgOwner")
+  projects     Project[]            @relation("ProjectCreatedBy")
+
+  @@map("profiles")
+  @@schema("public")
 }
 
-// Profile-pattern row: kimlik (email + parola) Supabase Auth (`auth.users`)
-// tarafindan yonetiliyor. Burada sadece domain extension alanlari tutuluyor.
-// `id` her satirda Supabase'in `auth.users.id` (uuid) ile bire-bir eslesir;
-// signup/signIn akisinda set edilir, otomatik default yok.
-model User {
-  id        String   @id
+model Organization {
+  id        String   @id @default(uuid()) @db.Uuid
   name      String
-  email     String   @unique
-  role      UserRole @default(MEMBER)
-  firmId    String
-  firm      Firm     @relation(fields: [firmId], references: [id])
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  ownerId   String?  @map("owner_id") @db.Uuid
+  owner     Profile? @relation("OrgOwner", fields: [ownerId], references: [id])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  projects Project[]
+  members       OrganizationMember[]
+  activeMembers Profile[]            @relation("ActiveOrg")
+  projects      Project[]
+  subscription  Subscription?
 
-  @@schema("solar")
+  @@map("organizations")
+  @@schema("public")
 }
 
-model InviteToken {
-  id        String    @id @default(cuid())
-  firmId    String
-  email     String
-  role      UserRole  @default(MEMBER)
-  token     String    @unique
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
+model OrganizationMember {
+  userId         String       @map("user_id") @db.Uuid
+  user           Profile      @relation(fields: [userId], references: [id])
+  organizationId String       @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  role           String       // 'admin' | 'user' | 'viewer'
+  joinedAt       DateTime     @default(now()) @map("joined_at")
 
-  @@schema("solar")
+  @@id([userId, organizationId])
+  @@map("organization_members")
+  @@schema("public")
 }
 
-enum UserRole {
-  FIRM_ADMIN
-  MANAGER
-  MEMBER
-  VIEWER
-
-  @@schema("solar")
-}
+// =============================================================================
+// Bu projenin domain tablolari (solar schema)
+// =============================================================================
 
 model Project {
-  id          String @id @default(cuid())
-  firmId      String
-  firm        Firm   @relation(fields: [firmId], references: [id])
-  createdById String
-  createdBy   User   @relation(fields: [createdById], references: [id])
+  id              String       @id @default(cuid())
+  organizationId  String       @map("organization_id") @db.Uuid
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  createdById     String       @db.Uuid
+  createdBy       Profile      @relation("ProjectCreatedBy", fields: [createdById], references: [id])
 
   name            String
   customerName    String  @default("")
@@ -101,13 +100,9 @@ model Project {
   status      ProjectStatus @default(DRAFT)
   currentStep Int           @default(1)
 
-  // Sablonlar — ana proje listesinde gozukmez, /templates'de gosterilir.
-  // "Bu sablonu kullan" deyince yeni bir Project olarak klonlanir.
   isTemplate    Boolean @default(false)
   templateLabel String?
   templateOrder Int     @default(0)
-  // false: sablon hala duzenleniyor (form'lar acik). true: son hali —
-  // tum save action'lari engellenir, sayfada CSS read-only kilidi kalkar.
   templateLocked Boolean @default(false)
 
   createdAt DateTime @default(now())
@@ -120,6 +115,7 @@ model Project {
   projectDetail   ProjectDetail?
 
   @@index([isTemplate, templateOrder])
+  @@index([organizationId])
   @@schema("solar")
 }
 
@@ -270,16 +266,16 @@ model Proposal {
 }
 
 model Subscription {
-  id                   String    @id @default(cuid())
-  firmId               String    @unique
-  firm                 Firm      @relation(fields: [firmId], references: [id])
+  id                   String       @id @default(cuid())
+  organizationId       String       @unique @map("organization_id") @db.Uuid
+  organization         Organization @relation(fields: [organizationId], references: [id])
   plan                 PlanType
   status               SubStatus
   monthlyProposalLimit Int
-  currentMonthCount    Int       @default(0)
+  currentMonthCount    Int          @default(0)
   periodStart          DateTime
   periodEnd            DateTime
-  createdAt            DateTime  @default(now())
+  createdAt            DateTime     @default(now())
 
   @@schema("solar")
 }
