@@ -41,7 +41,6 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Ana Menü",
     items: [
       { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-      { href: "/notifications", icon: Bell, label: "Bildirimler" },
     ],
   },
   {
@@ -54,7 +53,10 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: "Yönetim",
-    items: [{ href: "/firm-settings", icon: Settings, label: "Firma Ayarları" }],
+    items: [
+      { href: "/firm-settings", icon: Settings, label: "Firma Ayarları" },
+      { href: "/notifications", icon: Bell, label: "Bildirimler" },
+    ],
   },
   {
     label: "Destek",

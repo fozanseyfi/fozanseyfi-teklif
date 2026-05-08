@@ -152,7 +152,7 @@ export default function ContactPage() {
       </div>
 
       {/* Diğer platformlar — fozanseyfi.com altındaki kardeş siteler */}
-      <OtherPlatforms />
+      <OtherPlatforms variant="compact" />
     </div>
   );
 }

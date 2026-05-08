@@ -9,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "SolarTeklif — Güneş Enerjisi Teklif Platformu",
-  description: "Solar enerji projeleriniz için hızlı, profesyonel teklif hazırlayın",
+  title: "SolarTeklif — Solar EPC Teklif Yönetim Platformu",
+  description: "Solar EPC projelerinde maliyet, kapsam ve teklif kalemlerini düzenli tutmak için bireysel inisiyatifle geliştirilmiş bir araç.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

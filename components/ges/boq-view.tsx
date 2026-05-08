@@ -46,7 +46,7 @@ export function BoQView({ projectId, projectName, project, kesifA, kesifB, setti
 
   const result = useMemo(() => calc(kesifA, kesifB, settings), [kesifA, kesifB, settings]);
 
-  // Boş kalemler (miktar = 0) BoQ'da hep gizlenir — müşteriye gönderilen
+  // Boş kalemler (miktar = 0) BoQ'da hep gizlenir — yatırımcıyla paylaşılan
   // kapsam listesinde kullanılmamış kalem olmamalı. Hem GRUP kodları (A.7 boş
   // olduğu için silindi → A.8 yeni A.7 olur) hem de KALEM kodları görünür
   // sırayla yeniden numaralanır.
@@ -362,7 +362,7 @@ export function BoQView({ projectId, projectName, project, kesifA, kesifB, setti
         }
         notice={
           <span>
-            <strong>Bilgi:</strong> BoQ müşteriye gönderilen kapsam listesidir; boş (miktar = 0)
+            <strong>Bilgi:</strong> BoQ yatırımcıyla paylaşılan kapsam listesidir; boş (miktar = 0)
             kalemler <strong>otomatik silinir</strong> ve görünür kalemler{" "}
             <strong>yeniden sıralanır</strong>. Bu nedenle grup içi kod numaraları
             (örn. A.1.1, A.1.2…) keşif sayfalarındaki orijinal kodlarla birebir

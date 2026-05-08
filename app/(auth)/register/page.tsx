@@ -30,7 +30,7 @@ function RegisterForm() {
         <CardDescription>
           {inviteToken
             ? "Firma davetini kabul ederek kayıt olun"
-            : "Firmanız için ücretsiz hesap oluşturun"}
+            : "Hesap oluşturun ve kullanmaya başlayın"}
         </CardDescription>
       </CardHeader>
       <CardContent>

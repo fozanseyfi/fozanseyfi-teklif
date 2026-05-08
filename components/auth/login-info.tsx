@@ -19,14 +19,14 @@ export function PlatformNoteCard() {
           <Heart className="size-4" />
         </div>
         <p className="whitespace-nowrap text-[13.5px] font-bold tracking-tight text-foreground">
-          Bilgi Paylaşımı Amacıyla Geliştirilmiş Ücretsiz Platform
+          Bireysel İnisiyatifle Geliştirilmiş Bir Araç
         </p>
       </div>
       <p className="mt-2.5 text-[13px] leading-relaxed text-muted-foreground">
-        Tamamen <strong className="text-foreground">bağımsız bir inisiyatifle</strong> hayata
-        geçirilmiş olup; herhangi bir{" "}
-        <strong className="text-foreground">ticari model, gizli maliyet</strong> veya{" "}
-        <strong className="text-foreground">abonelik şartı</strong> barındırmaz.
+        Bu platform bir satış aracı değil; sahadaki günlük ihtiyaçlardan doğan,{" "}
+        <strong className="text-foreground">kişisel kullanım için geliştirilmiş</strong>{" "}
+        ve sektör paydaşlarıyla{" "}
+        <strong className="text-foreground">iyi niyetle paylaşılan</strong> bir araçtır.
       </p>
       <button
         type="button"

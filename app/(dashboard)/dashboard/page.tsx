@@ -125,15 +125,15 @@ export default async function DashboardPage() {
         <div className="relative">
           <div className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary-foreground backdrop-blur-sm">
             <Sparkles className="size-3" />
-            Solar EPC Teklif Platformu
+            Solar EPC Teklif Yönetimi
           </div>
           <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
             Hoş geldin, {user.name.split(" ")[0]}
           </h1>
           <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-emerald-50/90 sm:text-[15px]">
-            Solar EPC projelerinde malzeme & iş kalemlerini fiyatlandır,
-            müşteriye gönderilecek profesyonel teklifi hazırla. Şablonlardan
-            başlayarak hızlıca yeni proje oluşturabilirsin.
+            Solar EPC projelerinde malzeme ve iş kalemlerini düzenle, kapsamı
+            ve maliyeti tek ekranda görüntüle. Şablonlardan başlayarak yeni
+            bir proje açabilirsin.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             <Button
