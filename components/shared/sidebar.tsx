@@ -63,6 +63,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Yönetim",
     items: [
+      { href: "/admin/users", icon: Users, label: "Kullanıcılar" },
       { href: "/firm-settings", icon: Settings, label: "Firma Ayarları" },
       { href: "/notifications", icon: Bell, label: "Bildirimler" },
     ],

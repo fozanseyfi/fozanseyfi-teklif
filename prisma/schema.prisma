@@ -27,6 +27,7 @@ model Profile {
   memberships  OrganizationMember[]
   ownedOrgs    Organization[]       @relation("OrgOwner")
   projects     Project[]            @relation("ProjectCreatedBy")
+  invitations  Invitation[]         @relation("Inviter")
 
   @@map("profiles")
   @@schema("public")
@@ -42,10 +43,31 @@ model Organization {
 
   members       OrganizationMember[]
   activeMembers Profile[]            @relation("ActiveOrg")
+  invitations   Invitation[]
   projects      Project[]
   subscription  Subscription?
 
   @@map("organizations")
+  @@schema("public")
+}
+
+model Invitation {
+  id             String       @id @default(uuid()) @db.Uuid
+  email          String
+  role           String       // 'admin' | 'user' | 'viewer'
+  organizationId String       @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  platform       String
+  token          String       @unique
+  expiresAt      DateTime     @map("expires_at")
+  invitedBy      String?      @map("invited_by") @db.Uuid
+  inviter        Profile?     @relation("Inviter", fields: [invitedBy], references: [id])
+  acceptedAt     DateTime?    @map("accepted_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@index([organizationId, platform])
+  @@index([email])
+  @@map("invitations")
   @@schema("public")
 }
 

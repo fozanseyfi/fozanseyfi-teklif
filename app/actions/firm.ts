@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import { isAdmin, type Role } from "@/lib/permissions";
 import { PLATFORM_KEY } from "@/lib/platform";
+import { generateToken } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
 export async function updateFirmProfile(formData: FormData) {
@@ -21,27 +22,80 @@ export async function updateFirmProfile(formData: FormData) {
   revalidatePath("/firm-settings");
 }
 
-// Davet — bu platforma ozel.
-// public.invitations tablosu Karardestek tarafindan yonetiliyor;
-// orada da bir 'platform' kolonu var/eklenmeli. Simdilik invitation
-// kaydini Supabase client ile yapacagiz.
+// Davet olustur — public.invitations'a INSERT (platform-scoped).
+// E-posta gonderimi henuz yok; admin link'i kopyalayip elden iletir.
 export async function inviteUser(formData: FormData) {
   const user = await requireAuth();
   if (!isAdmin(user)) return { error: "Bu islem icin yetkin yok" };
 
-  const email = formData.get("email") as string;
+  const email = (formData.get("email") as string)?.trim().toLowerCase();
   const role = formData.get("role") as Role;
 
   if (!email || !role) return { error: "E-posta ve rol zorunludur" };
   if (!["admin", "user", "viewer"].includes(role)) return { error: "Gecersiz rol" };
 
-  const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invite/accept`;
+  // Bu org + platform'a ayni email ile mevcut bir uye varsa (zaten kabul edilmis davet)
+  const existingMember = await prisma.organizationMember.findFirst({
+    where: {
+      organizationId: user.organizationId,
+      platform: PLATFORM_KEY,
+      user: { email: { equals: email, mode: "insensitive" } },
+    },
+  });
+  if (existingMember) {
+    return { error: "Bu e-posta zaten bu paneldeki bir kullaniciya ait" };
+  }
 
-  // TODO: invitations tablosuna INSERT (platform=PLATFORM_KEY); Resend ile e-posta gonder.
-  console.log(`[${PLATFORM_KEY}] Davet linki (${email}, role=${role}): ${inviteUrl}`);
+  // Bekleyen davet varsa once temizle (yeni token uret)
+  await prisma.invitation.deleteMany({
+    where: {
+      email,
+      organizationId: user.organizationId,
+      platform: PLATFORM_KEY,
+      acceptedAt: null,
+    },
+  });
 
+  const token = generateToken(48);
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 gun
+
+  await prisma.invitation.create({
+    data: {
+      email,
+      role,
+      organizationId: user.organizationId,
+      platform: PLATFORM_KEY,
+      token,
+      expiresAt,
+      invitedBy: user.id,
+    },
+  });
+
+  const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invite/${token}`;
+
+  // TODO: Resend ile e-posta gonderimi. Simdilik admin link'i kopyalar.
+  console.log(`[${PLATFORM_KEY}] Davet (${email}, role=${role}): ${inviteUrl}`);
+
+  revalidatePath("/admin/users");
   revalidatePath("/firm-settings");
-  return { success: `${email} adresine davet linki olusturuldu (e-posta gonderimi henuz aktif degil)`, inviteUrl };
+  return { success: `${email} icin davet linki olusturuldu`, inviteUrl };
+}
+
+// Bekleyen daveti iptal et
+export async function cancelInvitation(invitationId: string) {
+  const admin = await requireAuth();
+  if (!isAdmin(admin)) return;
+
+  await prisma.invitation.deleteMany({
+    where: {
+      id: invitationId,
+      organizationId: admin.organizationId,
+      platform: PLATFORM_KEY,
+      acceptedAt: null,
+    },
+  });
+
+  revalidatePath("/admin/users");
 }
 
 // Bu platformdaki rol guncellemesi — diger platformlardaki uyelikleri etkilemez.
