@@ -81,7 +81,10 @@ export async function inviteUser(formData: FormData) {
   // bu URL bizim redirectTo'yu honored eder.
   // Vercel env'inde gizli newline/whitespace olabilir — trim sart.
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").trim();
-  const callbackUrl = `${appUrl}/auth/callback`;
+  // /auth/handler client-side komponenti hem implicit flow (hash) hem de
+  // PKCE/OTP query params'ini handle eder, sonra invitation_token'a gore
+  // /invite/<token>'a yonlendirir.
+  const callbackUrl = `${appUrl}/auth/handler`;
   console.log("[invite] DEBUG callbackUrl =", JSON.stringify(callbackUrl));
 
   try {

@@ -15,6 +15,7 @@ function isInviteRoute(pathname: string): boolean {
 function isExempt(pathname: string): boolean {
   return (
     pathname.startsWith("/auth/callback") ||
+    pathname.startsWith("/auth/handler") ||
     pathname.startsWith("/api/") ||
     pathname.startsWith("/_next/") ||
     pathname === "/favicon.ico"
