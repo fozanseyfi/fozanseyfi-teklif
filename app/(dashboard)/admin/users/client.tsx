@@ -51,7 +51,6 @@ export function AdminUsersClient({
 }: Props) {
   const [latestInvite, setLatestInvite] = useState<{
     url: string;
-    tempPassword: string | null;
     email: string;
   } | null>(null);
 
@@ -65,7 +64,6 @@ export function AdminUsersClient({
       if (result.inviteUrl) {
         setLatestInvite({
           url: result.inviteUrl,
-          tempPassword: result.tempPassword ?? null,
           email,
         });
       }
@@ -135,66 +133,26 @@ export function AdminUsersClient({
             </Button>
           </form>
           {latestInvite && (
-            <div className="mt-4 space-y-3 rounded-lg border border-success/30 bg-success-soft/50 p-3">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-success-soft-foreground/80">
-                  Davet hazır — kullanıcıya iletilecekler
+            <div className="mt-4 rounded-lg border border-success/30 bg-success-soft/50 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-success-soft-foreground/80">
+                Davet e-postası gönderildi — yedek link
+              </p>
+              <div className="mt-2 flex items-start justify-between gap-2 rounded-md border bg-card p-2">
+                <p className="min-w-0 flex-1 break-all text-xs font-mono text-foreground">
+                  {latestInvite.url}
                 </p>
-                <p className="mt-1 text-xs text-success-soft-foreground/80">
-                  Aşağıdaki bilgileri <strong>{latestInvite.email}</strong> adresine iletin
-                  (e-posta, mesaj vb.). Link 7 gün geçerli.
-                </p>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(latestInvite.url)}
+                  className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                  title="Kopyala"
+                >
+                  <Copy className="size-3.5" />
+                </button>
               </div>
-
-              {/* Davet linki */}
-              <div className="rounded-md border bg-card p-2.5">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Davet linki
-                    </p>
-                    <p className="mt-1 break-all text-xs font-mono text-foreground">
-                      {latestInvite.url}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(latestInvite.url)}
-                    className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                    title="Kopyala"
-                  >
-                    <Copy className="size-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Geçici şifre — sadece yeni kullanıcı için */}
-              {latestInvite.tempPassword && (
-                <div className="rounded-md border border-info/30 bg-info-soft/50 p-2.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-info-soft-foreground/80">
-                        Geçici şifre (yeni kullanıcı)
-                      </p>
-                      <p className="mt-1 break-all font-mono text-sm font-bold text-info-soft-foreground">
-                        {latestInvite.tempPassword}
-                      </p>
-                      <p className="mt-1 text-[11px] text-info-soft-foreground/80">
-                        Kullanıcı bu şifre ile giriş yaptıktan sonra davet sayfasında
-                        kalıcı şifresini belirleyecek.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(latestInvite.tempPassword!)}
-                      className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                      title="Kopyala"
-                    >
-                      <Copy className="size-3.5" />
-                    </button>
-                  </div>
-                </div>
-              )}
+              <p className="mt-2 text-[11px] text-success-soft-foreground/70">
+                Email gelmezse bu linki manuel iletebilirsin. Link 7 gün geçerli.
+              </p>
             </div>
           )}
         </CardContent>
