@@ -77,9 +77,8 @@ export function OtherPlatforms({ variant = "ribbon" }: Props) {
   const wrapperCls = isCompact
     ? "p-5 sm:p-6"
     : "mx-auto max-w-[1400px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10";
-  const gridCls = isCompact
-    ? "grid grid-cols-1 gap-3 sm:grid-cols-2"
-    : "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5";
+  // Hem compact hem ribbon: 5 platform için 5 sütunlu yan yana grid
+  const gridCls = "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5";
 
   return (
     <section className={sectionCls}>
@@ -108,58 +107,54 @@ export function OtherPlatforms({ variant = "ribbon" }: Props) {
         <div className={gridCls}>
           {PLATFORMS.map((p) => {
             const isComing = !p.href && !p.current;
-            const padCls = isCompact ? "p-4" : "p-3";
-            const iconSize = isCompact ? "size-12" : "size-10";
-            const titleSize = isCompact ? "text-[14px]" : "text-[12.5px]";
-            const subtitleSize = isCompact ? "text-[12px]" : "text-[10.5px]";
 
+            // Dikey kart düzeni: icon üstte (büyük), isim ortada, açıklama altta.
+            // Tüm kartlar yan yana 5 sütun (lg+); dar ekranda 2-3 sütun.
             const Inner = (
               <>
-                <div
-                  className={cn(
-                    "flex shrink-0 items-center justify-center rounded-xl text-white shadow-sm transition-transform group-hover:scale-105",
-                    iconSize,
-                  )}
-                  style={{ backgroundColor: p.color }}
-                >
-                  <p.icon className={isCompact ? "size-6" : "size-5"} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <p className={cn("truncate font-bold leading-tight text-foreground", titleSize)}>
-                      {p.name}
-                    </p>
-                    {p.current && (
-                      <span
-                        className="shrink-0 rounded-full px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider"
-                        style={{ backgroundColor: p.softColor, color: p.color }}
-                      >
-                        Buradasın
-                      </span>
-                    )}
-                    {isComing && (
-                      <span className="shrink-0 rounded-full border border-warning/30 bg-warning-soft/70 px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-wider text-warning-soft-foreground">
-                        Yakında
-                      </span>
-                    )}
+                {/* Üst kısım: ikon + sağ üst rozet (Buradasın/Yakında) */}
+                <div className="flex items-start justify-between gap-2">
+                  <div
+                    className="flex size-11 shrink-0 items-center justify-center rounded-xl text-white shadow-sm transition-transform group-hover:scale-105 sm:size-12"
+                    style={{ backgroundColor: p.color }}
+                  >
+                    <p.icon className="size-5 sm:size-6" />
                   </div>
-                  <p className={cn("mt-0.5 leading-snug text-muted-foreground", subtitleSize, isCompact ? "line-clamp-2" : "truncate")}>
+                  {p.current && (
+                    <span
+                      className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                      style={{ backgroundColor: p.softColor, color: p.color }}
+                    >
+                      Buradasın
+                    </span>
+                  )}
+                  {isComing && (
+                    <span className="shrink-0 rounded-full border border-warning/30 bg-warning-soft/70 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-warning-soft-foreground">
+                      Yakında
+                    </span>
+                  )}
+                  {!p.current && p.href && (
+                    <ArrowUpRight
+                      className="size-4 shrink-0 opacity-30 transition-all group-hover:translate-x-0.5 group-hover:opacity-100"
+                      style={{ color: p.color }}
+                    />
+                  )}
+                </div>
+
+                {/* İsim + altyazı */}
+                <div className="mt-3 min-w-0">
+                  <p className="text-[13px] font-bold leading-tight tracking-tight text-foreground sm:text-[13.5px]">
+                    {p.name}
+                  </p>
+                  <p className="mt-1 line-clamp-2 text-[11.5px] leading-snug text-muted-foreground">
                     {p.subtitle}
                   </p>
                 </div>
-                {!p.current && p.href && (
-                  <ArrowUpRight
-                    className="size-4 shrink-0 self-start opacity-0 transition-opacity group-hover:opacity-100"
-                    style={{ color: p.color }}
-                  />
-                )}
               </>
             );
 
-            const baseClasses = cn(
-              "group flex items-center gap-3 rounded-2xl border bg-card shadow-sm transition-all",
-              padCls,
-            );
+            const baseClasses =
+              "group flex h-full flex-col rounded-2xl border bg-card p-3.5 shadow-sm transition-all sm:p-4";
 
             if (p.current) {
               return (
