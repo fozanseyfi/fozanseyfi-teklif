@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { PLATFORM_KEY } from "@/lib/platform";
 
-// Supabase email confirmation / magic link / password recovery linkleri
+// Supabase email confirmation / magic link / password recovery / invite linkleri
 // kullaniciyi buraya yonlendirir; code -> session takasi yapilir, sonra
 // hedef sayfaya redirect edilir.
 //
-// Hedef belirleme oncelikleri:
-// 1. ?next= query param (forgot-password, manuel yonlendirmeler)
-// 2. pending_invite_token cookie (signup sirasinda davet token'i set edilmisse)
-// 3. /dashboard (default — email confirmation sonrasi normal akis)
+// Hedef yonlendirme oncelikleri:
+// 1. ?next= query param (forgot-password gibi)
+// 2. user_metadata.invitation_token (admin invite akisi — platform = bu platform mu?)
+// 3. pending_invite_token cookie (eski signup akisi)
+// 4. /dashboard (default)
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
@@ -25,21 +27,31 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/forgot-password?error=invalid_link`);
   }
 
-  // Hedef yonlendirme
   let target = queryNext;
 
   if (!target) {
-    const cookieStore = await cookies();
-    const inviteToken = cookieStore.get("pending_invite_token")?.value;
-    if (inviteToken) {
-      cookieStore.delete("pending_invite_token");
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    const meta = authUser?.user_metadata as Record<string, unknown> | undefined;
+    const inviteToken = typeof meta?.invitation_token === "string" ? meta.invitation_token : null;
+    const platform = typeof meta?.platform === "string" ? meta.platform : null;
+
+    if (inviteToken && platform === PLATFORM_KEY) {
       target = `/invite/${inviteToken}`;
+    }
+  }
+
+  if (!target) {
+    const cookieStore = await cookies();
+    const cookieToken = cookieStore.get("pending_invite_token")?.value;
+    if (cookieToken) {
+      cookieStore.delete("pending_invite_token");
+      target = `/invite/${cookieToken}`;
     }
   }
 
   if (!target) target = "/dashboard";
 
-  // Guvenlik: sadece relative path'lere izin ver (open redirect koruma)
+  // Open-redirect koruma: sadece relative path'lere izin
   if (!target.startsWith("/") || target.startsWith("//")) {
     target = "/dashboard";
   }

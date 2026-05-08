@@ -79,13 +79,16 @@ export async function inviteUser(formData: FormData) {
   // customize etmis ve {{ .SiteURL }}/auth/callback'e hardcoded yonlendirme
   // yapiyor). Invite template default `{{ .ConfirmationURL }}` kullanir,
   // bu URL bizim redirectTo'yu honored eder.
-  console.log("[invite] DEBUG inviteUrl =", inviteUrl);
-  console.log("[invite] DEBUG NEXT_PUBLIC_APP_URL =", process.env.NEXT_PUBLIC_APP_URL);
+  // Supabase allow-list'i path-spesifik URL'leri kabul etmiyor; sadece
+  // /auth/callback exact match var. Token'i user_metadata'ya gomelim,
+  // callback oradan okuyup /invite/<token>'a yonlendirir.
+  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`;
+  console.log("[invite] DEBUG callbackUrl =", callbackUrl);
 
   try {
     const admin = createSupabaseAdmin();
     const result = await admin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: inviteUrl,
+      redirectTo: callbackUrl,
       data: {
         invitation_token: token,
         invited_to_org: user.organizationId,
