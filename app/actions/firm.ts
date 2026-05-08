@@ -144,12 +144,15 @@ export async function inviteUser(formData: FormData) {
 // organization_members'a INSERT, profile.organizationId = yeni org (otomatik switch),
 // invitation.acceptedAt = now().
 export async function acceptInvitation(token: string) {
+  console.log("[accept] start, token:", token);
   const user = await requireAuth();
+  console.log("[accept] user:", user.id, user.email);
 
   const invitation = await prisma.invitation.findUnique({
     where: { token },
     include: { organization: true },
   });
+  console.log("[accept] invitation found:", invitation ? `id=${invitation.id} email=${invitation.email} platform=${invitation.platform} accepted=${!!invitation.acceptedAt}` : "(yok)");
 
   if (!invitation) return { error: "Davet bulunamadı" };
   if (invitation.acceptedAt) return { error: "Bu davet zaten kabul edilmiş" };
@@ -158,37 +161,43 @@ export async function acceptInvitation(token: string) {
 
   // Davet edilen email ile mevcut auth user'in email'i eslesmeli
   if (!user.email || user.email.toLowerCase() !== invitation.email.toLowerCase()) {
+    console.log("[accept] email mismatch — user:", user.email, "invite:", invitation.email);
     return { error: `Bu davet ${invitation.email} adresi için. Lütfen bu hesaptan çıkıp doğru hesapla giriş yapın.` };
   }
 
   // Idempotency: zaten uye ise hata vermesin
-  await prisma.$transaction([
-    prisma.organizationMember.upsert({
-      where: {
-        userId_organizationId_platform: {
+  try {
+    await prisma.$transaction([
+      prisma.organizationMember.upsert({
+        where: {
+          userId_organizationId_platform: {
+            userId: user.id,
+            organizationId: invitation.organizationId,
+            platform: PLATFORM_KEY,
+          },
+        },
+        create: {
           userId: user.id,
           organizationId: invitation.organizationId,
           platform: PLATFORM_KEY,
+          role: invitation.role,
         },
-      },
-      create: {
-        userId: user.id,
-        organizationId: invitation.organizationId,
-        platform: PLATFORM_KEY,
-        role: invitation.role,
-      },
-      update: { role: invitation.role },
-    }),
-    prisma.invitation.update({
-      where: { id: invitation.id },
-      data: { acceptedAt: new Date() },
-    }),
-    // Davet edilen kullanici aktif panel olarak yeni org'u gorsun
-    prisma.profile.update({
-      where: { id: user.id },
-      data: { organizationId: invitation.organizationId },
-    }),
-  ]);
+        update: { role: invitation.role },
+      }),
+      prisma.invitation.update({
+        where: { id: invitation.id },
+        data: { acceptedAt: new Date() },
+      }),
+      prisma.profile.update({
+        where: { id: user.id },
+        data: { organizationId: invitation.organizationId },
+      }),
+    ]);
+    console.log("[accept] transaction OK");
+  } catch (e) {
+    console.error("[accept] transaction error:", e);
+    return { error: e instanceof Error ? e.message : "Veritabanı hatası" };
+  }
 
   return { success: `${invitation.organization.name} paneline katıldın`, organizationId: invitation.organizationId };
 }

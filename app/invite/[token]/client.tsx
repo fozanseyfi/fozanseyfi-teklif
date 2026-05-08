@@ -41,28 +41,41 @@ export function InviteAcceptForm({
 
     setPending(true);
 
-    // 1) Sifre girildiyse: updateUser ile kalici sifre set et
-    if (password) {
-      const supabase = createSupabaseBrowser();
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) {
-        toast.error(`Şifre belirleme hatası: ${error.message}`);
+    try {
+      // 1) Sifre girildiyse: updateUser ile kalici sifre set et
+      if (password) {
+        console.log("[invite-accept] updating password...");
+        const supabase = createSupabaseBrowser();
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) {
+          console.error("[invite-accept] updateUser error:", error);
+          toast.error(`Şifre belirleme hatası: ${error.message}`);
+          setPending(false);
+          return;
+        }
+        console.log("[invite-accept] password updated OK");
+      }
+
+      // 2) Daveti kabul et
+      console.log("[invite-accept] calling acceptInvitation...");
+      const result = await acceptInvitation(token);
+      console.log("[invite-accept] result:", result);
+
+      if (result?.error) {
+        toast.error(result.error);
         setPending(false);
         return;
       }
-    }
 
-    // 2) Daveti kabul et — uyelik ekle, profile.organizationId guncelle
-    const result = await acceptInvitation(token);
-    if (result?.error) {
-      toast.error(result.error);
+      toast.success(result?.success ?? "Davete katıldın!");
+      console.log("[invite-accept] navigating to /dashboard...");
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err) {
+      console.error("[invite-accept] exception:", err);
+      toast.error(err instanceof Error ? err.message : "Beklenmeyen bir hata oluştu");
       setPending(false);
-      return;
     }
-
-    toast.success(result?.success ?? "Davete katıldın!");
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (
