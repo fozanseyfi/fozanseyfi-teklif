@@ -85,17 +85,11 @@ export function OtherPlatforms({ variant = "ribbon" }: Props) {
       <div className={wrapperCls}>
         <div className={cn("mb-5 flex flex-col gap-1.5", !isCompact && "sm:mb-6 sm:flex-row sm:items-end sm:justify-between sm:gap-4")}>
           <div>
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary-soft/60 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-soft-foreground">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary-soft/60 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary-soft-foreground">
               <Sparkles className="size-3" />
-              Diğer İnisiyatiflerim
-            </div>
-            <h3 className={cn(
-              "mt-2 font-bold leading-tight tracking-tight text-foreground",
-              isCompact ? "text-[17px] sm:text-[19px]" : "text-[18px] sm:text-[20px]",
-            )}>
               Geliştirdiğim diğer platformlar
-            </h3>
-            <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
+            </div>
+            <p className="mt-2.5 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
               Sahadaki ihtiyaçlardan doğan{" "}
               <strong className="text-foreground">bireysel inisiyatif</strong> projeleri.{" "}
               <strong className="text-foreground">Tek kayıt</strong> ile hepsine aynı şifreyle
