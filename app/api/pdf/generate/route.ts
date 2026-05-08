@@ -142,7 +142,7 @@ function generatePDFHTML(data: any): string {
 <head>
 <meta charset="UTF-8">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap&subset=latin-ext');
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family: 'Inter', sans-serif; font-size: 11px; color: #111827; background: #fff; }
   .page { page-break-after: always; padding: 0; }

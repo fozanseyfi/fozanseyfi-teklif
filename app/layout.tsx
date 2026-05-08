@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
+// latin-ext sart: Turkce-spesifik harfler (g, s, I) Latin Extended-A blogunda;
+// "latin" subset'i bunlari icermez, eksik olunca tarayici sistem fontuna
+// fallback yapar ve kelimenin ortasinda font degisikligi gorunur.
 const inter = Inter({
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   variable: "--font-inter",
   display: "swap",
 });
