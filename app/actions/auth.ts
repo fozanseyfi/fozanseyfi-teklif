@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { PLATFORM_KEY } from "@/lib/platform";
 import { validateEmail, validatePassword, validateRequired } from "@/lib/validations";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 // "use server" dosyasi sadece async function export edebilir.
@@ -32,16 +33,28 @@ export async function register(_state: ActionResult | undefined, formData: FormD
 
   const supabase = await createSupabaseServer();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  const next = inviteToken ? `/invite/${inviteToken}` : "/dashboard";
-  const emailRedirectTo = `${appUrl}/auth/callback?next=${encodeURIComponent(next)}`;
+
+  // Supabase allow-list query string'siz URL'i bekliyor (exact match yapiyor).
+  // ?next= query parameter ile gondermek allow list'e takilip Site URL'ye
+  // (Karardestek) fallback'e yol aciyor. Onun yerine state'i cookie'de tutalim:
+  // /auth/callback bu cookie'yi okuyup yonlendirme yapacak.
+  if (inviteToken) {
+    const cookieStore = await cookies();
+    cookieStore.set("pending_invite_token", inviteToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 30, // 30 dakika — confirm linkine tiklanana kadar yeter
+      path: "/",
+    });
+  }
+  const emailRedirectTo = `${appUrl}/auth/callback`;
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { name, full_name: name },
-      // Supabase email link'i bu URL'ye gelir (Karardestek default URL'sini override eder).
-      // /auth/callback code'u session'a cevirip ?next= adresine redirect eder.
       emailRedirectTo,
     },
   });
