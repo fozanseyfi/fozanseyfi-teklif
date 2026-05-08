@@ -1,60 +1,52 @@
-import type { Profile } from "@prisma/client";
+import type { ProfileWithOrg } from "@/lib/auth";
 
 export type Role = "admin" | "user" | "viewer";
 
-export function isAdmin(profile: Pick<Profile, "role">): boolean {
-  return profile.role === "admin";
+// Bu platforma ait roller `profile.platformRole` uzerinden okunur (organization_members.role'u
+// platform = 'solar-teklif' ile filtrelenmis hali). Karardestek'in profile.role'u
+// burada KULLANILMAZ — onun kendi platformuna ait kararlari icin geçerli.
+type ProfileLike = Pick<ProfileWithOrg, "id" | "platformRole">;
+
+export function isAdmin(profile: ProfileLike): boolean {
+  return profile.platformRole === "admin";
 }
 
-export function isUser(profile: Pick<Profile, "role">): boolean {
-  // user VEYA admin — yaratabilir, duzenleyebilir
-  return profile.role === "admin" || profile.role === "user";
+export function isUser(profile: ProfileLike): boolean {
+  return profile.platformRole === "admin" || profile.platformRole === "user";
 }
 
-export function isViewer(profile: Pick<Profile, "role">): boolean {
-  return profile.role === "viewer";
+export function isViewer(profile: ProfileLike): boolean {
+  return profile.platformRole === "viewer";
 }
 
-// Yeni kayit acabilir mi? (proje, vb.)
-export function canCreateResource(profile: Pick<Profile, "role">): boolean {
+export function canCreateResource(profile: ProfileLike): boolean {
   return isUser(profile);
 }
 
-// Genel duzenleme yetkisi (admin tum kayitlari, user kendi kayitlarini)
-export function canEditResource(
-  profile: Pick<Profile, "id" | "role">,
-  resourceOwnerId: string,
-): boolean {
+export function canEditResource(profile: ProfileLike, resourceOwnerId: string): boolean {
   if (isAdmin(profile)) return true;
   if (isUser(profile)) return profile.id === resourceOwnerId;
   return false;
 }
 
-export function canDeleteResource(
-  profile: Pick<Profile, "id" | "role">,
-  resourceOwnerId: string,
-): boolean {
+export function canDeleteResource(profile: ProfileLike, resourceOwnerId: string): boolean {
   if (isAdmin(profile)) return true;
   if (isUser(profile)) return profile.id === resourceOwnerId;
   return false;
 }
 
-// Sadece admin kullanici yonetebilir
-export function canManageUsers(profile: Pick<Profile, "role">): boolean {
+export function canManageUsers(profile: ProfileLike): boolean {
   return isAdmin(profile);
 }
 
-// Sadece admin gorunurluk (visibility) atayabilir
-export function canManageVisibility(profile: Pick<Profile, "role">): boolean {
+export function canManageVisibility(profile: ProfileLike): boolean {
   return isAdmin(profile);
 }
 
-// Sadece admin teklif/PDF cikarabilir (eskiden FIRM_ADMIN/MANAGER)
-export function canGeneratePDF(profile: Pick<Profile, "role">): boolean {
+export function canGeneratePDF(profile: ProfileLike): boolean {
   return isUser(profile);
 }
 
-// UI etiketleri
 export const ROLE_LABELS: Record<Role, string> = {
   admin: "Yönetici",
   user: "Kullanıcı",

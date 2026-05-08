@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { PLATFORM_KEY } from "@/lib/platform";
 import { validateEmail, validatePassword, validateRequired } from "@/lib/validations";
 import { redirect } from "next/navigation";
 
@@ -94,7 +95,7 @@ export async function resetPassword(_state: ActionResult | undefined, formData: 
   return { success: "Şifreniz başarıyla güncellendi. Giriş yapabilirsiniz." };
 }
 
-// Aktif organizasyonu degistirme — top bar panel switcher tarafindan cagrilir.
+// Aktif organizasyonu degistirme — sadece bu platformda uye oldugun org'lara gecis.
 export async function switchOrganization(organizationId: string): Promise<ActionResult> {
   const supabase = await createSupabaseServer();
   const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -102,17 +103,18 @@ export async function switchOrganization(organizationId: string): Promise<Action
 
   const membership = await prisma.organizationMember.findUnique({
     where: {
-      userId_organizationId: {
+      userId_organizationId_platform: {
         userId: authUser.id,
         organizationId,
+        platform: PLATFORM_KEY,
       },
     },
   });
-  if (!membership) return { error: "Bu organizasyona üyeliğin yok" };
+  if (!membership) return { error: "Bu organizasyona bu platformda üyeliğin yok" };
 
   await prisma.profile.update({
     where: { id: authUser.id },
-    data: { organizationId, role: membership.role },
+    data: { organizationId },
   });
 
   return { success: "Aktif panel değiştirildi" };
