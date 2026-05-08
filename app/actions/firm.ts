@@ -5,6 +5,7 @@ import { requireAuth } from "@/lib/auth";
 import { isAdmin, type Role } from "@/lib/permissions";
 import { PLATFORM_KEY } from "@/lib/platform";
 import { generateToken } from "@/lib/utils";
+import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 
 export async function updateFirmProfile(formData: FormData) {
@@ -73,12 +74,44 @@ export async function inviteUser(formData: FormData) {
 
   const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invite/${token}`;
 
-  // TODO: Resend ile e-posta gonderimi. Simdilik admin link'i kopyalar.
-  console.log(`[${PLATFORM_KEY}] Davet (${email}, role=${role}): ${inviteUrl}`);
+  // Supabase admin.inviteUserByEmail kullaniyoruz — bu "Invite User" template'i
+  // tetikler (Confirm Signup template'i degil; Karardestek "Confirm Signup"i
+  // customize etmis ve {{ .SiteURL }}/auth/callback'e hardcoded yonlendirme
+  // yapiyor). Invite template default `{{ .ConfirmationURL }}` kullanir,
+  // bu URL bizim redirectTo'yu honored eder.
+  try {
+    const admin = createSupabaseAdmin();
+    const result = await admin.auth.admin.inviteUserByEmail(email, {
+      redirectTo: inviteUrl,
+      data: {
+        invitation_token: token,
+        invited_to_org: user.organizationId,
+        invited_role: role,
+        platform: PLATFORM_KEY,
+      },
+    });
+    if (result.error) {
+      // Eger user zaten varsa, inviteUserByEmail "User already registered" hatasi verir.
+      // Bu durumda Supabase email gondermez — biz manuel link'i admin'e veririz.
+      const msg = result.error.message ?? "";
+      if (!/already.*regist|already.*exist/i.test(msg)) {
+        console.error("[invite] Supabase admin invite failed:", msg);
+      }
+      // Hata olsa bile davet kaydi olusturuldu, admin link'i manuel iletebilir.
+      console.log(`[${PLATFORM_KEY}] Manuel davet (${email}, role=${role}): ${inviteUrl}`);
+    } else {
+      console.log(`[${PLATFORM_KEY}] Davet e-postasi gonderildi (${email}): ${inviteUrl}`);
+    }
+  } catch (e) {
+    console.error("[invite] Admin client error:", e);
+  }
 
   revalidatePath("/admin/users");
   revalidatePath("/firm-settings");
-  return { success: `${email} icin davet linki olusturuldu`, inviteUrl };
+  return {
+    success: `${email} adresine davet e-postası gönderildi (eğer kullanıcı zaten kayıtlıysa link aşağıda)`,
+    inviteUrl,
+  };
 }
 
 // Daveti kabul et — kullanici giris yapmis ve davet edilen email ile auth.users kayitli olmali.
