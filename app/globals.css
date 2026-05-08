@@ -220,6 +220,14 @@
   .animate-in {
     animation: fade-in var(--duration-slow) var(--ease-out-soft);
   }
+  /* Sidebar collapsed icon hover tooltip — soldan kayarak fade-in */
+  .nav-tooltip-enter {
+    animation: nav-tooltip-in 140ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes nav-tooltip-in {
+    from { opacity: 0; transform: translate(-4px, -50%); }
+    to   { opacity: 1; transform: translate(0, -50%); }
+  }
   .animate-in-up {
     animation: fade-in-up var(--duration-slow) var(--ease-out-soft);
   }

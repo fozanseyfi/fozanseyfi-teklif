@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -83,40 +84,74 @@ interface NavLinkProps {
 }
 
 function NavLink({ href, icon: Icon, label, active, collapsed, onNavigate }: NavLinkProps) {
+  // Sidebar daraltikken hover'da custom tooltip — native title degil, portal ile
+  // body'ye render edilir, overflow clip'inden etkilenmez.
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
+
+  function handleEnter(e: React.MouseEvent<HTMLAnchorElement>) {
+    if (!collapsed) return;
+    if (typeof window === "undefined" || window.innerWidth < 1024) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltipPos({ top: rect.top + rect.height / 2, left: rect.right + 10 });
+  }
+
+  function handleLeave() {
+    setTooltipPos(null);
+  }
+
   return (
-    <Link
-      href={href}
-      title={collapsed ? label : undefined}
-      onClick={onNavigate}
-      className={cn(
-        "group flex items-center rounded-lg text-sm font-medium transition-colors",
-        // Mobil drawer'da her zaman tam genişlik + label; collapsed sadece desktop'ta uygulanır
-        "gap-3 px-3 py-2.5",
-        collapsed && "lg:justify-center lg:gap-0 lg:px-2 lg:py-2",
-        active
-          ? "bg-sidebar-accent/20 text-sidebar-accent-foreground"
-          : "text-sidebar-foreground hover:bg-sidebar-border/40 hover:text-sidebar-accent-foreground",
-      )}
-    >
-      <Icon
+    <>
+      <Link
+        href={href}
+        onClick={() => {
+          setTooltipPos(null);
+          onNavigate?.();
+        }}
+        onMouseEnter={handleEnter}
+        onMouseLeave={handleLeave}
         className={cn(
-          "size-4 shrink-0 transition-colors",
+          "group flex items-center rounded-lg text-sm font-medium transition-colors",
+          "gap-3 px-3 py-2.5",
+          collapsed && "lg:justify-center lg:gap-0 lg:px-2 lg:py-2",
           active
-            ? "text-sidebar-accent-foreground"
-            : "text-sidebar-muted group-hover:text-sidebar-foreground",
+            ? "bg-sidebar-accent/20 text-sidebar-accent-foreground"
+            : "text-sidebar-foreground hover:bg-sidebar-border/40 hover:text-sidebar-accent-foreground",
         )}
-      />
-      {/* Label her zaman render edilir; desktop collapsed'da gizlenir */}
-      <span className={cn("truncate", collapsed && "lg:hidden")}>{label}</span>
-      {active && (
-        <span
+      >
+        <Icon
           className={cn(
-            "ml-auto size-1.5 rounded-full bg-sidebar-accent-foreground",
-            collapsed && "lg:hidden",
+            "size-4 shrink-0 transition-colors",
+            active
+              ? "text-sidebar-accent-foreground"
+              : "text-sidebar-muted group-hover:text-sidebar-foreground",
           )}
         />
-      )}
-    </Link>
+        <span className={cn("truncate", collapsed && "lg:hidden")}>{label}</span>
+        {active && (
+          <span
+            className={cn(
+              "ml-auto size-1.5 rounded-full bg-sidebar-accent-foreground",
+              collapsed && "lg:hidden",
+            )}
+          />
+        )}
+      </Link>
+      {tooltipPos &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="pointer-events-none fixed z-[100] hidden select-none nav-tooltip-enter lg:block"
+            style={{ top: tooltipPos.top, left: tooltipPos.left }}
+          >
+            <div className="relative rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-[0_8px_24px_-8px_rgba(0,0,0,0.45)] ring-1 ring-white/10">
+              {label}
+              {/* Sol tarafa bakan ok */}
+              <span className="absolute right-full top-1/2 -translate-y-1/2 border-y-[5px] border-r-[5px] border-y-transparent border-r-slate-900" />
+            </div>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }
 
