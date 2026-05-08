@@ -79,8 +79,10 @@ export async function inviteUser(formData: FormData) {
   // customize etmis ve {{ .SiteURL }}/auth/callback'e hardcoded yonlendirme
   // yapiyor). Invite template default `{{ .ConfirmationURL }}` kullanir,
   // bu URL bizim redirectTo'yu honored eder.
-  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`;
-  console.log("[invite] DEBUG callbackUrl =", callbackUrl);
+  // Vercel env'inde gizli newline/whitespace olabilir — trim sart.
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").trim();
+  const callbackUrl = `${appUrl}/auth/callback`;
+  console.log("[invite] DEBUG callbackUrl =", JSON.stringify(callbackUrl));
 
   try {
     const admin = createSupabaseAdmin();

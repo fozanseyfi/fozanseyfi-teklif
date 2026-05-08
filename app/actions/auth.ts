@@ -32,7 +32,8 @@ export async function register(_state: ActionResult | undefined, formData: FormD
   if (passwordError) return { error: passwordError };
 
   const supabase = await createSupabaseServer();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  // Vercel env'inde gizli newline olabilir — trim sart
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").trim();
 
   // Supabase allow-list query string'siz URL'i bekliyor (exact match yapiyor).
   // ?next= query parameter ile gondermek allow list'e takilip Site URL'ye
@@ -111,7 +112,8 @@ export async function forgotPassword(_state: ActionResult | undefined, formData:
   if (emailError) return { error: emailError };
 
   const supabase = await createSupabaseServer();
-  const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/auth/callback?next=/reset-password`;
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").trim();
+  const redirectTo = `${appUrl}/auth/callback?next=/reset-password`;
   await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 
   return { success: "Şifre sıfırlama linki gönderildi (eğer hesap varsa)" };
