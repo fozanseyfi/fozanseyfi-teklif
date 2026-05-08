@@ -16,10 +16,10 @@ import {
   HelpCircle,
   Bell,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Menu,
   X,
-  PanelLeftClose,
-  PanelLeftOpen,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
@@ -240,25 +240,13 @@ export function Sidebar({ userName, firmName, userRole }: SidebarProps) {
           </div>
         </div>
 
-        {/* Desktop: sidebar toggle + Panel: <firmName> */}
+        {/* Desktop: Panel: <firmName> */}
         <div
-          className="hidden min-w-0 items-center gap-1 lg:flex"
+          className="hidden min-w-0 items-center gap-2 lg:flex"
           style={{ marginLeft: "var(--sidebar-w, 16rem)", transition: "margin-left 200ms" }}
         >
-          <button
-            type="button"
-            onClick={toggleCollapse}
-            title={collapsed ? "Menüyü aç" : "Menüyü kapat"}
-            aria-label={collapsed ? "Menüyü aç" : "Menüyü kapat"}
-            className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            {collapsed ? (
-              <PanelLeftOpen className="size-4" strokeWidth={2.2} />
-            ) : (
-              <PanelLeftClose className="size-4" strokeWidth={2.2} />
-            )}
-          </button>
-          <span className="ml-1 shrink-0 text-sm text-muted-foreground">Panel:</span>
+          <FolderOpen className="size-4 shrink-0 text-muted-foreground" />
+          <span className="shrink-0 text-sm text-muted-foreground">Panel:</span>
           <span className="truncate text-sm font-semibold text-foreground">{firmName}</span>
         </div>
 
@@ -305,22 +293,47 @@ export function Sidebar({ userName, firmName, userRole }: SidebarProps) {
           <X className="size-5" />
         </button>
 
-        {/* Logo / firm — sidebar başlığı */}
+        {/* Logo / firm — sidebar başlığı + collapse chevron */}
         <div
           className={cn(
             "flex h-16 items-center border-b border-sidebar-border",
             "max-lg:gap-3 max-lg:px-5",
-            showCollapsed ? "lg:justify-center lg:px-2" : "lg:gap-3 lg:px-5",
+            showCollapsed ? "lg:justify-center lg:px-2" : "lg:gap-3 lg:pl-5 lg:pr-2",
           )}
         >
           <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
             <Sun className="size-5" />
           </div>
-          <div className={cn("min-w-0", showCollapsed ? "lg:hidden" : "")}>
+          <div className={cn("min-w-0 flex-1", showCollapsed ? "lg:hidden" : "")}>
             <p className="text-sm font-semibold tracking-tight text-white">SolarTeklif</p>
             <p className="truncate text-xs text-sidebar-muted">{firmName}</p>
           </div>
+          {/* Collapse chevron — desktop only */}
+          <button
+            type="button"
+            onClick={toggleCollapse}
+            title={collapsed ? "Menüyü aç" : "Menüyü kapat"}
+            aria-label={collapsed ? "Menüyü aç" : "Menüyü kapat"}
+            className={cn(
+              "hidden size-7 shrink-0 items-center justify-center rounded-md text-sidebar-muted transition-colors hover:bg-sidebar-border/50 hover:text-white lg:flex",
+              showCollapsed && "lg:hidden",
+            )}
+          >
+            <ChevronLeft className="size-4" />
+          </button>
         </div>
+        {/* Collapsed state'te ayrı bir expand butonu (sidebar header altında) */}
+        {showCollapsed && (
+          <button
+            type="button"
+            onClick={toggleCollapse}
+            title="Menüyü aç"
+            aria-label="Menüyü aç"
+            className="mx-auto mt-2 hidden size-7 shrink-0 items-center justify-center rounded-md text-sidebar-muted transition-colors hover:bg-sidebar-border/50 hover:text-white lg:flex"
+          >
+            <ChevronRight className="size-4" />
+          </button>
+        )}
 
         {/* Navigation */}
         <nav className={cn("flex-1 overflow-y-auto py-4", showCollapsed ? "lg:px-2" : "lg:px-3", "max-lg:px-3")}>

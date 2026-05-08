@@ -146,7 +146,7 @@ export async function login(_state: ActionResult | undefined, formData: FormData
     const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
 
     await prisma.$transaction(async (tx) => {
-      const firm = await tx.firm.create({ data: { name: `${fullName} (Otomatik)` } });
+      const firm = await tx.firm.create({ data: { name: fullName } });
       await tx.user.create({
         data: {
           id: data.user.id,

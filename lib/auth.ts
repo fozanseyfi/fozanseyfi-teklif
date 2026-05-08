@@ -72,7 +72,7 @@ async function ensureProfile(authUser: AuthLike) {
   const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
 
   return prisma.$transaction(async (tx) => {
-    const firm = await tx.firm.create({ data: { name: `${name} (Otomatik)` } });
+    const firm = await tx.firm.create({ data: { name } });
     const user = await tx.user.create({
       data: {
         id: authUser.id,
