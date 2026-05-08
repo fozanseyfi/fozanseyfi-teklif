@@ -60,15 +60,15 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: "Diğer Platformlar",
-    items: [{ href: "/platforms", icon: Boxes, label: "Diğer Platformlar" }],
-  },
-  {
     label: "Destek",
     items: [
       { href: "/help", icon: HelpCircle, label: "Nasıl Çalışır" },
       { href: "/contact", icon: MessageCircle, label: "İletişime Geç" },
     ],
+  },
+  {
+    label: "Diğer Platformlar",
+    items: [{ href: "/platforms", icon: Boxes, label: "Diğer Platformlar" }],
   },
 ];
 
