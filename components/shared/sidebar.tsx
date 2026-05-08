@@ -11,7 +11,6 @@ import {
   LogOut,
   Sun,
   Users,
-  Zap,
   MessageCircle,
   LayoutTemplate,
   HelpCircle,
@@ -413,19 +412,6 @@ export function Sidebar({ userName, firmName, userRole }: SidebarProps) {
           ))}
         </nav>
 
-        {/* Hint card — desktop collapsed'da gizli */}
-        <div
-          className={cn(
-            "mx-3 mb-3 rounded-lg border border-sidebar-border bg-sidebar-border/30 p-3",
-            showCollapsed ? "lg:hidden" : "",
-          )}
-        >
-          <div className="mb-1 flex items-center gap-2">
-            <Zap className="size-3.5 text-primary" />
-            <p className="text-xs font-semibold text-white">Solar EPC Platform</p>
-          </div>
-          <p className="text-xs text-sidebar-muted">Güneş enerjisi teklif yönetimi</p>
-        </div>
       </aside>
     </>
   );
