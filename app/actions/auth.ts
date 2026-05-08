@@ -14,12 +14,14 @@ type ActionResult = {
 };
 
 // Karardestek pattern: profiles + organizations Karardestek tarafindan
-// trigger ile signup'ta otomatik yaratilir. Biz sadece auth.users uretip
-// bu trigger'in calismasini bekliyoruz; ek ekleme yok.
+// trigger ile signup'ta otomatik yaratilir.
+// Eger inviteToken varsa, signup sonrasi /invite/[token] sayfasina yonlendir
+// (kullanici orada "Davete Katil" butonuna basinca membership eklenir).
 export async function register(_state: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const inviteToken = (formData.get("inviteToken") as string | null) ?? null;
 
   const nameError = validateRequired(name, "Ad Soyad");
   if (nameError) return { error: nameError };
@@ -39,8 +41,9 @@ export async function register(_state: ActionResult | undefined, formData: FormD
     return { error: error?.message || "Kayıt sırasında bir hata oluştu." };
   }
 
-  // Karardestek'in handle_new_user() trigger'i profile + organization yaratir.
-  // Burada ekstra is yapmiyoruz — getCurrentUser ilk istekte profile'i okur.
+  if (inviteToken) {
+    redirect(`/invite/${inviteToken}`);
+  }
   redirect("/dashboard");
 }
 

@@ -19,7 +19,8 @@ import { Sun } from "lucide-react";
 function RegisterForm() {
   const [result, action, pending] = useActionState(register, undefined);
   const searchParams = useSearchParams();
-  const inviteToken = searchParams.get("token");
+  const inviteToken = searchParams.get("inviteToken") ?? searchParams.get("token");
+  const presetEmail = searchParams.get("email");
 
   return (
     <Card className="animate-in-up">
@@ -29,7 +30,7 @@ function RegisterForm() {
         </CardTitle>
         <CardDescription>
           {inviteToken
-            ? "Firma davetini kabul ederek kayıt olun"
+            ? "Hesabınızı oluşturduktan sonra davete otomatik katılırsınız"
             : "Hesap oluşturun ve kullanmaya başlayın"}
         </CardDescription>
       </CardHeader>
@@ -54,20 +55,10 @@ function RegisterForm() {
               placeholder="ahmet@firma.com"
               required
               autoComplete="email"
+              defaultValue={presetEmail ?? undefined}
+              readOnly={!!presetEmail}
             />
           </div>
-          {!inviteToken && (
-            <div className="space-y-1.5">
-              <Label htmlFor="firmName">Firma Adı</Label>
-              <Input
-                id="firmName"
-                name="firmName"
-                placeholder="ABC Solar Enerji"
-                required
-                autoComplete="organization"
-              />
-            </div>
-          )}
           <div className="space-y-1.5">
             <Label htmlFor="password">Şifre</Label>
             <Input

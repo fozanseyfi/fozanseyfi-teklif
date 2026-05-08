@@ -4,6 +4,12 @@ import { refreshSupabaseSession } from "@/lib/supabase/proxy";
 const publicRoutes = ["/", "/login", "/register", "/forgot-password", "/reset-password"];
 const authRoutes = ["/login", "/register", "/forgot-password", "/reset-password"];
 
+// /invite/* path'i auth gerektirmez (login degilse register'a yonlendirir);
+// auth ise normal sayfa render eder.
+function isInviteRoute(pathname: string): boolean {
+  return pathname.startsWith("/invite/");
+}
+
 // Auth callback (Supabase email link redirect) ve API route'lari guard'in
 // disinda tutulur — kendi yetkilendirmelerini yapar veya zaten public'tir.
 function isExempt(pathname: string): boolean {
@@ -28,12 +34,19 @@ export async function proxy(request: NextRequest) {
 
   const isPublicRoute = publicRoutes.some((r) => pathname === r || pathname.startsWith(r + "?"));
   const isAuthRoute = authRoutes.some((r) => pathname === r || pathname.startsWith(r + "?"));
+  const isInvite = isInviteRoute(pathname);
 
-  if (!authed && !isPublicRoute) {
+  if (!authed && !isPublicRoute && !isInvite) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  // Auth route'larina (login/register) auth ile gelirse dashboard'a at,
+  // ancak `next` query param varsa ona yonlendir (invite akisinda kullanilir).
   if (authed && isAuthRoute) {
+    const next = request.nextUrl.searchParams.get("next");
+    if (next && next.startsWith("/")) {
+      return NextResponse.redirect(new URL(next, request.url));
+    }
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

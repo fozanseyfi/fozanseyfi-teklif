@@ -81,6 +81,59 @@ export async function inviteUser(formData: FormData) {
   return { success: `${email} icin davet linki olusturuldu`, inviteUrl };
 }
 
+// Daveti kabul et — kullanici giris yapmis ve davet edilen email ile auth.users kayitli olmali.
+// organization_members'a INSERT, profile.organizationId = yeni org (otomatik switch),
+// invitation.acceptedAt = now().
+export async function acceptInvitation(token: string) {
+  const user = await requireAuth();
+
+  const invitation = await prisma.invitation.findUnique({
+    where: { token },
+    include: { organization: true },
+  });
+
+  if (!invitation) return { error: "Davet bulunamadı" };
+  if (invitation.acceptedAt) return { error: "Bu davet zaten kabul edilmiş" };
+  if (invitation.expiresAt < new Date()) return { error: "Bu davetin süresi dolmuş" };
+  if (invitation.platform !== PLATFORM_KEY) return { error: "Bu davet bu platform için değil" };
+
+  // Davet edilen email ile mevcut auth user'in email'i eslesmeli
+  if (!user.email || user.email.toLowerCase() !== invitation.email.toLowerCase()) {
+    return { error: `Bu davet ${invitation.email} adresi için. Lütfen bu hesaptan çıkıp doğru hesapla giriş yapın.` };
+  }
+
+  // Idempotency: zaten uye ise hata vermesin
+  await prisma.$transaction([
+    prisma.organizationMember.upsert({
+      where: {
+        userId_organizationId_platform: {
+          userId: user.id,
+          organizationId: invitation.organizationId,
+          platform: PLATFORM_KEY,
+        },
+      },
+      create: {
+        userId: user.id,
+        organizationId: invitation.organizationId,
+        platform: PLATFORM_KEY,
+        role: invitation.role,
+      },
+      update: { role: invitation.role },
+    }),
+    prisma.invitation.update({
+      where: { id: invitation.id },
+      data: { acceptedAt: new Date() },
+    }),
+    // Davet edilen kullanici aktif panel olarak yeni org'u gorsun
+    prisma.profile.update({
+      where: { id: user.id },
+      data: { organizationId: invitation.organizationId },
+    }),
+  ]);
+
+  return { success: `${invitation.organization.name} paneline katıldın`, organizationId: invitation.organizationId };
+}
+
 // Bekleyen daveti iptal et
 export async function cancelInvitation(invitationId: string) {
   const admin = await requireAuth();
