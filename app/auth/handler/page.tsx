@@ -56,10 +56,9 @@ export default function AuthHandlerPage() {
       // 4) user_metadata'dan invitation_token oku
       const meta = user.user_metadata as Record<string, unknown> | undefined;
       const inviteToken = typeof meta?.invitation_token === "string" ? meta.invitation_token : null;
-      const platform = typeof meta?.platform === "string" ? meta.platform : null;
 
       if (!cancelled) {
-        if (inviteToken && platform === "solar-teklif") {
+        if (inviteToken) {
           router.replace(`/invite/${inviteToken}`);
         } else {
           router.replace("/dashboard");

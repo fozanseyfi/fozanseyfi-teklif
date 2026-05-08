@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getProjectAccess } from "@/lib/project-access";
 import { GesDetailNav } from "@/components/ges/ges-detail-nav";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, User, Zap, Sparkles, LayoutTemplate, Lock, Unlock } from "lucide-react";
@@ -33,6 +34,10 @@ function timelineHasData(timeline: unknown): boolean {
 export default async function ProjectDetailLayout({ children, params }: Props) {
   const { id } = await params;
   const user = await requireAuth();
+
+  // Hide kontrolu — gizliyse 404. Lock kontrolu sayfa formlarinda yapilir.
+  const access = await getProjectAccess(user, id);
+  if (!access || !access.canView) notFound();
 
   const project = await prisma.project.findFirst({
     where: { id, organizationId: user.organizationId },

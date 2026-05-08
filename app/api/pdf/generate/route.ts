@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { canGeneratePDF } from "@/lib/permissions";
+import { getProjectAccess } from "@/lib/project-access";
 import {
   calculateAnnualProductionKwh,
   calculateCashFlow,
@@ -29,6 +30,15 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const { projectId, coverNote, validityDays, includedSections } = body;
+
+  // Per-user hide/lock kontrolu — gizli veya kilitli projede PDF yok.
+  const access = await getProjectAccess(session, projectId);
+  if (!access || !access.canView) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
+  if (!access.canEdit) {
+    return NextResponse.json({ error: "PDF olusturma yetkiniz yok" }, { status: 403 });
+  }
 
   const [project, subscription] = await Promise.all([
     prisma.project.findFirst({
@@ -72,7 +82,7 @@ export async function POST(request: NextRequest) {
   const today = new Date();
   const validUntil = new Date(today.getTime() + validityDays * 24 * 60 * 60 * 1000);
 
-  // HTML oluÅŸtur
+  // HTML oluştur
   const html = generatePDFHTML({
     project,
     coverNote,
@@ -89,7 +99,7 @@ export async function POST(request: NextRequest) {
     validUntil,
   });
 
-  // Puppeteer ile PDF oluÅŸtur
+  // Puppeteer ile PDF oluştur
   try {
     const puppeteer = await import("puppeteer");
     const browser = await puppeteer.default.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
@@ -98,7 +108,7 @@ export async function POST(request: NextRequest) {
     const pdfBuffer = await page.pdf({ format: "A4", printBackground: true, margin: { top: "15mm", bottom: "15mm", left: "15mm", right: "15mm" } });
     await browser.close();
 
-    // Abonelik sayacÄ±nÄ± gÃ¼ncelle
+    // Abonelik sayacını güncelle
     await prisma.$transaction([
       prisma.proposal.upsert({
         where: { projectId },
@@ -119,7 +129,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     console.error("PDF generation error:", err);
-    return NextResponse.json({ error: "PDF oluÅŸturulamadÄ±" }, { status: 500 });
+    return NextResponse.json({ error: "PDF oluşturulamadı" }, { status: 500 });
   }
 }
 
@@ -179,35 +189,35 @@ function generatePDFHTML(data: any): string {
 
 <!-- KAPAK SAYFASI -->
 <div class="page cover">
-  <div class="logo-circle">â˜€</div>
+  <div class="logo-circle">☀</div>
   <div class="firm-name">${project.organization.name}</div>
-  <h1>SOLAR ENERJÄ° SÄ°STEMÄ°</h1>
-  <h2>PROJE TEKLÄ°FÄ°</h2>
+  <h1>SOLAR ENERJİ SİSTEMİ</h1>
+  <h2>PROJE TEKLİFİ</h2>
   ${coverNote ? `<p style="margin-top:24px;color:#9CA3AF;max-width:400px;font-size:12px;">${coverNote}</p>` : ""}
   <div class="customer-box">
-    <p>SayÄ±n</p>
+    <p>Sayın</p>
     <strong>${project.customerName}</strong>
     ${project.customerAddress ? `<div class="validity">${project.customerAddress}</div>` : ""}
     <div class="validity" style="margin-top:12px;">
       Teklif Tarihi: ${formatDate(today)}<br>
-      GeÃ§erlilik Tarihi: ${formatDate(validUntil)}
+      Geçerlilik Tarihi: ${formatDate(validUntil)}
     </div>
   </div>
 </div>
 
-<!-- YÃ–NETÄ°CÄ° Ã–ZETÄ° -->
+<!-- YÖNETİCİ ÖZETİ -->
 <div class="page">
   <div class="header-bar"><span class="firm">${project.organization.name}</span><span>${project.name}</span></div>
   <div class="section">
-    <div class="section-title">YÃ–NETÄ°CÄ° Ã–ZETÄ°</div>
+    <div class="section-title">YÖNETİCİ ÖZETİ</div>
     <p style="color:#4B5563;margin-bottom:16px;line-height:1.6;">
       ${project.projectLocation} konumunda, ${INSTALLATION_TYPE_LABELS[project.installationType]} tipinde kurulacak olan
-      <strong>${project.totalPowerKw.toFixed(1)} kWp</strong> gÃ¼Ã§Ã¼ndeki solar enerji sistemi iÃ§in hazÄ±rlanan bu teklif,
-      yatÄ±rÄ±mÄ±n tÃ¼m teknik ve finansal detaylarÄ±nÄ± kapsamaktadÄ±r.
+      <strong>${project.totalPowerKw.toFixed(1)} kWp</strong> güçündeki solar enerji sistemi için hazırlanan bu teklif,
+      yatırımın tüm teknik ve finansal detaylarını kapsamaktadır.
     </p>
     <div class="kpi-grid">
       <div class="kpi-box">
-        <div class="kpi-label">Sistem GÃ¼cÃ¼</div>
+        <div class="kpi-label">Sistem Gücü</div>
         <div class="kpi-value">${project.totalPowerKw.toFixed(1)}<br><span style="font-size:10px;font-weight:400">kWp</span></div>
       </div>
       <div class="kpi-box">
@@ -215,11 +225,11 @@ function generatePDFHTML(data: any): string {
         <div class="kpi-value accent">${formatCurrency(totalInvestment)}</div>
       </div>
       <div class="kpi-box">
-        <div class="kpi-label">Geri Ã–deme</div>
-        <div class="kpi-value">${paybackYear > 0 ? paybackYear + " YÄ±l" : "â€”"}</div>
+        <div class="kpi-label">Geri Ödeme</div>
+        <div class="kpi-value">${paybackYear > 0 ? paybackYear + " Yıl" : "—"}</div>
       </div>
       <div class="kpi-box">
-        <div class="kpi-label">Ä°lk YÄ±l Tasarruf</div>
+        <div class="kpi-label">İlk Yıl Tasarruf</div>
         <div class="kpi-value green">${formatCurrency(firstYearSaving)}</div>
       </div>
     </div>
@@ -227,21 +237,21 @@ function generatePDFHTML(data: any): string {
   <div class="footer-bar"><span>${formatDate(today)}</span><span>Sayfa 2</span></div>
 </div>
 
-<!-- TEKNÄ°K KAPSAM -->
+<!-- TEKNİK KAPSAM -->
 <div class="page">
   <div class="header-bar"><span class="firm">${project.organization.name}</span><span>${project.name}</span></div>
   <div class="section">
-    <div class="section-title">TEKNÄ°K KAPSAM</div>
+    <div class="section-title">TEKNİK KAPSAM</div>
     <div class="two-col">
       <div>
         <div style="font-weight:600;margin-bottom:8px;font-size:11px;">Sistem Parametreleri</div>
         <div class="info-row"><span>Kurulum Tipi</span><strong>${INSTALLATION_TYPE_LABELS[project.installationType]}</strong></div>
         <div class="info-row"><span>Lokasyon</span><strong>${project.projectLocation}</strong></div>
-        <div class="info-row"><span>Toplam GÃ¼Ã§</span><strong>${project.totalPowerKw.toFixed(1)} kWp</strong></div>
+        <div class="info-row"><span>Toplam Güç</span><strong>${project.totalPowerKw.toFixed(1)} kWp</strong></div>
         <div class="info-row"><span>Panel Adedi</span><strong>${project.panelCount}</strong></div>
-        <div class="info-row"><span>Ä°nvertÃ¶r Adedi</span><strong>${project.inverterCount}</strong></div>
-        <div class="info-row"><span>Toplam Alan</span><strong>${project.totalAreaM2} mÂ²</strong></div>
-        <div class="info-row"><span>YÄ±llÄ±k Ãœretim</span><strong>${formatNumber(annualProduction)} kWh</strong></div>
+        <div class="info-row"><span>İnvertör Adedi</span><strong>${project.inverterCount}</strong></div>
+        <div class="info-row"><span>Toplam Alan</span><strong>${project.totalAreaM2} m²</strong></div>
+        <div class="info-row"><span>Yıllık Üretim</span><strong>${formatNumber(annualProduction)} kWh</strong></div>
       </div>
       <div>
         <div style="font-weight:600;margin-bottom:8px;font-size:11px;">Ekipman Listesi</div>
@@ -250,7 +260,7 @@ function generatePDFHTML(data: any): string {
           ${project.equipmentItems.map((item: any) => `
             <tr>
               <td>${EQUIPMENT_CATEGORY_LABELS[item.category]}</td>
-              <td>${[item.brand, item.model].filter(Boolean).join(" ") || "â€”"}</td>
+              <td>${[item.brand, item.model].filter(Boolean).join(" ") || "—"}</td>
               <td style="text-align:right">${item.quantity}</td>
               <td style="text-align:right">${formatCurrency(item.totalPrice)}</td>
             </tr>
@@ -262,17 +272,17 @@ function generatePDFHTML(data: any): string {
   <div class="footer-bar"><span>${formatDate(today)}</span><span>Sayfa 3</span></div>
 </div>
 
-<!-- TÄ°CARÄ° KAPSAM -->
+<!-- TİCARİ KAPSAM -->
 <div class="page">
   <div class="header-bar"><span class="firm">${project.organization.name}</span><span>${project.name}</span></div>
   <div class="section">
-    <div class="section-title">TÄ°CARÄ° KAPSAM</div>
+    <div class="section-title">TİCARİ KAPSAM</div>
     <table>
-      <tr><th>Kalem</th><th>AÃ§Ä±klama</th><th style="text-align:right">Tutar (KDV HariÃ§)</th></tr>
+      <tr><th>Kalem</th><th>Açıklama</th><th style="text-align:right">Tutar (KDV Hariç)</th></tr>
       ${project.equipmentItems.map((item: any) => `
         <tr>
           <td>${EQUIPMENT_CATEGORY_LABELS[item.category]}</td>
-          <td>${[item.brand, item.model].filter(Boolean).join(" ") || "â€”"}</td>
+          <td>${[item.brand, item.model].filter(Boolean).join(" ") || "—"}</td>
           <td style="text-align:right">${formatCurrency(item.totalPrice)}</td>
         </tr>
       `).join("")}
@@ -289,11 +299,11 @@ function generatePDFHTML(data: any): string {
           <td style="text-align:right">${formatCurrency(project.pricingSnapshot.finalTotalCost)}</td>
         </tr>
         <tr class="total-row">
-          <td colspan="2">KÃ¢r MarjÄ± (%${Math.round(project.pricingSnapshot.profitMarginPercent * 100)})</td>
+          <td colspan="2">Kâr Marjı (%${Math.round(project.pricingSnapshot.profitMarginPercent * 100)})</td>
           <td style="text-align:right">${formatCurrency(project.pricingSnapshot.finalSalePrice - project.pricingSnapshot.finalTotalCost)}</td>
         </tr>
         <tr class="grand-total">
-          <td colspan="2">GENEL TOPLAM (KDV HARÄ°Ã‡)</td>
+          <td colspan="2">GENEL TOPLAM (KDV HARİÇ)</td>
           <td style="text-align:right">${formatCurrency(project.pricingSnapshot.finalSalePrice)}</td>
         </tr>
       ` : ""}
@@ -302,13 +312,13 @@ function generatePDFHTML(data: any): string {
   <div class="footer-bar"><span>${formatDate(today)}</span><span>Sayfa 4</span></div>
 </div>
 
-<!-- FÄ°ZÄ°BÄ°LÄ°TE -->
+<!-- FİZİBİLİTE -->
 <div class="page">
   <div class="header-bar"><span class="firm">${project.organization.name}</span><span>${project.name}</span></div>
   <div class="section">
-    <div class="section-title">FÄ°ZÄ°BÄ°LÄ°TE ANALÄ°ZÄ°</div>
+    <div class="section-title">FİZİBİLİTE ANALİZİ</div>
     <table style="margin-bottom:16px;">
-      <tr><th>YÄ±l</th><th style="text-align:right">Ãœretim (kWh)</th><th style="text-align:right">Birim Fiyat</th><th style="text-align:right">YÄ±llÄ±k Tasarruf</th><th style="text-align:right">KÃ¼mÃ¼latif</th><th style="text-align:right">Net Pozisyon</th></tr>
+      <tr><th>Yıl</th><th style="text-align:right">Üretim (kWh)</th><th style="text-align:right">Birim Fiyat</th><th style="text-align:right">Yıllık Tasarruf</th><th style="text-align:right">Kümülatif</th><th style="text-align:right">Net Pozisyon</th></tr>
       ${cashFlow.slice(0, 15).map((row: any) => `
         <tr>
           <td>${row.year}</td>
@@ -321,39 +331,39 @@ function generatePDFHTML(data: any): string {
       `).join("")}
     </table>
     <div class="env-box">
-      <div class="env-title">ğŸŒ± Ã‡evre KatkÄ±sÄ±</div>
+      <div class="env-title">🌱 Çevre Katkısı</div>
       <div class="env-grid">
-        <div><div class="env-val">${(totalCO2 / project.projectLifeYears).toFixed(1)} ton</div><div class="env-label">YÄ±llÄ±k COâ‚‚ Tasarrufu</div></div>
-        <div><div class="env-val">${totalCO2.toFixed(0)} ton</div><div class="env-label">${project.projectLifeYears} YÄ±l COâ‚‚ Tasarrufu</div></div>
-        <div><div class="env-val">${trees}</div><div class="env-label">EÅŸdeÄŸer AÄŸaÃ§</div></div>
+        <div><div class="env-val">${(totalCO2 / project.projectLifeYears).toFixed(1)} ton</div><div class="env-label">Yıllık CO₂ Tasarrufu</div></div>
+        <div><div class="env-val">${totalCO2.toFixed(0)} ton</div><div class="env-label">${project.projectLifeYears} Yıl CO₂ Tasarrufu</div></div>
+        <div><div class="env-val">${trees}</div><div class="env-label">Eşdeğer Ağaç</div></div>
       </div>
     </div>
   </div>
   <div class="footer-bar"><span>${formatDate(today)}</span><span>Sayfa 5</span></div>
 </div>
 
-<!-- Ä°MZA -->
+<!-- İMZA -->
 <div class="page">
   <div class="header-bar"><span class="firm">${project.organization.name}</span><span>${project.name}</span></div>
   <div class="section">
-    <div class="section-title">Ä°MZA & ONAY</div>
-    <p style="color:#6B7280;margin-bottom:24px;font-size:10px;">Bu teklif ${formatDate(validUntil)} tarihine kadar geÃ§erlidir.</p>
+    <div class="section-title">İMZA & ONAY</div>
+    <p style="color:#6B7280;margin-bottom:24px;font-size:10px;">Bu teklif ${formatDate(validUntil)} tarihine kadar geçerlidir.</p>
     <div class="two-col">
       <div class="signature-box">
-        <div class="signature-title">Teklifi Veren â€” ${project.organization.name}</div>
+        <div class="signature-title">Teklifi Veren — ${project.organization.name}</div>
         <div style="margin-top:8px;font-size:9px;color:#9CA3AF;">
           ${project.organization.address ?? ""}<br>
-          ${project.organization.phone ?? ""} Â· ${project.organization.email ?? ""}
+          ${project.organization.phone ?? ""} · ${project.organization.email ?? ""}
         </div>
-        <div style="margin-top:30px;border-top:1px solid #D1D5DB;padding-top:8px;font-size:9px;color:#9CA3AF;">Ä°mza & KaÅŸe</div>
+        <div style="margin-top:30px;border-top:1px solid #D1D5DB;padding-top:8px;font-size:9px;color:#9CA3AF;">İmza & Kaşe</div>
       </div>
       <div class="signature-box">
-        <div class="signature-title">MÃ¼ÅŸteri OnayÄ± â€” ${project.customerName}</div>
-        <div style="margin-top:30px;border-top:1px solid #D1D5DB;padding-top:8px;margin-top:60px;font-size:9px;color:#9CA3AF;">Ä°mza & Tarih</div>
+        <div class="signature-title">Müşteri Onayı — ${project.customerName}</div>
+        <div style="margin-top:30px;border-top:1px solid #D1D5DB;padding-top:8px;margin-top:60px;font-size:9px;color:#9CA3AF;">İmza & Tarih</div>
       </div>
     </div>
   </div>
-  <div class="footer-bar"><span>${project.organization.name} Â· ${formatDate(today)}</span><span>Sayfa 6</span></div>
+  <div class="footer-bar"><span>${project.organization.name} · ${formatDate(today)}</span><span>Sayfa 6</span></div>
 </div>
 
 </body>

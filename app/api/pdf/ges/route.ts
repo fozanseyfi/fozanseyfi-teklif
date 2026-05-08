@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getProjectAccess } from "@/lib/project-access";
 import { calc } from "@/lib/ges-engine";
 import { formatDate } from "@/lib/utils";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
@@ -11,6 +12,14 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const { projectId, includedSections = [], coverNote = "", validityDays = 30 } = body;
+
+  const access = await getProjectAccess(session, projectId);
+  if (!access || !access.canView) {
+    return NextResponse.json({ error: "Proje bulunamadı" }, { status: 404 });
+  }
+  if (!access.canEdit) {
+    return NextResponse.json({ error: "PDF olusturma yetkiniz yok" }, { status: 403 });
+  }
 
   const [project, detail] = await Promise.all([
     prisma.project.findFirst({

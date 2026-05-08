@@ -116,24 +116,24 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      {/* Hero welcome banner â€” emerald gradient, karÅŸÄ±lama */}
+      {/* Hero welcome banner — emerald gradient, karşılama */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary to-emerald-700 px-5 py-6 text-primary-foreground shadow-lg sm:px-8 sm:py-7">
-        {/* Dekoratif arkaplan parÄ±ltÄ±larÄ± */}
+        {/* Dekoratif arkaplan parıltıları */}
         <div className="pointer-events-none absolute -right-20 -top-20 size-64 rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 -left-10 size-48 rounded-full bg-emerald-300/15 blur-3xl" />
 
         <div className="relative">
           <div className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary-foreground backdrop-blur-sm">
             <Sparkles className="size-3" />
-            Solar EPC Teklif YÃ¶netimi
+            Solar EPC Teklif Yönetimi
           </div>
           <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
-            HoÅŸ geldin, {(user.fullName ?? user.email ?? "").split(" ")[0]}
+            Hoş geldin, {(user.fullName ?? user.email ?? "").split(" ")[0]}
           </h1>
           <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-emerald-50/90 sm:text-[15px]">
-            Solar EPC projelerinde malzeme ve iÅŸ kalemlerini dÃ¼zenle, kapsamÄ±
-            ve maliyeti tek ekranda gÃ¶rÃ¼ntÃ¼le. Åablonlardan baÅŸlayarak yeni
-            bir proje aÃ§abilirsin.
+            Solar EPC projelerinde malzeme ve iş kalemlerini düzenle, kapsamı
+            ve maliyeti tek ekranda görüntüle. Şablonlardan başlayarak yeni
+            bir proje açabilirsin.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             <Button
@@ -151,18 +151,18 @@ export default async function DashboardPage() {
               className="border-white/30 bg-white/10 text-primary-foreground backdrop-blur-sm hover:bg-white/20 hover:text-primary-foreground"
             >
               <Link href="/templates">
-                <LayoutTemplate className="size-4" /> ÅablonlarÄ± GÃ¶r
+                <LayoutTemplate className="size-4" /> Şablonları Gör
               </Link>
             </Button>
           </div>
         </div>
       </div>
 
-      {/* MWp Stats â€” clean stat cards */}
+      {/* MWp Stats — clean stat cards */}
       {totalMWp > 0 && (
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard
-            label="Toplam Kurulu GÃ¼Ã§"
+            label="Toplam Kurulu Güç"
             value={totalMWp.toFixed(2)}
             unit="MWp"
             sublabel="kurulu kapasite"
@@ -170,16 +170,16 @@ export default async function DashboardPage() {
             tone="primary"
           />
           <StatCard
-            label="Ortalama Proje GÃ¼cÃ¼"
+            label="Ortalama Proje Gücü"
             value={avgMWp.toFixed(2)}
             unit="MWp"
-            sublabel="proje baÅŸÄ±na"
+            sublabel="proje başına"
             icon={BarChart3}
             tone="info"
           />
           {avgUsdPerKwp > 0 ? (
             <StatCard
-              label="Ort. EPC Birim FiyatÄ±"
+              label="Ort. EPC Birim Fiyatı"
               value={avgUsdPerKwp.toFixed(3)}
               unit="$/kWp"
               sublabel="ortalama"
@@ -188,9 +188,9 @@ export default async function DashboardPage() {
             />
           ) : (
             <StatCard
-              label="EPC Birim FiyatÄ±"
-              value="â€”"
-              sublabel="henÃ¼z hesaplanmadÄ±"
+              label="EPC Birim Fiyatı"
+              value="—"
+              sublabel="henüz hesaplanmadı"
               icon={DollarSign}
               tone="muted"
             />
@@ -202,7 +202,7 @@ export default async function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <KpiCard
           icon={FolderOpen}
-          label="TÃ¼m Projeler"
+          label="Tüm Projeler"
           value={totalCount}
           sublabel="toplam proje"
           tone="muted"
@@ -211,14 +211,14 @@ export default async function DashboardPage() {
           icon={TrendingUp}
           label="Devam Eden"
           value={inProgressCount}
-          sublabel="taslak / sÃ¼reÃ§te"
+          sublabel="taslak / süreçte"
           tone="info"
         />
         <KpiCard
           icon={CheckCircle}
           label="Close Win"
           value={closeWinCount}
-          sublabel="kazanÄ±lan proje"
+          sublabel="kazanılan proje"
           tone="success"
         />
       </div>
@@ -229,7 +229,7 @@ export default async function DashboardPage() {
           <CardTitle>Son Projeler</CardTitle>
           <Button variant="ghost" size="sm" asChild>
             <Link href="/projects" className="flex items-center gap-1">
-              TÃ¼mÃ¼nÃ¼ GÃ¶r <ArrowUpRight className="size-3.5" />
+              Tümünü Gör <ArrowUpRight className="size-3.5" />
             </Link>
           </Button>
         </CardHeader>
@@ -239,14 +239,14 @@ export default async function DashboardPage() {
               <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-secondary">
                 <FolderOpen className="size-8 text-muted-foreground" />
               </div>
-              <p className="font-semibold">HenÃ¼z proje yok</p>
+              <p className="font-semibold">Henüz proje yok</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Ä°lk projeyi oluÅŸturarak baÅŸlayÄ±n
+                İlk projeyi oluşturarak başlayın
               </p>
               <Button asChild className="mt-5">
                 <Link href="/projects/new">
                   <Plus className="size-4" />
-                  Ä°lk Projeyi OluÅŸtur
+                  İlk Projeyi Oluştur
                 </Link>
               </Button>
             </div>
@@ -268,7 +268,7 @@ export default async function DashboardPage() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{project.name}</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {project.customerName} Â· {formatDate(project.createdAt)}
+                        {project.customerName} · {formatDate(project.createdAt)}
                       </p>
                     </div>
                     <div className="ml-4 flex items-center gap-3">
@@ -310,7 +310,7 @@ export default async function DashboardPage() {
                         asChild
                         className="opacity-0 transition-opacity group-hover:opacity-100"
                       >
-                        <Link href={`/projects/${project.id}/detail`}>DÃ¼zenle</Link>
+                        <Link href={`/projects/${project.id}/detail`}>Düzenle</Link>
                       </Button>
                       <DeleteProjectButton projectId={project.id} />
                     </div>
@@ -330,10 +330,10 @@ export default async function DashboardPage() {
               <div className="flex size-8 items-center justify-center rounded-lg bg-primary-soft text-primary-soft-foreground">
                 <BarChart3 className="size-4" />
               </div>
-              <CardTitle>Proje DaÄŸÄ±lÄ±mÄ±</CardTitle>
+              <CardTitle>Proje Dağılımı</CardTitle>
             </div>
             <p className="rounded-full bg-secondary px-3 py-1.5 text-xs text-muted-foreground">
-              KaydÄ±r: yakÄ±nlaÅŸtÄ±r Â· SÃ¼rÃ¼kle: taÅŸÄ±
+              Kaydır: yakınlaştır · Sürükle: taşı
             </p>
           </CardHeader>
           <CardContent className="bg-muted/30 p-0">

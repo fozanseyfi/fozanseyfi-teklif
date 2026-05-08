@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import { calculateProjectPrice, distributeCosts } from "@/lib/pricing-engine";
+import { assertProjectEditable, getProjectAccess } from "@/lib/project-access";
 import { InstallationType, SystemSize, TariffType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -27,6 +28,13 @@ export async function createProject() {
 
 export async function deleteProject(projectId: string) {
   const user = await requireAuth();
+  const access = await getProjectAccess(user, projectId);
+  if (!access || !access.canView) return;
+  // Silme: admin her sey, owner kendi projesini, ama kilitliyse owner da silemez.
+  const isOwner = access.project.createdById === user.id;
+  const canDelete = (access.canEdit && isOwner) || user.platformRole === "admin";
+  if (!canDelete) throw new Error("Bu projeyi silme yetkiniz yok");
+
   await prisma.project.deleteMany({
     where: { id: projectId, organizationId: user.organizationId },
   });
@@ -37,7 +45,7 @@ export async function deleteProject(projectId: string) {
 export async function saveStep1(projectId: string, formData: FormData) {
   const user = await requireAuth();
 
-  await ensureOwner(projectId, user.organizationId);
+  await ensureEditable(projectId);
 
   const name = formData.get("name") as string;
   const customerName = formData.get("customerName") as string;
@@ -74,7 +82,7 @@ export async function saveStep1(projectId: string, formData: FormData) {
 
 export async function saveStep2(projectId: string, formData: FormData) {
   const user = await requireAuth();
-  await ensureOwner(projectId, user.organizationId);
+  await ensureEditable(projectId);
 
   const panelCount = parseInt(formData.get("panelCount") as string) || 0;
   const panelPowerWp = parseFloat(formData.get("panelPowerWp") as string) || 0;
@@ -103,7 +111,7 @@ export async function saveStep2(projectId: string, formData: FormData) {
   }
 
   const costs = distributeCosts(baseTotalPrice);
-  finalSalePrice = baseTotalPrice * 1.2; // %20 kÃ¢r marjÄ± varsayÄ±lan
+  finalSalePrice = baseTotalPrice * 1.2; // %20 kâr marjı varsayılan
 
   await prisma.$transaction([
     prisma.project.update({
@@ -144,11 +152,11 @@ export async function saveStep2(projectId: string, formData: FormData) {
 
 export async function saveStep3(projectId: string, formData: FormData) {
   const user = await requireAuth();
-  await ensureOwner(projectId, user.organizationId);
+  await ensureEditable(projectId);
 
   const profitMargin = parseFloat(formData.get("profitMargin") as string) / 100 || 0.2;
 
-  // Ekipman ve maliyet toplamlarÄ±nÄ± DB'den hesapla
+  // Ekipman ve maliyet toplamlarını DB'den hesapla
   const [equipmentItems, costItems] = await Promise.all([
     prisma.equipmentItem.findMany({ where: { projectId } }),
     prisma.costItem.findMany({ where: { projectId } }),
@@ -201,7 +209,7 @@ export async function saveStep3(projectId: string, formData: FormData) {
 
 export async function saveStep4(projectId: string, formData: FormData) {
   const user = await requireAuth();
-  await ensureOwner(projectId, user.organizationId);
+  await ensureEditable(projectId);
 
   const annualInflationRate = parseFloat(formData.get("annualInflationRate") as string) / 100 || 0.4;
   const electricityEscalationRate =
@@ -225,7 +233,7 @@ export async function saveStep4(projectId: string, formData: FormData) {
 
 export async function markCompleted(projectId: string) {
   const user = await requireAuth();
-  await ensureOwner(projectId, user.organizationId);
+  await ensureEditable(projectId);
 
   await prisma.project.update({
     where: { id: projectId },
@@ -238,7 +246,7 @@ export async function markCompleted(projectId: string) {
 
 export async function updateProjectStatus(projectId: string, status: string) {
   const user = await requireAuth();
-  await ensureOwner(projectId, user.organizationId);
+  await ensureEditable(projectId);
 
   await prisma.project.update({
     where: { id: projectId },
@@ -251,12 +259,12 @@ export async function updateProjectStatus(projectId: string, status: string) {
 }
 
 
-async function ensureOwner(projectId: string, organizationId: string) {
+// Org membership + per-user hide/lock + sablon kilidi.
+async function ensureEditable(projectId: string) {
+  const user = await requireAuth();
+  await assertProjectEditable(user, projectId);
   const project = await prisma.project.findUnique({ where: { id: projectId } });
-  if (!project || project.organizationId !== organizationId) {
-    redirect("/projects");
-  }
-  if (project.isTemplate && project.templateLocked) {
-    throw new Error("Åablon kilitli â€” dÃ¼zenlenemez. 'Bu ÅŸablonu kullan' ile yeni proje oluÅŸturun.");
+  if (project?.isTemplate && project.templateLocked) {
+    throw new Error("Şablon kilitli — düzenlenemez. 'Bu şablonu kullan' ile yeni proje oluşturun.");
   }
 }

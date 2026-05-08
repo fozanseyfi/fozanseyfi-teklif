@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getProjectAccess } from "@/lib/project-access";
 import { saveStep4 } from "@/app/actions/project";
 import { StepIndicator } from "@/components/project/step-indicator";
 import { FinancialAnalysis } from "@/components/project/financial-analysis";
@@ -13,6 +14,9 @@ interface Props {
 export default async function FinancialsPage({ params }: Props) {
   const { id } = await params;
   const user = await requireAuth();
+
+  const access = await getProjectAccess(user, id);
+  if (!access || !access.canView) notFound();
 
   const project = await prisma.project.findFirst({
     where: { id, organizationId: user.organizationId },

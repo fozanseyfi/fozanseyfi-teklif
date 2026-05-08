@@ -1,6 +1,8 @@
 ﻿import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isAdmin } from "@/lib/permissions";
+import { getHiddenResourceIds } from "@/lib/permission-server";
 import { ensureTemplates, useTemplate } from "@/app/actions/templates";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,11 +15,19 @@ import { cn } from "@/lib/utils";
 export default async function TemplatesPage() {
   const user = await requireAuth();
 
-  // Idempotent â€” eksik sablonlari yaratir, varolanlara dokunmaz
+  // Idempotent — eksik sablonlari yaratir, varolanlara dokunmaz
   await ensureTemplates();
 
+  const hiddenIds = isAdmin(user)
+    ? []
+    : await getHiddenResourceIds(user.id, user.organizationId, "project");
+
   const templates = await prisma.project.findMany({
-    where: { organizationId: user.organizationId, isTemplate: true },
+    where: {
+      organizationId: user.organizationId,
+      isTemplate: true,
+      ...(hiddenIds.length ? { id: { notIn: hiddenIds } } : {}),
+    },
     orderBy: { templateOrder: "asc" },
     include: {
       projectDetail: { select: { kesifA: true, kesifB: true, settings: true } },
@@ -54,11 +64,11 @@ export default async function TemplatesPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Åablonlar
+              Şablonlar
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              HazÄ±r boyut ÅŸablonlarÄ± â€” kendi projenize en yakÄ±n olanÄ± seÃ§ip
-              kopyalayarak baÅŸlayÄ±n. Åablonun iÃ§eriÄŸini deÄŸiÅŸtirmeden direkt kullanabilir
+              Hazır boyut şablonları — kendi projenize en yakın olanı seçip
+              kopyalayarak başlayın. Şablonun içeriğini değiştirmeden direkt kullanabilir
               ya da incelyip kendi projenize uyarlayabilirsiniz.
             </p>
           </div>
@@ -69,12 +79,12 @@ export default async function TemplatesPage() {
         <div className="flex items-start gap-2">
           <Sparkles className="mt-0.5 size-4 shrink-0 text-info-soft-foreground" />
           <div className="text-xs text-info-soft-foreground">
-            <strong>NasÄ±l Ã§alÄ±ÅŸÄ±r?</strong> Her ÅŸablon kalemler, fiyatlar ve
-            varsayÄ±lan oranlarla hazÄ±rdÄ±r. <strong>Ä°ncele</strong> ile iÃ§eriÄŸini
-            gÃ¶rÃ¼p dÃ¼zenleyebilirsiniz (ÅŸablonun kendisi gÃ¼ncellenir).{" "}
-            <strong>Bu ÅŸablonu kullan</strong> ile yeni bir proje aÃ§Ä±lÄ±r ve
-            ÅŸablon o projeye kopyalanÄ±r â€” ÅŸablon deÄŸiÅŸmez, kopyada dÃ¼zenleme
-            yaparsÄ±nÄ±z.
+            <strong>Nasıl çalışır?</strong> Her şablon kalemler, fiyatlar ve
+            varsayılan oranlarla hazırdır. <strong>İncele</strong> ile içeriğini
+            görüp düzenleyebilirsiniz (şablonun kendisi güncellenir).{" "}
+            <strong>Bu şablonu kullan</strong> ile yeni bir proje açılır ve
+            şablon o projeye kopyalanır — şablon değişmez, kopyada düzenleme
+            yaparsınız.
           </div>
         </div>
       </div>
@@ -105,18 +115,18 @@ export default async function TemplatesPage() {
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning-soft px-1.5 py-0.5 text-[10px] font-semibold text-warning-soft-foreground">
-                          <Unlock className="size-2.5" /> DÃ¼zenleniyor
+                          <Unlock className="size-2.5" /> Düzenleniyor
                         </span>
                       )}
                     </div>
                     <h3 className="mt-2 text-base font-semibold text-foreground">
-                      {t.installationType === "ROOFTOP" ? "Ã‡atÄ± GES" : "Arazi GES"}
+                      {t.installationType === "ROOFTOP" ? "Çatı GES" : "Arazi GES"}
                     </h3>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {t.totalPowerKw >= 1000
                         ? `${(t.totalPowerKw / 1000).toFixed(1)} MWp`
                         : `${t.totalPowerKw} kWp`}{" "}
-                      {t.systemSize === "LARGE" ? "bÃ¼yÃ¼k Ã¶lÃ§ek" : "kÃ¼Ã§Ã¼k Ã¶lÃ§ek"}
+                      {t.systemSize === "LARGE" ? "büyük ölçek" : "küçük ölçek"}
                     </p>
                   </div>
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary-soft-foreground">
@@ -127,11 +137,11 @@ export default async function TemplatesPage() {
                 <div className="mt-4 grid grid-cols-2 gap-2 rounded-lg border bg-muted/30 p-3 text-xs">
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                      Tahmini SatÄ±ÅŸ
+                      Tahmini Satış
                     </p>
                     <p className="mt-0.5 flex items-center gap-1 font-bold tabular-nums text-foreground">
                       <DollarSign className="size-3 text-primary" />
-                      {epc ? fmt(epc.salePriceUsd) : "â€”"}
+                      {epc ? fmt(epc.salePriceUsd) : "—"}
                     </p>
                   </div>
                   <div>
@@ -139,7 +149,7 @@ export default async function TemplatesPage() {
                       USD/Wp
                     </p>
                     <p className="mt-0.5 font-bold tabular-nums text-foreground">
-                      {epc ? `$${epc.perKwUsd.toFixed(3)}` : "â€”"}
+                      {epc ? `$${epc.perKwUsd.toFixed(3)}` : "—"}
                     </p>
                   </div>
                 </div>
@@ -150,7 +160,7 @@ export default async function TemplatesPage() {
                     className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                   >
                     <Eye className="size-3.5" />
-                    Ä°ncele / DÃ¼zenle
+                    İncele / Düzenle
                   </Link>
                   <form
                     action={async () => {
@@ -165,7 +175,7 @@ export default async function TemplatesPage() {
                       className="h-auto w-full gap-1.5 py-2 text-xs"
                     >
                       <Sparkles className="size-3.5" />
-                      Bu ÅŸablonu kullan
+                      Bu şablonu kullan
                     </Button>
                   </form>
                 </div>
@@ -178,7 +188,7 @@ export default async function TemplatesPage() {
       {templates.length === 0 && (
         <div className="rounded-xl border border-dashed bg-muted/30 px-6 py-12 text-center">
           <p className="text-sm text-muted-foreground">
-            Åablon bulunamadÄ±. SayfayÄ± yenileyin.
+            Şablon bulunamadı. Sayfayı yenileyin.
           </p>
         </div>
       )}

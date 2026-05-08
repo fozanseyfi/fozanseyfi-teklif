@@ -21,8 +21,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
         userRole={user.role}
         organizations={orgs}
       />
-      {/* Top bar artÄ±k hem mobilde hem desktop'ta var (14h). Desktop'ta sidebar
-          fixed, content sidebar geniÅŸliÄŸi kadar pad'lenir. */}
+      {/* Top bar artık hem mobilde hem desktop'ta var (14h). Desktop'ta sidebar
+          fixed, content sidebar genişliği kadar pad'lenir. */}
       <div className="flex min-h-screen flex-col pt-14 sidebar-aware">
         <main
           key="dashboard-main"

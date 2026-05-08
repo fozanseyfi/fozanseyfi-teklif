@@ -29,6 +29,11 @@ model Profile {
   projects     Project[]            @relation("ProjectCreatedBy")
   invitations  Invitation[]         @relation("Inviter")
 
+  hiddenResources    UserHiddenResource[] @relation("HiddenForUser")
+  hiddenByMe         UserHiddenResource[] @relation("HiderProfile")
+  lockedResources    UserLockedResource[] @relation("LockedForUser")
+  lockedByMe         UserLockedResource[] @relation("LockerProfile")
+
   @@map("profiles")
   @@schema("public")
 }
@@ -46,6 +51,9 @@ model Organization {
   invitations   Invitation[]
   projects      Project[]
   subscription  Subscription?
+
+  hiddenResources UserHiddenResource[] @relation("HiddenInOrg")
+  lockedResources UserLockedResource[] @relation("LockedInOrg")
 
   @@map("organizations")
   @@schema("public")
@@ -80,6 +88,48 @@ model OrganizationMember {
 
   @@id([userId, organizationId])
   @@map("organization_members")
+  @@schema("public")
+}
+
+// Negatif izin: admin bir kaynagi belirli bir user'dan tamamen gizler.
+// resourceType: 'project' (sablonlar dahil) | 'customer'
+// resourceId: project.id (string/cuid) — `solar` schema'sindaki projeye foreign key
+// veremiyoruz cunku FK cross-schema olabiliyor ama silme cascade'i app layer'da
+// resource silindiginde yetenek silinmesi gerek. Burada cleanup app-layer'da yapilir.
+model UserHiddenResource {
+  userId         String       @map("user_id") @db.Uuid
+  user           Profile      @relation("HiddenForUser", fields: [userId], references: [id], onDelete: Cascade)
+  resourceType   String       @map("resource_type") // 'project' | 'customer'
+  resourceId     String       @map("resource_id")
+  organizationId String       @map("organization_id") @db.Uuid
+  organization   Organization @relation("HiddenInOrg", fields: [organizationId], references: [id], onDelete: Cascade)
+  hiddenBy       String?      @map("hidden_by") @db.Uuid
+  hider          Profile?     @relation("HiderProfile", fields: [hiddenBy], references: [id])
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@id([userId, resourceType, resourceId])
+  @@index([organizationId])
+  @@index([resourceType, resourceId])
+  @@map("user_hidden_resources")
+  @@schema("public")
+}
+
+// Read-only kilit: admin bir user'i belirli bir kaynakta sadece goruntuleyici yapar.
+model UserLockedResource {
+  userId         String       @map("user_id") @db.Uuid
+  user           Profile      @relation("LockedForUser", fields: [userId], references: [id], onDelete: Cascade)
+  resourceType   String       @map("resource_type") // 'project' | 'customer'
+  resourceId     String       @map("resource_id")
+  organizationId String       @map("organization_id") @db.Uuid
+  organization   Organization @relation("LockedInOrg", fields: [organizationId], references: [id], onDelete: Cascade)
+  lockedBy       String?      @map("locked_by") @db.Uuid
+  locker         Profile?     @relation("LockerProfile", fields: [lockedBy], references: [id])
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@id([userId, resourceType, resourceId])
+  @@index([organizationId])
+  @@index([resourceType, resourceId])
+  @@map("user_locked_resources")
   @@schema("public")
 }
 

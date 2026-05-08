@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { canGeneratePDF as canGenPdf } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { getProjectAccess } from "@/lib/project-access";
 import { StepIndicator } from "@/components/project/step-indicator";
 import { ProposalEditor } from "@/components/project/proposal-editor";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -13,6 +14,9 @@ interface Props {
 export default async function ProposalPage({ params }: Props) {
   const { id } = await params;
   const user = await requireAuth();
+
+  const access = await getProjectAccess(user, id);
+  if (!access || !access.canView) notFound();
 
   const [project, subscription] = await Promise.all([
     prisma.project.findFirst({

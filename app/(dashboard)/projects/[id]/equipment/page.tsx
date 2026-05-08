@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getProjectAccess } from "@/lib/project-access";
 import { StepIndicator } from "@/components/project/step-indicator";
 import { EquipmentTable } from "@/components/project/equipment-table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -12,6 +13,9 @@ interface Props {
 export default async function EquipmentPage({ params }: Props) {
   const { id } = await params;
   const user = await requireAuth();
+
+  const access = await getProjectAccess(user, id);
+  if (!access || !access.canView) notFound();
 
   const project = await prisma.project.findFirst({
     where: { id, organizationId: user.organizationId },

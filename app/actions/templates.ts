@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
+import { isAdmin } from "@/lib/permissions";
+import { getHiddenResourceIds } from "@/lib/permission-server";
 import { DEF_KA, DEF_KB, DEF_S, DEF_DOR, DEF_TL } from "@/lib/ges-defaults";
 import { applyAutoQty, applyAutoQtyKB } from "@/lib/ges-engine";
 import { TEMPLATE_SEEDS } from "@/lib/template-seeds";
@@ -9,7 +11,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 /**
- * Boyuta gore makul sayisal varsayilanlar â€” her sekme acik gelsin diye
+ * Boyuta gore makul sayisal varsayilanlar — her sekme acik gelsin diye
  * panel/inverter/alan vs. doldurulur. Kullanici "Bu sablonu kullan"
  * dediginde bu degerler yeni projeye kopyalanir.
  */
@@ -30,7 +32,7 @@ function buildTemplateData(seed: (typeof TEMPLATE_SEEDS)[number]) {
   const meta = deriveTemplateMeta(seed.dcMwp);
   const settings = {
     ...DEF_S,
-    projeAdi: `Sablon â€” ${seed.label}`,
+    projeAdi: `Sablon — ${seed.label}`,
     dcGuc: seed.dcMwp,
     acGuc: seed.dcMwp * 0.92, // tipik DC/AC ~1.08
     panelGuc: meta.panelWp,
@@ -81,9 +83,9 @@ export async function ensureTemplates() {
         data: {
           organizationId: user.organizationId,
           createdById: user.id,
-          name: `Sablon â€” ${seed.label}`,
-          customerName: "Åablon",
-          projectLocation: "Åablon",
+          name: `Sablon — ${seed.label}`,
+          customerName: "Şablon",
+          projectLocation: "Şablon",
           installationType: seed.installationType,
           systemSize: seed.systemSize,
           electricityTariff: "INDUSTRIAL",
@@ -109,13 +111,13 @@ export async function ensureTemplates() {
         },
       });
     } else if (timelineIsEmpty(found.projectDetail?.timeline)) {
-      // Eski seed (timeline'sÄ±z) bulundu â€” kullanici henuz dokunmamis,
+      // Eski seed (timeline'sız) bulundu — kullanici henuz dokunmamis,
       // tam veriyi geri-yukle.
       await prisma.project.update({
         where: { id: found.id },
         data: {
-          customerName: "Åablon",
-          projectLocation: "Åablon",
+          customerName: "Şablon",
+          projectLocation: "Şablon",
           status: "COMPLETED",
           panelCount: meta.panelCount,
           panelPowerWp: meta.panelWp,
@@ -146,11 +148,28 @@ export async function ensureTemplates() {
 export async function useTemplate(templateId: string) {
   const user = await requireAuth();
 
+  // Sablonu kullanmak yeni proje yarattigi icin viewer kullanamaz.
+  if (user.platformRole === "viewer") {
+    throw new Error("Goruntuleyici kullanicilar sablon kullanamaz");
+  }
+
   const template = await prisma.project.findFirst({
     where: { id: templateId, organizationId: user.organizationId, isTemplate: true },
     include: { projectDetail: true },
   });
   if (!template) throw new Error("Sablon bulunamadi");
+
+  // Admin disindaki kullanici bu sablona gizli erisimde mi?
+  if (!isAdmin(user)) {
+    const hiddenIds = await getHiddenResourceIds(
+      user.id,
+      user.organizationId,
+      "project",
+    );
+    if (hiddenIds.includes(templateId)) {
+      throw new Error("Bu sablona erisiminiz yok");
+    }
+  }
 
   const newProject = await prisma.project.create({
     data: {
@@ -173,7 +192,7 @@ export async function useTemplate(templateId: string) {
       annualInflationRate: template.annualInflationRate,
       electricityEscalationRate: template.electricityEscalationRate,
       projectLifeYears: template.projectLifeYears,
-      // Template flagleri YOK â€” bu artik gercek proje
+      // Template flagleri YOK — bu artik gercek proje
       isTemplate: false,
       ...(template.projectDetail
         ? {
@@ -197,11 +216,12 @@ export async function useTemplate(templateId: string) {
 }
 
 /**
- * Sablon silme (admin/owner amacli â€” varsayilan listeye dokunmaz, yalnizca
+ * Sablon silme (admin/owner amacli — varsayilan listeye dokunmaz, yalnizca
  * fazladan eklenmis veya yanlis seed'i temizlemek icin).
  */
 export async function deleteTemplate(templateId: string) {
   const user = await requireAuth();
+  if (!isAdmin(user)) throw new Error("Sablon silme yetkiniz yok");
   await prisma.project.deleteMany({
     where: { id: templateId, organizationId: user.organizationId, isTemplate: true },
   });
@@ -214,6 +234,7 @@ export async function deleteTemplate(templateId: string) {
  */
 export async function setTemplateLock(templateId: string, locked: boolean) {
   const user = await requireAuth();
+  if (!isAdmin(user)) throw new Error("Sablon kilidi sadece yoneticiler tarafindan acilip kapatilabilir");
   await prisma.project.updateMany({
     where: { id: templateId, organizationId: user.organizationId, isTemplate: true },
     data: { templateLocked: locked },

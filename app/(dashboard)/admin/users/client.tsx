@@ -18,6 +18,7 @@ import { ROLE_LABELS, type Role } from "@/lib/permissions";
 import { UserPlus, Trash2, Users, Mail, Copy, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
+import { UserPermissionsDialog } from "@/components/admin/user-permissions-dialog";
 
 interface UserRow {
   id: string;
@@ -280,15 +281,20 @@ export function AdminUsersClient({
                     </td>
                     <td className="px-4 py-3 text-right">
                       {u.id !== currentUserId && (
-                        <form action={removeUser.bind(null, u.id)}>
-                          <button
-                            type="submit"
-                            className="text-muted-foreground transition-colors hover:text-destructive"
-                            title="Bu panelden çıkar"
-                          >
-                            <Trash2 className="size-4" />
-                          </button>
-                        </form>
+                        <div className="flex items-center justify-end gap-2">
+                          {u.role !== "admin" && (
+                            <UserPermissionsDialog userId={u.id} userRole={u.role} />
+                          )}
+                          <form action={removeUser.bind(null, u.id)}>
+                            <button
+                              type="submit"
+                              className="text-muted-foreground transition-colors hover:text-destructive"
+                              title="Bu panelden çıkar"
+                            >
+                              <Trash2 className="size-4" />
+                            </button>
+                          </form>
+                        </div>
                       )}
                     </td>
                   </tr>

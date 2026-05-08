@@ -1,6 +1,8 @@
 ﻿import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isAdmin } from "@/lib/permissions";
+import { getHiddenResourceIds } from "@/lib/permission-server";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -40,10 +42,23 @@ export default async function ProjectsPage({ searchParams }: Props) {
   const { q, status } = await searchParams;
   const user = await requireAuth();
 
+  // Admin disindaki kullanicilar icin gizli proje + gizli musteri ID'lerini al.
+  // Gizli musteri => o musteriye bagli projeler de listede cikmaz.
+  const hiddenProjectIds = isAdmin(user)
+    ? []
+    : await getHiddenResourceIds(user.id, user.organizationId, "project");
+  const hiddenCustomerNames = isAdmin(user)
+    ? []
+    : await getHiddenResourceIds(user.id, user.organizationId, "customer");
+
   const projects = await prisma.project.findMany({
     where: {
       organizationId: user.organizationId,
       isTemplate: false,
+      ...(hiddenProjectIds.length ? { id: { notIn: hiddenProjectIds } } : {}),
+      ...(hiddenCustomerNames.length
+        ? { customerName: { notIn: hiddenCustomerNames } }
+        : {}),
       ...(q
         ? {
             OR: [
@@ -59,7 +74,7 @@ export default async function ProjectsPage({ searchParams }: Props) {
   });
 
   const filters = [
-    { value: undefined, label: "TÃ¼mÃ¼" },
+    { value: undefined, label: "Tümü" },
     { value: "DRAFT", label: PROJECT_STATUS_LABELS.DRAFT },
     { value: "IN_PROGRESS", label: PROJECT_STATUS_LABELS.IN_PROGRESS },
     { value: "COMPLETED", label: PROJECT_STATUS_LABELS.COMPLETED },
@@ -110,14 +125,14 @@ export default async function ProjectsPage({ searchParams }: Props) {
             <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-secondary">
               <FolderOpen className="size-7 text-muted-foreground" />
             </div>
-            <p className="font-semibold text-foreground">Proje bulunamadÄ±</p>
+            <p className="font-semibold text-foreground">Proje bulunamadı</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Yeni bir proje oluÅŸturarak baÅŸlayÄ±n
+              Yeni bir proje oluşturarak başlayın
             </p>
             <Button asChild className="mt-5">
               <Link href="/projects/new">
                 <Plus className="size-4" />
-                Ä°lk Projeyi OluÅŸtur
+                İlk Projeyi Oluştur
               </Link>
             </Button>
           </CardContent>
@@ -133,10 +148,10 @@ export default async function ProjectsPage({ searchParams }: Props) {
                       Proje
                     </th>
                     <th className="hidden px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground md:table-cell">
-                      MÃ¼ÅŸteri
+                      Müşteri
                     </th>
                     <th className="hidden px-6 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground lg:table-cell">
-                      GÃ¼Ã§
+                      Güç
                     </th>
                     <th className="hidden px-6 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground lg:table-cell">
                       Fiyat
@@ -178,12 +193,12 @@ export default async function ProjectsPage({ searchParams }: Props) {
                       <td className="hidden px-6 py-4 text-right font-medium text-muted-foreground lg:table-cell">
                         {project.totalPowerKw > 0
                           ? `${project.totalPowerKw.toFixed(1)} kWp`
-                          : "â€”"}
+                          : "—"}
                       </td>
                       <td className="hidden px-6 py-4 text-right font-semibold text-foreground lg:table-cell">
                         {project.pricingSnapshot
                           ? formatCurrency(project.pricingSnapshot.finalSalePrice)
-                          : "â€”"}
+                          : "—"}
                       </td>
                       <td className="px-6 py-4 text-center">
                         {isCompletionStatus(project.status) ? (
@@ -205,7 +220,7 @@ export default async function ProjectsPage({ searchParams }: Props) {
                         <div className="flex items-center justify-end">
                           <Button variant="ghost" size="sm" asChild>
                             <Link href={`/projects/${project.id}/detail`}>
-                              DÃ¼zenle
+                              Düzenle
                             </Link>
                           </Button>
                         </div>

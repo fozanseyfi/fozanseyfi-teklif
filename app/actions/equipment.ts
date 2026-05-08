@@ -2,12 +2,13 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
+import { assertProjectEditable } from "@/lib/project-access";
 import { EquipmentCategory, CostCategory } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 export async function addEquipmentItem(projectId: string, formData: FormData) {
   const user = await requireAuth();
-  await ensureOwner(projectId, user.organizationId);
+  await assertProjectEditable(user, projectId);
 
   const category = formData.get("category") as EquipmentCategory;
   const brand = formData.get("brand") as string;
@@ -34,7 +35,7 @@ export async function addEquipmentItem(projectId: string, formData: FormData) {
 
 export async function updateEquipmentItem(itemId: string, projectId: string, formData: FormData) {
   const user = await requireAuth();
-  await ensureOwner(projectId, user.organizationId);
+  await assertProjectEditable(user, projectId);
 
   const quantity = parseInt(formData.get("quantity") as string) || 1;
   const unitPrice = parseFloat(formData.get("unitPrice") as string) || 0;
@@ -59,7 +60,7 @@ export async function updateEquipmentItem(itemId: string, projectId: string, for
 
 export async function deleteEquipmentItem(itemId: string, projectId: string) {
   const user = await requireAuth();
-  await ensureOwner(projectId, user.organizationId);
+  await assertProjectEditable(user, projectId);
 
   await prisma.equipmentItem.delete({ where: { id: itemId } });
   revalidatePath(`/projects/${projectId}/equipment`);
@@ -67,7 +68,7 @@ export async function deleteEquipmentItem(itemId: string, projectId: string) {
 
 export async function addCostItem(projectId: string, formData: FormData) {
   const user = await requireAuth();
-  await ensureOwner(projectId, user.organizationId);
+  await assertProjectEditable(user, projectId);
 
   const category = formData.get("category") as CostCategory;
   const description = formData.get("description") as string;
@@ -83,7 +84,7 @@ export async function addCostItem(projectId: string, formData: FormData) {
 
 export async function updateCostItem(itemId: string, projectId: string, formData: FormData) {
   const user = await requireAuth();
-  await ensureOwner(projectId, user.organizationId);
+  await assertProjectEditable(user, projectId);
 
   const amount = parseFloat(formData.get("amount") as string) || 0;
   const description = formData.get("description") as string;
@@ -99,7 +100,7 @@ export async function updateCostItem(itemId: string, projectId: string, formData
 
 export async function deleteCostItem(itemId: string, projectId: string) {
   const user = await requireAuth();
-  await ensureOwner(projectId, user.organizationId);
+  await assertProjectEditable(user, projectId);
 
   await prisma.costItem.delete({ where: { id: itemId } });
   revalidatePath(`/projects/${projectId}/equipment`);
@@ -107,7 +108,7 @@ export async function deleteCostItem(itemId: string, projectId: string) {
 
 export async function seedDefaultEquipment(projectId: string) {
   const user = await requireAuth();
-  await ensureOwner(projectId, user.organizationId);
+  await assertProjectEditable(user, projectId);
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
@@ -177,9 +178,9 @@ export async function seedDefaultEquipment(projectId: string) {
     }),
     prisma.costItem.createMany({
       data: [
-        { projectId, category: "INSTALLATION_LABOR", description: "Montaj Ä°ÅŸÃ§iliÄŸi", amount: snapshot.finalInstallationCost },
-        { projectId, category: "ENGINEERING_DESIGN", description: "MÃ¼hendislik & TasarÄ±m", amount: snapshot.finalEngineeringCost },
-        { projectId, category: "PERMITS_LICENSING", description: "Ä°zin & Lisans", amount: snapshot.finalOtherCosts * 0.5 },
+        { projectId, category: "INSTALLATION_LABOR", description: "Montaj İşçiliği", amount: snapshot.finalInstallationCost },
+        { projectId, category: "ENGINEERING_DESIGN", description: "Mühendislik & Tasarım", amount: snapshot.finalEngineeringCost },
+        { projectId, category: "PERMITS_LICENSING", description: "İzin & Lisans", amount: snapshot.finalOtherCosts * 0.5 },
         { projectId, category: "TRANSPORTATION", description: "Nakliye", amount: snapshot.finalOtherCosts * 0.3 },
         { projectId, category: "COMMISSIONING", description: "Devreye Alma", amount: snapshot.finalOtherCosts * 0.2 },
       ],
@@ -189,7 +190,3 @@ export async function seedDefaultEquipment(projectId: string) {
   revalidatePath(`/projects/${projectId}/equipment`);
 }
 
-async function ensureOwner(projectId: string, organizationId: string) {
-  const project = await prisma.project.findUnique({ where: { id: projectId } });
-  if (!project || project.organizationId !== organizationId) throw new Error("Unauthorized");
-}

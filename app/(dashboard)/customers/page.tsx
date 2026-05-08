@@ -1,6 +1,8 @@
 ﻿import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isAdmin } from "@/lib/permissions";
+import { getHiddenResourceIds } from "@/lib/permission-server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Plus, ArrowRight } from "lucide-react";
@@ -9,15 +11,30 @@ import type { GesSettings } from "@/lib/ges-defaults";
 export default async function CustomersPage() {
   const user = await requireAuth();
 
+  const hiddenProjectIds = isAdmin(user)
+    ? []
+    : await getHiddenResourceIds(user.id, user.organizationId, "project");
+  const hiddenCustomerNames = isAdmin(user)
+    ? []
+    : await getHiddenResourceIds(user.id, user.organizationId, "customer");
+
   const projects = await prisma.project.findMany({
-    where: { organizationId: user.organizationId, isTemplate: false, customerName: { not: "" } },
+    where: {
+      organizationId: user.organizationId,
+      isTemplate: false,
+      customerName: { not: "" },
+      ...(hiddenProjectIds.length ? { id: { notIn: hiddenProjectIds } } : {}),
+      ...(hiddenCustomerNames.length
+        ? { customerName: { notIn: hiddenCustomerNames } }
+        : {}),
+    },
     orderBy: { updatedAt: "desc" },
     include: { projectDetail: { select: { settings: true } } },
   });
 
   const customerMap = new Map<string, typeof projects>();
   for (const p of projects) {
-    const name = p.customerName || "â€”";
+    const name = p.customerName || "—";
     if (!customerMap.has(name)) customerMap.set(name, []);
     customerMap.get(name)!.push(p);
   }
@@ -45,15 +62,15 @@ export default async function CustomersPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">MÃ¼ÅŸteriler</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Müşteriler</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            {customers.length} mÃ¼ÅŸteri
+            {customers.length} müşteri
           </p>
         </div>
         <Button asChild>
           <Link href="/projects/new">
             <Plus className="size-4" />
-            Yeni Proje / MÃ¼ÅŸteri
+            Yeni Proje / Müşteri
           </Link>
         </Button>
       </div>
@@ -64,9 +81,9 @@ export default async function CustomersPage() {
             <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-secondary">
               <Users className="size-8 text-muted-foreground" />
             </div>
-            <p className="font-semibold">HenÃ¼z mÃ¼ÅŸteri yok</p>
+            <p className="font-semibold">Henüz müşteri yok</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Proje oluÅŸturarak mÃ¼ÅŸteri ekleyin
+              Proje oluşturarak müşteri ekleyin
             </p>
           </CardContent>
         </Card>
@@ -78,16 +95,16 @@ export default async function CustomersPage() {
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      MÃ¼ÅŸteri
+                      Müşteri
                     </th>
                     <th className="hidden px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground md:table-cell">
-                      Ä°letiÅŸim
+                      İletişim
                     </th>
                     <th className="px-6 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                       Proje
                     </th>
                     <th className="hidden px-6 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:table-cell">
-                      Ã–ngÃ¶rÃ¼
+                      Öngörü
                     </th>
                     <th className="px-6 py-3" />
                   </tr>
@@ -117,7 +134,7 @@ export default async function CustomersPage() {
                         <div className="space-y-0.5 text-xs text-muted-foreground">
                           {c.phone && <p className="font-medium text-foreground">{c.phone}</p>}
                           {c.email && <p className="truncate">{c.email}</p>}
-                          {!c.phone && !c.email && <span>â€”</span>}
+                          {!c.phone && !c.email && <span>—</span>}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -131,7 +148,7 @@ export default async function CustomersPage() {
                             {c.insights.length} not
                           </span>
                         ) : (
-                          <span className="text-xs text-muted-foreground">â€”</span>
+                          <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </td>
                       <td className="px-6 py-4">
