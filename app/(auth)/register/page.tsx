@@ -41,6 +41,11 @@ function RegisterForm() {
               {result.error}
             </div>
           )}
+          {result?.success && (
+            <div className="rounded-md border border-success/30 bg-success-soft p-3 text-sm text-success-soft-foreground">
+              {result.success}
+            </div>
+          )}
           {inviteToken && <input type="hidden" name="inviteToken" value={inviteToken} />}
           <div className="space-y-1.5">
             <Label htmlFor="name">Ad Soyad</Label>

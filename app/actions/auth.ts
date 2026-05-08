@@ -31,20 +31,41 @@ export async function register(_state: ActionResult | undefined, formData: FormD
   if (passwordError) return { error: passwordError };
 
   const supabase = await createSupabaseServer();
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const next = inviteToken ? `/invite/${inviteToken}` : "/dashboard";
+  const emailRedirectTo = `${appUrl}/auth/callback?next=${encodeURIComponent(next)}`;
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { name, full_name: name } },
+    options: {
+      data: { name, full_name: name },
+      // Supabase email link'i bu URL'ye gelir (Karardestek default URL'sini override eder).
+      // /auth/callback code'u session'a cevirip ?next= adresine redirect eder.
+      emailRedirectTo,
+    },
   });
 
   if (error || !data.user) {
     return { error: error?.message || "Kayıt sırasında bir hata oluştu." };
   }
 
-  if (inviteToken) {
-    redirect(`/invite/${inviteToken}`);
+  // Eger Supabase email confirmation aktifse, kullanici email'den link'e tiklayinca
+  // /auth/callback uzerinden ilgili sayfaya dusecek. Eger session zaten varsa (confirm
+  // off) hemen /invite/<token>'a yonlendir.
+  if (data.session) {
+    if (inviteToken) redirect(`/invite/${inviteToken}`);
+    redirect("/dashboard");
   }
-  redirect("/dashboard");
+
+  // Session yok = email confirm bekleniyor. Kullaniciyi bilgilendir.
+  return {
+    success:
+      "Kayıt başarılı. E-posta adresine bir doğrulama bağlantısı gönderildi. " +
+      (inviteToken
+        ? "Linke tıkladıktan sonra otomatik olarak davet sayfasına yönlendirileceksin."
+        : "Linki onaylayınca giriş yapabilirsin."),
+  };
 }
 
 export async function login(_state: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
