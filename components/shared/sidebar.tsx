@@ -15,11 +15,11 @@ import {
   LayoutTemplate,
   HelpCircle,
   Bell,
-  ChevronLeft,
-  ChevronRight,
   ChevronDown,
   Menu,
   X,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
@@ -240,13 +240,25 @@ export function Sidebar({ userName, firmName, userRole }: SidebarProps) {
           </div>
         </div>
 
-        {/* Desktop: Panel: <firmName> */}
+        {/* Desktop: sidebar toggle + Panel: <firmName> */}
         <div
-          className="hidden min-w-0 items-center gap-2 lg:flex"
+          className="hidden min-w-0 items-center gap-1 lg:flex"
           style={{ marginLeft: "var(--sidebar-w, 16rem)", transition: "margin-left 200ms" }}
         >
-          <FolderOpen className="size-4 shrink-0 text-muted-foreground" />
-          <span className="shrink-0 text-sm text-muted-foreground">Panel:</span>
+          <button
+            type="button"
+            onClick={toggleCollapse}
+            title={collapsed ? "Menüyü aç" : "Menüyü kapat"}
+            aria-label={collapsed ? "Menüyü aç" : "Menüyü kapat"}
+            className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="size-4" strokeWidth={2.2} />
+            ) : (
+              <PanelLeftClose className="size-4" strokeWidth={2.2} />
+            )}
+          </button>
+          <span className="ml-1 shrink-0 text-sm text-muted-foreground">Panel:</span>
           <span className="truncate text-sm font-semibold text-foreground">{firmName}</span>
         </div>
 
@@ -283,21 +295,6 @@ export function Sidebar({ userName, firmName, userRole }: SidebarProps) {
           "lg:translate-x-0 lg:[width:var(--sidebar-w,16rem)]",
         )}
       >
-        {/* Toggle button (desktop) */}
-        <button
-          type="button"
-          onClick={toggleCollapse}
-          title={collapsed ? "Menüyü aç" : "Menüyü kapat"}
-          aria-label={collapsed ? "Menüyü aç" : "Menüyü kapat"}
-          className="absolute right-0 top-20 z-40 hidden size-6 translate-x-1/2 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-sidebar-muted shadow-md transition-colors hover:bg-sidebar-border/50 hover:text-white lg:flex"
-        >
-          {collapsed ? (
-            <ChevronRight className="size-3.5" />
-          ) : (
-            <ChevronLeft className="size-3.5" />
-          )}
-        </button>
-
         {/* Mobile close button */}
         <button
           type="button"
