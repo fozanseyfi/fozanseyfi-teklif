@@ -6,12 +6,12 @@ import { PLATFORM_KEY } from "@/lib/platform";
 import { validateEmail, validatePassword, validateRequired } from "@/lib/validations";
 import { redirect } from "next/navigation";
 
-export type ActionResult = {
+// "use server" dosyasi sadece async function export edebilir.
+// Type tanimlari icin lib/action-types.ts kullanilir.
+type ActionResult = {
   error?: string;
   success?: string;
 };
-
-const PLATFORM_OWNER_EMAIL = "fozanseyfi@gmail.com";
 
 // Karardestek pattern: profiles + organizations Karardestek tarafindan
 // trigger ile signup'ta otomatik yaratilir. Biz sadece auth.users uretip
@@ -120,4 +120,3 @@ export async function switchOrganization(organizationId: string): Promise<Action
   return { success: "Aktif panel değiştirildi" };
 }
 
-export { PLATFORM_OWNER_EMAIL };
