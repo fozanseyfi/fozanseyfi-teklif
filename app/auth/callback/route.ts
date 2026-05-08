@@ -20,33 +20,41 @@ import { PLATFORM_KEY } from "@/lib/platform";
 type OtpType = "signup" | "invite" | "magiclink" | "recovery" | "email" | "email_change";
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const url = new URL(request.url);
+  const { searchParams, origin } = url;
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const otpType = searchParams.get("type") as OtpType | null;
   const queryNext = searchParams.get("next");
 
+  console.log("[callback] DEBUG full URL:", request.url);
+  console.log("[callback] DEBUG params:", Object.fromEntries(searchParams.entries()));
+
   const supabase = await createSupabaseServer();
   let sessionEstablished = false;
+  let verifyError: string | null = null;
 
   if (code) {
-    // PKCE flow
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     sessionEstablished = !error;
+    verifyError = error?.message ?? null;
+    console.log("[callback] DEBUG PKCE flow, error:", verifyError);
   } else if (tokenHash && otpType) {
-    // OTP / Token-Hash flow (invite, magic link, recovery)
     const { error } = await supabase.auth.verifyOtp({
       type: otpType,
       token_hash: tokenHash,
     });
     sessionEstablished = !error;
+    verifyError = error?.message ?? null;
+    console.log("[callback] DEBUG OTP flow type:", otpType, "error:", verifyError);
   } else {
-    // Parametresiz — session zaten cookie'de olabilir (Supabase server-side verify)
     const { data } = await supabase.auth.getUser();
     sessionEstablished = !!data.user;
+    console.log("[callback] DEBUG no params, session-only check, authed:", sessionEstablished);
   }
 
   if (!sessionEstablished) {
+    console.log("[callback] DEBUG REDIRECTING to forgot-password (no session, error:", verifyError, ")");
     return NextResponse.redirect(`${origin}/forgot-password?error=invalid_link`);
   }
 
