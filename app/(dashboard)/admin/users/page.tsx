@@ -1,7 +1,6 @@
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/permissions";
-import { PLATFORM_KEY } from "@/lib/platform";
 import { redirect } from "next/navigation";
 import { AdminUsersClient } from "./client";
 
@@ -11,14 +10,13 @@ export default async function AdminUsersPage() {
 
   const [members, invitations] = await Promise.all([
     prisma.organizationMember.findMany({
-      where: { organizationId: user.organizationId, platform: PLATFORM_KEY },
+      where: { organizationId: user.organizationId },
       include: { user: true },
       orderBy: { joinedAt: "asc" },
     }),
     prisma.invitation.findMany({
       where: {
         organizationId: user.organizationId,
-        platform: PLATFORM_KEY,
         acceptedAt: null,
         expiresAt: { gt: new Date() },
       },

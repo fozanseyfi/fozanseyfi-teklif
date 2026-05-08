@@ -2,7 +2,6 @@
 
 import { prisma } from "@/lib/prisma";
 import { createSupabaseServer } from "@/lib/supabase/server";
-import { PLATFORM_KEY } from "@/lib/platform";
 import { validateEmail, validatePassword, validateRequired } from "@/lib/validations";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -142,10 +141,9 @@ export async function switchOrganization(organizationId: string): Promise<Action
 
   const membership = await prisma.organizationMember.findUnique({
     where: {
-      userId_organizationId_platform: {
+      userId_organizationId: {
         userId: authUser.id,
         organizationId,
-        platform: PLATFORM_KEY,
       },
     },
   });

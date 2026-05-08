@@ -1,23 +1,19 @@
 import type { CookieOptions } from "@supabase/ssr";
 
-/**
- * Cross-subdomain SSO için cookie domain'i.
- *
- * Production'da `.fozanseyfi.com` set edilir → tüm kardeş subdomain'lere
- * aynı Supabase auth cookie gider (karardestek + teklif + diğerleri).
- * Localhost'ta `undefined` döner → tarayıcı default'u (host-only) kullanılır,
- * lokal geliştirme etkilenmez.
- */
+// Tek-tenant ayri Supabase projesi — paylasilan cookie domain gerekmez.
+// Cookie kullanicinin geldigi host'a (teklif.fozanseyfi.com / localhost) set edilir.
+// Production'da NEXT_PUBLIC_COOKIE_DOMAIN env'i set edilirse override edilir
+// (ileride alt-subdomain'lere yayma istenirse).
 const COOKIE_DOMAIN =
   process.env.NODE_ENV === "production"
-    ? (process.env.NEXT_PUBLIC_COOKIE_DOMAIN ?? ".fozanseyfi.com")
+    ? (process.env.NEXT_PUBLIC_COOKIE_DOMAIN || undefined)
     : undefined;
 
-/** Auth cookie option override — domain + sameSite + secure ortak ayarı. */
+/** Auth cookie option override — sameSite + secure ortak ayarı, domain opsiyonel. */
 export function withSharedDomain(options: CookieOptions = {}): CookieOptions {
   return {
     ...options,
-    domain: COOKIE_DOMAIN ?? options.domain,
+    ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {}),
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
   };

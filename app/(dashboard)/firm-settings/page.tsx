@@ -1,7 +1,6 @@
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/permissions";
-import { PLATFORM_KEY } from "@/lib/platform";
 import { redirect } from "next/navigation";
 import { FirmSettingsForm } from "@/components/shared/firm-settings-form";
 
@@ -12,7 +11,7 @@ export default async function FirmSettingsPage() {
   const [firm, members] = await Promise.all([
     prisma.organization.findUnique({ where: { id: user.organizationId } }),
     prisma.organizationMember.findMany({
-      where: { organizationId: user.organizationId, platform: PLATFORM_KEY },
+      where: { organizationId: user.organizationId },
       include: { user: true },
       orderBy: { joinedAt: "asc" },
     }),

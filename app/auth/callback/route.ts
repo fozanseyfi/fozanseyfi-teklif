@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createSupabaseServer } from "@/lib/supabase/server";
-import { PLATFORM_KEY } from "@/lib/platform";
 
 // Supabase email confirmation / magic link / invite / password recovery linkleri
 // kullaniciyi buraya yonlendirir. Iki ayri auth flow'unu da destekler:
@@ -65,9 +64,8 @@ export async function GET(request: Request) {
     const { data: { user: authUser } } = await supabase.auth.getUser();
     const meta = authUser?.user_metadata as Record<string, unknown> | undefined;
     const inviteToken = typeof meta?.invitation_token === "string" ? meta.invitation_token : null;
-    const platform = typeof meta?.platform === "string" ? meta.platform : null;
 
-    if (inviteToken && platform === PLATFORM_KEY) {
+    if (inviteToken) {
       target = `/invite/${inviteToken}`;
     }
   }

@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import { createSupabaseServer } from "@/lib/supabase/server";
-import { PLATFORM_KEY } from "@/lib/platform";
 import { ROLE_LABELS, type Role } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Sun, Mail, ShieldAlert, Sparkles } from "lucide-react";
@@ -21,7 +20,6 @@ export default async function InvitePage({ params }: Props) {
 
   // Hatalı davet durumlari
   if (!invitation) return <ErrorScreen title="Geçersiz davet linki" message="Bu link tanınmıyor. Sizi davet eden kişiden yeni bir link talep edin." />;
-  if (invitation.platform !== PLATFORM_KEY) return <ErrorScreen title="Yanlış platform" message="Bu davet farklı bir platform için. Lütfen davet linkindeki platforma gidin." />;
   if (invitation.acceptedAt) return <ErrorScreen title="Davet zaten kabul edildi" message="Bu davet daha önce kabul edilmiş. Hesabınızla giriş yapabilirsiniz." cta={{ href: "/login", label: "Giriş Yap" }} />;
   if (invitation.expiresAt < new Date()) return <ErrorScreen title="Davetin süresi doldu" message="Bu davetin geçerlilik süresi sona ermiş. Sizi davet eden kişiden yeni bir link talep edin." />;
 

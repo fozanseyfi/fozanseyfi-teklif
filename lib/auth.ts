@@ -1,7 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseServer } from "@/lib/supabase/server";
-import { PLATFORM_KEY } from "@/lib/platform";
 import type { Profile, Organization } from "@prisma/client";
 import { redirect } from "next/navigation";
 
@@ -9,15 +8,14 @@ const PLATFORM_OWNER_EMAIL = "fozanseyfi@gmail.com";
 
 export type ProfileWithOrg = Profile & {
   organization: Organization;
-  // platformRole: bu platformda + active org icindeki rolu (organization_members'tan)
-  // profile.role Karardestek'in tuttugu degeri yansitir (kendi platformu icin);
-  // Solar Teklif kararlari hep platformRole'u kullanir.
+  // platformRole: aktif org icindeki kullanici rolu (organization_members'tan).
+  // profile.role ile genelde aynidir; switch sirasinda guncellenir.
   platformRole: "admin" | "user" | "viewer";
 };
 
-// Karardestek pattern: kimlik public.profiles + public.organizations'tan gelir;
-// her platform organization_members.platform = '<platform-key>' filtresiyle
-// kendi uyeliklerini ayri yonetir.
+// Yeni signup'da Supabase auth.users trigger'i (handle_new_user) profile +
+// organization + organization_members yaratir. Burada fallback olarak yine
+// olusturuyoruz (trigger calismadiysa veya pre-existing user icin).
 async function ensureProfile(authUser: {
   id: string;
   email?: string | null;
@@ -29,7 +27,6 @@ async function ensureProfile(authUser: {
   });
 
   if (!existing) {
-    // Profil hic yok — Karardestek trigger'i calismami olabilir, fallback olusturma.
     const email = (authUser.email ?? "").trim();
     const meta = authUser.user_metadata ?? {};
     const metaName =
@@ -55,13 +52,8 @@ async function ensureProfile(authUser: {
         },
         include: { organization: true },
       });
-      // Iki platforma da owner-admin uyelik (kendi org'una her yerde erisebilsin)
-      await tx.organizationMember.createMany({
-        data: [
-          { userId: authUser.id, organizationId: org.id, role: "admin", platform: "karar-destek" },
-          { userId: authUser.id, organizationId: org.id, role: "admin", platform: PLATFORM_KEY },
-        ],
-        skipDuplicates: true,
+      await tx.organizationMember.create({
+        data: { userId: authUser.id, organizationId: org.id, role: "admin" },
       });
       return profile;
     });
@@ -69,13 +61,12 @@ async function ensureProfile(authUser: {
     return { ...created, platformRole: "admin" as const };
   }
 
-  // Profile var — bu platforma uyeligi var mi? Aktif org icin.
+  // Profile var — aktif org icin uyelik var mi?
   const membership = await prisma.organizationMember.findUnique({
     where: {
-      userId_organizationId_platform: {
+      userId_organizationId: {
         userId: authUser.id,
         organizationId: existing.organizationId,
-        platform: PLATFORM_KEY,
       },
     },
   });
@@ -84,15 +75,14 @@ async function ensureProfile(authUser: {
     return { ...existing, platformRole: membership.role as "admin" | "user" | "viewer" };
   }
 
-  // Aktif org bu platformda yok — kullanicinin bu platformda uye oldugu ilk org'a yonlendir.
+  // Aktif org icin uyelik yok — kullanicinin uye oldugu ilk org'a tasi.
   const fallback = await prisma.organizationMember.findFirst({
-    where: { userId: authUser.id, platform: PLATFORM_KEY },
+    where: { userId: authUser.id },
     orderBy: { joinedAt: "asc" },
     include: { organization: true },
   });
 
   if (fallback) {
-    // Profile.organizationId'yi aktif platformda gecerli bir org'a tasi.
     await prisma.profile.update({
       where: { id: authUser.id },
       data: { organizationId: fallback.organizationId },
@@ -105,13 +95,12 @@ async function ensureProfile(authUser: {
     };
   }
 
-  // Bu kullanicinin bu platformda hic uyeligi yok — kendi org'una owner-admin uyelik ekle.
+  // Hicbir uyelik yok — kendi org'una admin uyelik ekle.
   await prisma.organizationMember.create({
     data: {
       userId: authUser.id,
       organizationId: existing.organizationId,
       role: "admin",
-      platform: PLATFORM_KEY,
     },
   });
   return { ...existing, platformRole: "admin" as const };
@@ -141,7 +130,7 @@ export async function requireRole(allowed: Role[]): Promise<ProfileWithOrg> {
 // Bu platformda kullanicinin uye oldugu tum organizasyonlar (panel switcher icin).
 export async function getUserOrganizations(userId: string) {
   return prisma.organizationMember.findMany({
-    where: { userId, platform: PLATFORM_KEY },
+    where: { userId },
     include: { organization: true },
     orderBy: { joinedAt: "asc" },
   });
@@ -151,10 +140,9 @@ export async function getUserOrganizations(userId: string) {
 export async function switchActiveOrganization(userId: string, newOrgId: string) {
   const membership = await prisma.organizationMember.findUnique({
     where: {
-      userId_organizationId_platform: {
+      userId_organizationId: {
         userId,
         organizationId: newOrgId,
-        platform: PLATFORM_KEY,
       },
     },
   });

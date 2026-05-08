@@ -3,7 +3,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import { isAdmin, type Role } from "@/lib/permissions";
-import { PLATFORM_KEY } from "@/lib/platform";
 import { generateToken } from "@/lib/utils";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
@@ -39,7 +38,6 @@ export async function inviteUser(formData: FormData) {
   const existingMember = await prisma.organizationMember.findFirst({
     where: {
       organizationId: user.organizationId,
-      platform: PLATFORM_KEY,
       user: { email: { equals: email, mode: "insensitive" } },
     },
   });
@@ -52,7 +50,6 @@ export async function inviteUser(formData: FormData) {
     where: {
       email,
       organizationId: user.organizationId,
-      platform: PLATFORM_KEY,
       acceptedAt: null,
     },
   });
@@ -65,7 +62,6 @@ export async function inviteUser(formData: FormData) {
       email,
       role,
       organizationId: user.organizationId,
-      platform: PLATFORM_KEY,
       token,
       expiresAt,
       invitedBy: user.id,
@@ -103,7 +99,6 @@ export async function inviteUser(formData: FormData) {
           invitation_token: token,
           invited_to_org: user.organizationId,
           invited_role: role,
-          platform: PLATFORM_KEY,
         },
       },
     });
@@ -124,7 +119,6 @@ export async function inviteUser(formData: FormData) {
         invitation_token: token,
         invited_to_org: user.organizationId,
         invited_role: role,
-        platform: PLATFORM_KEY,
       },
     });
     console.log("[invite] DEBUG inviteUserByEmail error =", result.error?.message ?? "(yok)");
@@ -152,12 +146,11 @@ export async function acceptInvitation(token: string) {
     where: { token },
     include: { organization: true },
   });
-  console.log("[accept] invitation found:", invitation ? `id=${invitation.id} email=${invitation.email} platform=${invitation.platform} accepted=${!!invitation.acceptedAt}` : "(yok)");
+  console.log("[accept] invitation found:", invitation ? `id=${invitation.id} email=${invitation.email} accepted=${!!invitation.acceptedAt}` : "(yok)");
 
   if (!invitation) return { error: "Davet bulunamadı" };
   if (invitation.acceptedAt) return { error: "Bu davet zaten kabul edilmiş" };
   if (invitation.expiresAt < new Date()) return { error: "Bu davetin süresi dolmuş" };
-  if (invitation.platform !== PLATFORM_KEY) return { error: "Bu davet bu platform için değil" };
 
   // Davet edilen email ile mevcut auth user'in email'i eslesmeli
   if (!user.email || user.email.toLowerCase() !== invitation.email.toLowerCase()) {
@@ -170,16 +163,14 @@ export async function acceptInvitation(token: string) {
     await prisma.$transaction([
       prisma.organizationMember.upsert({
         where: {
-          userId_organizationId_platform: {
+          userId_organizationId: {
             userId: user.id,
             organizationId: invitation.organizationId,
-            platform: PLATFORM_KEY,
           },
         },
         create: {
           userId: user.id,
           organizationId: invitation.organizationId,
-          platform: PLATFORM_KEY,
           role: invitation.role,
         },
         update: { role: invitation.role },
@@ -211,7 +202,6 @@ export async function cancelInvitation(invitationId: string) {
     where: {
       id: invitationId,
       organizationId: admin.organizationId,
-      platform: PLATFORM_KEY,
       acceptedAt: null,
     },
   });
@@ -228,10 +218,9 @@ export async function updateUserRole(userId: string, role: Role) {
 
   const membership = await prisma.organizationMember.findUnique({
     where: {
-      userId_organizationId_platform: {
+      userId_organizationId: {
         userId,
         organizationId: admin.organizationId,
-        platform: PLATFORM_KEY,
       },
     },
   });
@@ -239,10 +228,9 @@ export async function updateUserRole(userId: string, role: Role) {
 
   await prisma.organizationMember.update({
     where: {
-      userId_organizationId_platform: {
+      userId_organizationId: {
         userId,
         organizationId: admin.organizationId,
-        platform: PLATFORM_KEY,
       },
     },
     data: { role },
@@ -262,16 +250,14 @@ export async function removeUser(userId: string) {
     where: {
       userId,
       organizationId: admin.organizationId,
-      platform: PLATFORM_KEY,
     },
   });
 
-  // Eger hedef bu org'u aktif tutuyorsa, kullanicinin bu platformda uye oldugu baska bir org'a yonlendir.
+  // Eger hedef bu org'u aktif tutuyorsa, uye oldugu baska bir org'a yonlendir.
   const target = await prisma.profile.findUnique({
     where: { id: userId },
     include: {
       memberships: {
-        where: { platform: PLATFORM_KEY },
         include: { organization: true },
         take: 1,
       },

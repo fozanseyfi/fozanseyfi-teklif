@@ -57,7 +57,6 @@ model Invitation {
   role           String       // 'admin' | 'user' | 'viewer'
   organizationId String       @map("organization_id") @db.Uuid
   organization   Organization @relation(fields: [organizationId], references: [id])
-  platform       String
   token          String       @unique
   expiresAt      DateTime     @map("expires_at")
   invitedBy      String?      @map("invited_by") @db.Uuid
@@ -65,7 +64,7 @@ model Invitation {
   acceptedAt     DateTime?    @map("accepted_at")
   createdAt      DateTime     @default(now()) @map("created_at")
 
-  @@index([organizationId, platform])
+  @@index([organizationId])
   @@index([email])
   @@map("invitations")
   @@schema("public")
@@ -76,13 +75,10 @@ model OrganizationMember {
   user           Profile      @relation(fields: [userId], references: [id])
   organizationId String       @map("organization_id") @db.Uuid
   organization   Organization @relation(fields: [organizationId], references: [id])
-  // Platform-scoped: 'karar-destek' | 'solar-teklif' | ... — bir kullanici
-  // bir org'a farkli platformlarda farkli rollerde uye olabilir.
-  platform       String
   role           String       // 'admin' | 'user' | 'viewer'
   joinedAt       DateTime     @default(now()) @map("joined_at")
 
-  @@id([userId, organizationId, platform])
+  @@id([userId, organizationId])
   @@map("organization_members")
   @@schema("public")
 }
