@@ -79,45 +79,57 @@ export async function inviteUser(formData: FormData) {
   // customize etmis ve {{ .SiteURL }}/auth/callback'e hardcoded yonlendirme
   // yapiyor). Invite template default `{{ .ConfirmationURL }}` kullanir,
   // bu URL bizim redirectTo'yu honored eder.
-  // Supabase allow-list'i path-spesifik URL'leri kabul etmiyor; sadece
-  // /auth/callback exact match var. Token'i user_metadata'ya gomelim,
-  // callback oradan okuyup /invite/<token>'a yonlendirir.
-  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`;
-  console.log("[invite] DEBUG callbackUrl =", callbackUrl);
+  // Supabase'in inviteUserByEmail / signUp email link akisi paylasilan Site URL
+  // (Karardestek) yuzunden bizim platforma yonlendirilemiyor. Supabase email
+  // sistemini bypass edip admin.createUser ile kullaniciyi zaten onaylanmis
+  // olarak olusturuyoruz: email gonderme yok, admin link + (yeni user icin)
+  // gecici sifreyi UI'da kopyalayip manuel iletiyor.
+  let tempPassword: string | null = null;
 
   try {
     const admin = createSupabaseAdmin();
-    const result = await admin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: callbackUrl,
-      data: {
+    const newPassword = generateToken(16); // 16 karakter rastgele
+
+    const { error: createError } = await admin.auth.admin.createUser({
+      email,
+      password: newPassword,
+      email_confirm: true, // confirmation by-pass — admin onayli kabul edilir
+      user_metadata: {
+        full_name: email.split("@")[0],
         invitation_token: token,
         invited_to_org: user.organizationId,
         invited_role: role,
         platform: PLATFORM_KEY,
       },
     });
-    console.log("[invite] DEBUG admin invite result error =", result.error?.message ?? "(yok)");
-    if (result.error) {
-      // Eger user zaten varsa, inviteUserByEmail "User already registered" hatasi verir.
-      // Bu durumda Supabase email gondermez — biz manuel link'i admin'e veririz.
-      const msg = result.error.message ?? "";
-      if (!/already.*regist|already.*exist/i.test(msg)) {
-        console.error("[invite] Supabase admin invite failed:", msg);
+
+    if (createError) {
+      const msg = createError.message ?? "";
+      if (/already.*regist|already.*exist/i.test(msg)) {
+        // Kullanici zaten kayitli — sadece davet linki yeter, sifre vermeyiz
+        console.log(`[${PLATFORM_KEY}] Mevcut kullanici davet edildi (${email}): ${inviteUrl}`);
+      } else {
+        console.error("[invite] createUser error:", msg);
+        return { error: `Kullanici olusturulamadi: ${msg}` };
       }
-      // Hata olsa bile davet kaydi olusturuldu, admin link'i manuel iletebilir.
-      console.log(`[${PLATFORM_KEY}] Manuel davet (${email}, role=${role}): ${inviteUrl}`);
     } else {
-      console.log(`[${PLATFORM_KEY}] Davet e-postasi gonderildi (${email}): ${inviteUrl}`);
+      // Yeni kullanici olusturuldu — gecici sifre admin'e gosterilecek
+      tempPassword = newPassword;
+      console.log(`[${PLATFORM_KEY}] Yeni kullanici olusturuldu (${email}): ${inviteUrl}`);
     }
   } catch (e) {
     console.error("[invite] Admin client error:", e);
+    return { error: "Sunucu hatasi" };
   }
 
   revalidatePath("/admin/users");
   revalidatePath("/firm-settings");
   return {
-    success: `${email} adresine davet e-postası gönderildi (eğer kullanıcı zaten kayıtlıysa link aşağıda)`,
+    success: tempPassword
+      ? `${email} için davet hazır. Aşağıdaki link ve geçici şifreyi kullanıcıya iletin.`
+      : `${email} zaten kayıtlı bir kullanıcı. Davet linkini aşağıdan kopyalayıp iletin (mevcut şifresiyle giriş yapacaktır).`,
     inviteUrl,
+    tempPassword,
   };
 }
 

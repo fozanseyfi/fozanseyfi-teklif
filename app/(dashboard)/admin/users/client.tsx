@@ -49,15 +49,26 @@ export function AdminUsersClient({
   currentUserId,
   organizationName,
 }: Props) {
-  const [latestInviteUrl, setLatestInviteUrl] = useState<string | null>(null);
+  const [latestInvite, setLatestInvite] = useState<{
+    url: string;
+    tempPassword: string | null;
+    email: string;
+  } | null>(null);
 
   async function handleInvite(fd: FormData) {
+    const email = (fd.get("email") as string)?.trim();
     const result = await inviteUser(fd);
     if (result?.error) {
       toast.error(result.error);
     } else if (result?.success) {
       toast.success(result.success);
-      if (result.inviteUrl) setLatestInviteUrl(result.inviteUrl);
+      if (result.inviteUrl) {
+        setLatestInvite({
+          url: result.inviteUrl,
+          tempPassword: result.tempPassword ?? null,
+          email,
+        });
+      }
     }
   }
 
@@ -123,30 +134,67 @@ export function AdminUsersClient({
               <UserPlus className="size-4" /> Davet Oluştur
             </Button>
           </form>
-          {latestInviteUrl && (
-            <div className="mt-4 rounded-lg border border-success/30 bg-success-soft/50 p-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-success-soft-foreground/80">
-                    Davet linki oluşturuldu
-                  </p>
-                  <p className="mt-1 break-all text-xs text-success-soft-foreground">
-                    {latestInviteUrl}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard(latestInviteUrl)}
-                  className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-card text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-                  title="Kopyala"
-                >
-                  <Copy className="size-3.5" />
-                </button>
+          {latestInvite && (
+            <div className="mt-4 space-y-3 rounded-lg border border-success/30 bg-success-soft/50 p-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-success-soft-foreground/80">
+                  Davet hazır — kullanıcıya iletilecekler
+                </p>
+                <p className="mt-1 text-xs text-success-soft-foreground/80">
+                  Aşağıdaki bilgileri <strong>{latestInvite.email}</strong> adresine iletin
+                  (e-posta, mesaj vb.). Link 7 gün geçerli.
+                </p>
               </div>
-              <p className="mt-2 text-[11px] text-success-soft-foreground/70">
-                Bu linki davet ettiğin kişiye ilet (e-posta otomasyonu henüz aktif değil).
-                Link 7 gün geçerli.
-              </p>
+
+              {/* Davet linki */}
+              <div className="rounded-md border bg-card p-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Davet linki
+                    </p>
+                    <p className="mt-1 break-all text-xs font-mono text-foreground">
+                      {latestInvite.url}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(latestInvite.url)}
+                    className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    title="Kopyala"
+                  >
+                    <Copy className="size-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Geçici şifre — sadece yeni kullanıcı için */}
+              {latestInvite.tempPassword && (
+                <div className="rounded-md border border-info/30 bg-info-soft/50 p-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-info-soft-foreground/80">
+                        Geçici şifre (yeni kullanıcı)
+                      </p>
+                      <p className="mt-1 break-all font-mono text-sm font-bold text-info-soft-foreground">
+                        {latestInvite.tempPassword}
+                      </p>
+                      <p className="mt-1 text-[11px] text-info-soft-foreground/80">
+                        Kullanıcı bu şifre ile giriş yaptıktan sonra davet sayfasında
+                        kalıcı şifresini belirleyecek.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(latestInvite.tempPassword!)}
+                      className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      title="Kopyala"
+                    >
+                      <Copy className="size-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
