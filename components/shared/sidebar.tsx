@@ -40,7 +40,6 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Ana Menü",
     items: [
       { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-      { href: "/help", icon: HelpCircle, label: "Nasıl Çalışır" },
       { href: "/notifications", icon: Bell, label: "Bildirimler" },
     ],
   },
@@ -58,7 +57,10 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: "Destek",
-    items: [{ href: "/contact", icon: MessageCircle, label: "İletişime Geç" }],
+    items: [
+      { href: "/help", icon: HelpCircle, label: "Nasıl Çalışır" },
+      { href: "/contact", icon: MessageCircle, label: "İletişime Geç" },
+    ],
   },
 ];
 
