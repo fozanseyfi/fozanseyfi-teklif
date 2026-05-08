@@ -52,7 +52,12 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
 
   const settings = project.projectDetail?.settings as GesSettings | undefined;
   const isTemplate = project.isTemplate;
-  const isLocked = isTemplate && project.templateLocked;
+  const isTemplateLocked = isTemplate && project.templateLocked;
+  // Salt-okunur mod: ya sablon kilidi ya da kullaniciya ozel kilit/viewer rolu.
+  // access.canEdit false oldugunda sayfa view-only olur — edit affordance'lari
+  // template-readonly CSS ile gizlenir.
+  const isLocked = isTemplateLocked || !access.canEdit;
+  const lockReason: "template" | "user" = isTemplateLocked ? "template" : "user";
 
   // Progress gates — compute purely from data. A user can complete steps in
   // any order; the nav unlocks downstream tabs as soon as the prerequisite
@@ -126,7 +131,7 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
             {project.name || "İsimsiz Proje"}
           </h1>
           {isTemplate ? (
-            isLocked ? (
+            isTemplateLocked ? (
               <Badge className="h-5 border-info/40 bg-info-soft px-1.5 text-[9.5px] text-info-soft-foreground" variant="outline">
                 <Lock className="mr-0.5 size-2.5" />
                 Şablon · Kilitli
@@ -137,6 +142,11 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
                 Şablon · Düzenleniyor
               </Badge>
             )
+          ) : isLocked ? (
+            <Badge className="h-5 border-info/40 bg-info-soft px-1.5 text-[9.5px] text-info-soft-foreground" variant="outline">
+              <Lock className="mr-0.5 size-2.5" />
+              Salt Okunur
+            </Badge>
           ) : (
             <Badge className="h-5 px-1.5 text-[9.5px]" variant={statusVariant}>
               {statusLabel}
@@ -175,18 +185,18 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
               >
                 <button
                   type="submit"
-                  title={isLocked ? "Şablonu düzenlemeye aç" : "Son halini kilitle"}
+                  title={isTemplateLocked ? "Şablonu düzenlemeye aç" : "Son halini kilitle"}
                   className={
-                    isLocked
+                    isTemplateLocked
                       ? "inline-flex items-center gap-1 rounded-md border border-warning/30 bg-warning-soft px-2 py-0.5 text-[10.5px] font-semibold text-warning-soft-foreground hover:bg-warning-soft/80"
                       : "inline-flex items-center gap-1 rounded-md border border-info/30 bg-info-soft px-2 py-0.5 text-[10.5px] font-semibold text-info-soft-foreground hover:bg-info-soft/80"
                   }
                 >
-                  {isLocked ? <Unlock className="size-2.5" /> : <Lock className="size-2.5" />}
-                  {isLocked ? "Kilidi Aç" : "Kilitle"}
+                  {isTemplateLocked ? <Unlock className="size-2.5" /> : <Lock className="size-2.5" />}
+                  {isTemplateLocked ? "Kilidi Aç" : "Kilitle"}
                 </button>
               </form>
-              {isLocked && (
+              {isTemplateLocked && (
                 <form
                   action={async () => {
                     "use server";
@@ -212,7 +222,12 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
         </div>
       </div>
 
-      <div className={isLocked ? "template-readonly" : undefined}>{children}</div>
+      <div
+        className={isLocked ? "template-readonly" : undefined}
+        data-readonly-reason={isLocked ? lockReason : undefined}
+      >
+        {children}
+      </div>
     </div>
   );
 }

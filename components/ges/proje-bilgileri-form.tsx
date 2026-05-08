@@ -148,6 +148,7 @@ function BulletListEditor({
             className="flex-1"
           />
           <button
+            data-edit-only
             type="button"
             onClick={() => remove(i)}
             className="flex size-9 shrink-0 items-center justify-center rounded-md border bg-card text-muted-foreground transition-colors hover:border-destructive/40 hover:bg-destructive-soft hover:text-destructive-soft-foreground"
@@ -158,6 +159,7 @@ function BulletListEditor({
         </div>
       ))}
       <button
+        data-edit-only
         type="button"
         onClick={add}
         className="flex h-9 w-full items-center justify-center gap-2 rounded-md border border-dashed bg-muted/40 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -485,6 +487,7 @@ export function ProjeBilgileriForm({
         actions={
           <>
             <Button
+              data-edit-only
               type="submit"
               variant="outline"
               size="sm"
@@ -494,6 +497,7 @@ export function ProjeBilgileriForm({
               {pending ? "Kaydediliyor…" : "Kaydet"}
             </Button>
             <Button
+              data-edit-only
               type="button"
               size="sm"
               onClick={handleAdvance}

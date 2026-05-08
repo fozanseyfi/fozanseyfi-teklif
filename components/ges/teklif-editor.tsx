@@ -252,6 +252,7 @@ export function TeklifEditor({ projectId, projectName, customerName, kesifA, kes
                   </p>
                 </div>
                 <Button
+                  data-edit-only
                   variant="outline"
                   className="w-full border-success/40 text-success-soft-foreground hover:bg-success-soft"
                   onClick={handleComplete}

@@ -453,6 +453,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                       {label}
                     </p>
                     <button
+                      data-edit-only
                       type="button"
                       onClick={() =>
                         setS((p) => {
@@ -520,6 +521,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                           {s[sel] === i ? "✓" : "Seç"}
                         </label>
                         <button
+                          data-edit-only
                           type="button"
                           onClick={() =>
                             setS((p) => {
@@ -553,6 +555,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                 Vazgeç
               </button>
               <button
+                data-edit-only
                 onClick={async () => {
                   setSaving(true);
                   try {
@@ -635,7 +638,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
             </div>
             <div className="flex gap-3 justify-end px-5 py-3.5 border-t">
               <button onClick={() => setAddAltOpen(null)} className="h-9 px-4 rounded-xl border text-sm font-semibold text-muted-foreground hover:bg-muted">Vazgeç</button>
-              <button onClick={handleAddAlt} disabled={saving || !newAltName.trim() || !newAltPrice}
+              <button data-edit-only onClick={handleAddAlt} disabled={saving || !newAltName.trim() || !newAltPrice}
                 className="h-9 px-5 rounded-xl text-sm font-semibold text-primary-foreground flex items-center gap-2 disabled:opacity-40 bg-primary hover:bg-primary/90">
                 <Plus className="size-4" /> Ekle
               </button>
@@ -710,7 +713,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
             </div>
             <div className="flex gap-3 justify-end px-6 py-3.5 border-t flex-shrink-0">
               <button onClick={() => setEditGrp(null)} className="h-9 px-4 rounded-xl border text-sm font-semibold text-muted-foreground hover:bg-muted">Vazgeç</button>
-              <button onClick={handleSaveGroup} disabled={saving} className="h-9 px-5 rounded-xl text-sm font-semibold text-primary-foreground flex items-center gap-2 disabled:opacity-40 bg-primary hover:bg-primary/90">
+              <button data-edit-only onClick={handleSaveGroup} disabled={saving} className="h-9 px-5 rounded-xl text-sm font-semibold text-primary-foreground flex items-center gap-2 disabled:opacity-40 bg-primary hover:bg-primary/90">
                 <Save className="size-4" /> Kaydet &amp; Uygula
               </button>
             </div>
@@ -901,6 +904,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                 </div>
                 <CardTitle className="text-[11px] leading-tight">Kritik Malzeme Seçimi</CardTitle>
                 <button
+                  data-edit-only
                   type="button"
                   onClick={() => setEditAltsOpen(true)}
                   title="Tüm alternatifleri düzenle"
@@ -929,7 +933,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                 <div key={field} className="space-y-1">
                   <div className="flex items-center justify-between">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-                    <button type="button"
+                    <button data-edit-only type="button"
                       onClick={() => { setAddAltOpen(category); setNewAltName(""); setNewAltPrice(""); }}
                       className="flex items-center gap-0.5 rounded bg-primary-soft px-1.5 py-0.5 text-[10px] font-semibold text-primary-soft-foreground transition-all hover:bg-primary-soft/70">
                       <Plus className="size-2.5" /> Ekle
@@ -971,7 +975,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                             </div>
                           </button>
                           {alts.length > 1 && (
-                            <button type="button" onClick={() => handleRemoveAlt(category, actualIdx)}
+                            <button data-edit-only type="button" onClick={() => handleRemoveAlt(category, actualIdx)}
                               className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-destructive-soft opacity-0 transition-all hover:bg-destructive-soft/70 group-hover:opacity-100" title="Kaldır">
                               <X className="size-2.5 text-destructive-soft-foreground" />
                             </button>
@@ -1773,8 +1777,9 @@ function RatioKpi({
 
       {editable ? (
         <>
-          {/* Stepper: ± butonlari + anlik input. Tiklayinca debounced auto-save. */}
-          <div className="mt-2.5 flex items-center gap-1">
+          {/* Stepper: ± butonlari + anlik input. Tiklayinca debounced auto-save.
+              Salt-okunurda tum stepper kaybolur; yerine pasif yuzde-bar gozukur. */}
+          <div data-edit-only className="mt-2.5 flex items-center gap-1">
             <button
               type="button"
               onClick={() => bump(-0.5)}
@@ -1813,9 +1818,26 @@ function RatioKpi({
               <Plus className="size-3.5" />
             </button>
           </div>
-          <div className="mt-1.5 flex items-center justify-between text-[10px]">
+          <div data-edit-only className="mt-1.5 flex items-center justify-between text-[10px]">
             <span className={cn(t.sub)}>{rateLabel ?? "Oran"}</span>
             <span className={cn("tabular-nums", t.sub)}>%{pct.toFixed(1)} satış</span>
+          </div>
+          {/* Salt-okunur fallback: stepper gizliyken degeri ve % bar'i goster */}
+          <div className="readonly-only mt-2 hidden flex-col gap-1.5">
+            <p className={cn("text-base font-bold tabular-nums", t.value)}>
+              %{(ratePct ?? 0).toFixed(1)}
+            </p>
+            <div className="flex items-center gap-2">
+              <div className="h-1 flex-1 overflow-hidden rounded-full bg-foreground/10">
+                <div
+                  className={cn("h-full rounded-full transition-all", t.bar)}
+                  style={{ width: `${Math.min(Math.max(pct, 0), 100)}%` }}
+                />
+              </div>
+              <span className={cn("w-12 text-right text-[10px] font-semibold tabular-nums", t.value)}>
+                %{pct.toFixed(1)} satış
+              </span>
+            </div>
           </div>
         </>
       ) : (

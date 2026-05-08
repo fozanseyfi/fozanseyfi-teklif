@@ -190,6 +190,7 @@ export function TeknikForm({ projectId, projectName, settings }: Props) {
         actions={
           <>
             <Button
+              data-edit-only
               variant="outline"
               size="sm"
               onClick={() => handleSave(false)}
@@ -199,6 +200,7 @@ export function TeknikForm({ projectId, projectName, settings }: Props) {
               {saving ? "Kaydediliyor…" : "Kaydet"}
             </Button>
             <Button
+              data-edit-only
               size="sm"
               onClick={() => handleSave(true)}
               disabled={saving || !isValid}
@@ -271,6 +273,7 @@ export function TeknikForm({ projectId, projectName, settings }: Props) {
                     }
                   />
                   <button
+                    data-edit-only
                     type="button"
                     className="flex size-10 shrink-0 items-center justify-center rounded-md border bg-card text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary-soft hover:text-primary-soft-foreground"
                     title="Otomatik hesapla"
@@ -323,6 +326,7 @@ export function TeknikForm({ projectId, projectName, settings }: Props) {
             <CardContent className="grid grid-cols-2 gap-5 p-6">
               <div className="col-span-2 -mb-2 flex items-center justify-end">
                 <button
+                  data-edit-only
                   type="button"
                   onClick={() => refreshFx(false)}
                   disabled={fxLoading}
@@ -398,6 +402,7 @@ export function TeknikForm({ projectId, projectName, settings }: Props) {
                       {label}
                     </p>
                     <Button
+                      data-edit-only
                       type="button"
                       variant="outline"
                       size="sm"
@@ -467,6 +472,7 @@ export function TeknikForm({ projectId, projectName, settings }: Props) {
                           {s[sel] === i ? "✓" : "Seç"}
                         </label>
                         <button
+                          data-edit-only
                           type="button"
                           onClick={() =>
                             setS((p) => {

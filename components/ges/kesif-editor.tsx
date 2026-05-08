@@ -293,6 +293,7 @@ export function KesifEditor({ projectId, projectName, type, data, settings }: Pr
               PDF
             </Button>
             <Button
+              data-edit-only
               variant="outline"
               onClick={() => handleSave(false)}
               disabled={saving}
@@ -301,7 +302,7 @@ export function KesifEditor({ projectId, projectName, type, data, settings }: Pr
               <Save className="size-3.5" />
               {saving ? "Kaydediliyor…" : "Kaydet"}
             </Button>
-            <Button onClick={() => handleSave(true)} disabled={saving} size="sm">
+            <Button data-edit-only onClick={() => handleSave(true)} disabled={saving} size="sm">
               Kaydet &amp; İlerle <ArrowRight className="size-3.5" />
             </Button>
           </>
@@ -321,6 +322,7 @@ export function KesifEditor({ projectId, projectName, type, data, settings }: Pr
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
+            type="search"
             className="h-8 w-44 pl-8 text-sm"
             placeholder="Ara..."
             value={search}
@@ -387,6 +389,7 @@ export function KesifEditor({ projectId, projectName, type, data, settings }: Pr
                   </div>
                   {!isAutoGroup && (
                     <button
+                      data-edit-only
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -619,6 +622,7 @@ export function KesifEditor({ projectId, projectName, type, data, settings }: Pr
                                 </span>
                               ) : (
                                 <button
+                                  data-edit-only
                                   type="button"
                                   onClick={() => removeItem(realGi, realIi)}
                                   className="rounded-md p-1 text-destructive/70 transition-colors hover:bg-destructive-soft hover:text-destructive-soft-foreground"

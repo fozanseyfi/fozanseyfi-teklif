@@ -365,43 +365,82 @@
 }
 
 /* ───────────────────────────────────────────────────────────────
-   Şablon (Template) salt-okunur modu
-   isTemplate=true projelerde detay sayfası children container'ına
-   `.template-readonly` eklenir. Tüm form kontrolleri ve etkileşimli
-   buton/dropdown/slider devre dışı bırakılır; sadece a/Link tabları
-   ile gezinme açık kalır.
+   Salt-okunur (Read-only) modu
+   Detay sayfası children container'ına `.template-readonly` eklenir
+   (kilitli şablon ya da kullanıcı için kilitli kaynak için).
+   Tasarım kurali: ekran NORMAL gorunsun, sadece "değiştirme" affordance'lari
+   gizlensin — solgunluk YOK; input'lar düz metin gibi, edit butonlari
+   tamamen kaybolur. Liste/görüntü gibi gozukur.
    --------------------------------------------------------------- */
-.template-readonly input,
-.template-readonly textarea,
-.template-readonly select,
-.template-readonly button,
-.template-readonly [role="button"],
-.template-readonly [role="combobox"],
-.template-readonly [role="switch"],
-.template-readonly [role="checkbox"],
-.template-readonly [role="slider"],
-.template-readonly [contenteditable="true"] {
+
+/* 1) Form kontrolleri (input/textarea/select) — duz metin gibi gozuksun.
+      Arama input'lari ([type="search"]) ve [data-readonly-keep] olanlar
+      hariç. Radio/checkbox gizlenir (asagida ele alinir). */
+.template-readonly input:not([type="search"]):not([type="checkbox"]):not([type="radio"]):not([data-readonly-keep]),
+.template-readonly textarea:not([data-readonly-keep]),
+.template-readonly select:not([data-readonly-keep]) {
   pointer-events: none !important;
-  cursor: not-allowed !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  caret-color: transparent !important;
+  cursor: default !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background-image: none !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
   user-select: text !important;
 }
 
-.template-readonly input,
-.template-readonly textarea,
-.template-readonly select {
-  background-color: rgb(241 245 249 / 0.6) !important; /* slate-100 soft */
-  color: rgb(15 23 42 / 0.85);
+/* Sayi input'larinin spinner ok'larini gizle */
+.template-readonly input[type="number"]::-webkit-inner-spin-button,
+.template-readonly input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+.template-readonly input[type="number"] {
+  -moz-appearance: textfield !important;
 }
 
-.template-readonly button,
-.template-readonly [role="button"] {
-  opacity: 0.55;
+/* Tarih input'larinin takvim ikonu */
+.template-readonly input[type="date"]::-webkit-calendar-picker-indicator {
+  display: none !important;
 }
 
-/* Şablon banner — sayfa basinda sabit gozuksun ki kullanici neden
-   hicbir seyi degistiremedigini hemen anlasin. */
+/* 2) Radio / checkbox gizle ve label'lar inert kalsin */
+.template-readonly input[type="radio"]:not([data-readonly-keep]),
+.template-readonly input[type="checkbox"]:not([data-readonly-keep]) {
+  display: none !important;
+}
+
+/* 3) Edit-only isaretli her sey TAMAMEN gizlenir — Kaydet, Ekle, Sil,
+      Düzenle, +/− stepper'lar, alt seçim radioları, modal acma butonlari */
+.template-readonly [data-edit-only] {
+  display: none !important;
+}
+
+/* 3b) `.readonly-only` ile isaretli elemanlar SADECE salt-okunurda gozukur.
+       Edit modda gizli; readonly'de display: flex (default flex-col). Stepper
+       gibi yerlerde fallback-statik renderi mumkun kilar. */
+.readonly-only {
+  display: none !important;
+}
+.template-readonly .readonly-only {
+  display: flex !important;
+}
+
+/* 4) Range slider ve role-tabanli interaktif kontroller */
+.template-readonly input[type="range"]:not([data-readonly-keep]),
+.template-readonly [role="switch"]:not([data-readonly-keep]),
+.template-readonly [role="slider"]:not([data-readonly-keep]) {
+  display: none !important;
+}
+
+/* 5) Salt-okunur banner — sayfa basinda sabit gozuksun ki kullanici neden
+      hicbir seyi degistiremedigini hemen anlasin. */
 .template-readonly::before {
-  content: "🔒 Bu sayfa salt okunurdur — şablonu kullanmak için yukarıdaki “Bu şablonu kullan” butonuna tıkla";
+  content: "🔒 Bu sayfa salt okunurdur — yalnızca görüntüleme yetkisine sahipsiniz";
   display: block;
   margin-bottom: 12px;
   padding: 10px 16px;
@@ -411,4 +450,9 @@
   background: rgb(219 234 254 / 0.6);
   border: 1px dashed rgb(96 165 250);
   border-radius: 12px;
+}
+
+/* Şablon kilidi varyanti — banner mesaji daha bilgilendirici */
+.template-readonly[data-readonly-reason="template"]::before {
+  content: "🔒 Şablon salt okunurdur — düzenlemek için yukarıdaki “Bu şablonu kullan” butonuna tıkla";
 }

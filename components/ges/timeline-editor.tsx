@@ -233,6 +233,7 @@ export function TimelineEditor({ projectId, projectName, data, kesifA, kesifB, s
                   ))}
                   <td className="px-1 py-1 text-center">
                     <button
+                      data-edit-only
                       type="button"
                       title="Eşit dağıt"
                       onClick={() => evenDistribute(idx)}
@@ -284,6 +285,7 @@ export function TimelineEditor({ projectId, projectName, data, kesifA, kesifB, s
               />
             </div>
             <Button
+              data-edit-only
               variant="outline"
               onClick={() => handleSave(false)}
               disabled={saving}
@@ -292,7 +294,7 @@ export function TimelineEditor({ projectId, projectName, data, kesifA, kesifB, s
               <Save className="size-3.5" />
               {saving ? "Kaydediliyor..." : "Kaydet"}
             </Button>
-            <Button onClick={() => handleSave(true)} disabled={saving} size="sm">
+            <Button data-edit-only onClick={() => handleSave(true)} disabled={saving} size="sm">
               Kaydet &amp; İlerle <ArrowRight className="size-3.5" />
             </Button>
           </>

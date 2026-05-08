@@ -281,7 +281,7 @@ export function DorEditor({ projectId, projectName, data }: Props) {
                 <Button variant="outline" size="sm" onClick={handlePrint}>
                   <FileDown className="size-3.5" /> PDF
                 </Button>
-                <Button onClick={handleSave} disabled={saving} size="sm">
+                <Button data-edit-only onClick={handleSave} disabled={saving} size="sm">
                   <Save className="size-3.5" />
                   {saving ? "Kaydediliyor..." : "Kaydet"}
                 </Button>
@@ -292,6 +292,7 @@ export function DorEditor({ projectId, projectName, data }: Props) {
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                   <Input
+                    type="search"
                     className="h-8 w-44 pl-8 text-sm"
                     placeholder="Ara..."
                     value={search}
@@ -370,6 +371,7 @@ export function DorEditor({ projectId, projectName, data }: Props) {
                   {group.items.length} madde
                 </Badge>
                 <button
+                  data-edit-only
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -381,6 +383,7 @@ export function DorEditor({ projectId, projectName, data }: Props) {
                   <Plus className="size-3" /> Madde
                 </button>
                 <button
+                  data-edit-only
                   type="button"
                   onClick={() => removeGroup(realGi)}
                   className="flex size-7 items-center justify-center rounded-md border bg-card text-muted-foreground transition-colors hover:border-destructive/40 hover:bg-destructive-soft hover:text-destructive-soft-foreground"
@@ -416,6 +419,7 @@ export function DorEditor({ projectId, projectName, data }: Props) {
                           >
                             Henüz madde yok.{" "}
                             <button
+                              data-edit-only
                               type="button"
                               onClick={() => addItem(realGi)}
                               className="font-medium text-primary underline-offset-2 hover:underline"
@@ -470,6 +474,7 @@ export function DorEditor({ projectId, projectName, data }: Props) {
                             </td>
                             <td className="px-2 py-1.5 text-center">
                               <button
+                                data-edit-only
                                 type="button"
                                 onClick={() => removeItem(realGi, ii)}
                                 className="flex size-7 items-center justify-center rounded text-destructive/70 transition-colors hover:bg-destructive-soft hover:text-destructive-soft-foreground"
@@ -493,6 +498,7 @@ export function DorEditor({ projectId, projectName, data }: Props) {
 
       {/* Yeni Grup Ekle */}
       <Button
+        data-edit-only
         type="button"
         variant="outline"
         onClick={addGroup}

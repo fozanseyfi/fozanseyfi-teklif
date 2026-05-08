@@ -143,7 +143,7 @@ export function FizibiliteForm({ projectId, settings, totalPowerKw }: Props) {
                     />
                     <p className="mt-1.5 text-xs font-medium text-info-soft-foreground">Mevsimsel ağırlıklarla 12 aya otomatik dağıtılır</p>
                   </div>
-                  <Button variant="outline" onClick={applyAnnualAvg} type="button" className="shrink-0">
+                  <Button data-edit-only variant="outline" onClick={applyAnnualAvg} type="button" className="shrink-0">
                     <Zap className="size-4" />
                     Dağıt
                   </Button>
@@ -296,7 +296,7 @@ export function FizibiliteForm({ projectId, settings, totalPowerKw }: Props) {
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-2.5 rounded-xl border bg-card px-5 py-4 shadow-sm">
+      <div data-edit-only className="flex items-center justify-end gap-2.5 rounded-xl border bg-card px-5 py-4 shadow-sm">
         <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
           <Save className="size-4" />
           {saving ? "Kaydediliyor..." : "Kaydet"}

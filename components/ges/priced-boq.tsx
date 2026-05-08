@@ -523,6 +523,7 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                   <Input
+                    type="search"
                     className="h-8 w-44 pl-8 text-sm"
                     placeholder="Ara..."
                     value={search}
@@ -770,6 +771,7 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                               <td className="px-3 py-1.5">
                                 <div className="flex items-center justify-center gap-1.5">
                                   <button
+                                    data-edit-only
                                     type="button"
                                     onClick={() => toggleExclude(item.code)}
                                     disabled={hidden}
@@ -788,6 +790,7 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                                     {excluded ? "⊘ Karsız" : "✓ Karlı"}
                                   </button>
                                   <button
+                                    data-edit-only
                                     type="button"
                                     onClick={() => toggleHidden(item.code)}
                                     className={cn(
@@ -898,22 +901,35 @@ function KarPctEditor({
           className="h-6 w-16 rounded-md border bg-background px-1.5 text-center text-[11px] font-semibold tabular-nums shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />
       ) : (
-        <button
-          type="button"
-          onClick={startEdit}
-          title={isOverride ? "Özel kar oranı — değiştirmek için tıkla" : "Otomatik dağıtım — özelleştirmek için tıkla"}
-          className={cn(
-            "rounded-md border px-2 py-0.5 text-[11px] font-semibold tabular-nums transition-colors",
-            isOverride
-              ? "border-info/30 bg-info-soft text-info-soft-foreground hover:bg-info-soft/70"
-              : "border-border bg-card text-muted-foreground hover:bg-muted",
-          )}
-        >
-          %{value.toFixed(1)}
-        </button>
+        <>
+          <button
+            data-edit-only
+            type="button"
+            onClick={startEdit}
+            title={isOverride ? "Özel kar oranı — değiştirmek için tıkla" : "Otomatik dağıtım — özelleştirmek için tıkla"}
+            className={cn(
+              "rounded-md border px-2 py-0.5 text-[11px] font-semibold tabular-nums transition-colors",
+              isOverride
+                ? "border-info/30 bg-info-soft text-info-soft-foreground hover:bg-info-soft/70"
+                : "border-border bg-card text-muted-foreground hover:bg-muted",
+            )}
+          >
+            %{value.toFixed(1)}
+          </button>
+          {/* Salt-okunurda butonun yerini alir — sadece deger gozukur */}
+          <span
+            className={cn(
+              "readonly-only items-center text-[11px] font-semibold tabular-nums",
+              isOverride ? "text-info-soft-foreground" : "text-muted-foreground",
+            )}
+          >
+            %{value.toFixed(1)}
+          </span>
+        </>
       )}
       {isOverride && !editing && (
         <button
+          data-edit-only
           type="button"
           onClick={onClear}
           title="Otomatik dağıtıma dön"
