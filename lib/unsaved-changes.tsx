@@ -18,10 +18,13 @@ import { AlertTriangle } from "lucide-react";
 // Akis:
 //  1. Form bilesenleri `useDirtyTracker(isDirty)` cagirir; isDirty true ise
 //     provider, sayfanın "kirli" oldugunu hatirlar.
-//  2. Tarayici tab kapatma/refresh: `beforeunload` standart dialog'u tetikler.
-//  3. In-app navigation: provider tum belge tiklamalarini capture eder; bir
+//  2. In-app navigation: provider tum belge tiklamalarini capture eder; bir
 //     <a> tag'ine yapilan tiklama bulununca preventDefault yapip ozel modali
 //     gosterir. Kullanici onaylarsa hedef URL'e gider.
+//
+// Tarayici tab kapatma/refresh icin beforeunload kullanmiyoruz — Chrome'un
+// generic "siteden cikiyorsun" popup'i kullanicilari rahatsiz ediyor; in-app
+// modal yeterli.
 //
 // Birden fazla form ayni provider altinda calisabilir — her biri kendi dirty
 // flag'ini set eder; provider mantiksal OR ile karar verir.
@@ -66,19 +69,10 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
     force((n) => n + 1);
   }, []);
 
-  const isAnyDirty = dirtyMapRef.current.size > 0;
-
-  // beforeunload — standart browser dialog (custom mesaj browser'larda
-  // bloklanir, returnValue="" yeterli).
-  useEffect(() => {
-    function onBeforeUnload(e: BeforeUnloadEvent) {
-      if (!dirtyMapRef.current.size) return;
-      e.preventDefault();
-      e.returnValue = "";
-    }
-    window.addEventListener("beforeunload", onBeforeUnload);
-    return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, []);
+  // beforeunload kasıtlı olarak YOK — Chrome'un generic "siteden çıkıyor
+  // musunuz?" popup'ı bizim custom modal ile çakışıyor ve UX'i bozuyordu.
+  // Tab kapatma/refresh sirasinda kullanici uyarilmaz; in-app navigation
+  // yine bizim modal ile korunur.
 
   // Capture-phase click: <a> tag'ine yapilan in-app tiklamalari intercept et.
   useEffect(() => {

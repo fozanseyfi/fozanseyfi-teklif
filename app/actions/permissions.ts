@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
+import { isProjectVisible } from "@/lib/project-status";
 import { revalidatePath } from "next/cache";
 
 export type ResourceType = "project" | "customer";
@@ -55,7 +56,7 @@ export async function getUserAccessData(
   });
   if (!membership) return { error: "Bu kullanici bu paneldeki bir uye degil" };
 
-  const [projects, hidden, locked] = await Promise.all([
+  const [projectsRaw, hidden, locked] = await Promise.all([
     prisma.project.findMany({
       where: { organizationId: admin.organizationId },
       orderBy: [{ isTemplate: "asc" }, { updatedAt: "desc" }],
@@ -67,6 +68,8 @@ export async function getUserAccessData(
         templateLabel: true,
         status: true,
         updatedAt: true,
+        // gesStep gating icin gerekli — yarim kalmis projeleri filtreler.
+        projectDetail: { select: { settings: true } },
       },
     }),
     prisma.userHiddenResource.findMany({
@@ -87,6 +90,13 @@ export async function getUserAccessData(
       : lockedSet.has(`${rt}:${rid}`)
         ? "readonly"
         : "full";
+
+  // Yarim kalmis projeleri (gesStep < 2 olan, kullanici Proje + Teknik
+  // sekmelerini Kaydet & İlerle ile gecmemis) bu listeden de cikar — bu
+  // modal Dashboard ve Projeler sayfalarinda gozuken aksiyon-alinabilir
+  // projeler icin tasarlandi. Sablonlar her zaman gosterilir (isProjectVisible
+  // sablonlari ele almaz, biz isTemplate dali ile ayriyoruz).
+  const projects = projectsRaw.filter((p) => p.isTemplate || isProjectVisible(p));
 
   const customerMap = new Map<string, { count: number; lastTouched: Date }>();
   for (const p of projects) {

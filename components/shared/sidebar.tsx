@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { logout, switchOrganization } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface OrganizationOption {
   id: string;
@@ -42,7 +43,12 @@ interface SidebarProps {
 
 interface NavGroup {
   label: string;
-  items: { href: string; icon: React.ComponentType<{ className?: string }>; label: string }[];
+  items: {
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+    adminOnly?: boolean;
+  }[];
 }
 
 const NAV_GROUPS: NavGroup[] = [
@@ -63,7 +69,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Yönetim",
     items: [
-      { href: "/admin/users", icon: Users, label: "Kullanıcılar" },
+      { href: "/admin/users", icon: Users, label: "Kullanıcılar", adminOnly: true },
       { href: "/firm-settings", icon: UserCircle2, label: "Profilim" },
       { href: "/notifications", icon: Bell, label: "Bildirimler" },
     ],
@@ -96,14 +102,25 @@ interface NavLinkProps {
   active: boolean;
   collapsed: boolean;
   onNavigate?: () => void;
+  disabled?: boolean;
+  disabledMessage?: string;
 }
 
-function NavLink({ href, icon: Icon, label, active, collapsed, onNavigate }: NavLinkProps) {
+function NavLink({
+  href,
+  icon: Icon,
+  label,
+  active,
+  collapsed,
+  onNavigate,
+  disabled = false,
+  disabledMessage,
+}: NavLinkProps) {
   // Sidebar daraltikken hover'da custom tooltip — native title degil, portal ile
   // body'ye render edilir, overflow clip'inden etkilenmez.
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
 
-  function handleEnter(e: React.MouseEvent<HTMLAnchorElement>) {
+  function handleEnter(e: React.MouseEvent<HTMLElement>) {
     if (!collapsed) return;
     if (typeof window === "undefined" || window.innerWidth < 1024) return;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -112,6 +129,89 @@ function NavLink({ href, icon: Icon, label, active, collapsed, onNavigate }: Nav
 
   function handleLeave() {
     setTooltipPos(null);
+  }
+
+  // Yetkisiz erisim — tiklanabilir buton ama navigate etmez, sadece toast.
+  // Sidebar'da gozukmeye devam etsin ki kullanici bilsin "burada bir sey
+  // var ama bana kapali"; tiklayinca rolu hakkinda bilgilendirme alir.
+  const linkContent = (
+    <>
+      <Icon
+        className={cn(
+          "size-4 shrink-0 transition-colors",
+          disabled
+            ? "text-sidebar-muted/60"
+            : active
+              ? "text-sidebar-accent-foreground"
+              : "text-sidebar-muted group-hover:text-sidebar-foreground",
+        )}
+      />
+      <span
+        className={cn(
+          "truncate",
+          collapsed && "lg:hidden",
+          disabled && "text-sidebar-muted/70",
+        )}
+      >
+        {label}
+      </span>
+      {disabled && (
+        <span
+          className={cn(
+            "ml-auto rounded-full border border-sidebar-border/40 px-1.5 py-0 text-[9px] font-semibold uppercase tracking-wider text-sidebar-muted/70",
+            collapsed && "lg:hidden",
+          )}
+        >
+          Yetki yok
+        </span>
+      )}
+      {!disabled && active && (
+        <span
+          className={cn(
+            "ml-auto size-1.5 rounded-full bg-sidebar-accent-foreground",
+            collapsed && "lg:hidden",
+          )}
+        />
+      )}
+    </>
+  );
+
+  if (disabled) {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() =>
+            toast.error(disabledMessage ?? "Bu sayfaya yalnızca yöneticiler erişebilir.")
+          }
+          onMouseEnter={handleEnter}
+          onMouseLeave={handleLeave}
+          className={cn(
+            "group flex w-full cursor-not-allowed items-center rounded-lg text-left text-sm font-medium transition-colors",
+            "gap-3 px-3 py-2.5",
+            collapsed && "lg:justify-center lg:gap-0 lg:px-2 lg:py-2",
+            "text-sidebar-muted/70 hover:bg-sidebar-border/30",
+          )}
+          aria-disabled="true"
+        >
+          {linkContent}
+        </button>
+        {tooltipPos &&
+          typeof document !== "undefined" &&
+          createPortal(
+            <div
+              className="pointer-events-none fixed z-[100] hidden select-none nav-tooltip-enter lg:block"
+              style={{ top: tooltipPos.top, left: tooltipPos.left }}
+            >
+              <div className="relative rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-[0_8px_24px_-8px_rgba(0,0,0,0.45)] ring-1 ring-white/10">
+                {label} · Yetki yok
+                <span className="absolute right-full top-1/2 -translate-y-1/2 border-y-[5px] border-r-[5px] border-y-transparent border-r-slate-900" />
+              </div>
+            </div>,
+            document.body,
+          )}
+      </>
+    );
   }
 
   return (
@@ -133,23 +233,7 @@ function NavLink({ href, icon: Icon, label, active, collapsed, onNavigate }: Nav
             : "text-sidebar-foreground hover:bg-sidebar-border/40 hover:text-sidebar-accent-foreground",
         )}
       >
-        <Icon
-          className={cn(
-            "size-4 shrink-0 transition-colors",
-            active
-              ? "text-sidebar-accent-foreground"
-              : "text-sidebar-muted group-hover:text-sidebar-foreground",
-          )}
-        />
-        <span className={cn("truncate", collapsed && "lg:hidden")}>{label}</span>
-        {active && (
-          <span
-            className={cn(
-              "ml-auto size-1.5 rounded-full bg-sidebar-accent-foreground",
-              collapsed && "lg:hidden",
-            )}
-          />
-        )}
+        {linkContent}
       </Link>
       {tooltipPos &&
         typeof document !== "undefined" &&
@@ -507,19 +591,28 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
                 <div className="mx-2 mb-2 hidden h-px bg-sidebar-border lg:block" />
               )}
               <div className="space-y-0.5">
-                {group.items.map((item) => (
-                  <NavLink
-                    key={item.href}
-                    href={item.href}
-                    icon={item.icon}
-                    label={item.label}
-                    active={
-                      pathname === item.href || pathname.startsWith(item.href + "/")
-                    }
-                    collapsed={showCollapsed}
-                    onNavigate={() => setMobileOpen(false)}
-                  />
-                ))}
+                {group.items.map((item) => {
+                  const isAdminOnlyDenied = item.adminOnly && userRole !== "admin";
+                  return (
+                    <NavLink
+                      key={item.href}
+                      href={item.href}
+                      icon={item.icon}
+                      label={item.label}
+                      active={
+                        pathname === item.href || pathname.startsWith(item.href + "/")
+                      }
+                      collapsed={showCollapsed}
+                      onNavigate={() => setMobileOpen(false)}
+                      disabled={isAdminOnlyDenied}
+                      disabledMessage={
+                        isAdminOnlyDenied
+                          ? "Bu sayfaya yalnızca yöneticiler erişebilir."
+                          : undefined
+                      }
+                    />
+                  );
+                })}
               </div>
             </div>
           ))}
