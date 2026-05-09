@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   updateFirmProfile,
   updateMyProfile,
   updateMyPassword,
 } from "@/app/actions/firm";
+import { switchOrganization } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +16,11 @@ import {
   ArrowRight,
   Building2,
   Calendar,
+  Check,
+  Crown,
   KeyRound,
+  LayoutGrid,
+  Loader2,
   Mail,
   Save,
   Shield,
@@ -23,14 +28,27 @@ import {
   UserCircle2,
   Users,
 } from "lucide-react";
+import { toast } from "sonner";
 import type { Organization, Profile } from "@prisma/client";
 import { cn } from "@/lib/utils";
+
+interface PanelOption {
+  id: string;
+  name: string;
+  role: "admin" | "user" | "viewer";
+  isActive: boolean;
+  /** Bu panel kullanicinin kendi yarattigi (signup'ta otomatik
+   *  olusturulan) panel mi? Owner ise true. */
+  isOwn: boolean;
+  joinedAt: Date;
+}
 
 interface Props {
   firm: Organization;
   profile: Profile;
   platformRole: "admin" | "user" | "viewer";
   joinedAt: Date;
+  panels: PanelOption[];
 }
 
 const ROLE_LABEL: Record<string, string> = {
@@ -54,7 +72,7 @@ function formatDate(d: Date): string {
   }).format(d);
 }
 
-export function FirmSettingsForm({ firm, profile, platformRole, joinedAt }: Props) {
+export function FirmSettingsForm({ firm, profile, platformRole, joinedAt, panels }: Props) {
   const fullName = profile.fullName || profile.email?.split("@")[0] || "Kullanıcı";
   const roleLabel = ROLE_LABEL[platformRole] ?? platformRole;
   const isAdmin = platformRole === "admin";
@@ -70,6 +88,25 @@ export function FirmSettingsForm({ firm, profile, platformRole, joinedAt }: Prop
     async (_: unknown, fd: FormData) => updateMyPassword(fd),
     null,
   );
+
+  // ─── Panel switcher ──────────────────────────────────────────────────
+  const [switching, startSwitching] = useTransition();
+  const [switchingId, setSwitchingId] = useState<string | null>(null);
+  function handleSwitch(panelId: string) {
+    setSwitchingId(panelId);
+    startSwitching(async () => {
+      const res = await switchOrganization(panelId);
+      if (res?.error) {
+        toast.error(res.error);
+        setSwitchingId(null);
+        return;
+      }
+      toast.success(res?.success ?? "Panel değiştirildi");
+      // Hard navigate — sidebar firmName, layout auth context, hepsi
+      // server-side render edildigi icin tam reload gerek.
+      window.location.href = "/dashboard";
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -125,6 +162,38 @@ export function FirmSettingsForm({ firm, profile, platformRole, joinedAt }: Prop
           </div>
         </CardContent>
       </Card>
+
+      {/* ─────────────────────────────────────────────────────────────────
+          PANELLERİM — kullanicinin uye oldugu tum paneller listelenir.
+          Davet ile katilanlar buradan kendi panellerine gecip orada admin
+          olarak yeni proje + kullanici daveti yapabilirler. Aktif panelin
+          ustunde "Aktif" rozeti, kendi paneli ise "Senin Panelin" rozeti.
+         ───────────────────────────────────────────────────────────────── */}
+      <SectionCard
+        icon={LayoutGrid}
+        title="Panellerim"
+        subtitle={
+          <>
+            Üye olduğun tüm paneller burada listelenir. <strong>Kendi panelinde
+            yöneticisin</strong> — orada yeni projeler oluşturabilir, kullanıcı
+            ve görüntüleyici davet edebilirsin. Davet aldığın panellere üst
+            başlıktaki <strong>&quot;Panel:&quot;</strong> seçicisinden veya
+            buradaki butonlardan istediğin zaman geri dönebilirsin.
+          </>
+        }
+      >
+        <div className="space-y-2.5">
+          {panels.map((p) => (
+            <PanelRow
+              key={p.id}
+              panel={p}
+              busy={switching && switchingId === p.id}
+              disabled={switching}
+              onSwitch={() => handleSwitch(p.id)}
+            />
+          ))}
+        </div>
+      </SectionCard>
 
       {/* ─────────────────────────────────────────────────────────────────
           PROFİL BİLGİLERİ
@@ -268,6 +337,97 @@ export function FirmSettingsForm({ firm, profile, platformRole, joinedAt }: Prop
 }
 
 // ─── Helper sub-components ─────────────────────────────────────────────
+
+function PanelRow({
+  panel,
+  busy,
+  disabled,
+  onSwitch,
+}: {
+  panel: PanelOption;
+  busy: boolean;
+  disabled: boolean;
+  onSwitch: () => void;
+}) {
+  const roleBadge = ROLE_LABEL[panel.role] ?? panel.role;
+
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3 transition-all",
+        panel.isActive
+          ? "border-emerald-300 bg-emerald-50/60 shadow-sm"
+          : "border-slate-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/30",
+      )}
+    >
+      <div
+        className={cn(
+          "flex size-10 shrink-0 items-center justify-center rounded-lg ring-1",
+          panel.isOwn
+            ? "bg-emerald-100 text-emerald-700 ring-emerald-200"
+            : "bg-slate-100 text-slate-600 ring-slate-200",
+        )}
+      >
+        {panel.isOwn ? <Crown className="size-4" /> : <Building2 className="size-4" />}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <p className="truncate text-sm font-semibold text-slate-900">
+            {panel.name}
+          </p>
+          {panel.isOwn && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-emerald-700">
+              <Crown className="size-2.5" />
+              Senin Panelin
+            </span>
+          )}
+          {panel.isActive && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-100 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-emerald-800">
+              <Check className="size-2.5" />
+              Aktif
+            </span>
+          )}
+        </div>
+        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+          <span className="inline-flex items-center gap-1">
+            <Shield className="size-3 text-slate-400" />
+            {roleBadge}
+          </span>
+          <span className="text-slate-300">·</span>
+          <span>Katılım: {formatDate(panel.joinedAt)}</span>
+        </div>
+      </div>
+
+      <div className="shrink-0">
+        {panel.isActive ? (
+          <span className="text-[11px] font-medium text-slate-400">
+            Şu an buradasınız
+          </span>
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={onSwitch}
+            disabled={disabled}
+            className={cn(
+              panel.isOwn &&
+                "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800",
+            )}
+          >
+            {busy ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <ArrowRight className="size-3.5" />
+            )}
+            {busy ? "Geçiliyor…" : panel.isOwn ? "Kendi Paneline Geç" : "Bu Panele Geç"}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function MetaCell({
   icon: Icon,
