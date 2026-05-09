@@ -9,6 +9,7 @@ import type { GesSettings, KesifGroup } from "@/lib/ges-defaults";
 import { useTemplate, setTemplateLock } from "@/app/actions/templates";
 import { cn } from "@/lib/utils";
 import { ReadOnlyProvider } from "@/lib/readonly-context";
+import { UnstartedProjectCleanup } from "@/components/ges/unstarted-cleanup";
 
 interface Props {
   children: React.ReactNode;
@@ -119,6 +120,13 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
 
   return (
     <div className="mx-auto max-w-[1440px] space-y-6">
+      {/* Yarim kalmis proje temizleyicisi: kullanici Proje + Teknik
+          sekmelerini Kaydet & İlerle ile gecmeden detail'den ayrilirsa
+          projeyi DB'den sessizce siler. Sablonlar etkilenmez (gesStep=5
+          set edilir). */}
+      {!isTemplate && gesStep < 2 && (
+        <UnstartedProjectCleanup projectId={id} initialGesStep={gesStep} />
+      )}
       {/* Tek bir kompakt kart — emerald-soft tonlu, header + nav birleşik;
           kalın kenarlık ile içerikten net ayrılır. */}
       <div className={cn(

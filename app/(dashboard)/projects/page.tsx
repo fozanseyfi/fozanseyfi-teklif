@@ -18,6 +18,7 @@ import { ProjectStatusChanger } from "@/components/ges/project-status-changer";
 import {
   COMPLETION_TRANSITION_VALUES,
   isCompletionStatus,
+  isProjectVisible,
 } from "@/lib/project-status";
 import { calc } from "@/lib/ges-engine";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
@@ -54,7 +55,7 @@ export default async function ProjectsPage({ searchParams }: Props) {
     ? []
     : await getHiddenResourceIds(user.id, user.organizationId, "customer");
 
-  const projects = await prisma.project.findMany({
+  const allProjects = await prisma.project.findMany({
     where: {
       organizationId: user.organizationId,
       isTemplate: false,
@@ -78,6 +79,10 @@ export default async function ProjectsPage({ searchParams }: Props) {
     },
     orderBy: { updatedAt: "desc" },
   });
+
+  // Yarim kalmis projeleri (Proje + Teknik tamamlanmadan terkedilenler)
+  // listeden gizle. DB'de durur, kullanici icin yokmus gibi davranir.
+  const projects = allProjects.filter(isProjectVisible);
 
   // GES engine ile gercek satis fiyati. Esik kaldirildi — fiyat 0'dan buyukse
   // ne kadar dusuk olursa olsun goster (kullanici yarim-doldurulmus projede

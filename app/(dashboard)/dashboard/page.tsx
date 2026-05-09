@@ -24,6 +24,7 @@ import { ProjectStatusChanger } from "@/components/ges/project-status-changer";
 import {
   COMPLETION_TRANSITION_VALUES,
   isCompletionStatus,
+  isProjectVisible,
 } from "@/lib/project-status";
 
 const STATUS_BAR_COLOR: Record<string, string> = {
@@ -49,28 +50,24 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "success" | "warn
 export default async function DashboardPage() {
   const user = await requireAuth();
 
-  const [projects, allProjects, allForMap] = await Promise.all([
-    prisma.project.findMany({
-      where: { organizationId: user.organizationId, isTemplate: false },
-      orderBy: { updatedAt: "desc" },
-      take: 10,
-      include: {
-        pricingSnapshot: true,
-        projectDetail: { select: { kesifA: true, kesifB: true, settings: true } },
-      },
-    }),
-    prisma.project.findMany({
-      where: { organizationId: user.organizationId, isTemplate: false, totalPowerKw: { gt: 0 } },
-      select: {
-        totalPowerKw: true,
-        projectDetail: { select: { kesifA: true, kesifB: true, settings: true } },
-      },
-    }),
-    prisma.project.findMany({
-      where: { organizationId: user.organizationId, isTemplate: false },
-      select: { projectDetail: { select: { settings: true } } },
-    }),
-  ]);
+  // Tum gercek projeleri tek sorguda cek; sonra isProjectVisible ile yarim
+  // kalmislari filtrele. Yarim kalmis projeler temizleyici tarafindan
+  // genelde silinir ama race/cleanup-fail durumlarinda yine de UI'da
+  // gozukmesinler.
+  const allRawProjects = await prisma.project.findMany({
+    where: { organizationId: user.organizationId, isTemplate: false },
+    orderBy: { updatedAt: "desc" },
+    include: {
+      pricingSnapshot: true,
+      projectDetail: { select: { kesifA: true, kesifB: true, settings: true } },
+    },
+  });
+  const allVisibleProjects = allRawProjects.filter(isProjectVisible);
+  const projects = allVisibleProjects.slice(0, 10);
+  // Toplam guc hesabi icin: gucu olan tum gozuken projeler.
+  const allProjects = allVisibleProjects.filter((p) => p.totalPowerKw > 0);
+  // Turkiye haritasi icin: sadece gozuken projeler.
+  const allForMap = allVisibleProjects;
 
   function getEpcPrice(p: {
     projectDetail?: { kesifA: unknown; kesifB: unknown; settings: unknown } | null;
@@ -90,7 +87,7 @@ export default async function DashboardPage() {
     }
   }
 
-  const totalCount = await prisma.project.count({ where: { organizationId: user.organizationId, isTemplate: false } });
+  const totalCount = allVisibleProjects.length;
   const inProgressCount = projects.filter(
     (p) => p.status === "IN_PROGRESS" || p.status === "DRAFT",
   ).length;

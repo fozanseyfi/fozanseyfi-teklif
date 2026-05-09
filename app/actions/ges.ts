@@ -509,6 +509,46 @@ export async function saveDrawing(
   revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 
+/**
+ * Yarim kalmis projeyi sil — kullanici "Proje" + "Teknik" sekmelerini
+ * "Kaydet & İlerle" ile gecmeden detail sayfasindan ayrilirsa cagrilir.
+ * gesStep < 2 ise proje hic olmamis gibi DB'den silinir; aksi halde no-op
+ * (gerceK proje icin idempotent ve guvenli).
+ *
+ * Sablon (isTemplate=true) icin asla silme — sablonlar zaten gesStep
+ * gozetilmez, layout onlari hep step=5 sayar. Yine de defensif kontrol var.
+ */
+export async function deleteIfUnstartedProject(projectId: string): Promise<void> {
+  const user = await requireAuth();
+  const project = await prisma.project.findFirst({
+    where: { id: projectId, organizationId: user.organizationId, isTemplate: false },
+    include: { projectDetail: { select: { settings: true } } },
+  });
+  if (!project) return;
+  // Owner-only — bir kullanicinin baska kullanicinin yarim projesini
+  // sessizce silmesini engelle. Admin ise serbest.
+  const isOwner = project.createdById === user.id;
+  if (!isOwner && user.platformRole !== "admin") return;
+  // Manuel olarak kullanici tarafindan finalize edilmisse asla dokunma.
+  if (
+    project.status === "COMPLETED" ||
+    project.status === "CLOSE_WIN" ||
+    project.status === "CLOSE_LOST" ||
+    project.status === "CANCELLED"
+  ) {
+    return;
+  }
+  const settings = (project.projectDetail?.settings as Record<string, unknown> | undefined) ?? {};
+  const gesStep = Number(settings.gesStep) || 0;
+  if (gesStep >= 2) return;
+
+  await prisma.project.deleteMany({
+    where: { id: projectId, organizationId: user.organizationId, isTemplate: false },
+  });
+  revalidatePath("/projects");
+  revalidatePath("/dashboard");
+}
+
 export async function markProjectCompleted(projectId: string) {
   const user = await requireAuth();
   await prisma.project.update({
