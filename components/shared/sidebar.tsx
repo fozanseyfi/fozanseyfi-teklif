@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   FolderOpen,
@@ -256,7 +256,7 @@ function NavLink({
 
 // Top bar'da "Panel: <ad>" yerine dropdown — kullanicinin uye oldugu tum
 // organizasyonlar listelenir, secim profile.organizationId'yi guncelleyip
-// router.refresh() ile sayfayi yeniler.
+// hard reload ile sayfayi sifirdan render eder.
 function PanelSwitcher({
   firmName,
   organizations,
@@ -266,7 +266,6 @@ function PanelSwitcher({
 }) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
-  const router = useRouter();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -278,7 +277,10 @@ function PanelSwitcher({
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
 
-  const hasMultiple = organizations.length > 1;
+  // Dropdown her zaman tiklanabilir — tek panel varsa bile kullanici
+  // "Panellerim" listesini gorebilsin. Profilim'de daha detayli panel
+  // yonetimi (kendi paneline gec, davet rozetleri, vb.) var; bu sadece
+  // hizli switcher.
 
   async function handleSwitch(orgId: string) {
     if (pending) return;
@@ -286,7 +288,8 @@ function PanelSwitcher({
     try {
       await switchOrganization(orgId);
       setOpen(false);
-      router.refresh();
+      // Hard reload — yeni org context'i sunucu render'ina yansisin diye.
+      window.location.href = "/dashboard";
     } finally {
       setPending(null);
     }
@@ -296,26 +299,20 @@ function PanelSwitcher({
     <div ref={ref} className="relative min-w-0">
       <button
         type="button"
-        onClick={() => hasMultiple && setOpen((o) => !o)}
-        className={cn(
-          "flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left",
-          hasMultiple ? "transition-colors hover:bg-muted" : "cursor-default",
-        )}
-        disabled={!hasMultiple}
+        onClick={() => setOpen((o) => !o)}
+        className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-muted"
       >
         <FolderOpen className="size-4 shrink-0 text-muted-foreground" />
         <span className="shrink-0 text-sm text-muted-foreground">Panel:</span>
         <span className="truncate text-sm font-semibold text-foreground">{firmName}</span>
-        {hasMultiple && (
-          <ChevronDown
-            className={cn(
-              "size-3.5 shrink-0 text-muted-foreground transition-transform",
-              open && "rotate-180",
-            )}
-          />
-        )}
+        <ChevronDown
+          className={cn(
+            "size-3.5 shrink-0 text-muted-foreground transition-transform",
+            open && "rotate-180",
+          )}
+        />
       </button>
-      {open && hasMultiple && (
+      {open && (
         <div className="absolute left-0 top-full z-50 mt-1 w-72 overflow-hidden rounded-lg border bg-card shadow-lg">
           <div className="border-b bg-muted/40 px-3 py-2">
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -354,6 +351,15 @@ function PanelSwitcher({
               </li>
             ))}
           </ul>
+          <div className="border-t bg-muted/30 px-3 py-2">
+            <Link
+              href="/firm-settings"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-primary hover:underline"
+            >
+              Tüm panellerimi yönet →
+            </Link>
+          </div>
         </div>
       )}
     </div>
