@@ -265,7 +265,7 @@ export function CashFlowView({ projectId, projectName, kesifA, kesifB: kesifBPro
 
       {/* Bar chart — Aylık Giriş / Çıkış */}
       <Card className="overflow-hidden">
-        <SectionHeader icon={DollarSign} title="Aylık Nakit Giriş / Çıkış (000 USD)" tone="success" />
+        <SectionHeader icon={DollarSign} title="Aylık Nakit Giriş / Çıkış" tone="success" />
         <CardContent className="px-4 pb-4 pt-3">
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={chartData} barGap={2} margin={{ top: 5, right: 10, bottom: 0, left: 0 }}>
@@ -284,7 +284,7 @@ export function CashFlowView({ projectId, projectName, kesifA, kesifB: kesifBPro
 
       {/* Area chart — Kümülatif */}
       <Card className="overflow-hidden">
-        <SectionHeader icon={Activity} title="Kümülatif Nakit Pozisyonu (000 USD)" tone="primary" />
+        <SectionHeader icon={Activity} title="Kümülatif Nakit Pozisyonu" tone="primary" />
         <CardContent className="px-4 pb-4 pt-3">
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={chartData} margin={{ top: 5, right: 10, bottom: 0, left: 0 }}>

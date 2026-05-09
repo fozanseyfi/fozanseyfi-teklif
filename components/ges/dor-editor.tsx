@@ -463,9 +463,21 @@ export function DorEditor({ projectId, projectName, data }: Props) {
                                 </select>
                               </td>
                             ))}
-                            <td className="px-3 py-1.5">
-                              <Input
-                                className="h-7 min-w-[140px] border-transparent bg-transparent px-1 text-xs hover:border-border focus:border-border"
+                            <td className="px-3 py-1.5 align-top">
+                              {/* Notlar — uzun metin satıra sığmasın diye
+                                  textarea: edit modunda otomatik buyur, salt
+                                  okunurda 2-3 satira ayrilir, taşan kismi
+                                  scroll yerine sarar (whitespace-pre-wrap +
+                                  rows=2). */}
+                              <textarea
+                                className="min-h-[28px] w-full min-w-[140px] resize-y rounded-md border border-transparent bg-transparent px-1 py-1 text-xs leading-snug hover:border-border focus:border-border focus:outline-none"
+                                rows={Math.min(
+                                  6,
+                                  Math.max(
+                                    1,
+                                    Math.ceil((item.notes?.length || 0) / 28),
+                                  ),
+                                )}
                                 value={item.notes}
                                 onChange={(e) =>
                                   updateItem(realGi, ii, "notes", e.target.value)

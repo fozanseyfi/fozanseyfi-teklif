@@ -7,7 +7,6 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   FolderOpen,
-  Settings,
   LogOut,
   Sun,
   Users,
@@ -22,6 +21,7 @@ import {
   ChevronRight,
   Menu,
   X,
+  UserCircle2,
 } from "lucide-react";
 import { logout, switchOrganization } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
@@ -64,7 +64,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Yönetim",
     items: [
       { href: "/admin/users", icon: Users, label: "Kullanıcılar" },
-      { href: "/firm-settings", icon: Settings, label: "Firma Ayarları" },
+      { href: "/firm-settings", icon: UserCircle2, label: "Profilim" },
       { href: "/notifications", icon: Bell, label: "Bildirimler" },
     ],
   },

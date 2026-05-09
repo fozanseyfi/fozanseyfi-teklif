@@ -68,21 +68,70 @@ function SectionHeader({
 }
 
 async function fetchExchangeRates(): Promise<{ usd?: number; eur?: number }> {
-  // Frankfurter API — ECB-tabanli, ucretsiz, CORS acik
-  try {
-    const [usdRes, eurRes] = await Promise.all([
-      fetch("https://api.frankfurter.app/latest?from=USD&to=TRY"),
-      fetch("https://api.frankfurter.app/latest?from=EUR&to=TRY"),
-    ]);
-    const usdData = await usdRes.json();
-    const eurData = await eurRes.json();
-    return {
-      usd: usdData?.rates?.TRY,
-      eur: eurData?.rates?.TRY,
-    };
-  } catch {
-    return {};
+  // Tek istekle USD ve EUR'u ceken, CORS-acik birden fazla saglayicidan
+  // siralı olarak dene. Birinde hata olursa digerine gec.
+  const providers: Array<() => Promise<{ usd?: number; eur?: number }>> = [
+    // exchangerate.host — ucretsiz, CORS acik, tek istekte multi-base/symbols
+    async () => {
+      const res = await fetch(
+        "https://api.exchangerate.host/latest?base=TRY&symbols=USD,EUR",
+        { cache: "no-store" },
+      );
+      if (!res.ok) throw new Error("exchangerate.host HTTP " + res.status);
+      const data = await res.json();
+      const usd = data?.rates?.USD;
+      const eur = data?.rates?.EUR;
+      // base=TRY oldugundan rates 1 TRY = 0.0X USD/EUR cinsinden gelir;
+      // bizim formata cevir (1 USD = X TRY).
+      return {
+        usd: usd ? 1 / usd : undefined,
+        eur: eur ? 1 / eur : undefined,
+      };
+    },
+    // open.er-api.com — ucretsiz, CORS acik, base=TRY ile rates
+    async () => {
+      const res = await fetch("https://open.er-api.com/v6/latest/TRY", {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error("open.er-api HTTP " + res.status);
+      const data = await res.json();
+      const usd = data?.rates?.USD;
+      const eur = data?.rates?.EUR;
+      return {
+        usd: usd ? 1 / usd : undefined,
+        eur: eur ? 1 / eur : undefined,
+      };
+    },
+    // Frankfurter — ECB tabanli; calisirsa bonus, calismazsa diger ikisi yedek
+    async () => {
+      const [usdRes, eurRes] = await Promise.all([
+        fetch("https://api.frankfurter.dev/v1/latest?base=USD&symbols=TRY", {
+          cache: "no-store",
+        }),
+        fetch("https://api.frankfurter.dev/v1/latest?base=EUR&symbols=TRY", {
+          cache: "no-store",
+        }),
+      ]);
+      const usdData = await usdRes.json();
+      const eurData = await eurRes.json();
+      return {
+        usd: usdData?.rates?.TRY,
+        eur: eurData?.rates?.TRY,
+      };
+    },
+  ];
+
+  for (const provider of providers) {
+    try {
+      const r = await provider();
+      if (typeof r.usd === "number" && r.usd > 0 && typeof r.eur === "number" && r.eur > 0) {
+        return r;
+      }
+    } catch (e) {
+      console.warn("[fx] provider failed:", e);
+    }
   }
+  return {};
 }
 
 export function TeknikForm({ projectId, projectName, settings }: Props) {

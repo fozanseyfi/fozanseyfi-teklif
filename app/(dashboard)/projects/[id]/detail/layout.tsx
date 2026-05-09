@@ -8,6 +8,7 @@ import { MapPin, User, Zap, Sparkles, LayoutTemplate, Lock, Unlock } from "lucid
 import type { GesSettings, KesifGroup } from "@/lib/ges-defaults";
 import { useTemplate, setTemplateLock } from "@/app/actions/templates";
 import { cn } from "@/lib/utils";
+import { ReadOnlyProvider } from "@/lib/readonly-context";
 
 interface Props {
   children: React.ReactNode;
@@ -222,12 +223,14 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
         </div>
       </div>
 
-      <div
-        className={isLocked ? "template-readonly" : undefined}
-        data-readonly-reason={isLocked ? lockReason : undefined}
-      >
-        {children}
-      </div>
+      <ReadOnlyProvider value={isLocked}>
+        <div
+          className={isLocked ? "template-readonly" : undefined}
+          data-readonly-reason={isLocked ? lockReason : undefined}
+        >
+          {children}
+        </div>
+      </ReadOnlyProvider>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { requireAuth } from "@/lib/auth";
 import { isAdmin, type Role } from "@/lib/permissions";
 import { generateToken } from "@/lib/utils";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
+import { createSupabaseServer } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
 export async function updateFirmProfile(formData: FormData) {
@@ -20,6 +21,65 @@ export async function updateFirmProfile(formData: FormData) {
   });
 
   revalidatePath("/firm-settings");
+}
+
+// Kullanicinin profil bilgilerini gunceller (sadece kendi profili).
+// E-posta degisimi Supabase auth uzerinden yapilir; bu fonksiyon e-posta'yi
+// guncellemez — sadece adi ve digerleri.
+export async function updateMyProfile(formData: FormData) {
+  const user = await requireAuth();
+  const fullName = (formData.get("fullName") as string | null)?.trim();
+  if (!fullName) return { error: "Ad Soyad boş olamaz" };
+
+  await prisma.profile.update({
+    where: { id: user.id },
+    data: { fullName },
+  });
+
+  revalidatePath("/firm-settings");
+  return { success: "Profil bilgileri güncellendi" };
+}
+
+// Sifre degistirme — Supabase auth uzerinden mevcut sifreyi dogrulayip
+// yenisini set eder. Mevcut sifre yanlissa hata doner.
+export async function updateMyPassword(formData: FormData) {
+  const user = await requireAuth();
+  const currentPwd = (formData.get("currentPassword") as string | null) ?? "";
+  const newPwd = (formData.get("newPassword") as string | null) ?? "";
+  const confirmPwd = (formData.get("confirmPassword") as string | null) ?? "";
+
+  if (!currentPwd || !newPwd || !confirmPwd) {
+    return { error: "Tüm şifre alanlarını doldurun" };
+  }
+  if (newPwd.length < 8) {
+    return { error: "Yeni şifre en az 8 karakter olmalı" };
+  }
+  if (newPwd !== confirmPwd) {
+    return { error: "Yeni şifre ve tekrarı eşleşmiyor" };
+  }
+
+  const supabase = await createSupabaseServer();
+
+  // Mevcut sifreyi dogrula — sign-in attempt yap; basarisiz olursa hata.
+  if (!user.email) {
+    return { error: "Hesabınızda kayıtlı e-posta yok" };
+  }
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: currentPwd,
+  });
+  if (signInError) {
+    return { error: "Mevcut şifre hatalı" };
+  }
+
+  const { error: updateError } = await supabase.auth.updateUser({
+    password: newPwd,
+  });
+  if (updateError) {
+    return { error: updateError.message ?? "Şifre güncellenemedi" };
+  }
+
+  return { success: "Şifre güncellendi" };
 }
 
 // Davet olustur — public.invitations'a INSERT (platform-scoped).

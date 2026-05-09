@@ -1,22 +1,32 @@
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isAdmin } from "@/lib/permissions";
 import { redirect } from "next/navigation";
 import { FirmSettingsForm } from "@/components/shared/firm-settings-form";
 
-export default async function FirmSettingsPage() {
+export default async function ProfilePage() {
   const user = await requireAuth();
-  if (!isAdmin(user)) redirect("/dashboard");
 
-  const firm = await prisma.organization.findUnique({
-    where: { id: user.organizationId },
-  });
-  if (!firm) return null;
+  const [firm, membership] = await Promise.all([
+    prisma.organization.findUnique({ where: { id: user.organizationId } }),
+    prisma.organizationMember.findUnique({
+      where: {
+        userId_organizationId: {
+          userId: user.id,
+          organizationId: user.organizationId,
+        },
+      },
+    }),
+  ]);
+  if (!firm) redirect("/dashboard");
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8">
-      <h1 className="text-2xl font-semibold tracking-tight text-foreground">Firma Ayarları</h1>
-      <FirmSettingsForm firm={firm} />
+    <div className="mx-auto max-w-4xl">
+      <FirmSettingsForm
+        firm={firm}
+        profile={user}
+        platformRole={user.platformRole}
+        joinedAt={membership?.joinedAt ?? new Date()}
+      />
     </div>
   );
 }

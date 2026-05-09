@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { NavActions } from "@/components/ges/nav-actions";
 import { printAnaliz } from "@/components/ges/analiz-print";
+import { useReadOnly } from "@/lib/readonly-context";
 
 type SectionTone = "primary" | "info" | "success" | "warning" | "destructive";
 
@@ -55,6 +56,7 @@ interface Props {
 }
 
 export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB: kesifBInit, settings, timeline }: Props) {
+  const isReadOnly = useReadOnly();
   const [s, setS] = useState<GesSettings>(settings);
   const [localKesifA, setLocalKesifA] = useState<KesifGroup[]>(kesifAInit);
   const [localKesifB, setLocalKesifB] = useState<KesifGroup[]>(kesifBInit);
@@ -402,7 +404,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
         }
       }
     }
-    return all.sort((a, b) => b.value - a.value).slice(0, 5);
+    return all.sort((a, b) => b.value - a.value).slice(0, 10);
   }, [modifiedKesifA, localKesifB, s]);
   const top5Total = top5Items.reduce((a, b) => a + b.value, 0);
 
@@ -949,10 +951,12 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                       const deltaNegative = delta < -50;
                       return (
                         <div key={i} className="group relative">
-                          <button type="button" onClick={() => handleAltChange(field, actualIdx)}
+                          <button type="button"
+                            onClick={isReadOnly ? undefined : () => handleAltChange(field, actualIdx)}
                             className={cn(
                               "block w-full rounded-md border px-2 py-1.5 text-left transition-all",
                               isSel ? "border-primary/30 bg-primary-soft" : "hover:border-primary/30 hover:bg-muted/60",
+                              isReadOnly && "cursor-default hover:border-border hover:bg-transparent",
                             )}>
                             <div className="flex items-center justify-between gap-1.5">
                               <span className="truncate text-[11px] font-semibold text-foreground">{alt.name}</span>
@@ -1026,8 +1030,14 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                     const pct = result.directCost > 0 ? (total / result.directCost) * 100 : 0;
                     const perWp = dcWp > 0 ? total / dcWp : 0;
                     return (
-                      <tr key={g.code} className="hover:bg-primary-soft/40 cursor-pointer transition-colors group"
-                        onClick={() => openGroupEditor(localKesifA.find((x) => x.code === g.code) ?? g, true)}>
+                      <tr key={g.code}
+                        className={cn(
+                          "transition-colors group",
+                          isReadOnly
+                            ? "cursor-default"
+                            : "cursor-pointer hover:bg-primary-soft/40",
+                        )}
+                        onClick={isReadOnly ? undefined : () => openGroupEditor(localKesifA.find((x) => x.code === g.code) ?? g, true)}>
                         <td className="px-2.5 py-1 font-mono text-muted-foreground">{g.code}</td>
                         <td className="px-2.5 py-1 text-foreground">{g.name}</td>
                         <td className="px-2.5 py-1 text-right font-semibold text-foreground">${fmt(total)}</td>
@@ -1060,11 +1070,13 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                       <tr key={g.code}
                         className={cn(
                           "transition-colors group",
-                          isAuto
-                            ? "cursor-not-allowed bg-info-soft/20 hover:bg-info-soft/30"
-                            : "cursor-pointer hover:bg-primary-soft/40",
+                          isReadOnly
+                            ? "cursor-default"
+                            : isAuto
+                              ? "cursor-not-allowed bg-info-soft/20 hover:bg-info-soft/30"
+                              : "cursor-pointer hover:bg-primary-soft/40",
                         )}
-                        onClick={() => {
+                        onClick={isReadOnly ? undefined : () => {
                           if (isAuto) {
                             toast.info("Finans Maliyeti Cash Flow'dan otomatik hesaplanır");
                             return;
@@ -1303,17 +1315,21 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
             {/* Hierarchical Donut */}
             <Card className="overflow-hidden shadow-sm">
               <div className="flex items-center justify-between border-b px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <div className={cn("flex size-8 items-center justify-center rounded-xl", SECTION_TONE.info.iconBg)}>
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className={cn("flex size-8 shrink-0 items-center justify-center rounded-xl", SECTION_TONE.info.iconBg)}>
                     <BarChart2 className={cn("size-4", SECTION_TONE.info.iconText)} />
                   </div>
-                  <h3 className="text-sm font-semibold text-foreground">Maliyet Halkası</h3>
-                  <span className="text-[10px] text-muted-foreground">
-                    {drilledGroupCode ? "Kalem detayı" : "Bir gruba tıkla"}
-                  </span>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold text-foreground">Maliyet Halkası</h3>
+                    <p className="text-[10.5px] leading-tight text-muted-foreground">
+                      {drilledGroupCode
+                        ? "Kalem detayı — tek renk tonlaması"
+                        : "Yandaki Maliyet Dağılımı'ndan detayını görmek istediğiniz grup başlığına tıklayın."}
+                    </p>
+                  </div>
                 </div>
                 {drilledGroupCode && (
-                  <button type="button" onClick={() => setDrilledGroupCode(null)} className="text-xs font-semibold text-primary-soft-foreground hover:underline">
+                  <button type="button" onClick={() => setDrilledGroupCode(null)} className="shrink-0 text-xs font-semibold text-primary-soft-foreground hover:underline">
                     ← Geri
                   </button>
                 )}
@@ -1346,10 +1362,20 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                         <Pie data={donutInner} dataKey="value" nameKey="name" cx="50%" cy="50%"
                           outerRadius={88} innerRadius={50} paddingAngle={1} stroke="#fff" strokeWidth={1.5}>
                           {donutInner.map((d, i) => {
-                            const greenPalette = ["#047857", "#059669", "#10b981", "#22c55e", "#34d399", "#4ade80", "#6ee7b7", "#86efac"];
-                            const bluePalette = ["#1e40af", "#1d4ed8", "#2563eb", "#3b82f6", "#0ea5e9", "#06b6d4", "#0891b2", "#0284c7"];
-                            const palette = d.isA ? greenPalette : bluePalette;
-                            return <Cell key={d.key} fill={palette[i % palette.length]} />;
+                            // Tek renk tonlamasi — A icin emerald, B icin slate
+                            // varyasyonu. Kac kalem varsa o kadar shade uretilir
+                            // (light → dark). Coklu renk yerine disiplinli paletti.
+                            const baseHue = d.isA ? "16 185 129" : "100 116 139"; // emerald-500 / slate-500
+                            const n = donutInner.length;
+                            const t = n > 1 ? i / (n - 1) : 0; // 0 → 1
+                            // Lightness 35% → 75% arasi
+                            const alpha = 1 - 0.45 * (1 - t);
+                            return (
+                              <Cell
+                                key={d.key}
+                                fill={`rgba(${baseHue} / ${alpha.toFixed(2)})`}
+                              />
+                            );
                           })}
                         </Pie>
                       )}
@@ -1381,30 +1407,33 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                   )}
                 </div>
 
-                {/* Top 5 Kalemler — donut'un altindaki bosluga sigan analiz */}
+                {/* Top 10 Kalemler — donut'un altindaki ayni alanda 10 satir
+                    sigsin diye tipografi ve dikey paddingler kuculdu;
+                    yandaki yuzdelik (satis fiyati icindeki) aynastik. */}
                 {top5Items.length > 0 && (
                   <div className="mt-3 border-t pt-3">
-                    <div className="mb-2 flex items-center justify-between">
+                    <div className="mb-1.5 flex items-center justify-between">
                       <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                        En Pahalı 5 Kalem
+                        En Pahalı 10 Kalem
                       </p>
                       <p className="text-[10px] tabular-nums text-muted-foreground">
                         Toplam <span className="font-semibold text-foreground">${fmt(top5Total)}</span>
-                        {result.directCost > 0 && (
-                          <> · <span>%{(top5Total / result.directCost * 100).toFixed(1)}</span></>
+                        {result.salePriceUsd > 0 && (
+                          <> · <span>%{(top5Total / result.salePriceUsd * 100).toFixed(1)} satış</span></>
                         )}
                       </p>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-px">
                       {top5Items.map((it, i) => {
                         const itemPct = top5Items[0].value > 0 ? (it.value / top5Items[0].value) * 100 : 0;
+                        const salePct = result.salePriceUsd > 0 ? (it.value / result.salePriceUsd) * 100 : 0;
                         return (
-                          <div key={`${it.groupCode}.${it.itemCode}`} className="flex items-center gap-2 text-[11px]">
-                            <span className="w-4 shrink-0 text-center font-semibold tabular-nums text-muted-foreground">
+                          <div key={`${it.groupCode}.${it.itemCode}`} className="flex items-center gap-1.5 text-[10.5px] leading-tight">
+                            <span className="w-3.5 shrink-0 text-center font-semibold tabular-nums text-muted-foreground">
                               {i + 1}
                             </span>
                             <span className={cn(
-                              "shrink-0 rounded-md border px-1 py-0 font-mono text-[9px] font-semibold leading-tight",
+                              "shrink-0 rounded border px-1 font-mono text-[9px] font-semibold leading-tight",
                               it.isA
                                 ? "border-primary/30 bg-primary-soft text-primary-soft-foreground"
                                 : "border-info/30 bg-info-soft text-info-soft-foreground",
@@ -1414,12 +1443,15 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                             <span className="min-w-0 flex-1 truncate text-muted-foreground" title={it.name}>
                               {it.name}
                             </span>
-                            <div className="hidden h-1 w-16 shrink-0 overflow-hidden rounded-full bg-muted sm:block">
+                            <div className="hidden h-1 w-12 shrink-0 overflow-hidden rounded-full bg-muted sm:block">
                               <div className={cn("h-full rounded-full", it.isA ? "bg-primary" : "bg-info")}
                                 style={{ width: `${itemPct}%` }} />
                             </div>
-                            <span className="w-16 shrink-0 text-right font-semibold tabular-nums text-foreground">
+                            <span className="w-14 shrink-0 text-right font-semibold tabular-nums text-foreground">
                               ${fmt(it.value)}
+                            </span>
+                            <span className="w-10 shrink-0 text-right tabular-nums text-success-soft-foreground">
+                              %{salePct.toFixed(1)}
                             </span>
                           </div>
                         );
@@ -1431,65 +1463,74 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
             </Card>
           </div>
 
-          {/* Cash Flow — yan yana 2 grafik (cashflow-view ile birebir ayni) */}
-          {cfData.length > 0 && (
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-              {/* Bar chart — Aylık Giriş / Çıkış */}
-              <Card className="shadow-sm overflow-hidden">
-                <div className="flex items-center gap-3 px-4 py-3 border-b">
-                  <div className={cn("size-7 rounded-lg flex items-center justify-center", SECTION_TONE.success.iconBg)}>
-                    <DollarSign className={cn("size-3.5", SECTION_TONE.success.iconText)} />
+          {/* Cash Flow — yan yana 2 grafik (cashflow-view ile BIREBIR ayni:
+              ayni veri, ayni boyut, ayni tooltip formatter). */}
+          {cfData.length > 0 && (() => {
+            // cashflow-view'deki kFmt ile birebir ayni format — sigortalamak
+            // icin lokal kopya. Tooltip degerleri /1000 oldugundan *1000 ile
+            // geri donduruyoruz.
+            const kFmt = (n: number) => {
+              if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
+              if (Math.abs(n) >= 1_000) return `$${(n / 1_000).toFixed(1)}k`;
+              return `$${n.toFixed(0)}`;
+            };
+            return (
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                {/* Bar chart — Aylık Giriş / Çıkış (cashflow-view birebir) */}
+                <Card className="shadow-sm overflow-hidden">
+                  <div className="flex items-center gap-3 px-4 py-3 border-b">
+                    <div className={cn("size-8 shrink-0 rounded-lg flex items-center justify-center", SECTION_TONE.success.iconBg)}>
+                      <DollarSign className={cn("size-4", SECTION_TONE.success.iconText)} />
+                    </div>
+                    <h3 className="font-semibold text-foreground text-sm tracking-tight">Aylık Nakit Giriş / Çıkış</h3>
                   </div>
-                  <h3 className="font-semibold text-foreground text-sm">Aylık Nakit Giriş / Çıkış</h3>
-                  <span className="text-[10px] text-muted-foreground">000 USD</span>
-                </div>
-                <CardContent className="px-4 pb-4 pt-3">
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart data={cfData} barGap={2} margin={{ top: 5, right: 10, bottom: 0, left: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                      <XAxis dataKey="label" tick={{ fontSize: 9, fill: "#94a3b8", fontWeight: 500 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                      <ReferenceLine y={0} stroke="#e2e8f0" strokeWidth={1.5} />
-                      <Tooltip formatter={(v) => `$${Number(v).toFixed(1)}k`} contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 2px 0 rgb(15 23 42 / 0.04)", fontSize: "12px" }} />
-                      <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
-                      <Bar dataKey="Giriş" fill="#059669" radius={[4, 4, 0, 0]} maxBarSize={32} />
-                      <Bar dataKey="Çıkış" fill="#dc2626" radius={[4, 4, 0, 0]} maxBarSize={32} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+                  <CardContent className="px-4 pb-4 pt-3">
+                    <ResponsiveContainer width="100%" height={260}>
+                      <BarChart data={cfData} barGap={2} margin={{ top: 5, right: 10, bottom: 0, left: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                        <XAxis dataKey="label" tick={{ fontSize: 9, fill: "#94a3b8", fontWeight: 500 }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                        <ReferenceLine y={0} stroke="#e2e8f0" strokeWidth={1.5} />
+                        <Tooltip formatter={(v) => kFmt(Number(v) * 1000)} contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 2px 0 rgb(15 23 42 / 0.04)", fontSize: "12px" }} />
+                        <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+                        <Bar dataKey="Giriş" fill="#059669" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                        <Bar dataKey="Çıkış" fill="#dc2626" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
 
-              {/* Area chart — Kümülatif */}
-              <Card className="shadow-sm overflow-hidden">
-                <div className="flex items-center gap-3 px-4 py-3 border-b">
-                  <div className={cn("size-7 rounded-lg flex items-center justify-center", SECTION_TONE.primary.iconBg)}>
-                    <TrendingUp className={cn("size-3.5", SECTION_TONE.primary.iconText)} />
+                {/* Area chart — Kümülatif (cashflow-view birebir) */}
+                <Card className="shadow-sm overflow-hidden">
+                  <div className="flex items-center gap-3 px-4 py-3 border-b">
+                    <div className={cn("size-8 shrink-0 rounded-lg flex items-center justify-center", SECTION_TONE.primary.iconBg)}>
+                      <TrendingUp className={cn("size-4", SECTION_TONE.primary.iconText)} />
+                    </div>
+                    <h3 className="font-semibold text-foreground text-sm tracking-tight">Kümülatif Nakit Pozisyonu</h3>
                   </div>
-                  <h3 className="font-semibold text-foreground text-sm">Kümülatif Nakit Pozisyonu</h3>
-                  <span className="text-[10px] text-muted-foreground">000 USD</span>
-                </div>
-                <CardContent className="px-4 pb-4 pt-3">
-                  <ResponsiveContainer width="100%" height={260}>
-                    <AreaChart data={cfData} margin={{ top: 5, right: 10, bottom: 0, left: 0 }}>
-                      <defs>
-                        <linearGradient id="cumGradPos" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#059669" stopOpacity={0.25} />
-                          <stop offset="95%" stopColor="#059669" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                      <XAxis dataKey="label" tick={{ fontSize: 9, fill: "#94a3b8", fontWeight: 500 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                      <ReferenceLine y={0} stroke="#e2e8f0" strokeWidth={2} strokeDasharray="4 2" label={{ value: "0", position: "insideTopRight", fontSize: 10, fill: "#94a3b8" }} />
-                      <Tooltip formatter={(v) => `$${Number(v).toFixed(1)}k`} contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 2px 0 rgb(15 23 42 / 0.04)", fontSize: "12px" }} />
-                      <Area type="monotone" dataKey="Kümülatif" stroke="#059669" strokeWidth={2.5} fill="url(#cumGradPos)" dot={false}
-                        activeDot={{ r: 5, fill: "#059669", stroke: "white", strokeWidth: 2 }} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+                  <CardContent className="px-4 pb-4 pt-3">
+                    <ResponsiveContainer width="100%" height={220}>
+                      <AreaChart data={cfData} margin={{ top: 5, right: 10, bottom: 0, left: 0 }}>
+                        <defs>
+                          <linearGradient id="cumGradPos" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#059669" stopOpacity={0.25} />
+                            <stop offset="95%" stopColor="#059669" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                        <XAxis dataKey="label" tick={{ fontSize: 9, fill: "#94a3b8", fontWeight: 500 }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                        <ReferenceLine y={0} stroke="#e2e8f0" strokeWidth={2} strokeDasharray="4 2" label={{ value: "0", position: "insideTopRight", fontSize: 10, fill: "#94a3b8" }} />
+                        <Tooltip formatter={(v) => kFmt(Number(v) * 1000)} contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 2px 0 rgb(15 23 42 / 0.04)", fontSize: "12px" }} />
+                        <Area type="monotone" dataKey="Kümülatif" stroke="#059669" strokeWidth={2.5} fill="url(#cumGradPos)" dot={false}
+                          activeDot={{ r: 5, fill: "#059669", stroke: "white", strokeWidth: 2 }} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          })()}
 
           {/* Hassasiyet + Karlılık */}
           <div className="grid lg:grid-cols-2 gap-3">

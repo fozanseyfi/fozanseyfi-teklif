@@ -28,6 +28,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { DetailPageHeader } from "@/components/ges/detail-page-header";
+import { useReadOnly } from "@/lib/readonly-context";
 
 interface Customer {
   name: string;
@@ -182,6 +183,7 @@ function CustomerSelect({
   onChange: (v: string) => void;
   onContactFill: (c: Customer) => void;
 }) {
+  const isReadOnly = useReadOnly();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value);
   const [addOpen, setAddOpen] = useState(false);
@@ -227,6 +229,17 @@ function CustomerSelect({
     });
     setAddOpen(false);
     setNewCust({ name: "", email: "", phone: "", address: "" });
+  }
+
+  // Salt-okunur: sadece secili musteri adini sade metin/input olarak goster.
+  // Search/ChevronDown ikonlari, dropdown ve "yeni musteri ekle" tamamen
+  // gizlenir; CSS .template-readonly Input'u dogal metin gibi render eder.
+  if (isReadOnly) {
+    return (
+      <div className="relative">
+        <Input value={query} readOnly className="pl-1 pr-1" />
+      </div>
+    );
   }
 
   return (
@@ -394,6 +407,7 @@ export function ProjeBilgileriForm({
   settings,
   customers,
 }: Props) {
+  const isReadOnly = useReadOnly();
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const shouldAdvanceRef = useRef(false);
@@ -544,46 +558,68 @@ export function ProjeBilgileriForm({
               {/* Kurulum Tipi */}
               <div className="space-y-2.5">
                 <Label>Kurulum Tipi</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {INSTALL_OPTIONS.map(({ value, label, desc, Icon }) => {
-                    const sel = installationType === value;
+                {isReadOnly ? (
+                  // Salt-okunur: sadece secili tipi metin olarak goster — secim
+                  // kartlarinin yerini tek satirlik bir read-only badge alir.
+                  (() => {
+                    const opt = INSTALL_OPTIONS.find((o) => o.value === installationType);
+                    if (!opt) return null;
                     return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => setInstallationType(value)}
-                        className={cn(
-                          "flex items-center gap-3 rounded-lg border-2 px-4 py-3 text-left transition-colors",
-                          sel
-                            ? "border-primary bg-primary-soft"
-                            : "border-border bg-card hover:border-input/80",
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            "flex size-9 shrink-0 items-center justify-center rounded-lg",
-                            sel
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-secondary text-muted-foreground",
-                          )}
-                        >
-                          <Icon className="size-4" />
+                      <div className="flex items-center gap-3 rounded-lg border-2 border-primary/30 bg-primary-soft px-4 py-3">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                          <opt.Icon className="size-4" />
                         </div>
                         <div>
-                          <p
+                          <p className="text-sm font-semibold text-primary-soft-foreground">
+                            {opt.label}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{opt.desc}</p>
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    {INSTALL_OPTIONS.map(({ value, label, desc, Icon }) => {
+                      const sel = installationType === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setInstallationType(value)}
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg border-2 px-4 py-3 text-left transition-colors",
+                            sel
+                              ? "border-primary bg-primary-soft"
+                              : "border-border bg-card hover:border-input/80",
+                          )}
+                        >
+                          <div
                             className={cn(
-                              "text-sm font-semibold",
-                              sel ? "text-primary-soft-foreground" : "text-foreground",
+                              "flex size-9 shrink-0 items-center justify-center rounded-lg",
+                              sel
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-secondary text-muted-foreground",
                             )}
                           >
-                            {label}
-                          </p>
-                          <p className="text-xs text-muted-foreground">{desc}</p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                            <Icon className="size-4" />
+                          </div>
+                          <div>
+                            <p
+                              className={cn(
+                                "text-sm font-semibold",
+                                sel ? "text-primary-soft-foreground" : "text-foreground",
+                              )}
+                            >
+                              {label}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{desc}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Konum */}

@@ -330,6 +330,7 @@ export function BoQView({ projectId, projectName, project, kesifA, kesifB, setti
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
+                type="search"
                 className="h-8 w-44 pl-8 text-sm"
                 placeholder="Ara..."
                 value={search}

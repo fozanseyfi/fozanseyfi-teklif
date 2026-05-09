@@ -158,68 +158,64 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* MWp Stats — clean stat cards */}
-      {totalMWp > 0 && (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <StatCard
-            label="Toplam Kurulu Güç"
-            value={totalMWp.toFixed(2)}
-            unit="MWp"
-            sublabel="kurulu kapasite"
-            icon={Zap}
-            tone="primary"
-          />
-          <StatCard
-            label="Ortalama Proje Gücü"
-            value={avgMWp.toFixed(2)}
-            unit="MWp"
-            sublabel="proje başına"
-            icon={BarChart3}
-            tone="info"
-          />
-          {avgUsdPerKwp > 0 ? (
-            <StatCard
-              label="Ort. EPC Birim Fiyatı"
-              value={avgUsdPerKwp.toFixed(3)}
-              unit="$/kWp"
-              sublabel="ortalama"
-              icon={DollarSign}
-              tone="success"
+      {/* KPI ızgaranın tamamı — profesyonel, sade slate paleti, tek aksent
+          (emerald) ile rakamlar one chıkar. 6 kart birbiriyle aynı sablonu
+          paylasir; renkli kakofoni yok. */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {totalMWp > 0 && (
+          <>
+            <MetricCard
+              icon={Zap}
+              label="Toplam Kurulu Güç"
+              value={totalMWp.toFixed(2)}
+              unit="MWp"
+              sublabel="kurulu kapasite"
             />
-          ) : (
-            <StatCard
-              label="EPC Birim Fiyatı"
-              value="—"
-              sublabel="henüz hesaplanmadı"
-              icon={DollarSign}
-              tone="muted"
+            <MetricCard
+              icon={BarChart3}
+              label="Ortalama Proje Gücü"
+              value={avgMWp.toFixed(2)}
+              unit="MWp"
+              sublabel="proje başına"
             />
-          )}
-        </div>
-      )}
-
-      {/* KPI Cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <KpiCard
+            {avgUsdPerKwp > 0 ? (
+              <MetricCard
+                icon={DollarSign}
+                label="Ort. EPC Birim Fiyatı"
+                value={avgUsdPerKwp.toFixed(3)}
+                unit="$/kWp"
+                sublabel="ortalama"
+                accent
+              />
+            ) : (
+              <MetricCard
+                icon={DollarSign}
+                label="EPC Birim Fiyatı"
+                value="—"
+                sublabel="henüz hesaplanmadı"
+                muted
+              />
+            )}
+          </>
+        )}
+        <MetricCard
           icon={FolderOpen}
           label="Tüm Projeler"
-          value={totalCount}
+          value={String(totalCount)}
           sublabel="toplam proje"
-          tone="muted"
         />
-        <KpiCard
+        <MetricCard
           icon={TrendingUp}
           label="Devam Eden"
-          value={inProgressCount}
+          value={String(inProgressCount)}
           sublabel="taslak / süreçte"
-          tone="info"
         />
-        <KpiCard
+        <MetricCard
           icon={CheckCircle}
           label="Close Win"
-          value={closeWinCount}
+          value={String(closeWinCount)}
           sublabel="kazanılan proje"
-          tone="success"
+          accent
         />
       </div>
 
@@ -347,80 +343,75 @@ export default async function DashboardPage() {
 
 /* ---------- Internal components ---------- */
 
-type Tone = "primary" | "info" | "success" | "warning" | "muted";
-
-const TONE_STYLES: Record<Tone, { iconBg: string; iconText: string }> = {
-  primary: { iconBg: "bg-primary-soft", iconText: "text-primary-soft-foreground" },
-  info: { iconBg: "bg-info-soft", iconText: "text-info-soft-foreground" },
-  success: { iconBg: "bg-success-soft", iconText: "text-success-soft-foreground" },
-  warning: { iconBg: "bg-warning-soft", iconText: "text-warning-soft-foreground" },
-  muted: { iconBg: "bg-secondary", iconText: "text-muted-foreground" },
-};
-
-function StatCard({
+// Profesyonel, sade KPI/Stat kartı: sol kenarda ince emerald accent, slate
+// agirlikli typografi. `accent` props'u ile yalnizca o karta vurgu (emerald
+// rakam + kosede dot) verir; "muted" sonuclari icin daha soft.
+function MetricCard({
+  icon: Icon,
   label,
   value,
   unit,
   sublabel,
-  icon: Icon,
-  tone,
+  accent = false,
+  muted = false,
 }: {
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   unit?: string;
   sublabel: string;
-  icon: React.ComponentType<{ className?: string }>;
-  tone: Tone;
+  accent?: boolean;
+  muted?: boolean;
 }) {
-  const t = TONE_STYLES[tone];
   return (
-    <Card>
-      <CardContent className="flex items-start justify-between p-5">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+    <Card
+      className={cn(
+        "relative overflow-hidden border-slate-200 shadow-sm transition-shadow hover:shadow-md",
+        muted && "bg-slate-50/60",
+      )}
+    >
+      {/* Sol kenar emerald accent */}
+      <div
+        className={cn(
+          "absolute inset-y-0 left-0 w-1",
+          accent ? "bg-emerald-500" : "bg-slate-200",
+        )}
+      />
+      <CardContent className="flex items-start justify-between gap-3 p-4 pl-5">
+        <div className="min-w-0 space-y-1.5">
+          <p className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-500">
             {label}
           </p>
-          <p className="mt-2 text-3xl font-semibold tracking-tight">
+          <p
+            className={cn(
+              "text-2xl font-bold tabular-nums tracking-tight",
+              accent ? "text-emerald-700" : muted ? "text-slate-400" : "text-slate-900",
+            )}
+          >
             {value}
-            {unit && <span className="ml-1.5 text-sm font-medium text-muted-foreground">{unit}</span>}
+            {unit && (
+              <span
+                className={cn(
+                  "ml-1.5 text-xs font-semibold",
+                  accent ? "text-emerald-600/80" : "text-slate-400",
+                )}
+              >
+                {unit}
+              </span>
+            )}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">{sublabel}</p>
+          <p className="text-[11px] text-slate-500">{sublabel}</p>
         </div>
-        <div className={cn("flex size-10 items-center justify-center rounded-lg", t.iconBg)}>
-          <Icon className={cn("size-5", t.iconText)} />
+        <div
+          className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-lg ring-1",
+            accent
+              ? "bg-emerald-50 ring-emerald-200/70 text-emerald-700"
+              : "bg-slate-100 ring-slate-200 text-slate-600",
+          )}
+        >
+          <Icon className="size-4" />
         </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function KpiCard({
-  icon: Icon,
-  label,
-  value,
-  sublabel,
-  tone,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: number;
-  sublabel: string;
-  tone: Tone;
-}) {
-  const t = TONE_STYLES[tone];
-  return (
-    <Card>
-      <CardContent className="p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <div className={cn("flex size-9 items-center justify-center rounded-lg", t.iconBg)}>
-            <Icon className={cn("size-4", t.iconText)} />
-          </div>
-          <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-            {label}
-          </span>
-        </div>
-        <p className="text-3xl font-semibold tracking-tight">{value}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{sublabel}</p>
       </CardContent>
     </Card>
   );
