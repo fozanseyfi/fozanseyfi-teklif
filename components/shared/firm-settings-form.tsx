@@ -21,11 +21,13 @@ import {
   KeyRound,
   LayoutGrid,
   Loader2,
+  Lock,
   Mail,
   Save,
   Shield,
   User,
   UserCircle2,
+  UserPlus,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -315,28 +317,103 @@ export function FirmSettingsForm({ firm, profile, platformRole, joinedAt, panels
       </SectionCard>
 
       {/* ─────────────────────────────────────────────────────────────────
-          EKİP ve YETKİLENDİRME (preserved)
+          EKİP ve YETKİLENDİRME — admin için belirgin CTA paneli
          ───────────────────────────────────────────────────────────────── */}
       {isAdmin && (
-        <SectionCard
-          icon={Users}
-          title="Ekip ve Yetkilendirme"
-          subtitle="Kullanıcı davet etme, rol değiştirme ve kişi bazlı kaynak erişimi (gizle / salt okunur) ayrı bir sayfada yönetilir."
-        >
-          <Link
-            href="/admin/users"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
-          >
-            Kullanıcılara Git
-            <ArrowRight className="size-4" />
-          </Link>
-        </SectionCard>
+        <Card className="overflow-hidden border-emerald-200 shadow-sm">
+          <CardContent className="p-0">
+            <div className="grid gap-0 lg:grid-cols-[1fr_auto]">
+              {/* Sol: aciklama + ozellik listesi */}
+              <div className="space-y-4 p-6">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
+                    <Users className="size-5" />
+                  </div>
+                  <div>
+                    <p className="text-[10.5px] font-semibold uppercase tracking-wider text-emerald-700">
+                      Yönetici Paneli
+                    </p>
+                    <h3 className="text-lg font-semibold tracking-tight text-slate-900">
+                      Ekip ve Yetkilendirme
+                    </h3>
+                    <p className="mt-0.5 text-xs leading-relaxed text-slate-600">
+                      Kullanıcı davet et, rolleri yönet, kaynak erişimini
+                      kişi bazında ayarla.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Ozellik chip'leri */}
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <FeatureChip
+                    icon={UserPlus}
+                    title="Kullanıcı Davet Et"
+                    desc="E-posta ile davet"
+                  />
+                  <FeatureChip
+                    icon={Shield}
+                    title="Rol Yönetimi"
+                    desc="Yönetici / Kullanıcı / Görüntüleyici"
+                  />
+                  <FeatureChip
+                    icon={Lock}
+                    title="Erişim Kontrolü"
+                    desc="Proje bazlı gizle / salt okunur"
+                  />
+                </div>
+              </div>
+
+              {/* Sag: buyuk CTA — emerald gradient, vurgulu */}
+              <div className="flex items-stretch border-t border-emerald-100 bg-gradient-to-br from-emerald-50 to-emerald-100/60 p-6 lg:border-l lg:border-t-0">
+                <Link
+                  href="/admin/users"
+                  className="group inline-flex w-full items-center justify-between gap-3 rounded-xl bg-emerald-600 px-5 py-4 text-sm font-semibold text-white shadow-md transition-all hover:bg-emerald-700 hover:shadow-lg lg:w-auto lg:flex-col lg:items-center lg:justify-center lg:gap-2 lg:px-7 lg:py-5"
+                >
+                  <div className="flex size-10 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/20 lg:size-12">
+                    <Users className="size-5 lg:size-6" />
+                  </div>
+                  <div className="flex flex-1 flex-col text-left lg:flex-none lg:items-center lg:text-center">
+                    <span className="text-[15px] font-bold leading-tight lg:text-base">
+                      Ekibi Yönet
+                    </span>
+                    <span className="text-[11px] font-medium opacity-80 lg:mt-0.5">
+                      Davet, rol, erişim
+                    </span>
+                  </div>
+                  <ArrowRight className="size-5 shrink-0 transition-transform group-hover:translate-x-1 lg:hidden" />
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
 }
 
 // ─── Helper sub-components ─────────────────────────────────────────────
+
+function FeatureChip({
+  icon: Icon,
+  title,
+  desc,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <div className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-2.5">
+      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-emerald-100 text-emerald-700">
+        <Icon className="size-3.5" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11.5px] font-semibold leading-tight text-slate-900">{title}</p>
+        <p className="mt-0.5 text-[10.5px] leading-tight text-slate-500">{desc}</p>
+      </div>
+    </div>
+  );
+}
 
 function PanelRow({
   panel,
