@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
   HelpCircle,
@@ -20,6 +19,8 @@ import {
   Lightbulb,
   CheckCircle2,
   PlayCircle,
+  ChevronDown,
+  Users,
 } from "lucide-react";
 
 interface Step {
@@ -160,6 +161,22 @@ const STEPS: Step[] = [
       "Yeni grup/madde ekleyebilir, mevcutları çıkarabilirsin.",
     ],
   },
+  {
+    num: "12",
+    icon: Users,
+    title: "Kullanıcı Davet ve Yetkilendirme",
+    shortDesc: "Ekip arkadaşlarını panele davet et, rol ata, kaynak erişimini kişi bazında ayarla.",
+    details: [
+      "Yönetici (admin) rolündeki kullanıcılar Profilim → \"Ekibi Yönet\" üzerinden Kullanıcılar sayfasına gider.",
+      "E-posta + rol (Yönetici / Kullanıcı / Görüntüleyici) seçerek davet gönderirsin; Supabase otomatik davet e-postası iletir.",
+      "Davet linkine tıklayan kişi şifresini belirler ve doğrudan panele düşer — manuel onay gerekmez.",
+      "Mevcut üyelerin rolünü tek tıkla değiştirebilir, paneli terk edenleri çıkarabilirsin.",
+      "Kişi bazlı kaynak erişimi: her kullanıcı için projeleri/şablonları/müşterileri \"Tam Erişim\", \"Salt Okunur\" veya \"Gizli\" yapabilirsin.",
+      "Davet edilen kullanıcının kendi (signup'ta yaratılan) paneli de korunur — üst Panel: seçicisinden veya Profilim → Panellerim'den geçiş yapabilir.",
+    ],
+    tip: "Görüntüleyici rolü; teklifi inceleyip PDF indirmesi gereken müşteri tarafı kişiler için idealdir — hiçbir veri değiştiremez, sadece okur.",
+    href: "/admin/users",
+  },
 ];
 
 export default async function HelpPage() {
@@ -211,20 +228,22 @@ export default async function HelpPage() {
         </div>
       </div>
 
-      {/* Steps */}
+      {/* Steps — her adim collapsible <details>, varsayilan kapali. Kullanici
+          merak ettigi adimi tiklayip detaylarini acar. */}
       <div className="relative">
         {/* dikey çizgi */}
         <div className="pointer-events-none absolute bottom-0 left-[27px] top-0 hidden w-px bg-gradient-to-b from-primary/30 via-border to-transparent sm:block" />
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {STEPS.map((step, idx) => (
-            <Card
+            <details
               key={step.num}
               className={cn(
-                "relative overflow-hidden border-l-2 shadow-sm transition-all",
+                "group/step relative overflow-hidden rounded-xl border-l-2 border bg-card shadow-sm transition-all open:shadow-md",
                 idx === 0 ? "border-l-primary" : "border-l-border",
               )}
             >
-              <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:p-5">
+              {/* Summary — tiklayinca acilir/kapanir; her zaman gozuken kismi */}
+              <summary className="flex cursor-pointer list-none flex-col gap-3 p-4 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:p-5 [&::-webkit-details-marker]:hidden">
                 {/* Numara + ikon */}
                 <div className="flex shrink-0 items-start gap-3 sm:flex-col sm:items-center sm:gap-2">
                   <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
@@ -235,43 +254,53 @@ export default async function HelpPage() {
                   </p>
                 </div>
 
-                {/* İçerik */}
+                {/* Baslik + kisa aciklama */}
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <h3 className="text-base font-bold tracking-tight text-foreground sm:text-lg">
                       {step.title}
                     </h3>
-                    {step.href && (
-                      <Link
-                        href={step.href}
-                        className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary-soft px-2 py-1 text-[11px] font-semibold text-primary-soft-foreground transition-colors hover:bg-primary-soft/70"
-                      >
-                        <PlayCircle className="size-3" />
-                        Hemen aç
-                      </Link>
-                    )}
+                    <div className="flex shrink-0 items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+                      <span className="hidden sm:inline">Detaylar</span>
+                      <ChevronDown className="size-4 transition-transform group-open/step:rotate-180" />
+                    </div>
                   </div>
                   <p className="mt-1 text-[13px] text-muted-foreground">{step.shortDesc}</p>
-                  <ul className="mt-3 space-y-1.5">
-                    {step.details.map((d) => (
-                      <li
-                        key={d}
-                        className="flex items-start gap-2 text-[13px] leading-relaxed text-foreground"
-                      >
-                        <ArrowRight className="mt-0.5 size-3.5 shrink-0 text-primary" />
-                        <span>{d}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  {step.tip && (
-                    <div className="mt-3 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary-soft/40 px-3 py-2 text-[12px] leading-relaxed text-primary-soft-foreground">
-                      <Lightbulb className="mt-0.5 size-3.5 shrink-0" />
-                      <span>{step.tip}</span>
-                    </div>
-                  )}
                 </div>
-              </CardContent>
-            </Card>
+              </summary>
+
+              {/* Detay icerigi — sadece acikken render edilir */}
+              <div className="border-t bg-muted/20 p-4 sm:p-5 sm:pl-[88px]">
+                <ul className="space-y-1.5">
+                  {step.details.map((d) => (
+                    <li
+                      key={d}
+                      className="flex items-start gap-2 text-[13px] leading-relaxed text-foreground"
+                    >
+                      <ArrowRight className="mt-0.5 size-3.5 shrink-0 text-primary" />
+                      <span>{d}</span>
+                    </li>
+                  ))}
+                </ul>
+                {step.tip && (
+                  <div className="mt-3 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary-soft/40 px-3 py-2 text-[12px] leading-relaxed text-primary-soft-foreground">
+                    <Lightbulb className="mt-0.5 size-3.5 shrink-0" />
+                    <span>{step.tip}</span>
+                  </div>
+                )}
+                {step.href && (
+                  <div className="mt-3">
+                    <Link
+                      href={step.href}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary-soft px-3 py-1.5 text-xs font-semibold text-primary-soft-foreground transition-colors hover:bg-primary-soft/70"
+                    >
+                      <PlayCircle className="size-3.5" />
+                      Hemen aç
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </details>
           ))}
         </div>
       </div>

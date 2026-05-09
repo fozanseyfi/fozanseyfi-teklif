@@ -21,6 +21,10 @@ import {
   ChevronLeft,
   ChevronRight,
   MousePointer2,
+  Mail,
+  UserPlus,
+  Shield,
+  Check,
 } from "lucide-react";
 
 interface Slide {
@@ -40,6 +44,7 @@ const SLIDES: Slide[] = [
   { id: "cashflow",   badge: "Cash Flow Simülatörü",   kicker: "06 — CASH FLOW",     title: "Aylık nakit pozisyonu, kredi faizi ve toplam finans maliyeti",   body: <CashFlowDemo /> },
   { id: "ring",       badge: "Maliyet Halkası",        kicker: "07 — ANALİZ",        title: "Hangi grup ne kadar yüküm getiriyor — drill-down halka",         body: <RingDemo /> },
   { id: "dor",        badge: "Kapsam Tablosu (DoR)",   kicker: "08 — KAPSAM",        title: "Tedarik, Montaj ve Devreye Alma — kapsamı detayıyla paylaş",     body: <DorDemo /> },
+  { id: "team",       badge: "Ekip & Yetkilendirme",   kicker: "09 — EKİP",          title: "E-postayla davet et, rol ata, kaynak erişimini kişi bazlı ayarla", body: <TeamDemo /> },
 ];
 
 export function LoginDemo() {
@@ -958,5 +963,271 @@ function RolePill({ value, animated }: { value: string; animated?: boolean }) {
     >
       {value}
     </span>
+  );
+}
+
+/* ─── 09 — Team Invite & Role Management ──────────────────────────────── */
+
+type TeamRole = "Yönetici" | "Kullanıcı" | "Görüntüleyici";
+type AccessLevel = "Tam" | "Salt" | "Gizli";
+
+const TEAM_ROLE_TONE: Record<TeamRole, string> = {
+  Yönetici: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  Kullanıcı: "border-blue-200 bg-blue-50 text-blue-700",
+  Görüntüleyici: "border-slate-200 bg-slate-50 text-slate-600",
+};
+
+const ACCESS_TONE: Record<AccessLevel, string> = {
+  Tam: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  Salt: "border-amber-200 bg-amber-50 text-amber-700",
+  Gizli: "border-rose-200 bg-rose-50 text-rose-600",
+};
+
+interface TeamMember {
+  initials: string;
+  name: string;
+  email: string;
+  role: TeamRole;
+  access: AccessLevel;
+  isNew?: boolean;
+}
+
+// 4 frame'lik animasyon: davet yazılıyor → gönderildi → kullanıcı katıldı →
+// rol/erişim güncellendi.
+const TEAM_FRAMES: {
+  emailTyped: string;
+  selectedRole: TeamRole;
+  inviteSent: boolean;
+  members: TeamMember[];
+  highlightRoleChange?: boolean;
+}[] = [
+  // Frame 0: Form boş, ekipte 2 kişi
+  {
+    emailTyped: "",
+    selectedRole: "Kullanıcı",
+    inviteSent: false,
+    members: [
+      { initials: "MA", name: "Mehmet A.", email: "mehmet@…", role: "Yönetici", access: "Tam" },
+      { initials: "AS", name: "Ayşe S.",   email: "ayse@…",   role: "Kullanıcı", access: "Tam" },
+    ],
+  },
+  // Frame 1: E-posta yazılıyor, rol seçildi
+  {
+    emailTyped: "ozan@firma.com",
+    selectedRole: "Görüntüleyici",
+    inviteSent: false,
+    members: [
+      { initials: "MA", name: "Mehmet A.", email: "mehmet@…", role: "Yönetici", access: "Tam" },
+      { initials: "AS", name: "Ayşe S.",   email: "ayse@…",   role: "Kullanıcı", access: "Tam" },
+    ],
+  },
+  // Frame 2: Davet gönderildi, yeni üye listede
+  {
+    emailTyped: "",
+    selectedRole: "Kullanıcı",
+    inviteSent: true,
+    members: [
+      { initials: "MA", name: "Mehmet A.", email: "mehmet@…", role: "Yönetici", access: "Tam" },
+      { initials: "AS", name: "Ayşe S.",   email: "ayse@…",   role: "Kullanıcı", access: "Tam" },
+      { initials: "OZ", name: "Ozan F.",   email: "ozan@…",   role: "Görüntüleyici", access: "Tam", isNew: true },
+    ],
+  },
+  // Frame 3: Yeni üyenin erişimi 1 projede "Salt" yapıldı
+  {
+    emailTyped: "",
+    selectedRole: "Kullanıcı",
+    inviteSent: false,
+    members: [
+      { initials: "MA", name: "Mehmet A.", email: "mehmet@…", role: "Yönetici", access: "Tam" },
+      { initials: "AS", name: "Ayşe S.",   email: "ayse@…",   role: "Kullanıcı", access: "Tam" },
+      { initials: "OZ", name: "Ozan F.",   email: "ozan@…",   role: "Görüntüleyici", access: "Salt" },
+    ],
+    highlightRoleChange: true,
+  },
+];
+
+function TeamDemo() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setStep((s) => (s + 1) % TEAM_FRAMES.length), 2400);
+    return () => clearInterval(t);
+  }, []);
+  const f = TEAM_FRAMES[step];
+
+  return (
+    <div className="grid w-full grid-cols-1 gap-3 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+      {/* ── Sol: Davet formu ────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-3 rounded-2xl border bg-white p-4 shadow-sm">
+        <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <UserPlus className="size-3.5" />
+          Yeni kullanıcı davet et
+        </p>
+
+        {/* E-posta input — caret efekti */}
+        <div>
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            E-posta
+          </p>
+          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/60 px-2.5 py-2 text-[12px] font-medium text-slate-700">
+            <Mail className="size-3.5 text-slate-400" />
+            <span className="font-mono text-[12px] tabular-nums">
+              {f.emailTyped || (
+                <span className="text-slate-400">davet@firma.com</span>
+              )}
+            </span>
+            {step === 1 && (
+              <span className="ml-0.5 inline-block h-3 w-[1.5px] animate-pulse bg-slate-700" />
+            )}
+          </div>
+        </div>
+
+        {/* Rol seçici */}
+        <div>
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            Rol
+          </p>
+          <div className="grid grid-cols-3 gap-1">
+            {(["Yönetici", "Kullanıcı", "Görüntüleyici"] as TeamRole[]).map((r) => {
+              const isSel = f.selectedRole === r;
+              return (
+                <div
+                  key={r}
+                  className={cn(
+                    "rounded-md border px-1.5 py-1 text-center text-[10px] font-semibold transition-all",
+                    isSel
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-700 shadow-sm"
+                      : "border-slate-200 bg-white text-slate-500",
+                  )}
+                >
+                  <Shield
+                    className={cn(
+                      "mx-auto mb-0.5 size-3",
+                      isSel ? "text-emerald-600" : "text-slate-400",
+                    )}
+                  />
+                  {r}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Davet gönder butonu — pulse efekti */}
+        <button
+          type="button"
+          className={cn(
+            "mt-auto inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-semibold transition-all",
+            f.inviteSent
+              ? "bg-emerald-600 text-white shadow-md"
+              : "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700",
+          )}
+          tabIndex={-1}
+        >
+          {f.inviteSent ? (
+            <>
+              <Check className="size-3.5" />
+              Davet gönderildi
+            </>
+          ) : (
+            <>
+              <Mail className="size-3.5" />
+              Davet Gönder
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* ── Sağ: Ekip listesi ────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-2 rounded-2xl border bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <ClipboardCheck className="size-3.5" />
+            Ekip ({f.members.length})
+          </p>
+          <span className="text-[10px] text-slate-400">Erişim: bir proje</span>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          {f.members.map((m, i) => (
+            <div
+              key={m.email}
+              className={cn(
+                "flex items-center gap-2 rounded-lg border px-2 py-1.5 transition-all",
+                m.isNew
+                  ? "border-emerald-300 bg-emerald-50/60 animate-in-up"
+                  : "border-slate-200 bg-white",
+                f.highlightRoleChange && i === f.members.length - 1
+                  ? "border-amber-300 bg-amber-50/40"
+                  : "",
+              )}
+              style={m.isNew ? { animationDuration: "400ms" } : undefined}
+            >
+              <div
+                className={cn(
+                  "flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
+                  m.role === "Yönetici"
+                    ? "bg-emerald-600 text-white"
+                    : m.role === "Kullanıcı"
+                      ? "bg-blue-500 text-white"
+                      : "bg-slate-400 text-white",
+                )}
+              >
+                {m.initials}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <p className="truncate text-[11.5px] font-semibold text-slate-900">
+                    {m.name}
+                  </p>
+                  {m.isNew && (
+                    <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-100 px-1.5 py-0 text-[8.5px] font-bold uppercase tracking-wider text-emerald-700">
+                      Yeni
+                    </span>
+                  )}
+                </div>
+                <p className="truncate font-mono text-[9.5px] text-slate-400">
+                  {m.email}
+                </p>
+              </div>
+              <span
+                className={cn(
+                  "shrink-0 rounded-full border px-1.5 py-0 text-[9px] font-semibold",
+                  TEAM_ROLE_TONE[m.role],
+                )}
+              >
+                {m.role}
+              </span>
+              <span
+                key={`${m.email}-${m.access}`}
+                className={cn(
+                  "shrink-0 rounded-full border px-1.5 py-0 text-[9px] font-semibold transition-all",
+                  ACCESS_TONE[m.access],
+                  f.highlightRoleChange && i === f.members.length - 1 && "animate-in-up",
+                )}
+                style={
+                  f.highlightRoleChange && i === f.members.length - 1
+                    ? { animationDuration: "350ms" }
+                    : undefined
+                }
+              >
+                {m.access === "Tam" ? (
+                  <Check className="inline size-2.5" />
+                ) : m.access === "Salt" ? (
+                  <Lock className="inline size-2.5" />
+                ) : (
+                  <EyeOff className="inline size-2.5" />
+                )}{" "}
+                {m.access}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-auto pt-1 text-[10px] leading-snug text-slate-500">
+          Roller ve proje-bazlı erişim seviyeleri tek tıkla değişir; davet
+          edilen kullanıcı kendi panelini de korur.
+        </p>
+      </div>
+    </div>
   );
 }
