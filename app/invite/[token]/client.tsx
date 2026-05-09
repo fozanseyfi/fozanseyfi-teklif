@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { acceptInvitation } from "@/app/actions/firm";
 import { createSupabaseBrowser } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,6 @@ export function InviteAcceptForm({
   token: string;
   orgName: string;
 }) {
-  const router = useRouter();
   const [pending, setPending] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -44,22 +42,18 @@ export function InviteAcceptForm({
     try {
       // 1) Sifre girildiyse: updateUser ile kalici sifre set et
       if (password) {
-        console.log("[invite-accept] updating password...");
         const supabase = createSupabaseBrowser();
         const { error } = await supabase.auth.updateUser({ password });
         if (error) {
-          console.error("[invite-accept] updateUser error:", error);
           toast.error(`Şifre belirleme hatası: ${error.message}`);
           setPending(false);
           return;
         }
-        console.log("[invite-accept] password updated OK");
       }
 
-      // 2) Daveti kabul et
-      console.log("[invite-accept] calling acceptInvitation...");
+      // 2) Daveti kabul et — DB'de organization_member upsert + invitation
+      // mark accepted + profile.organizationId update.
       const result = await acceptInvitation(token);
-      console.log("[invite-accept] result:", result);
 
       if (result?.error) {
         toast.error(result.error);
@@ -68,11 +62,15 @@ export function InviteAcceptForm({
       }
 
       toast.success(result?.success ?? "Davete katıldın!");
-      console.log("[invite-accept] navigating to /dashboard...");
-      router.push("/dashboard");
-      router.refresh();
+
+      // Hard reload — router.push() Next.js client-side navigation yapar,
+      // ama davet sonrasi profile.organizationId degisti ve sunucu auth
+      // context'i client cache ile uyumsuz. window.location.href full
+      // navigation yapip middleware + sunucu render'ini sifirdan tetikler;
+      // bu sayede yeni org context'i ile dashboard'a giris kesin sekilde
+      // gerceklesir ve "İşleniyor" spinner'i sayfa unload olunca kaybolur.
+      window.location.href = "/dashboard";
     } catch (err) {
-      console.error("[invite-accept] exception:", err);
       toast.error(err instanceof Error ? err.message : "Beklenmeyen bir hata oluştu");
       setPending(false);
     }
