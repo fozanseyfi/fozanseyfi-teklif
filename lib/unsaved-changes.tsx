@@ -34,6 +34,22 @@ interface CtxValue {
 
 const Ctx = createContext<CtxValue | null>(null);
 
+// Guard'i secimli olarak devre disi birakmak icin alt-context. Tamamlanmis
+// proje gibi senaryolarda detail layout `<DirtyGuardScope enabled={false}>`
+// ile sarar; useDirtyTracker bunu okuyup dirty olsa bile provider'a 'false'
+// gonderir → modal hic tetiklenmez.
+const DirtyEnabledCtx = createContext<boolean>(true);
+
+export function DirtyGuardScope({
+  enabled,
+  children,
+}: {
+  enabled: boolean;
+  children: ReactNode;
+}) {
+  return <DirtyEnabledCtx.Provider value={enabled}>{children}</DirtyEnabledCtx.Provider>;
+}
+
 export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
   const dirtyMapRef = useRef<Map<symbol, boolean>>(new Map());
   const [pending, setPending] = useState<Pending>(null);
@@ -155,16 +171,20 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
 }
 
 // Form bilesenlerinin cagiracagi hook. dirty state'i her render'da provider'a
-// bildirir; bilesen unmount olunca da temizlenir.
+// bildirir; bilesen unmount olunca da temizlenir. DirtyGuardScope ile
+// kapatilirsa (ornegin tamamlanmis proje), gercek dirty olsa bile provider'a
+// hep `false` gonderilir → modal cikmaz.
 export function useDirtyTracker(isDirty: boolean) {
   const ctx = useContext(Ctx);
+  const enabled = useContext(DirtyEnabledCtx);
+  const effective = enabled && isDirty;
   const idRef = useRef<symbol | null>(null);
   if (idRef.current === null) idRef.current = Symbol("dirty");
 
   useEffect(() => {
     if (!ctx) return;
-    ctx.registerDirty(idRef.current!, isDirty);
-  }, [ctx, isDirty]);
+    ctx.registerDirty(idRef.current!, effective);
+  }, [ctx, effective]);
 
   useEffect(() => {
     if (!ctx) return;

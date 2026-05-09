@@ -10,6 +10,7 @@ import { useTemplate, setTemplateLock } from "@/app/actions/templates";
 import { cn } from "@/lib/utils";
 import { ReadOnlyProvider } from "@/lib/readonly-context";
 import { UnstartedProjectCleanup } from "@/components/ges/unstarted-cleanup";
+import { DirtyGuardScope } from "@/lib/unsaved-changes";
 
 interface Props {
   children: React.ReactNode;
@@ -243,12 +244,18 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
       </div>
 
       <ReadOnlyProvider value={isLocked}>
-        <div
-          className={isLocked ? "template-readonly" : undefined}
-          data-readonly-reason={isLocked ? lockReason : undefined}
-        >
-          {children}
-        </div>
+        {/* Tamamlanmis projede form-degisiklik uyarisi gosterme — veriler
+            zaten kayitli. isCompleted hesabi gesStep>=5, COMPLETED, CLOSE_*'i
+            kapsiyor; sablonlar da hep enabled=false (tipik kullanim browse
+            niyetli). Sadece TASLAK durumdaki projede dirty tracking aktif. */}
+        <DirtyGuardScope enabled={!isCompleted && !isTemplate}>
+          <div
+            className={isLocked ? "template-readonly" : undefined}
+            data-readonly-reason={isLocked ? lockReason : undefined}
+          >
+            {children}
+          </div>
+        </DirtyGuardScope>
       </ReadOnlyProvider>
     </div>
   );
