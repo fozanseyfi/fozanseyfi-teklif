@@ -79,9 +79,9 @@ export default async function ProjectsPage({ searchParams }: Props) {
     orderBy: { updatedAt: "desc" },
   });
 
-  // Dashboard'daki ile ayni hesap: GES engine ile gercek satis fiyatini cek.
-  // pricingSnapshot eski sistem; cogu projede yok. EPC < $100 ise gosterme
-  // (eksik veri).
+  // GES engine ile gercek satis fiyati. Esik kaldirildi — fiyat 0'dan buyukse
+  // ne kadar dusuk olursa olsun goster (kullanici yarim-doldurulmus projede
+  // bile birim fiyatini gormek istiyor).
   function getEpcPrice(p: (typeof projects)[number]) {
     if (!p.projectDetail) return null;
     try {
@@ -90,7 +90,7 @@ export default async function ProjectsPage({ searchParams }: Props) {
         p.projectDetail.kesifB as unknown as KesifGroup[],
         p.projectDetail.settings as unknown as GesSettings,
       );
-      if (r.salePriceUsd < 100) return null;
+      if (r.salePriceUsd <= 0) return null;
       return r;
     } catch {
       return null;

@@ -150,7 +150,21 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
     });
   }
 
-  // Cashflow data — cashflow-view ile ortak hesap
+  // Cashflow data — cashflow-view sayfasi ile BIREBIR ayni veri kaynagi.
+  // Onemli: cashflow-view orijinal `localKesifA`'yi (analiz'in modified
+  // versiyonunu degil) kullanir; result + groupTotals ayri hesaplanir ki
+  // Maliyet KPI'lari ile cashflow grafikleri birbirinden ayrilabilsin.
+  const cfResult = useMemo(
+    () => calc(localKesifA, localKesifB, s),
+    [localKesifA, localKesifB, s],
+  );
+  const cfGroupTotals = useMemo(
+    () => buildGroupTotals(localKesifA, localKesifB, s),
+    [localKesifA, localKesifB, s],
+  );
+  // Eski "Maliyet Dagilimi" + "Maliyet Halkasi" gibi bilesenler hala
+  // modifiedKesifA bazli analiz icin groupTotals'i kullaniyor — geri uyum
+  // icin onu modifiedGroupTotals adiyla expose ediyoruz.
   const groupTotals = useMemo(
     () => buildGroupTotals(modifiedKesifA, localKesifB, s),
     [modifiedKesifA, localKesifB, s],
@@ -165,9 +179,9 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
         const pct = row.values[m] / 100;
         if (!pct) continue;
         if (row.type === "inflow") {
-          inflow += pct * result.salePriceUsd;
+          inflow += pct * cfResult.salePriceUsd;
         } else {
-          outflow += pct * getRowAmount(row.name, groupTotals);
+          outflow += pct * getRowAmount(row.name, cfGroupTotals);
         }
       }
       const net = inflow - outflow;
@@ -180,7 +194,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
       const label = `${MONTHS_TR[offset % 12]} ${timeline.startYear + Math.floor(offset / 12)}`;
       return { label, Giriş: inflow / 1000, Çıkış: -outflow / 1000, Kümülatif: finalCum / 1000 };
     });
-  }, [timeline, result, groupTotals, s]);
+  }, [timeline, cfResult, cfGroupTotals, s]);
 
   /**
    * Finans Maliyeti — Cash Flow sayfasi B.6.1'i auto-save ediyor.
@@ -1382,13 +1396,18 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                     </PieChart>
                   </ResponsiveContainer>
                   <button type="button" onClick={() => setDrilledGroupCode(null)}
-                    className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                    {/* Halkanın merkezinde: drilled durumda sadece tutar
+                        kalir, grup adi alttaki banner'a tasinir; default
+                        durumda toplam + ipucu. */}
                     {drilledGroupCode && drilledGroup ? (
                       <>
-                        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">{drilledGroup.code}</p>
-                        <p className="text-[11px] font-semibold text-foreground max-w-[160px] text-center leading-tight mt-0.5 px-2">{drilledGroup.name}</p>
-                        <p className="text-lg font-bold tabular-nums text-foreground mt-1">${fmt(donutInnerTotal)}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5 pointer-events-auto cursor-pointer hover:underline">← merkeze tıkla</p>
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                          {drilledGroup.code}
+                        </p>
+                        <p className="mt-0.5 text-2xl font-bold tabular-nums text-foreground">
+                          ${fmt(donutInnerTotal)}
+                        </p>
                       </>
                     ) : (
                       <>
@@ -1399,6 +1418,26 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                     )}
                   </button>
                 </div>
+                {/* Drilled grup adi — halkanın altında banner */}
+                {drilledGroupCode && drilledGroup && (
+                  <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary-soft/40 px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-primary-soft-foreground/70">
+                        Açılan Grup
+                      </p>
+                      <p className="truncate text-sm font-semibold text-primary-soft-foreground" title={drilledGroup.name}>
+                        {drilledGroup.code} — {drilledGroup.name}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setDrilledGroupCode(null)}
+                      className="shrink-0 rounded-md border border-primary/30 bg-card px-2 py-1 text-[11px] font-semibold text-primary-soft-foreground transition-colors hover:bg-muted"
+                    >
+                      ← Halkayı Kapat
+                    </button>
+                  </div>
+                )}
                 <div className="mt-2 flex items-center justify-center gap-4 border-t pt-2 text-[10px] text-muted-foreground">
                   <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm" style={{ backgroundColor: "#059669" }} /> Keşif-A</span>
                   <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm" style={{ backgroundColor: "#2563eb" }} /> Keşif-B</span>
@@ -1407,51 +1446,54 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                   )}
                 </div>
 
-                {/* Top 10 Kalemler — donut'un altindaki ayni alanda 10 satir
-                    sigsin diye tipografi ve dikey paddingler kuculdu;
-                    yandaki yuzdelik (satis fiyati icindeki) aynastik. */}
+                {/* Top 10 Kalemler — donut'un altindaki tam genislikte
+                    sayfa-sigan analiz; satirlar ferah, bar genis, deger
+                    kolonu tam goster. */}
                 {top5Items.length > 0 && (
                   <div className="mt-3 border-t pt-3">
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                         En Pahalı 10 Kalem
                       </p>
-                      <p className="text-[10px] tabular-nums text-muted-foreground">
+                      <p className="text-[11px] tabular-nums text-muted-foreground">
                         Toplam <span className="font-semibold text-foreground">${fmt(top5Total)}</span>
                         {result.salePriceUsd > 0 && (
                           <> · <span>%{(top5Total / result.salePriceUsd * 100).toFixed(1)} satış</span></>
                         )}
                       </p>
                     </div>
-                    <div className="space-y-px">
+                    <div className="space-y-1">
                       {top5Items.map((it, i) => {
                         const itemPct = top5Items[0].value > 0 ? (it.value / top5Items[0].value) * 100 : 0;
                         const salePct = result.salePriceUsd > 0 ? (it.value / result.salePriceUsd) * 100 : 0;
                         return (
-                          <div key={`${it.groupCode}.${it.itemCode}`} className="flex items-center gap-1.5 text-[10.5px] leading-tight">
-                            <span className="w-3.5 shrink-0 text-center font-semibold tabular-nums text-muted-foreground">
+                          <div key={`${it.groupCode}.${it.itemCode}`}
+                            className="grid grid-cols-[18px_44px_1fr_70px_70px] items-center gap-2 rounded-md py-0.5 text-[11.5px] leading-tight hover:bg-muted/40">
+                            <span className="text-center font-semibold tabular-nums text-muted-foreground">
                               {i + 1}
                             </span>
                             <span className={cn(
-                              "shrink-0 rounded border px-1 font-mono text-[9px] font-semibold leading-tight",
+                              "rounded border px-1 py-0.5 text-center font-mono text-[10px] font-semibold leading-tight",
                               it.isA
                                 ? "border-primary/30 bg-primary-soft text-primary-soft-foreground"
                                 : "border-info/30 bg-info-soft text-info-soft-foreground",
                             )}>
                               {it.itemCode}
                             </span>
-                            <span className="min-w-0 flex-1 truncate text-muted-foreground" title={it.name}>
-                              {it.name}
-                            </span>
-                            <div className="hidden h-1 w-12 shrink-0 overflow-hidden rounded-full bg-muted sm:block">
-                              <div className={cn("h-full rounded-full", it.isA ? "bg-primary" : "bg-info")}
-                                style={{ width: `${itemPct}%` }} />
+                            <div className="flex min-w-0 items-center gap-2">
+                              <span className="min-w-0 flex-1 truncate text-foreground" title={it.name}>
+                                {it.name}
+                              </span>
+                              <div className="hidden h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-muted lg:block">
+                                <div className={cn("h-full rounded-full", it.isA ? "bg-primary" : "bg-info")}
+                                  style={{ width: `${itemPct}%` }} />
+                              </div>
                             </div>
-                            <span className="w-14 shrink-0 text-right font-semibold tabular-nums text-foreground">
+                            <span className="text-right font-semibold tabular-nums text-foreground">
                               ${fmt(it.value)}
                             </span>
-                            <span className="w-10 shrink-0 text-right tabular-nums text-success-soft-foreground">
-                              %{salePct.toFixed(1)}
+                            <span className="text-right tabular-nums text-success-soft-foreground">
+                              %{salePct.toFixed(1)} satış
                             </span>
                           </div>
                         );

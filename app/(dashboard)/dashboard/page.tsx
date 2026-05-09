@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import { calc } from "@/lib/ges-engine";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
-import { DeleteProjectButton } from "@/components/project/delete-project-button";
 import { TurkeyMapLazy as TurkeyMap } from "@/components/dashboard/turkey-map-lazy";
 import { ProjectStatusChanger } from "@/components/ges/project-status-changer";
 import {
@@ -169,7 +168,7 @@ export default async function DashboardPage() {
               label="Toplam Kurulu Güç"
               value={totalMWp.toFixed(2)}
               unit="MWp"
-              sublabel="kurulu kapasite"
+              sublabel={`bugüne kadar hazırlanan ${allWithPrice.length} teklif`}
             />
             <MetricCard
               icon={BarChart3}
@@ -303,7 +302,6 @@ export default async function DashboardPage() {
                       <Button variant="outline" size="sm" asChild>
                         <Link href={`/projects/${project.id}/detail`}>Düzenle</Link>
                       </Button>
-                      <DeleteProjectButton projectId={project.id} />
                     </div>
                   </div>
                 );
