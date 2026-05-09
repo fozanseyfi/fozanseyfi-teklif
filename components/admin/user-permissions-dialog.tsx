@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { UserPermissionsPanel } from "@/components/admin/user-permissions-panel";
 import { getUserAccessData, type UserAccessData } from "@/app/actions/permissions";
-import { Settings2, Loader2 } from "lucide-react";
+import { Sliders, Loader2 } from "lucide-react";
 import { ROLE_LABELS, type Role } from "@/lib/permissions";
 import { toast } from "sonner";
 
@@ -44,15 +44,33 @@ export function UserPermissionsDialog({ userId, userRole, trigger }: Props) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => handleOpenChange(true)}
-        className="text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-        title="Kaynak yetkilerini düzenle"
-        disabled={isAdminTarget}
-      >
-        {trigger ?? <Settings2 className="size-4" />}
-      </button>
+      {trigger ? (
+        <button
+          type="button"
+          onClick={() => handleOpenChange(true)}
+          className="text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+          title="Erişim yetkilerini düzenle"
+          disabled={isAdminTarget}
+        >
+          {trigger}
+        </button>
+      ) : (
+        // Yazili + ikonlu, gozukur buton — kucuk ayar simgesi gorulmuyordu.
+        <button
+          type="button"
+          onClick={() => handleOpenChange(true)}
+          disabled={isAdminTarget}
+          title={
+            isAdminTarget
+              ? "Yönetici kullanıcıların erişimi kısıtlanamaz"
+              : "Bu kullanıcı için proje, şablon ve müşteri erişimini ayarla"
+          }
+          className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Sliders className="size-3.5" />
+          Erişim Ayarla
+        </button>
+      )}
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="max-h-[90vh] max-w-4xl overflow-hidden">

@@ -20,7 +20,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <Sidebar
           userName={user.fullName ?? user.email ?? ""}
           firmName={user.organization.name}
-          userRole={user.role}
+          // platformRole = aktif organizasyondaki rol; profile.role degil.
+          // Kullanici kendi panelinde admin olabilir, davet edildigi panelde
+          // user/viewer; sidebar nav (Kullanicilar gibi adminOnly itemlar)
+          // bu degere bakmali ki panel degisince yetkiler dogru guncellensin.
+          userRole={user.platformRole}
           organizations={orgs}
         />
         {/* Top bar artık hem mobilde hem desktop'ta var (14h). Desktop'ta sidebar

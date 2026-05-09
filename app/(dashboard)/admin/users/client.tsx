@@ -15,7 +15,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ROLE_LABELS, type Role } from "@/lib/permissions";
-import { UserPlus, Trash2, Users, Mail, Copy, Clock } from "lucide-react";
+import { UserPlus, Trash2, Users, Mail, Copy, Clock, Shield, Lock } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import { UserPermissionsDialog } from "@/components/admin/user-permissions-dialog";
@@ -78,21 +79,51 @@ export function AdminUsersClient({
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      {/* Header */}
-      <div>
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary-soft/60 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-soft-foreground">
-          <Users className="size-3" />
-          Yönetim
-        </div>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
-          Kullanıcılar
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          <strong className="text-foreground">{organizationName}</strong> panelinde rol ve
-          erişim yönetimi. Davet ettiğin kişiler sadece bu panelde görünür — diğer
-          platformların etkilenmez.
-        </p>
-      </div>
+      {/* Hero — Profilim'deki "Ekibi Yönet" kartiyla ayni gorsel disiplin,
+          burada CTA yerine ozellik chip'leri ve organizasyon adi vurgulanir. */}
+      <Card className="overflow-hidden border-emerald-200 shadow-sm">
+        <CardContent className="p-0">
+          <div className="space-y-4 p-6">
+            <div className="flex items-start gap-3">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
+                <Users className="size-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10.5px] font-semibold uppercase tracking-wider text-emerald-700">
+                  Yönetici Paneli
+                </p>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                  Ekip ve Yetkilendirme
+                </h1>
+                <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                  <strong className="text-slate-900">{organizationName}</strong>{" "}
+                  panelinde rol ve erişim yönetimi. Davet ettiğin kişiler sadece
+                  bu panelde görünür — diğer platformların etkilenmez.
+                </p>
+              </div>
+            </div>
+
+            {/* Ozellik chip'leri */}
+            <div className="grid gap-2 sm:grid-cols-3">
+              <FeatureChip
+                icon={UserPlus}
+                title="Kullanıcı Davet Et"
+                desc="E-posta ile davet"
+              />
+              <FeatureChip
+                icon={Shield}
+                title="Rol Yönetimi"
+                desc="Yönetici / Kullanıcı / Görüntüleyici"
+              />
+              <FeatureChip
+                icon={Lock}
+                title="Erişim Kontrolü"
+                desc="Proje bazlı gizle / salt okunur"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Davet Et */}
       <Card>
@@ -304,6 +335,30 @@ export function AdminUsersClient({
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// Hero kartında kullanılan özellik chip'i — Profilim sayfasındaki ile birebir
+// aynı görsel disiplin (slate çerçeve, emerald ikon).
+function FeatureChip({
+  icon: Icon,
+  title,
+  desc,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <div className={cn("flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-2.5")}>
+      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-emerald-100 text-emerald-700">
+        <Icon className="size-3.5" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11.5px] font-semibold leading-tight text-slate-900">{title}</p>
+        <p className="mt-0.5 text-[10.5px] leading-tight text-slate-500">{desc}</p>
+      </div>
     </div>
   );
 }
