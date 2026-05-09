@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   TriangleAlert,
   Code2,
+  Scale,
 } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -139,17 +140,139 @@ export default function ContactPage() {
                 Sorumluluk Reddi
               </p>
               <p className="text-sm font-semibold text-warning-soft-foreground">
-                Karar destek aracı
+                Tahmin aracı — bağlayıcı teklif değildir
               </p>
               <p className="text-xs leading-relaxed text-warning-soft-foreground/85">
-                Algoritma sonuçları yol gösterici niteliktedir. Nihai satın alma
-                kararının sorumluluğu kullanıcıya aittir; teknik / finansal /
-                hukuki danışmanlık yerine geçmez.
+                Platformdaki tüm hesaplamalar, marka, model ve fiyat bilgileri
+                yalnızca <strong>bilgilendirme amaçlıdır</strong>. Hazırlanan
+                tekliflerin doğruluğu, güncelliği ve uygulanabilirliği tamamen
+                kullanıcının sorumluluğundadır.
               </p>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Yasal Uyarı — kapsamli bilgilendirme + sorumluluk reddi */}
+      <Card className="border-warning/40 bg-warning-soft/20">
+        <CardContent className="space-y-4 p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-warning-soft text-warning-soft-foreground">
+              <Scale className="size-5" />
+            </div>
+            <div className="flex-1">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-warning-soft-foreground/80">
+                Yasal Uyarı &amp; Sorumluluk Reddi
+              </p>
+              <h2 className="mt-1 text-base font-semibold tracking-tight text-foreground sm:text-lg">
+                Lütfen platformu kullanmadan önce okuyun
+              </h2>
+            </div>
+          </div>
+
+          <div className="grid gap-4 text-xs leading-relaxed text-foreground/85 sm:grid-cols-2 sm:text-[13px]">
+            <div className="space-y-2">
+              <p className="font-semibold uppercase tracking-wider text-warning-soft-foreground/90 text-[10.5px]">
+                1) Bilgi amaçlı kullanım
+              </p>
+              <p>
+                Bu platform; solar EPC projelerinde maliyet, fiyatlandırma ve
+                cash flow tahmini yapmak için geliştirilmiş bir{" "}
+                <strong>karar destek ve hesaplama aracıdır</strong>. Sunulan
+                veriler ve raporlar <strong>resmi bir teklif, satış sözleşmesi
+                veya icap niteliği taşımaz</strong>; herhangi bir tarafa karşı
+                bağlayıcı değildir.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="font-semibold uppercase tracking-wider text-warning-soft-foreground/90 text-[10.5px]">
+                2) Marka, model ve fiyat bilgileri
+              </p>
+              <p>
+                Şablonlarda ve varsayılan kalemlerde yer alan{" "}
+                <strong>marka, model ve birim fiyat bilgileri tahminîdir</strong>;
+                örnek bir referans değer olarak sunulmuştur. Güncel piyasa
+                koşullarını, döviz kurlarını veya tedarikçi şartlarını yansıtma
+                garantisi vermez. Kullanıcının teklif öncesinde{" "}
+                <strong>kendi tedarikçilerinden güncel proforma fiyat alması ve
+                kalemleri kendi rakamlarıyla güncellemesi şiddetle önerilir</strong>.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="font-semibold uppercase tracking-wider text-warning-soft-foreground/90 text-[10.5px]">
+                3) Hesaplama doğruluğu
+              </p>
+              <p>
+                Marj, maliyet, kar payı, finans gideri ve nakit akışı
+                hesaplamaları kullanıcının girdiği değerlere ve seçtiği
+                varsayımlara dayanır. Hesaplama motorunun çıktıları{" "}
+                <strong>mühendislik, finans veya hukuki danışmanlık yerine
+                geçmez</strong>. Nihai mühendislik onayı, fizibilite çalışması
+                ve sözleşme şartları için yetkili meslek mensuplarına
+                başvurulmalıdır.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="font-semibold uppercase tracking-wider text-warning-soft-foreground/90 text-[10.5px]">
+                4) Kullanıcı sorumluluğu
+              </p>
+              <p>
+                Platform üzerinde oluşturulan tekliflerin, BoQ&apos;ların, DoR
+                belgelerinin ve diğer çıktıların{" "}
+                <strong>içeriği, doğruluğu, güncelliği, üçüncü taraflarla
+                paylaşılması ve hukuki sonuçları tamamen kullanıcının
+                sorumluluğundadır</strong>. Kullanıcı, bu çıktıları kendi adına
+                veya şirketi adına kullanmadan önce uzman görüşü almakla
+                yükümlüdür.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="font-semibold uppercase tracking-wider text-warning-soft-foreground/90 text-[10.5px]">
+                5) Sorumluluk sınırlaması
+              </p>
+              <p>
+                Platform sahibi ve geliştiricisi; platformun kullanımından veya
+                kullanılamamasından, hesaplama hatalarından, eksik/yanlış
+                varsayılan veri içeren şablonlardan, üçüncü taraflarla
+                paylaşılan çıktıların yarattığı doğrudan veya dolaylı zararlardan
+                — kâr kaybı, ticari itibar kaybı, sözleşmesel cezalar dâhil —
+                <strong> hiçbir şekilde sorumlu tutulamaz</strong>.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="font-semibold uppercase tracking-wider text-warning-soft-foreground/90 text-[10.5px]">
+                6) Hizmet sunumu
+              </p>
+              <p>
+                Platform &quot;olduğu gibi&quot; (as-is) sunulur; kesintisiz
+                erişim, hatasız çalışma veya belirli bir amaca uygunluk
+                konusunda <strong>hiçbir açık veya zımni garanti
+                verilmez</strong>. Geliştirici, platformu önceden bildirimde
+                bulunmaksızın güncelleme, geçici olarak durdurma veya tamamen
+                kapatma hakkını saklı tutar.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-warning/30 bg-warning-soft/40 px-4 py-3 text-[12px] leading-relaxed text-warning-soft-foreground">
+            <strong>Onayınız:</strong> Platformu kullanmaya devam etmekle
+            yukarıdaki tüm şartları okuduğunuzu, anladığınızı ve kabul
+            ettiğinizi beyan etmiş sayılırsınız. Sorularınız için{" "}
+            <a
+              href={`mailto:${developer.email}`}
+              className="font-semibold underline-offset-2 hover:underline"
+            >
+              {developer.email}
+            </a>{" "}
+            adresinden iletişime geçebilirsiniz.
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Diğer platformlar — fozanseyfi.com altındaki kardeş siteler */}
       <OtherPlatforms variant="compact" />

@@ -139,10 +139,13 @@ export default function PlatformsPage() {
             Geliştirdiğim diğer platformlara da göz atın
           </h1>
           <p className="mt-3 text-base leading-relaxed text-slate-600 md:text-lg">
-            Sahadaki ihtiyaçlardan doğan{" "}
-            <strong className="text-slate-900">bireysel inisiyatif</strong> projeleri.
-            Buraya yaptığınız <strong className="text-slate-900">tek kayıt</strong> ile
-            tüm platformlara aynı şifreyle giriş yaparsınız.
+            Mesleki tecrübelerimle kendi iş süreçlerimi dijitalleştirmek için
+            geliştirdiğim bu platformları,{" "}
+            <strong className="text-slate-900">aktif birer araç olarak
+            herkesin kullanımına ücretsiz açıyorum</strong>. Sektörel fayda
+            sağlaması adına dilediğiniz gibi faydalanabilirsiniz. Platformlara
+            eklemek, düzenlemek veya geliştirmek istediğiniz hususları
+            iletmeniz benim için çok değerli olacaktır.
           </p>
         </div>
       </div>
