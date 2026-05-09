@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { calc } from "@/lib/ges-engine";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
+import { DisclaimerButton } from "@/components/shared/legal-disclaimer";
 import { TurkeyMapLazy as TurkeyMap } from "@/components/dashboard/turkey-map-lazy";
 import { ProjectStatusChanger } from "@/components/ges/project-status-changer";
 import {
@@ -150,6 +151,8 @@ export default async function DashboardPage() {
                 <LayoutTemplate className="size-4" /> Şablonları Gör
               </Link>
             </Button>
+            {/* Yasal uyari — modal'da tam metin */}
+            <DisclaimerButton />
           </div>
         </div>
       </div>
