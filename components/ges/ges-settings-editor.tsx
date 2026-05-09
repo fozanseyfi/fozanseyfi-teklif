@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { saveGesSettings } from "@/app/actions/ges";
+import { useDirtyTracker } from "@/lib/unsaved-changes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,10 @@ export function GesSettingsEditor({ projectId, data }: Props) {
   const [s, setS] = useState<GesSettings>(data);
   const [saving, setSaving] = useState(false);
 
+  const baselineRef = useRef<string>(JSON.stringify(data));
+  const isDirty = JSON.stringify(s) !== baselineRef.current;
+  useDirtyTracker(isDirty);
+
   function field(key: keyof GesSettings) {
     return {
       value: s[key] as string | number,
@@ -33,6 +38,7 @@ export function GesSettingsEditor({ projectId, data }: Props) {
     setSaving(true);
     try {
       await saveGesSettings(projectId, s as never);
+      baselineRef.current = JSON.stringify(s);
       toast.success("Parametreler kaydedildi");
     } catch {
       toast.error("Kayıt hatası");

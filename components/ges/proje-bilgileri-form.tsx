@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useRef, useEffect } from "react";
+import { useActionState, useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { saveProjectInfo } from "@/app/actions/ges";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { DetailPageHeader } from "@/components/ges/detail-page-header";
 import { useReadOnly } from "@/lib/readonly-context";
+import { useDirtyTracker } from "@/lib/unsaved-changes";
 
 interface Customer {
   name: string;
@@ -446,6 +447,51 @@ export function ProjeBilgileriForm({
   const [insights, setInsights] = useState<string[]>(
     settings.customerInsights?.length ? settings.customerInsights : [""],
   );
+
+  // Unsaved-changes tracking: form state'in son kayda gore farki kirli sayilir.
+  // Save sonrasi (state degistiginde, advance success'lerinde) snapshot
+  // yenilenir ve dirty=false olur.
+  const initialSnapshotRef = useRef<string>("");
+  const computeSnapshot = useCallback(() => {
+    return JSON.stringify({
+      nameVal,
+      customerNameVal,
+      customerEmail,
+      customerPhone,
+      customerAddress,
+      installationType,
+      ilVal,
+      ilceVal,
+      notes,
+      risks,
+      insights,
+    });
+  }, [
+    nameVal,
+    customerNameVal,
+    customerEmail,
+    customerPhone,
+    customerAddress,
+    installationType,
+    ilVal,
+    ilceVal,
+    notes,
+    risks,
+    insights,
+  ]);
+  // Ilk render snapshot'i sabitle.
+  useEffect(() => {
+    if (initialSnapshotRef.current === "") {
+      initialSnapshotRef.current = computeSnapshot();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Save sonrasi snapshot guncelle (state degisirse pending false oluyor).
+  useEffect(() => {
+    if (state) initialSnapshotRef.current = computeSnapshot();
+  }, [state, computeSnapshot]);
+  const isDirty = !isReadOnly && computeSnapshot() !== initialSnapshotRef.current;
+  useDirtyTracker(isDirty);
 
   function handleContactFill(c: {
     name: string;

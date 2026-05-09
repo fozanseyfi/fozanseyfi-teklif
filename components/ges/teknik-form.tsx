@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { saveTeknik } from "@/app/actions/ges";
+import { useDirtyTracker } from "@/lib/unsaved-changes";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -139,6 +140,11 @@ export function TeknikForm({ projectId, projectName, settings }: Props) {
   const [saving, setSaving] = useState(false);
   const [fxLoading, setFxLoading] = useState(false);
 
+  // Unsaved-changes: form state ile son kayit snapshot'unu karsilastir.
+  const baselineRef = useRef<string>(JSON.stringify(settings));
+  const isDirty = JSON.stringify(s) !== baselineRef.current;
+  useDirtyTracker(isDirty);
+
   async function refreshFx(silent = false) {
     setFxLoading(true);
     try {
@@ -221,6 +227,8 @@ export function TeknikForm({ projectId, projectName, settings }: Props) {
     try {
       const data = { ...s, panelAdet: panelAdetCalc };
       await saveTeknik(projectId, data as never);
+      // Save sonrasi baseline yeniden esitlenir → dirty=false.
+      baselineRef.current = JSON.stringify(data);
       toast.success("Teknik parametreler kaydedildi — Keşif kalemleri güncellendi");
       if (goNext) window.location.href = `/projects/${projectId}/detail/kesif-a`;
     } catch {

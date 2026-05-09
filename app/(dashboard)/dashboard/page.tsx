@@ -300,12 +300,7 @@ export default async function DashboardPage() {
                           {PROJECT_STATUS_LABELS[project.status]}
                         </Badge>
                       )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="opacity-0 transition-opacity group-hover:opacity-100"
-                      >
+                      <Button variant="outline" size="sm" asChild>
                         <Link href={`/projects/${project.id}/detail`}>Düzenle</Link>
                       </Button>
                       <DeleteProjectButton projectId={project.id} />

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { saveKesifA, saveKesifB } from "@/app/actions/ges";
+import { useDirtyTracker } from "@/lib/unsaved-changes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -168,6 +169,11 @@ export function KesifEditor({ projectId, projectName, type, data, settings }: Pr
   );
   const [search, setSearch] = useState("");
 
+  // Unsaved-changes: groups her degistiginde baseline ile farki kirli sayar.
+  const baselineRef = useRef<string>(JSON.stringify(data));
+  const isDirty = JSON.stringify(groups) !== baselineRef.current;
+  useDirtyTracker(isDirty);
+
   const title =
     type === "A"
       ? "Keşif-A — Doğrudan Maliyetler"
@@ -244,6 +250,8 @@ export function KesifEditor({ projectId, projectName, type, data, settings }: Pr
     try {
       if (type === "A") await saveKesifA(projectId, groups as never);
       else await saveKesifB(projectId, groups as never);
+      // Save sonrasi baseline esitlenir → dirty=false.
+      baselineRef.current = JSON.stringify(groups);
       toast.success(advance ? `Kaydedildi — ${nextLabel} açıldı` : "Kaydedildi");
       if (advance) router.push(nextHref);
     } catch {

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { saveTimeline } from "@/app/actions/ges";
+import { useDirtyTracker } from "@/lib/unsaved-changes";
 import { calc } from "@/lib/ges-engine";
 import { DEF_TL } from "@/lib/ges-defaults";
 import type { KesifGroup, GesSettings, TimelineData } from "@/lib/ges-defaults";
@@ -55,6 +56,11 @@ export function TimelineEditor({ projectId, projectName, data, kesifA, kesifB, s
   const router = useRouter();
   const [tl, setTl] = useState<TimelineData>(() => normalizeTl(data));
   const [saving, setSaving] = useState(false);
+
+  // Unsaved-changes: tl her degistiginde baseline ile farki kirli sayar.
+  const baselineRef = useRef<string>(JSON.stringify(normalizeTl(data)));
+  const isDirty = JSON.stringify(tl) !== baselineRef.current;
+  useDirtyTracker(isDirty);
 
   const result = calc(kesifA, kesifB, settings);
 
@@ -152,6 +158,8 @@ export function TimelineEditor({ projectId, projectName, data, kesifA, kesifB, s
         startMonth: effectiveStart.month,
       };
       await saveTimeline(projectId, toSave as never);
+      // Save sonrasi baseline esitlenir → dirty=false.
+      baselineRef.current = JSON.stringify(toSave);
       toast.success(
         advance ? "Kaydedildi — Analiz açıldı" : "Kaydedildi",
       );

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { saveFizibilite } from "@/app/actions/ges";
+import { useDirtyTracker } from "@/lib/unsaved-changes";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,6 +88,12 @@ export function FizibiliteForm({ projectId, settings, totalPowerKw }: Props) {
   const [saving, setSaving] = useState(false);
   const [annualAvg, setAnnualAvg] = useState<string>("");
 
+  // Unsaved-changes tracking.
+  const baselineRef = useRef<string>("");
+  if (!baselineRef.current) baselineRef.current = JSON.stringify(s);
+  const isDirty = JSON.stringify(s) !== baselineRef.current;
+  useDirtyTracker(isDirty);
+
   const result = useMemo(() => calcFeasibility(s, totalPowerKw), [s, totalPowerKw]);
 
   function applyAnnualAvg() {
@@ -100,6 +107,7 @@ export function FizibiliteForm({ projectId, settings, totalPowerKw }: Props) {
     setSaving(true);
     try {
       await saveFizibilite(projectId, s as never);
+      baselineRef.current = JSON.stringify(s);
       toast.success("Fizibilite verileri kaydedildi");
       if (goNext) window.location.href = `/projects/${projectId}/detail/kesif-a`;
     } catch {

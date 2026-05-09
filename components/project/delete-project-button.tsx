@@ -39,9 +39,10 @@ export function DeleteProjectButton({ projectId }: { projectId: string }) {
   return (
     <Button
       size="sm"
-      variant="ghost"
-      className="text-destructive opacity-0 transition-opacity hover:bg-destructive-soft hover:text-destructive-soft-foreground group-hover:opacity-100"
+      variant="outline"
+      className="border-destructive/30 text-destructive hover:bg-destructive-soft hover:text-destructive-soft-foreground"
       onClick={() => setConfirming(true)}
+      title="Projeyi sil"
     >
       <Trash2 className="size-3.5" />
     </Button>

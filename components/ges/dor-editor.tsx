@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { saveDor } from "@/app/actions/ges";
+import { useDirtyTracker } from "@/lib/unsaved-changes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,11 @@ export function DorEditor({ projectId, projectName, data }: Props) {
     Object.fromEntries(data.map((_, i) => [i, true]))
   );
   const [search, setSearch] = useState("");
+
+  // Unsaved-changes tracking.
+  const baselineRef = useRef<string>(JSON.stringify(normalizeDor(data)));
+  const isDirty = JSON.stringify(groups) !== baselineRef.current;
+  useDirtyTracker(isDirty);
 
   const filteredGroups = useMemo(() => {
     if (!search) return groups;
@@ -150,6 +156,7 @@ export function DorEditor({ projectId, projectName, data }: Props) {
     setSaving(true);
     try {
       await saveDor(projectId, groups as never);
+      baselineRef.current = JSON.stringify(groups);
       toast.success("Kaydedildi");
     } catch {
       toast.error("Kayıt hatası");

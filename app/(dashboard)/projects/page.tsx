@@ -19,6 +19,9 @@ import {
   COMPLETION_TRANSITION_VALUES,
   isCompletionStatus,
 } from "@/lib/project-status";
+import { calc } from "@/lib/ges-engine";
+import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
+import { DeleteProjectButton } from "@/components/project/delete-project-button";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "success" | "warning" | "destructive" | "info"> = {
   DRAFT: "secondary",
@@ -69,9 +72,30 @@ export default async function ProjectsPage({ searchParams }: Props) {
         : {}),
       ...(status ? { status: status as any } : {}),
     },
-    include: { pricingSnapshot: true },
+    include: {
+      pricingSnapshot: true,
+      projectDetail: { select: { kesifA: true, kesifB: true, settings: true } },
+    },
     orderBy: { updatedAt: "desc" },
   });
+
+  // Dashboard'daki ile ayni hesap: GES engine ile gercek satis fiyatini cek.
+  // pricingSnapshot eski sistem; cogu projede yok. EPC < $100 ise gosterme
+  // (eksik veri).
+  function getEpcPrice(p: (typeof projects)[number]) {
+    if (!p.projectDetail) return null;
+    try {
+      const r = calc(
+        p.projectDetail.kesifA as unknown as KesifGroup[],
+        p.projectDetail.kesifB as unknown as KesifGroup[],
+        p.projectDetail.settings as unknown as GesSettings,
+      );
+      if (r.salePriceUsd < 100) return null;
+      return r;
+    } catch {
+      return null;
+    }
+  }
 
   const filters = [
     { value: undefined, label: "Tümü" },
@@ -166,67 +190,86 @@ export default async function ProjectsPage({ searchParams }: Props) {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {projects.map((project) => (
-                    <tr
-                      key={project.id}
-                      className="group transition-colors hover:bg-muted/30"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={cn(
-                              "h-8 w-1 shrink-0 rounded-full",
-                              STATUS_BAR_COLOR[project.status] ?? "bg-muted-foreground/40"
-                            )}
-                          />
-                          <div>
-                            <p className="font-medium text-foreground">{project.name}</p>
-                            <p className="mt-0.5 text-xs text-muted-foreground">
-                              {INSTALLATION_TYPE_LABELS[project.installationType]}
-                            </p>
+                  {projects.map((project) => {
+                    const epc = getEpcPrice(project);
+                    return (
+                      <tr
+                        key={project.id}
+                        className="transition-colors hover:bg-muted/30"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={cn(
+                                "h-8 w-1 shrink-0 rounded-full",
+                                STATUS_BAR_COLOR[project.status] ?? "bg-muted-foreground/40"
+                              )}
+                            />
+                            <div>
+                              <p className="font-medium text-foreground">{project.name}</p>
+                              <p className="mt-0.5 text-xs text-muted-foreground">
+                                {INSTALLATION_TYPE_LABELS[project.installationType]}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="hidden px-6 py-4 font-medium text-muted-foreground md:table-cell">
-                        {project.customerName}
-                      </td>
-                      <td className="hidden px-6 py-4 text-right font-medium text-muted-foreground lg:table-cell">
-                        {project.totalPowerKw > 0
-                          ? `${project.totalPowerKw.toFixed(1)} kWp`
-                          : "—"}
-                      </td>
-                      <td className="hidden px-6 py-4 text-right font-semibold text-foreground lg:table-cell">
-                        {project.pricingSnapshot
-                          ? formatCurrency(project.pricingSnapshot.finalSalePrice)
-                          : "—"}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        {isCompletionStatus(project.status) ? (
-                          <ProjectStatusChanger
-                            projectId={project.id}
-                            currentStatus={project.status}
-                            allowedTransitions={[...COMPLETION_TRANSITION_VALUES]}
-                          />
-                        ) : (
-                          <Badge variant={STATUS_VARIANT[project.status]}>
-                            {PROJECT_STATUS_LABELS[project.status]}
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="hidden px-6 py-4 text-right text-xs text-muted-foreground sm:table-cell">
-                        {formatDate(project.updatedAt)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end">
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link href={`/projects/${project.id}/detail`}>
-                              Düzenle
-                            </Link>
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="hidden px-6 py-4 font-medium text-muted-foreground md:table-cell">
+                          {project.customerName}
+                        </td>
+                        <td className="hidden px-6 py-4 text-right font-medium text-muted-foreground lg:table-cell">
+                          {project.totalPowerKw > 0
+                            ? project.totalPowerKw >= 1000
+                              ? `${(project.totalPowerKw / 1000).toFixed(2)} MWp`
+                              : `${project.totalPowerKw.toFixed(1)} kWp`
+                            : "—"}
+                        </td>
+                        <td className="hidden px-6 py-4 text-right lg:table-cell">
+                          {epc ? (
+                            <div>
+                              <p className="font-semibold text-foreground">
+                                ${epc.salePriceUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">
+                                ${epc.perKwUsd.toFixed(3)}/kWp
+                              </p>
+                            </div>
+                          ) : project.pricingSnapshot ? (
+                            <span className="font-semibold text-foreground">
+                              {formatCurrency(project.pricingSnapshot.finalSalePrice)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {isCompletionStatus(project.status) ? (
+                            <ProjectStatusChanger
+                              projectId={project.id}
+                              currentStatus={project.status}
+                              allowedTransitions={[...COMPLETION_TRANSITION_VALUES]}
+                            />
+                          ) : (
+                            <Badge variant={STATUS_VARIANT[project.status]}>
+                              {PROJECT_STATUS_LABELS[project.status]}
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="hidden px-6 py-4 text-right text-xs text-muted-foreground sm:table-cell">
+                          {formatDate(project.updatedAt)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button variant="outline" size="sm" asChild>
+                              <Link href={`/projects/${project.id}/detail`}>
+                                Düzenle
+                              </Link>
+                            </Button>
+                            <DeleteProjectButton projectId={project.id} />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
