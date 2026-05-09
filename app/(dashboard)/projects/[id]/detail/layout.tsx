@@ -60,22 +60,33 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
   const isLocked = isTemplateLocked || !access.canEdit;
   const lockReason: "template" | "user" = isTemplateLocked ? "template" : "user";
 
-  // Progress gates — compute purely from data. A user can complete steps in
-  // any order; the nav unlocks downstream tabs as soon as the prerequisite
-  // has data. Timeline is now a hard gate before Analiz/CF/BoQ/PBoQ/DoR.
+  // gesStep — settings JSON'una gomulu, save action'larinda "Kaydet & İlerle"
+  // basildiginda artirilir. Yeni proje ve sablon klonu 0'dan baslar; her
+  // sekme acilmasi icin onceki sekmenin advance'i gerekli. Sablonlar icin
+  // gesStep'i ignore et (zaten her sey acik gozuksun).
+  const settingsRecord = (project.projectDetail?.settings as Record<string, unknown> | undefined) ?? {};
+  const gesStep = isTemplate ? 5 : Math.max(0, Number(settingsRecord.gesStep) || 0);
+
+  // Progress gates — gesStep'e gore. Sablon haricinde, sadece ileri-advance
+  // ile sekmeler acilir (hem yeni proje hem sablon klonu).
   const progress = {
-    info: !!project.name?.trim() && !!project.customerName?.trim(),
-    teknik: (settings?.dcGuc ?? 0) > 0 && (settings?.panelGuc ?? 0) > 0,
-    kesifA: hasItems(project.projectDetail?.kesifA),
-    kesifB: hasItems(project.projectDetail?.kesifB),
-    timeline: timelineHasData(project.projectDetail?.timeline),
+    info: gesStep >= 1,
+    teknik: gesStep >= 2,
+    kesifA: gesStep >= 3,
+    kesifB: gesStep >= 4,
+    timeline: gesStep >= 5,
   };
 
-  // Status etiketi — TASLAK (timeline doldurulmadan) vs TAMAMLANDI (sonra)
+  // Status etiketi — gesStep ve project.status birlikte:
+  // - CANCELLED  → İptal
+  // - CLOSE_WIN/CLOSE_LOST → ilgili
+  // - COMPLETED veya gesStep == 5 → Tamamlandı
+  // - aksi halde → Taslak
   const isCompleted =
     project.status === "COMPLETED" ||
     project.status === "CLOSE_WIN" ||
-    project.status === "CLOSE_LOST";
+    project.status === "CLOSE_LOST" ||
+    gesStep >= 5;
   const statusLabel = isCompleted ? "Tamamlandı" : project.status === "CANCELLED" ? "İptal" : "Taslak";
   const statusVariant: "success" | "secondary" | "destructive" =
     isCompleted ? "success" : project.status === "CANCELLED" ? "destructive" : "secondary";

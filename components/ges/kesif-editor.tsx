@@ -248,8 +248,8 @@ export function KesifEditor({ projectId, projectName, type, data, settings }: Pr
   async function handleSave(advance = false) {
     setSaving(true);
     try {
-      if (type === "A") await saveKesifA(projectId, groups as never);
-      else await saveKesifB(projectId, groups as never);
+      if (type === "A") await saveKesifA(projectId, groups as never, advance);
+      else await saveKesifB(projectId, groups as never, advance);
       // Save sonrasi baseline esitlenir → dirty=false.
       baselineRef.current = JSON.stringify(groups);
       toast.success(advance ? `Kaydedildi — ${nextLabel} açıldı` : "Kaydedildi");

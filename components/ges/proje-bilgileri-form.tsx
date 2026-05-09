@@ -413,12 +413,13 @@ export function ProjeBilgileriForm({
   const formRef = useRef<HTMLFormElement>(null);
   const shouldAdvanceRef = useRef(false);
 
-  const action = saveProjectInfo.bind(null, projectId);
   const [state, formAction, pending] = useActionState(
     async (_: unknown, fd: FormData) => {
-      await action(fd);
       const adv = shouldAdvanceRef.current;
       shouldAdvanceRef.current = false;
+      // advance bilgisini server action'a parametre olarak gecir — true ise
+      // gesStep en az 1'e cikarilir ve kullanici Teknik sekmesini acabilir.
+      await saveProjectInfo(projectId, fd, adv);
       return { advance: adv };
     },
     null,

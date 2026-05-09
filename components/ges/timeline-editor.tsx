@@ -157,7 +157,7 @@ export function TimelineEditor({ projectId, projectName, data, kesifA, kesifB, s
         startYear: effectiveStart.year,
         startMonth: effectiveStart.month,
       };
-      await saveTimeline(projectId, toSave as never);
+      await saveTimeline(projectId, toSave as never, advance);
       // Save sonrasi baseline esitlenir → dirty=false.
       baselineRef.current = JSON.stringify(toSave);
       toast.success(

@@ -202,7 +202,14 @@ export async function useTemplate(templateId: string) {
                 kesifB: template.projectDetail.kesifB as never,
                 timeline: template.projectDetail.timeline as never,
                 dor: template.projectDetail.dor as never,
-                settings: template.projectDetail.settings as never,
+                // gesStep=0 — sablon klonu da sifirdan baslar; kullanici
+                // her sekmede "Kaydet & İlerle" basana kadar diger sekmeler
+                // kilitli kalir (yeni proje akisiyla ayni davranir). Sablonun
+                // kendi gesStep degerini kopyalamiyoruz.
+                settings: {
+                  ...((template.projectDetail.settings as Record<string, unknown>) || {}),
+                  gesStep: 0,
+                } as never,
               },
             },
           }

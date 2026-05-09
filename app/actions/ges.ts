@@ -59,6 +59,30 @@ export async function getOrCreateProjectDetail(projectId: string) {
 }
 
 /**
+ * GES kurulum adim sayaci — settings JSON'una gomulu.
+ *  0: hicbiri kaydedilmedi (yeni proje veya yeni klon)
+ *  1: Proje bilgileri "Kaydet & İlerle" basildi
+ *  2: Teknik "Kaydet & İlerle" basildi
+ *  3: Keşif-A "Kaydet & İlerle" basildi
+ *  4: Keşif-B "Kaydet & İlerle" basildi
+ *  5: Timeline "Kaydet & İlerle" basildi (Analiz acildi → COMPLETED)
+ *
+ * Kural: yalnizca artirir, asla geri almaz. Kullanici eski sekmeye donup
+ * tekrar Kaydet'e bassa bile, ileri sekmeler kilidi acik kalir.
+ */
+async function bumpGesStep(projectId: string, minStep: number): Promise<void> {
+  const detail = await prisma.projectDetail.findUnique({ where: { projectId } });
+  if (!detail) return;
+  const settings = (detail.settings as Record<string, unknown>) || {};
+  const current = Number(settings.gesStep) || 0;
+  if (minStep <= current) return;
+  await prisma.projectDetail.update({
+    where: { projectId },
+    data: { settings: { ...settings, gesStep: minStep } as never },
+  });
+}
+
+/**
  * Timeline veri tabanindan dolu mu? Analiz/CF/BoQ/PBoQ/DoR sekmelerini
  * acmak icin kullanicinin Timeline'i kaydetmis olmasi gerekir.
  */
@@ -99,7 +123,7 @@ async function recomputeProjectStatus(projectId: string) {
   }
 }
 
-export async function saveProjectInfo(projectId: string, formData: FormData) {
+export async function saveProjectInfo(projectId: string, formData: FormData, advance = false) {
   const project = await loadEditableProject(projectId);
 
   const name = formData.get("name") as string;
@@ -178,10 +202,11 @@ export async function saveProjectInfo(projectId: string, formData: FormData) {
     }
   }
 
+  if (advance) await bumpGesStep(projectId, 1);
   revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 
-export async function saveTeknik(projectId: string, data: Record<string, unknown>) {
+export async function saveTeknik(projectId: string, data: Record<string, unknown>, advance = false) {
   const project = await loadEditableProject(projectId);
 
   const dcGuc = Number(data.dcGuc) || 0;
@@ -236,6 +261,7 @@ export async function saveTeknik(projectId: string, data: Record<string, unknown
     },
   });
 
+  if (advance) await bumpGesStep(projectId, 2);
   revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 
@@ -317,7 +343,7 @@ function renumberGroups(groups: unknown[]): unknown[] {
   });
 }
 
-export async function saveKesifA(projectId: string, kesifA: unknown[]) {
+export async function saveKesifA(projectId: string, kesifA: unknown[], advance = false) {
   const project = await loadEditableProject(projectId);
 
   const normalized = renumberGroups(kesifA);
@@ -334,10 +360,11 @@ export async function saveKesifA(projectId: string, kesifA: unknown[]) {
     update: { kesifA: normalized as never },
   });
 
+  if (advance) await bumpGesStep(projectId, 3);
   revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 
-export async function saveKesifB(projectId: string, kesifB: unknown[]) {
+export async function saveKesifB(projectId: string, kesifB: unknown[], advance = false) {
   const project = await loadEditableProject(projectId);
 
   const normalized = renumberGroups(kesifB);
@@ -354,10 +381,11 @@ export async function saveKesifB(projectId: string, kesifB: unknown[]) {
     update: { kesifB: normalized as never },
   });
 
+  if (advance) await bumpGesStep(projectId, 4);
   revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 
-export async function saveTimeline(projectId: string, timeline: unknown) {
+export async function saveTimeline(projectId: string, timeline: unknown, advance = false) {
   const project = await loadEditableProject(projectId);
 
   await prisma.projectDetail.upsert({
@@ -373,7 +401,21 @@ export async function saveTimeline(projectId: string, timeline: unknown) {
     update: { timeline: timeline as never },
   });
 
-  // Timeline doldugunda proje TASLAK -> TAMAMLANDI'ya otomatik geçer
+  if (advance) {
+    await bumpGesStep(projectId, 5);
+    // Timeline'da "Kaydet & İlerle" basildiginda proje TAMAMLANDI sayilir.
+    // (Eski mantik: timeline data dolu olunca otomatik COMPLETED — bu hala
+    // calisir ama explicit advance daha kesin.)
+    if (project.status === "DRAFT") {
+      await prisma.project.update({
+        where: { id: projectId },
+        data: { status: "COMPLETED" },
+      });
+    }
+  }
+
+  // Eski otomatik recompute — timeline silinirse veya tekrar bos kalirsa
+  // status DRAFT'a doner.
   await recomputeProjectStatus(projectId);
 
   revalidatePath(`/projects/${projectId}/detail`, "layout");

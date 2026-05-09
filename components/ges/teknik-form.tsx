@@ -226,7 +226,7 @@ export function TeknikForm({ projectId, projectName, settings }: Props) {
     setSaving(true);
     try {
       const data = { ...s, panelAdet: panelAdetCalc };
-      await saveTeknik(projectId, data as never);
+      await saveTeknik(projectId, data as never, goNext);
       // Save sonrasi baseline yeniden esitlenir → dirty=false.
       baselineRef.current = JSON.stringify(data);
       toast.success("Teknik parametreler kaydedildi — Keşif kalemleri güncellendi");

@@ -131,7 +131,7 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
                 </h2>
                 <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
                   Yaptığınız değişiklikler kaydedilmedi. Bu sayfadan çıkarsanız
-                  girdiğiniz bilgiler kaybolacak ve projeniz oluşmayacaktır.
+                  girdiğiniz bilgiler kaybolacaktır.
                 </p>
               </div>
             </div>
