@@ -136,6 +136,38 @@ export async function getUserOrganizations(userId: string) {
   });
 }
 
+/**
+ * Davet ile signup yapan bir kullanici, kendi paneli olusturulmadan dogrudan
+ * davet edilen org'a katildiysa, "kendi panel"i hic yok olabilir. Profilim
+ * sayfasi acildiginda bu helper cagrilir; idempotent — kullanicinin ownerId'li
+ * bir org'u varsa hicbir sey yapmaz, yoksa "{Ad} Paneli" adinda yeni bir
+ * organizasyon + admin uyelik yaratir. Kullanici Profilim → Panellerim'de
+ * kendi panelini gorur, oradan tek tiklamayla gecis yapabilir.
+ */
+export async function ensureOwnPanelForUser(profile: ProfileWithOrg): Promise<void> {
+  const existing = await prisma.organization.findFirst({
+    where: { ownerId: profile.id },
+    select: { id: true },
+  });
+  if (existing) return;
+
+  const fullName =
+    profile.fullName?.trim() ||
+    profile.email?.split("@")[0] ||
+    "Kullanici";
+
+  await prisma.$transaction(async (tx) => {
+    const org = await tx.organization.create({
+      data: { name: `${fullName} Paneli`, ownerId: profile.id },
+    });
+    // Admin olarak kendi panelinde uye yap — switch ettiginde admin haklarina
+    // sahip olur (kullanici davet edebilir, proje yaratabilir).
+    await tx.organizationMember.create({
+      data: { userId: profile.id, organizationId: org.id, role: "admin" },
+    });
+  });
+}
+
 // Aktif organizasyonu degistirme — sadece bu platformdaki uyelikler arasinda gecis yapilir.
 export async function switchActiveOrganization(userId: string, newOrgId: string) {
   const membership = await prisma.organizationMember.findUnique({

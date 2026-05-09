@@ -1,10 +1,15 @@
-import { requireAuth, getUserOrganizations } from "@/lib/auth";
+import { requireAuth, getUserOrganizations, ensureOwnPanelForUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { FirmSettingsForm } from "@/components/shared/firm-settings-form";
 
 export default async function ProfilePage() {
   const user = await requireAuth();
+
+  // Davet ile katilan kullanicinin "kendi paneli" yok ise burada otomatik
+  // yaratilir — boylece Panellerim listesinde her zaman kendi paneli gozukur.
+  // Idempotent: zaten varsa hiçbir sey yapmaz.
+  await ensureOwnPanelForUser(user);
 
   const [firm, membership, memberships] = await Promise.all([
     prisma.organization.findUnique({ where: { id: user.organizationId } }),
