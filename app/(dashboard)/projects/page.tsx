@@ -235,7 +235,7 @@ export default async function ProjectsPage({ searchParams }: Props) {
                                 ${epc.salePriceUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                               </p>
                               <p className="text-[11px] text-muted-foreground">
-                                ${epc.perKwUsd.toFixed(3)}/kWp
+                                ${Math.round(epc.perKwUsd).toLocaleString("en-US")}/kWp
                               </p>
                             </div>
                           ) : project.pricingSnapshot ? (

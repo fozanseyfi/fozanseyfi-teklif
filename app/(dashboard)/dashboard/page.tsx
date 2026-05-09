@@ -181,7 +181,7 @@ export default async function DashboardPage() {
               <MetricCard
                 icon={DollarSign}
                 label="Ort. EPC Birim Fiyatı"
-                value={avgUsdPerKwp.toFixed(3)}
+                value={Math.round(avgUsdPerKwp).toLocaleString("en-US")}
                 unit="$/kWp"
                 sublabel="ortalama"
                 accent
@@ -280,7 +280,7 @@ export default async function DashboardPage() {
                             ${epc.salePriceUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {epc.perKwUsd.toFixed(3)} $/kWp
+                            {Math.round(epc.perKwUsd).toLocaleString("en-US")} $/kWp
                           </p>
                         </div>
                       ) : project.pricingSnapshot ? (
