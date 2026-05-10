@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -42,14 +43,19 @@ export function DetailPageHeader({
   notice,
 }: Props) {
   const hasSecondaryRow = !!secondary || !!stats;
+  // ?view=1 modunda back link'i de view parametresini korumali — kullanici
+  // sekmeler arasi geri gittiginde salt-okunur kalmaya devam etsin.
+  const searchParams = useSearchParams();
+  const viewSuffix = searchParams.get("view") === "1" ? "?view=1" : "";
+  const effectiveBackHref = backHref ? `${backHref}${viewSuffix}` : undefined;
   return (
     <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
       {/* Mobil: title ve actions dikey stack; tablet+: yan yana */}
       <div className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-4">
         <div className="flex min-w-0 items-center gap-3">
-          {backHref && (
+          {effectiveBackHref && (
             <Link
-              href={backHref}
+              href={effectiveBackHref}
               aria-label="Önceki sekme"
               className="flex size-9 shrink-0 items-center justify-center rounded-md border bg-card text-muted-foreground transition-colors hover:border-primary/30 hover:bg-muted hover:text-foreground sm:size-8"
             >

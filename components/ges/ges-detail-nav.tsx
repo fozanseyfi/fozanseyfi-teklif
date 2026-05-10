@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   Info,
@@ -163,7 +163,12 @@ interface Props {
 
 export function GesDetailNav({ projectId, progress }: Props) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const base = `/projects/${projectId}/detail`;
+  // View modu (?view=1) sekme degisiklerinde de kalsin — Görüntüle butonuna
+  // tiklayan kullanici Teknik/Keşif/Analiz... hangi sekmeye giderse gitsin
+  // salt-okunur kalir, banner her sekmede gozukur.
+  const viewSuffix = searchParams.get("view") === "1" ? "?view=1" : "";
 
   return (
     <nav>
@@ -188,7 +193,7 @@ export function GesDetailNav({ projectId, progress }: Props) {
             {/* Tabs */}
             <div className="flex flex-wrap items-center gap-1.5">
               {stage.items.map((item) => {
-                const href = `${base}${item.href}`;
+                const href = `${base}${item.href}${viewSuffix}`;
                 const isActive =
                   item.href === ""
                     ? pathname === base || pathname === `${base}/`
