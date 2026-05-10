@@ -16,6 +16,7 @@ import {
   DollarSign,
   LayoutTemplate,
   Sparkles,
+  Eye,
 } from "lucide-react";
 import { calc } from "@/lib/ges-engine";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
@@ -319,6 +320,12 @@ export default async function DashboardPage() {
                           {PROJECT_STATUS_LABELS[project.status]}
                         </Badge>
                       )}
+                      <Button variant="outline" size="sm" asChild title="Salt-okunur olarak görüntüle">
+                        <Link href={`/projects/${project.id}/detail?view=1`}>
+                          <Eye className="size-3.5" />
+                          Görüntüle
+                        </Link>
+                      </Button>
                       <Button variant="outline" size="sm" asChild>
                         <Link href={`/projects/${project.id}/detail`}>Düzenle</Link>
                       </Button>

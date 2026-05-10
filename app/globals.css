@@ -456,3 +456,11 @@
 .template-readonly[data-readonly-reason="template"]::before {
   content: "🔒 Şablon salt okunurdur — düzenlemek için yukarıdaki “Bu şablonu kullan” butonuna tıkla";
 }
+
+/* Görüntüleme modu — kullanici Görüntüle butonu ile geldiginde */
+.template-readonly[data-readonly-reason="view"]::before {
+  content: "👁 Görüntüleme modu — düzenlemek için Projeler sayfasından “Düzenle” butonunu kullanın";
+  color: rgb(15 23 42);
+  background: rgb(241 245 249 / 0.7);
+  border-color: rgb(148 163 184);
+}

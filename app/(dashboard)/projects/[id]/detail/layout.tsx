@@ -8,9 +8,8 @@ import { MapPin, User, Zap, Sparkles, LayoutTemplate, Lock, Unlock } from "lucid
 import type { GesSettings, KesifGroup } from "@/lib/ges-defaults";
 import { useTemplate, setTemplateLock } from "@/app/actions/templates";
 import { cn } from "@/lib/utils";
-import { ReadOnlyProvider } from "@/lib/readonly-context";
 import { UnstartedProjectCleanup } from "@/components/ges/unstarted-cleanup";
-import { DirtyGuardScope } from "@/lib/unsaved-changes";
+import { ViewModeOverride } from "@/components/ges/view-mode-override";
 
 interface Props {
   children: React.ReactNode;
@@ -243,20 +242,16 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
         </div>
       </div>
 
-      <ReadOnlyProvider value={isLocked}>
-        {/* Tamamlanmis projede form-degisiklik uyarisi gosterme — veriler
-            zaten kayitli. isCompleted hesabi gesStep>=5, COMPLETED, CLOSE_*'i
-            kapsiyor; sablonlar da hep enabled=false (tipik kullanim browse
-            niyetli). Sadece TASLAK durumdaki projede dirty tracking aktif. */}
-        <DirtyGuardScope enabled={!isCompleted && !isTemplate}>
-          <div
-            className={isLocked ? "template-readonly" : undefined}
-            data-readonly-reason={isLocked ? lockReason : undefined}
-          >
-            {children}
-          </div>
-        </DirtyGuardScope>
-      </ReadOnlyProvider>
+      {/* View mode (?view=1) destegi: kullanici Görüntüle butonu ile geldiyse
+          salt-okunur acilir. Hem ReadOnly context hem DirtyGuardScope hem
+          template-readonly CSS bu wrapper icinde set edilir. */}
+      <ViewModeOverride
+        baseLocked={isLocked}
+        baseLockReason={lockReason}
+        dirtyGuardEnabled={!isCompleted && !isTemplate}
+      >
+        {children}
+      </ViewModeOverride>
     </div>
   );
 }

@@ -12,7 +12,7 @@ import {
   PROJECT_STATUS_LABELS,
   INSTALLATION_TYPE_LABELS,
 } from "@/lib/utils";
-import { Plus, FolderOpen } from "lucide-react";
+import { Plus, FolderOpen, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjectStatusChanger } from "@/components/ges/project-status-changer";
 import {
@@ -264,6 +264,12 @@ export default async function ProjectsPage({ searchParams }: Props) {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-2">
+                            <Button variant="outline" size="sm" asChild title="Salt-okunur olarak görüntüle">
+                              <Link href={`/projects/${project.id}/detail?view=1`}>
+                                <Eye className="size-3.5" />
+                                Görüntüle
+                              </Link>
+                            </Button>
                             <Button variant="outline" size="sm" asChild>
                               <Link href={`/projects/${project.id}/detail`}>
                                 Düzenle
