@@ -69,14 +69,32 @@ export default async function InvitePage({ params }: Props) {
     );
   }
 
-  // Auth var, email eslesti — accept butonu
+  // Auth var, email eslesti — accept butonu.
+  //
+  // Sifre alani ne zaman gozuksun?
+  // - Yeni davet ile Supabase'de YENI yaratilan user: sifresi yok, magic
+  //   link ile geldi → sifre belirlemek onerilir (default acik).
+  // - Mevcut hesabi olan kullanici (baska panelden zaten signup yapmis,
+  //   sifre var): sifre alani gereksiz; default kapali, kullanici isterse
+  //   "Şifremi de güncellemek istiyorum" ile acabilir.
+  //
+  // Ayirt etmek icin: bizim inviteUser action'unda Supabase user_metadata'ya
+  // invitation_token yaziyoruz. Eger authUser.user_metadata.invitation_token
+  // === token ise bu kisi tam bu davet ile yaratildi — yeni user.
+  const meta = (authUser.user_metadata ?? {}) as Record<string, unknown>;
+  const isFreshlyInvited = meta.invitation_token === token;
+
   return (
     <Shell
       org={invitation.organization.name}
       email={invitation.email}
       role={invitation.role as Role}
     >
-      <InviteAcceptForm token={token} orgName={invitation.organization.name} />
+      <InviteAcceptForm
+        token={token}
+        orgName={invitation.organization.name}
+        isFreshlyInvited={isFreshlyInvited}
+      />
     </Shell>
   );
 }

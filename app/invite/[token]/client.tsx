@@ -12,14 +12,25 @@ import { toast } from "sonner";
 export function InviteAcceptForm({
   token,
   orgName,
+  isFreshlyInvited,
 }: {
   token: string;
   orgName: string;
+  /**
+   * true: Supabase davet linkiyle yeni yaratilan kullanici — sifresi yok,
+   *       magic link ile geldi. Sifre alani default acik gozukur.
+   * false: Mevcut hesabi olan kullanici. Sifre alani default gizli, kullanici
+   *        isterse opsiyonel olarak acar.
+   */
+  isFreshlyInvited: boolean;
 }) {
   const [pending, setPending] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  // Sifre alani actik mi? Yeni davet ile gelen kullanici icin true (zorunlu),
+  // mevcut kullanici icin kullanici toggle ile acabilir.
+  const [passwordSectionOpen, setPasswordSectionOpen] = useState(isFreshlyInvited);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -84,57 +95,99 @@ export function InviteAcceptForm({
         dönebilirsin.
       </p>
 
-      {/* Sifre belirleme — opsiyonel */}
-      <div className="space-y-3 rounded-lg border border-primary/20 bg-primary-soft/30 p-3">
-        <div className="flex items-center gap-2">
-          <KeyRound className="size-4 text-primary-soft-foreground" />
-          <p className="text-[12px] font-bold uppercase tracking-wider text-primary-soft-foreground">
-            Şifre Belirle (önerilen)
+      {/* Sifre belirleme — yeni davet ile gelenlerde otomatik acik (zorunlu
+          gibi onerilir). Mevcut hesabi olanlar icin default kapali; opsiyonel
+          link ile acilabilir. */}
+      {passwordSectionOpen ? (
+        <div className="space-y-3 rounded-lg border border-primary/20 bg-primary-soft/30 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <KeyRound className="size-4 text-primary-soft-foreground" />
+              <p className="text-[12px] font-bold uppercase tracking-wider text-primary-soft-foreground">
+                {isFreshlyInvited ? "Şifre Belirle (önerilen)" : "Şifremi Güncelle"}
+              </p>
+            </div>
+            {!isFreshlyInvited && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPasswordSectionOpen(false);
+                  setPassword("");
+                  setConfirm("");
+                }}
+                className="text-[11px] font-medium text-muted-foreground hover:underline"
+              >
+                Vazgeç
+              </button>
+            )}
+          </div>
+          <p className="text-[12px] leading-relaxed text-muted-foreground">
+            {isFreshlyInvited
+              ? "Bu davet linkiyle yeni bir hesap oluşturuluyor. Şifre belirle ki sonraki girişlerinde e-posta linki beklemeden doğrudan giriş yapabilirsin."
+              : "Bu işlem mevcut şifreni değiştirir. Boş bırakırsan şifren aynı kalır."}
           </p>
-        </div>
-        <p className="text-[12px] leading-relaxed text-muted-foreground">
-          İlk girişinde şifre belirle — sonraki girişlerinde e-posta linki beklemeden
-          doğrudan giriş yapabilirsin. Zaten şifren varsa boş bırakabilirsin.
-        </p>
-        <div className="space-y-2">
-          <Label htmlFor="invite-password" className="text-xs">
-            Yeni şifre (en az 8 karakter)
-          </Label>
-          <div className="relative">
+          <div className="space-y-2">
+            <Label htmlFor="invite-password" className="text-xs">
+              Yeni şifre (en az 8 karakter)
+            </Label>
+            <div className="relative">
+              <Input
+                id="invite-password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="new-password"
+                className="pr-10"
+                minLength={8}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
+              >
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="invite-confirm" className="text-xs">
+              Şifre tekrar
+            </Label>
             <Input
-              id="invite-password"
+              id="invite-confirm"
               type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
               placeholder="••••••••"
               autoComplete="new-password"
-              className="pr-10"
-              minLength={8}
             />
-            <button
-              type="button"
-              onClick={() => setShowPassword((s) => !s)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-              aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
-            >
-              {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-            </button>
           </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="invite-confirm" className="text-xs">
-            Şifre tekrar
-          </Label>
-          <Input
-            id="invite-confirm"
-            type={showPassword ? "text" : "password"}
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            placeholder="••••••••"
-            autoComplete="new-password"
-          />
+      ) : (
+        <div className="rounded-lg border border-success/30 bg-success-soft/40 p-3">
+          <div className="flex items-start gap-2">
+            <Check className="mt-0.5 size-4 shrink-0 text-success-soft-foreground" />
+            <div className="space-y-1">
+              <p className="text-[12.5px] font-semibold text-success-soft-foreground">
+                Mevcut hesabınla devam ediyorsun
+              </p>
+              <p className="text-[11.5px] leading-relaxed text-success-soft-foreground/85">
+                Şifreni değiştirmen gerekmiyor — bu daveti kabul ettiğinde
+                doğrudan panele yönlendirileceksin.
+                <button
+                  type="button"
+                  onClick={() => setPasswordSectionOpen(true)}
+                  className="ml-1 font-semibold underline-offset-2 hover:underline"
+                >
+                  Şifremi de güncellemek istiyorum
+                </button>
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       <Button type="submit" disabled={pending} className="w-full" size="lg">
         {pending ? (
