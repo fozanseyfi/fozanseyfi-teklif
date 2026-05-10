@@ -6,6 +6,7 @@ import { isAdmin, type Role } from "@/lib/permissions";
 import { generateToken } from "@/lib/utils";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { parseBrandSettings, type BrandSettings } from "@/lib/pdf-brand";
 import { revalidatePath } from "next/cache";
 
 export async function updateFirmProfile(formData: FormData) {
@@ -21,6 +22,128 @@ export async function updateFirmProfile(formData: FormData) {
   });
 
   revalidatePath("/firm-settings");
+}
+
+// ─── Marka Ayarlari (BoQ/PDF ciktilarinda kullanilir) ────────────────────
+// Tip + parser lib/pdf-brand.tsx'te (server actions dosyasi non-async export
+// yasakli oldugu icin). Burada sadece async server action'lar.
+
+export async function updateBrandSettings(formData: FormData) {
+  const user = await requireAuth();
+  if (!isAdmin(user)) return { error: "Sadece yöneticiler marka ayarlarını güncelleyebilir" };
+
+  const org = await prisma.organization.findUnique({
+    where: { id: user.organizationId },
+  });
+  if (!org) return { error: "Organizasyon bulunamadı" };
+
+  const current = parseBrandSettings(org.brandSettings);
+
+  // Form'dan gelen alanlar — toggle'lar checkbox formundan "on" olarak gelir
+  // veya hic gelmez (false). String alanlari trim'lenir.
+  const next: BrandSettings = {
+    ...current,
+    color: ((formData.get("color") as string) || current.color || "#059669").trim(),
+    colorEnabled: formData.get("colorEnabled") === "on",
+    slogan: ((formData.get("slogan") as string) || "").trim() || undefined,
+    sloganEnabled: formData.get("sloganEnabled") === "on",
+    logoEnabled: formData.get("logoEnabled") === "on",
+    watermarkEnabled: formData.get("watermarkEnabled") === "on",
+    taxNumber: ((formData.get("taxNumber") as string) || "").trim() || undefined,
+    contact: ((formData.get("contact") as string) || "").trim() || undefined,
+  };
+
+  await prisma.organization.update({
+    where: { id: user.organizationId },
+    data: { brandSettings: next as never },
+  });
+
+  revalidatePath("/firm-settings");
+  return { success: "Marka ayarları kaydedildi" };
+}
+
+export async function uploadBrandLogo(formData: FormData) {
+  const user = await requireAuth();
+  if (!isAdmin(user)) return { error: "Sadece yöneticiler logo yükleyebilir" };
+
+  const file = formData.get("logo") as File | null;
+  if (!file || file.size === 0) return { error: "Dosya seçilmedi" };
+  if (file.size > 2 * 1024 * 1024) return { error: "Logo 2 MB'tan büyük olamaz" };
+  if (!/^image\/(png|jpeg|svg\+xml|webp)$/.test(file.type)) {
+    return { error: "Sadece PNG, JPG, SVG veya WebP yükleyebilirsiniz" };
+  }
+
+  const admin = createSupabaseAdmin();
+  const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+  const path = `org-${user.organizationId}/logo-${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await admin.storage
+    .from("brand-logos")
+    .upload(path, file, { contentType: file.type, upsert: true });
+  if (uploadError) {
+    return { error: `Logo yüklenemedi: ${uploadError.message}` };
+  }
+
+  const { data: pub } = admin.storage.from("brand-logos").getPublicUrl(path);
+  if (!pub?.publicUrl) return { error: "Logo URL'si alınamadı" };
+
+  const org = await prisma.organization.findUnique({
+    where: { id: user.organizationId },
+  });
+  const current = parseBrandSettings(org?.brandSettings);
+
+  await prisma.organization.update({
+    where: { id: user.organizationId },
+    data: {
+      brandSettings: {
+        ...current,
+        logoUrl: pub.publicUrl,
+        logoEnabled: true, // Yeni logo yuklendiginde otomatik aktif
+      } as never,
+    },
+  });
+
+  revalidatePath("/firm-settings");
+  return { success: "Logo yüklendi", url: pub.publicUrl };
+}
+
+export async function removeBrandLogo() {
+  const user = await requireAuth();
+  if (!isAdmin(user)) return { error: "Sadece yöneticiler logoyu kaldırabilir" };
+
+  const org = await prisma.organization.findUnique({
+    where: { id: user.organizationId },
+  });
+  const current = parseBrandSettings(org?.brandSettings);
+
+  if (current.logoUrl) {
+    // Storage'dan sil — URL'den path'i extract et
+    try {
+      const admin = createSupabaseAdmin();
+      const url = new URL(current.logoUrl);
+      const idx = url.pathname.indexOf("/brand-logos/");
+      if (idx >= 0) {
+        const path = url.pathname.slice(idx + "/brand-logos/".length);
+        await admin.storage.from("brand-logos").remove([path]);
+      }
+    } catch {
+      // Storage silinmediyse sorun degil; DB'den temizleyelim
+    }
+  }
+
+  await prisma.organization.update({
+    where: { id: user.organizationId },
+    data: {
+      brandSettings: {
+        ...current,
+        logoUrl: undefined,
+        logoEnabled: false,
+      } as never,
+    },
+  });
+
+  revalidatePath("/firm-settings");
+  return { success: "Logo kaldırıldı" };
 }
 
 // Kullanicinin profil bilgilerini gunceller (sadece kendi profili).

@@ -43,6 +43,21 @@ model Organization {
   name      String
   ownerId   String?  @map("owner_id") @db.Uuid
   owner     Profile? @relation("OrgOwner", fields: [ownerId], references: [id])
+  // Marka ayarlari (PDF/Excel ciktilarinda kullanilir, web UI'yi etkilemez).
+  // JSON sema:
+  //   {
+  //     logoUrl?: string,         // Supabase Storage public URL
+  //     logoEnabled?: boolean,    // PDF'lerde logo gosterilsin mi (default false)
+  //     color?: string,           // Hex (#RRGGBB), default emerald
+  //     colorEnabled?: boolean,   // Renk PDF kapaklarinda kullanilsin mi
+  //     slogan?: string,
+  //     sloganEnabled?: boolean,
+  //     watermarkEnabled?: boolean, // Sayfa arkasi capraz filigran
+  //     taxNumber?: string,
+  //     contact?: string,
+  //   }
+  // Footer doc-id ve hazirlayan kullanici email'i her zaman basilir (kapatilamaz).
+  brandSettings Json @default("{}") @map("brand_settings")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

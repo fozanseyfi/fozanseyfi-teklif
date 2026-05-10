@@ -2,6 +2,7 @@ import { requireAuth, getUserOrganizations, ensureOwnPanelForUser } from "@/lib/
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { FirmSettingsForm } from "@/components/shared/firm-settings-form";
+import { parseBrandSettings } from "@/lib/pdf-brand";
 
 export default async function ProfilePage() {
   const user = await requireAuth();
@@ -42,6 +43,8 @@ export default async function ProfilePage() {
     joinedAt: m.joinedAt,
   }));
 
+  const brand = parseBrandSettings(firm.brandSettings);
+
   return (
     <div className="mx-auto max-w-4xl">
       <FirmSettingsForm
@@ -50,6 +53,7 @@ export default async function ProfilePage() {
         platformRole={user.platformRole}
         joinedAt={membership?.joinedAt ?? new Date()}
         panels={panels}
+        brand={brand}
       />
     </div>
   );

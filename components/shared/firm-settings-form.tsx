@@ -7,6 +7,8 @@ import {
   updateMyProfile,
   updateMyPassword,
 } from "@/app/actions/firm";
+import type { BrandSettings } from "@/lib/pdf-brand";
+import { BrandSettingsCard } from "@/components/shared/brand-settings-card";
 import { switchOrganization } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +53,7 @@ interface Props {
   platformRole: "admin" | "user" | "viewer";
   joinedAt: Date;
   panels: PanelOption[];
+  brand: BrandSettings;
 }
 
 const ROLE_LABEL: Record<string, string> = {
@@ -74,7 +77,7 @@ function formatDate(d: Date): string {
   }).format(d);
 }
 
-export function FirmSettingsForm({ firm, profile, platformRole, joinedAt, panels }: Props) {
+export function FirmSettingsForm({ firm, profile, platformRole, joinedAt, panels, brand }: Props) {
   const fullName = profile.fullName || profile.email?.split("@")[0] || "Kullanıcı";
   const roleLabel = ROLE_LABEL[platformRole] ?? platformRole;
   const isAdmin = platformRole === "admin";
@@ -263,6 +266,13 @@ export function FirmSettingsForm({ firm, profile, platformRole, joinedAt, panels
             </div>
           </form>
         </SectionCard>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────
+          MARKA AYARLARI — sadece admin (PDF/Excel ciktilarinda kullanilir)
+         ───────────────────────────────────────────────────────────────── */}
+      {isAdmin && (
+        <BrandSettingsCard firmName={firm.name} initialBrand={brand} />
       )}
 
       {/* ─────────────────────────────────────────────────────────────────

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>BoQ PDF — Marka Karşılaştırması</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:"Inter","Segoe UI",Arial,sans-serif;background:#f1f5f9;padding:24px;color:#0f172a}
+  h1{font-size:22px;font-weight:700;margin-bottom:6px}
+  h1 small{font-size:13px;font-weight:500;color:#64748b}
+  .lead{font-size:13px;color:#475569;margin-bottom:18px;max-width:840px;line-height:1.55}
+  .lead strong{color:#0f172a}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:1280px}
+  .col{display:flex;flex-direction:column;gap:10px}
+  .col-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#64748b}
+  .col-title b{color:#0f172a}
+  .col-note{font-size:11.5px;color:#64748b;line-height:1.5}
+
+  /* A4 portrait scaled (210x297 mm aspect ratio) */
+  .page{
+    aspect-ratio:210/297;
+    background:#fff;
+    border-radius:6px;
+    overflow:hidden;
+    box-shadow:0 6px 20px -8px rgba(15,23,42,0.18);
+    position:relative;
+    font-size:6.5px;
+    line-height:1.4;
+    color:#0f172a;
+  }
+
+  /* Cover (varies by variant) */
+  .cover{
+    color:#fff;
+    padding:14px 14px 11px;
+    border-radius:0 0 8px 8px;
+    margin-bottom:3px;
+    position:relative;
+    overflow:hidden;
+  }
+  .cover .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .cover .badge{
+    display:inline-block;background:rgba(255,255,255,0.18);color:#fff;
+    padding:2px 6px;border-radius:99px;font-size:5.5px;font-weight:700;
+    text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;
+  }
+  .cover h1{font-size:13px;font-weight:800;color:#fff;letter-spacing:-0.02em;line-height:1.15;margin:0}
+  .cover .date{font-size:6.5px;color:rgba(255,255,255,0.75);margin-top:3px;font-weight:500}
+  .cover .badge-r{text-align:right;color:#fff;flex-shrink:0}
+  .cover .badge-r .label{font-size:5px;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.14em;font-weight:600;margin-bottom:2px}
+  .cover .badge-r .count{font-size:15px;font-weight:900;color:#fff;line-height:1}
+  .cover .badge-r .alt{font-size:6px;color:rgba(255,255,255,0.85);font-weight:600;margin-top:2px}
+  .meta-grid{margin-top:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .meta-grid .item{background:rgba(255,255,255,0.14);border-radius:5px;padding:5px 6px}
+  .meta-grid .item .l{font-size:5px;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:0.12em;font-weight:600;margin-bottom:2px}
+  .meta-grid .item .v{font-size:7px;color:#fff;font-weight:700;line-height:1.2;word-break:break-word}
+
+  /* Brand row in cover */
+  .brand-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+  .brand-logo{
+    width:32px;height:32px;border-radius:6px;
+    background:rgba(255,255,255,0.95);
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .brand-logo svg{width:20px;height:20px}
+  .brand-info{min-width:0}
+  .brand-name{font-size:9px;font-weight:800;color:#fff;letter-spacing:-0.01em;line-height:1.1}
+  .brand-slogan{font-size:5.5px;color:rgba(255,255,255,0.85);font-style:italic;margin-top:1px}
+
+  .accent-bar{height:2px}
+  .content{padding:9px 12px 4px;position:relative;z-index:2}
+  table{width:100%;border-collapse:collapse;margin-top:5px;font-size:5.5px}
+  th{background:#1e293b;color:#fff;padding:3px 4px;text-align:left;font-size:5px;font-weight:700;white-space:nowrap;text-transform:uppercase;letter-spacing:0.04em}
+  td{padding:2.5px 4px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+  .group-row td{border-top:1.5px solid #cbd5e1;border-bottom:1px solid #e2e8f0;font-size:6px;padding:3.5px 4px;font-weight:800}
+  .group-row.gr-a td{background:linear-gradient(135deg,#ecfdf5,#f0fdf4);color:#065f46;border-top-color:#10b981}
+  .group-row.gr-b td{background:linear-gradient(135deg,#eff6ff,#eef2ff);color:#1e3a8a;border-top-color:#3b82f6}
+  .group-row.gr-bordo td{background:linear-gradient(135deg,#fef2f2,#fff1f2);color:#881337;border-top-color:#be123c}
+  .item-row:nth-child(even) td{background:#fcfcfd}
+  .code-cell{color:#94a3b8;font-family:"Courier New",monospace;font-size:5px;width:38px}
+  .dim{color:#64748b}
+  .num{color:#334155;font-variant-numeric:tabular-nums}
+
+  /* Footer fingerprint */
+  .pdf-footer{
+    position:absolute;bottom:6px;left:0;right:0;
+    text-align:center;font-size:4.5px;color:#94a3b8;
+    font-family:"Courier New",monospace;letter-spacing:0.04em;
+    padding:0 12px;
+    z-index:3;
+  }
+  .pdf-footer strong{color:#475569;font-weight:600;font-family:inherit}
+
+  /* Diagonal watermark (background, very faint) */
+  .watermark{
+    position:absolute;inset:0;
+    pointer-events:none;
+    display:flex;align-items:center;justify-content:center;
+    z-index:1;
+    overflow:hidden;
+  }
+  .watermark span{
+    font-size:34px;font-weight:900;
+    color:rgba(15,23,42,0.05);
+    transform:rotate(-32deg);
+    white-space:nowrap;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+  }
+
+  /* ───────────────────────── VARIANT A: MEVCUT (emerald, markasız) */
+  .v-current .cover{background:linear-gradient(135deg,#064e3b 0%,#047857 50%,#10b981 100%)}
+  .v-current .accent-bar{background:linear-gradient(90deg,#047857,#10b981,transparent)}
+
+  /* ───────────────────────── VARIANT B: ÇAKIR SOLAR — koyu lacivert */
+  .v-cakir .cover{background:linear-gradient(135deg,#0c1e4d 0%,#1e3a8a 55%,#2563eb 100%)}
+  .v-cakir .accent-bar{background:linear-gradient(90deg,#1e3a8a,#3b82f6,transparent)}
+
+  /* ───────────────────────── VARIANT C: GÜNEŞ TEK — bordo */
+  .v-gunestek .cover{background:linear-gradient(135deg,#4c0519 0%,#9f1239 55%,#e11d48 100%)}
+  .v-gunestek .accent-bar{background:linear-gradient(90deg,#9f1239,#e11d48,transparent)}
+</style>
+</head>
+<body>
+
+<h1>BoQ PDF — Marka Karşılaştırması <small>(BoQ kapağı + ilk birkaç satır, A4 portrait ölçeğinde küçültülmüş önizleme)</small></h1>
+<p class="lead">
+  Soldaki <strong>mevcut</strong> — Furkan'ın panelinde şu an üretilen BoQ kapağı.
+  Ortadaki ve sağdaki <strong>marka uygulanmış</strong> iki örnek farklı renk
+  paletinde: logo, firma adı, slogan, hazırlayan mühendis bilgisi, doc-id'li
+  footer ve sayfa arkasında çapraz soluk watermark eklendi. Web arayüzü
+  emerald olarak kalır — bu sadece PDF/Excel'e gider.
+</p>
+
+<div class="grid">
+
+<!-- ─────────────────── COL 1: MEVCUT (markasız emerald) ─────────────────── -->
+<div class="col">
+  <div class="col-title">A — <b>MEVCUT</b> · markasız, default emerald</div>
+  <div class="page v-current">
+    <div class="cover">
+      <div class="top">
+        <div>
+          <span class="badge">Bill of Quantities · Kapsam Listesi</span>
+          <h1>Test Projesi · 1 MWp Arazi GES</h1>
+          <div class="date">8 Mayıs 2026 Cuma</div>
+        </div>
+        <div class="badge-r">
+          <div class="label">Toplam Kalem</div>
+          <div class="count">68</div>
+          <div class="alt">24 grup · 68 kalem</div>
+        </div>
+      </div>
+      <div class="meta-grid">
+        <div class="item"><div class="l">Yatırımcı</div><div class="v">Test Müşteri A.Ş.</div></div>
+        <div class="item"><div class="l">Lokasyon</div><div class="v">Konya / Karatay</div></div>
+        <div class="item"><div class="l">DC Güç</div><div class="v">1.00 MWp / 0.92 MWe</div></div>
+        <div class="item"><div class="l">Kurulum Tipi</div><div class="v">Arazi GES</div></div>
+      </div>
+    </div>
+    <div class="accent-bar"></div>
+    <div class="content">
+      <table>
+        <thead><tr>
+          <th style="width:38px">Kod</th>
+          <th>Tanım</th>
+          <th style="width:60px">Tip/Model</th>
+          <th style="width:50px">Marka</th>
+          <th style="text-align:center;width:24px">Birim</th>
+          <th style="text-align:right;width:38px">Miktar</th>
+        </tr></thead>
+        <tbody>
+          <tr class="group-row gr-a"><td colspan="6"><strong>A.1 — PV Paneller</strong></td></tr>
+          <tr class="item-row"><td class="code-cell">A.1.1</td><td>PV Panel</td><td class="dim">Mono PERC 625Wp</td><td class="dim">LONGi</td><td style="text-align:center" class="dim">adet</td><td style="text-align:right" class="num">1.600</td></tr>
+          <tr class="group-row gr-a"><td colspan="6"><strong>A.2 — İnverterler</strong></td></tr>
+          <tr class="item-row"><td class="code-cell">A.2.1</td><td>String İnverter</td><td class="dim">SUN2000-250</td><td class="dim">Huawei</td><td style="text-align:center" class="dim">adet</td><td style="text-align:right" class="num">4</td></tr>
+          <tr class="group-row gr-a"><td colspan="6"><strong>A.3 — Konstrüksiyon</strong></td></tr>
+          <tr class="item-row"><td class="code-cell">A.3.1</td><td>Çelik Konstrüksiyon</td><td class="dim">Sabit eksen</td><td class="dim">—</td><td style="text-align:center" class="dim">MWp</td><td style="text-align:right" class="num">1,00</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- Mevcut versiyonda watermark/footer YOK -->
+  </div>
+  <div class="col-note">
+    Logosu yok, firma kimliği yok. Hazırlayan mühendis görünmüyor. Kim ne zaman
+    üretmiş kaydı yok — rakipte çıkarsa iz sürülemez. Footer boş.
+  </div>
+</div>
+
+
+<!-- ─────────────────── COL 2: ÇAKIR SOLAR (lacivert) ─────────────────── -->
+<div class="col">
+  <div class="col-title">B — <b>ÇAKIR SOLAR MÜHENDİSLİK</b> · lacivert palet</div>
+  <div class="page v-cakir">
+    <!-- Diagonal watermark on background -->
+    <div class="watermark"><span>ÇAKIR SOLAR</span></div>
+
+    <div class="cover">
+      <!-- Brand row -->
+      <div class="brand-row">
+        <div class="brand-logo">
+          <!-- Star logo (placeholder) -->
+          <svg viewBox="0 0 24 24" fill="#1e3a8a" stroke="#1e3a8a" stroke-width="1">
+            <path d="M12 2 L14 9 L21 9 L15.5 13.5 L17.5 21 L12 16.5 L6.5 21 L8.5 13.5 L3 9 L10 9 Z"/>
+          </svg>
+        </div>
+        <div class="brand-info">
+          <div class="brand-name">Çakır Solar Mühendislik A.Ş.</div>
+          <div class="brand-slogan">Güneşten enerji, mühendislikten güven</div>
+        </div>
+      </div>
+
+      <div class="top">
+        <div>
+          <span class="badge">Bill of Quantities · Kapsam Listesi</span>
+          <h1>Test Projesi · 1 MWp Arazi GES</h1>
+          <div class="date">8 Mayıs 2026 Cuma</div>
+        </div>
+        <div class="badge-r">
+          <div class="label">Toplam Kalem</div>
+          <div class="count">68</div>
+          <div class="alt">24 grup · 68 kalem</div>
+        </div>
+      </div>
+      <div class="meta-grid">
+        <div class="item"><div class="l">Yatırımcı</div><div class="v">Test Müşteri A.Ş.</div></div>
+        <div class="item"><div class="l">Lokasyon</div><div class="v">Konya / Karatay</div></div>
+        <div class="item"><div class="l">DC Güç</div><div class="v">1.00 MWp / 0.92 MWe</div></div>
+        <div class="item"><div class="l">Hazırlayan</div><div class="v">Müh. Mehmet Çakır</div></div>
+      </div>
+    </div>
+    <div class="accent-bar"></div>
+    <div class="content">
+      <table>
+        <thead><tr>
+          <th style="width:38px">Kod</th>
+          <th>Tanım</th>
+          <th style="width:60px">Tip/Model</th>
+          <th style="width:50px">Marka</th>
+          <th style="text-align:center;width:24px">Birim</th>
+          <th style="text-align:right;width:38px">Miktar</th>
+        </tr></thead>
+        <tbody>
+          <tr class="group-row gr-b"><td colspan="6"><strong>A.1 — PV Paneller</strong></td></tr>
+          <tr class="item-row"><td class="code-cell">A.1.1</td><td>PV Panel</td><td class="dim">Mono PERC 625Wp</td><td class="dim">LONGi</td><td style="text-align:center" class="dim">adet</td><td style="text-align:right" class="num">1.600</td></tr>
+          <tr class="group-row gr-b"><td colspan="6"><strong>A.2 — İnverterler</strong></td></tr>
+          <tr class="item-row"><td class="code-cell">A.2.1</td><td>String İnverter</td><td class="dim">SUN2000-250</td><td class="dim">Huawei</td><td style="text-align:center" class="dim">adet</td><td style="text-align:right" class="num">4</td></tr>
+          <tr class="group-row gr-b"><td colspan="6"><strong>A.3 — Konstrüksiyon</strong></td></tr>
+          <tr class="item-row"><td class="code-cell">A.3.1</td><td>Çelik Konstrüksiyon</td><td class="dim">Sabit eksen</td><td class="dim">—</td><td style="text-align:center" class="dim">MWp</td><td style="text-align:right" class="num">1,00</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pdf-footer">
+      <strong>ÇAKIR SOLAR MÜHENDİSLİK A.Ş.</strong> · mehmet@cakirsolar.com.tr · 8 May 2026 14:32 · doc-id: <strong>8K3-9MX-2P7</strong>
+    </div>
+  </div>
+  <div class="col-note">
+    Sol üstte logo + firma adı + slogan. "Kurulum Tipi" yerini "Hazırlayan: Müh.
+    Mehmet Çakır" aldı. Footer'da firma + üreten kişi e-postası + tarih +
+    benzersiz doc-id var. Arka planda çapraz çok soluk firma adı watermark'i.
+  </div>
+</div>
+
+
+<!-- ─────────────────── COL 3: GÜNEŞ TEK ENERJİ (bordo) ─────────────────── -->
+<div class="col">
+  <div class="col-title">C — <b>GÜNEŞ TEK ENERJİ</b> · bordo palet</div>
+  <div class="page v-gunestek">
+    <div class="watermark"><span>GÜNEŞ TEK</span></div>
+
+    <div class="cover">
+      <div class="brand-row">
+        <div class="brand-logo">
+          <!-- Sun logo (lucide-like) -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="#9f1239" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2"/><path d="M12 20v2"/>
+            <path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/>
+            <path d="M2 12h2"/><path d="M20 12h2"/>
+            <path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
+          </svg>
+        </div>
+        <div class="brand-info">
+          <div class="brand-name">Güneş Tek Enerji Sistemleri</div>
+          <div class="brand-slogan">Sahadan ofise, baştan sona EPC çözümleri</div>
+        </div>
+      </div>
+
+      <div class="top">
+        <div>
+          <span class="badge">Bill of Quantities · Kapsam Listesi</span>
+          <h1>Test Projesi · 1 MWp Arazi GES</h1>
+          <div class="date">8 Mayıs 2026 Cuma</div>
+        </div>
+        <div class="badge-r">
+          <div class="label">Toplam Kalem</div>
+          <div class="count">68</div>
+          <div class="alt">24 grup · 68 kalem</div>
+        </div>
+      </div>
+      <div class="meta-grid">
+        <div class="item"><div class="l">Yatırımcı</div><div class="v">Test Müşteri A.Ş.</div></div>
+        <div class="item"><div class="l">Lokasyon</div><div class="v">Konya / Karatay</div></div>
+        <div class="item"><div class="l">DC Güç</div><div class="v">1.00 MWp / 0.92 MWe</div></div>
+        <div class="item"><div class="l">Hazırlayan</div><div class="v">Müh. Ayşe Yılmaz</div></div>
+      </div>
+    </div>
+    <div class="accent-bar"></div>
+    <div class="content">
+      <table>
+        <thead><tr>
+          <th style="width:38px">Kod</th>
+          <th>Tanım</th>
+          <th style="width:60px">Tip/Model</th>
+          <th style="width:50px">Marka</th>
+          <th style="text-align:center;width:24px">Birim</th>
+          <th style="text-align:right;width:38px">Miktar</th>
+        </tr></thead>
+        <tbody>
+          <tr class="group-row gr-bordo"><td colspan="6"><strong>A.1 — PV Paneller</strong></td></tr>
+          <tr class="item-row"><td class="code-cell">A.1.1</td><td>PV Panel</td><td class="dim">Mono PERC 625Wp</td><td class="dim">LONGi</td><td style="text-align:center" class="dim">adet</td><td style="text-align:right" class="num">1.600</td></tr>
+          <tr class="group-row gr-bordo"><td colspan="6"><strong>A.2 — İnverterler</strong></td></tr>
+          <tr class="item-row"><td class="code-cell">A.2.1</td><td>String İnverter</td><td class="dim">SUN2000-250</td><td class="dim">Huawei</td><td style="text-align:center" class="dim">adet</td><td style="text-align:right" class="num">4</td></tr>
+          <tr class="group-row gr-bordo"><td colspan="6"><strong>A.3 — Konstrüksiyon</strong></td></tr>
+          <tr class="item-row"><td class="code-cell">A.3.1</td><td>Çelik Konstrüksiyon</td><td class="dim">Sabit eksen</td><td class="dim">—</td><td style="text-align:center" class="dim">MWp</td><td style="text-align:right" class="num">1,00</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pdf-footer">
+      <strong>GÜNEŞ TEK ENERJİ SİSTEMLERİ</strong> · ayse@gunestek.com · 8 May 2026 14:35 · doc-id: <strong>3F7-2QW-8N1</strong>
+    </div>
+  </div>
+  <div class="col-note">
+    Aynı yapı, farklı kurumsal kimlik (bordo + güneş logosu). Hazırlayan mühendis,
+    doc-id ve watermark her PDF'e otomatik basılır — kim ürettiyse onun bilgileri
+    gelir, kullanıcı kapatamaz.
+  </div>
+</div>
+
+</div>
+
+</body>
+</html>

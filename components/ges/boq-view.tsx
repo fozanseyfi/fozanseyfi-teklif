@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { downloadExcel } from "@/lib/excel-export";
 import { DetailPageHeader, prevHref } from "@/components/ges/detail-page-header";
+import { resolveBrand, generateDocId, brandRowHtml, brandFooterHtml, watermarkHtml, type BrandSettings } from "@/lib/pdf-brand";
 
 function fmt(n: number, d = 0) {
   return n.toLocaleString("tr-TR", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -33,9 +34,12 @@ interface Props {
   kesifA: KesifGroup[];
   kesifB: KesifGroup[];
   settings: GesSettings;
+  firmName: string;
+  brand: BrandSettings;
+  userEmail: string;
 }
 
-export function BoQView({ projectId, projectName, project, kesifA, kesifB, settings }: Props) {
+export function BoQView({ projectId, projectName, project, kesifA, kesifB, settings, firmName, brand, userEmail }: Props) {
   const [search, setSearch] = useState("");
   const [showPrices, setShowPrices] = useState(false);
 
@@ -156,40 +160,47 @@ export function BoQView({ projectId, projectName, project, kesifA, kesifB, setti
       (project.projectLocation && project.projectLocation.trim()) ||
       "";
 
+    // Marka renderlama: kullanici Profilim'de hangi unsurlari acmissa onlar
+    // gozukur. Toggle kapaliysa default emerald BoQ kapagi.
+    const ctx = resolveBrand(brand);
+    const docId = generateDocId();
+
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>BoQ — ${escapeHtml(projectName)}</title>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       body{font-family:"Inter","Segoe UI",Arial,sans-serif;font-size:9.5px;color:#0f172a;padding:0}
       @page{size:A4;margin:14mm}
-      .cover{background:linear-gradient(135deg,#064e3b 0%,#047857 50%,#10b981 100%);color:#fff;padding:22px 24px 18px;border-radius:0 0 12px 12px;margin-bottom:6px}
+      .cover{background:${ctx.coverGradient};color:#fff;padding:22px 24px 18px;border-radius:0 0 12px 12px;margin-bottom:6px}
       .cover .top{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}
       .cover .badge{display:inline-block;background:rgba(255,255,255,0.18);color:#fff;padding:3px 10px;border-radius:99px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px}
       .cover h1{font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.02em;line-height:1.15}
       .cover .date{font-size:10.5px;color:rgba(255,255,255,0.75);margin-top:5px;font-weight:500}
       .cover .badge-r{text-align:right;color:#fff;flex-shrink:0}
-      .cover .badge-r .label{font-size:8.5px;color:rgba(167,243,208,0.85);text-transform:uppercase;letter-spacing:0.14em;font-weight:600;margin-bottom:4px}
+      .cover .badge-r .label{font-size:8.5px;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:0.14em;font-weight:600;margin-bottom:4px}
       .cover .badge-r .count{font-size:24px;font-weight:900;color:#fff;line-height:1}
-      .cover .badge-r .alt{font-size:10px;color:rgba(167,243,208,0.95);font-weight:600;margin-top:4px}
+      .cover .badge-r .alt{font-size:10px;color:rgba(255,255,255,0.95);font-weight:600;margin-top:4px}
       .meta-grid{margin-top:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
       .meta-grid .item{background:rgba(255,255,255,0.12);border-radius:8px;padding:8px 10px}
-      .meta-grid .item .l{font-size:8px;color:rgba(167,243,208,0.85);text-transform:uppercase;letter-spacing:0.14em;font-weight:600;margin-bottom:3px}
+      .meta-grid .item .l{font-size:8px;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:0.14em;font-weight:600;margin-bottom:3px}
       .meta-grid .item .v{font-size:11.5px;color:#fff;font-weight:700;letter-spacing:-0.01em;line-height:1.2;word-break:break-word}
-      .accent-bar{height:3px;background:linear-gradient(90deg,#047857,#10b981,transparent)}
-      .content{padding:14px 22px 6px}
+      .accent-bar{height:3px;background:${ctx.accentGradient}}
+      .content{padding:14px 22px 6px;position:relative;z-index:2}
       table{width:100%;border-collapse:collapse;margin-top:10px;font-size:9.5px}
       th{background:#1e293b;color:#fff;padding:6px 8px;text-align:left;font-size:8.5px;font-weight:700;white-space:nowrap;text-transform:uppercase;letter-spacing:0.04em}
       td{padding:5px 8px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
-      .group-row td{background:linear-gradient(135deg,#ecfdf5,#f0fdf4);border-top:2px solid #10b981;border-bottom:1px solid #a7f3d0;font-size:10.5px;color:#065f46;padding:6px 8px;font-weight:800}
+      .group-row td{background:#f8fafc;border-top:2px solid ${ctx.primary};border-bottom:1px solid #e2e8f0;font-size:10.5px;color:${ctx.primaryDark};padding:6px 8px;font-weight:800}
       .item-row:nth-child(even) td{background:#fcfcfd}
       .code-cell{color:#94a3b8;font-family:"Courier New",monospace;font-size:8.5px;width:62px}
       .dim{color:#64748b}
       .num{color:#334155;font-variant-numeric:tabular-nums}
-      .subtotal td{background:#ecfdf5;font-weight:800;color:#047857;border-top:2px solid #a7f3d0;padding:6px 8px}
-      .total-row td{background:linear-gradient(135deg,#d1fae5,#a7f3d0);font-weight:900;color:#065f46;border-top:3px solid #047857;font-size:11.5px;padding:7px 8px}
+      .subtotal td{background:#f1f5f9;font-weight:800;color:${ctx.primaryDark};border-top:2px solid ${ctx.primary};padding:6px 8px}
+      .total-row td{background:#e2e8f0;font-weight:900;color:${ctx.primaryDark};border-top:3px solid ${ctx.primary};font-size:11.5px;padding:7px 8px}
       .footer{margin-top:14px;padding:10px 22px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:8.5px;color:#94a3b8}
       @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
     </style></head><body>
+    ${watermarkHtml(ctx, firmName)}
     <div class="cover">
+      ${brandRowHtml(ctx, firmName)}
       <div class="top">
         <div>
           <span class="badge">Bill of Quantities · Kapsam Listesi</span>
@@ -233,6 +244,7 @@ export function BoQView({ projectId, projectName, project, kesifA, kesifB, setti
         </tbody>
       </table>
     </div>
+    ${brandFooterHtml(ctx, firmName, userEmail, docId)}
     </body></html>`;
 
     const w = window.open("", "_blank");
