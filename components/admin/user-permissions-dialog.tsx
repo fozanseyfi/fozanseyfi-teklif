@@ -27,7 +27,10 @@ export function UserPermissionsDialog({ userId, userRole, trigger }: Props) {
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
-    if (next && !data) {
+    if (next) {
+      // Her acilista DB'den taze veri cek — kullanici onceki acilista
+      // Tam/Salt/Gizli degisikligi yapmis olabilir; cached state
+      // kapanir kapanmaz "ilk haline donuyor" izlenimi veriyordu.
       startTransition(async () => {
         const r = await getUserAccessData(userId);
         if ("error" in r) {
@@ -37,6 +40,10 @@ export function UserPermissionsDialog({ userId, userRole, trigger }: Props) {
         }
         setData(r.data);
       });
+    } else {
+      // Kapatma: state'i tamamen sifirla ki sonraki acilista loading
+      // gozuksun ve fresh fetch garanti olsun.
+      setData(null);
     }
   }
 
