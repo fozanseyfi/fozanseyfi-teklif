@@ -22,6 +22,8 @@ import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
 import { DisclaimerButton } from "@/components/shared/legal-disclaimer";
 import { TurkeyMapLazy as TurkeyMap } from "@/components/dashboard/turkey-map-lazy";
 import { ProjectStatusChanger } from "@/components/ges/project-status-changer";
+import { isAdmin } from "@/lib/permissions";
+import { getHiddenResourceIds } from "@/lib/permission-server";
 import {
   COMPLETION_TRANSITION_VALUES,
   isCompletionStatus,
@@ -51,12 +53,30 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "success" | "warn
 export default async function DashboardPage() {
   const user = await requireAuth();
 
+  // Admin disindaki kullanicilar icin gizlenmis proje + musteri ID'lerini al.
+  // Gizli musteri => o musteriye bagli projeler de listede cikmaz. Bu
+  // /projects sayfasiyla ayni filter mantigi — dashboard'da da gecerli
+  // olmaliki KPI sayilari (toplam, MWp), Son Projeler ve harita tutarli.
+  const hiddenProjectIds = isAdmin(user)
+    ? []
+    : await getHiddenResourceIds(user.id, user.organizationId, "project");
+  const hiddenCustomerNames = isAdmin(user)
+    ? []
+    : await getHiddenResourceIds(user.id, user.organizationId, "customer");
+
   // Tum gercek projeleri tek sorguda cek; sonra isProjectVisible ile yarim
   // kalmislari filtrele. Yarim kalmis projeler temizleyici tarafindan
   // genelde silinir ama race/cleanup-fail durumlarinda yine de UI'da
   // gozukmesinler.
   const allRawProjects = await prisma.project.findMany({
-    where: { organizationId: user.organizationId, isTemplate: false },
+    where: {
+      organizationId: user.organizationId,
+      isTemplate: false,
+      ...(hiddenProjectIds.length ? { id: { notIn: hiddenProjectIds } } : {}),
+      ...(hiddenCustomerNames.length
+        ? { customerName: { notIn: hiddenCustomerNames } }
+        : {}),
+    },
     orderBy: { updatedAt: "desc" },
     include: {
       pricingSnapshot: true,
