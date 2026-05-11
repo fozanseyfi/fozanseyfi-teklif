@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { NavActions } from "@/components/ges/nav-actions";
 import { printAnaliz } from "@/components/ges/analiz-print";
+import type { BrandSettings } from "@/lib/pdf-brand";
 import { useReadOnly } from "@/lib/readonly-context";
 
 type SectionTone = "primary" | "info" | "success" | "warning" | "destructive";
@@ -53,9 +54,12 @@ interface Props {
   kesifB: KesifGroup[];
   settings: GesSettings;
   timeline: TimelineData;
+  firmName: string;
+  brand: BrandSettings;
+  userEmail: string;
 }
 
-export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB: kesifBInit, settings, timeline }: Props) {
+export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB: kesifBInit, settings, timeline, firmName, brand, userEmail }: Props) {
   const isReadOnly = useReadOnly();
   const [s, setS] = useState<GesSettings>(settings);
   const [localKesifA, setLocalKesifA] = useState<KesifGroup[]>(kesifAInit);
@@ -751,6 +755,9 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
               kesifA: localKesifA,
               kesifB: localKesifB,
               timeline,
+              firmName,
+              brand,
+              userEmail,
             })
           }
           className="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"

@@ -158,7 +158,7 @@ export function BrandSettingsCard({ firmName, initialBrand }: Props) {
             <FieldRow icon={ImageIcon} label="Firma Logosu">
               <div className="flex flex-wrap items-center gap-3">
                 {logoUrl ? (
-                  <div className="flex items-center gap-3 rounded-lg border bg-slate-50 px-3 py-2">
+                  <div className="flex items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-[linear-gradient(45deg,#f8fafc_25%,transparent_25%,transparent_75%,#f8fafc_75%),linear-gradient(45deg,#f8fafc_25%,#fff_25%,#fff_75%,#f8fafc_75%)] bg-[length:12px_12px] bg-[position:0_0,6px_6px] px-3 py-2">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={logoUrl}
@@ -170,7 +170,7 @@ export function BrandSettingsCard({ firmName, initialBrand }: Props) {
                       onClick={onRemoveLogo}
                       disabled={removing}
                       title="Logoyu kaldır"
-                      className="rounded-md p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+                      className="ml-auto rounded-md p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
                     >
                       <X className="size-4" />
                     </button>

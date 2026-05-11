@@ -1,6 +1,14 @@
 import type { Project } from "@prisma/client";
 import { calc, getGrpTot, toUSD } from "@/lib/ges-engine";
 import type { KesifGroup, GesSettings, TimelineData } from "@/lib/ges-defaults";
+import {
+  resolveBrand,
+  generateDocId,
+  brandRowHtml,
+  brandFooterHtml,
+  watermarkHtml,
+  type BrandSettings,
+} from "@/lib/pdf-brand";
 
 interface PrintArgs {
   project: Project;
@@ -8,6 +16,9 @@ interface PrintArgs {
   kesifA: KesifGroup[];
   kesifB: KesifGroup[];
   timeline: TimelineData;
+  firmName: string;
+  brand: BrandSettings;
+  userEmail: string;
 }
 
 function fmt(n: number, d = 0) {
@@ -27,12 +38,14 @@ function escapeHtml(s: string): string {
  * uretir. KPI, maliyet kirilimi, halka grafigi, top kalemler, cash flow,
  * doviz duyarliligi — hepsi tek belgede.
  */
-export function printAnaliz({ project, settings: s, kesifA, kesifB, timeline }: PrintArgs) {
+export function printAnaliz({ project, settings: s, kesifA, kesifB, timeline, firmName, brand, userEmail }: PrintArgs) {
   const result = calc(kesifA, kesifB, s);
   const dcWp = s.dcGuc * 1_000_000;
   const dcKw = s.dcGuc * 1000;
   const perKwUsd = result.perKwUsd;
   const sale = result.salePriceUsd;
+  const brandCtx = resolveBrand(brand);
+  const docId = generateDocId();
 
   // Group totals
   const groupTotals = [...kesifA, ...kesifB]
@@ -166,7 +179,7 @@ export function printAnaliz({ project, settings: s, kesifA, kesifB, timeline }: 
   body{font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;font-size:10px;color:#0f172a;background:#fff}
   @page{size:A4;margin:14mm}
   .page-break{page-break-after:always}
-  .cover{background:linear-gradient(135deg,#064e3b 0%,#047857 50%,#059669 100%);color:#fff;padding:28px 32px;display:flex;justify-content:space-between;align-items:flex-end;border-radius:0 0 14px 14px;margin-bottom:16px}
+  .cover{background:${brandCtx.coverGradient};color:#fff;padding:28px 32px;display:flex;justify-content:space-between;align-items:flex-end;border-radius:0 0 14px 14px;margin-bottom:16px;position:relative;z-index:2}
   .cover h1{font-size:22px;font-weight:800;letter-spacing:-0.02em;margin-bottom:4px}
   .cover .sub{font-size:11px;color:rgba(255,255,255,0.75);font-weight:500}
   .cover .meta{margin-top:10px;font-size:10px;color:rgba(236,253,245,0.85);display:flex;gap:14px;flex-wrap:wrap}
@@ -226,9 +239,12 @@ export function printAnaliz({ project, settings: s, kesifA, kesifB, timeline }: 
   @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body>
 
+${watermarkHtml(brandCtx, firmName)}
+
 <!-- COVER -->
 <div class="cover">
   <div>
+    ${brandRowHtml(brandCtx, firmName)}
     <span class="badge">Yönetici Özeti · Solar EPC Analiz</span>
     <h1 style="margin-top:8px">${escapeHtml(project.name || "Proje")}</h1>
     <div class="sub">${new Date().toLocaleDateString("tr-TR", { dateStyle: "long" })}${project.customerName ? ` · ${escapeHtml(project.customerName)}` : ""}</div>
@@ -402,6 +418,7 @@ export function printAnaliz({ project, settings: s, kesifA, kesifB, timeline }: 
   </div>
 
 </div>
+${brandFooterHtml(brandCtx, firmName, userEmail, docId)}
 </body></html>`;
 
   const w = window.open("", "_blank");

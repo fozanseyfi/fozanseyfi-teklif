@@ -117,18 +117,18 @@ export function generateDocId(): string {
   return `${part(3)}-${part(3)}-${part(3)}`;
 }
 
-/** PDF print için brand-row HTML parçası — cover'ın en üstüne gömülür. */
+/** PDF print için brand-row HTML parçası — cover'ın en üstüne gömülür.
+ *  Logo arka plansız (transparent) render edilir; cover gradient'inin üzerine
+ *  doğrudan oturur. PNG/SVG transparency korunur. */
 export function brandRowHtml(brand: BrandContext, firmName: string): string {
   if (!brand.showLogo && !brand.showSlogan) return "";
   const logo = brand.showLogo
-    ? `<div style="width:40px;height:40px;border-radius:8px;background:rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
-         <img src="${escapeHtml(brand.logoUrl!)}" alt="" style="max-width:100%;max-height:100%;object-fit:contain"/>
-       </div>`
+    ? `<img src="${escapeHtml(brand.logoUrl!)}" alt="" style="max-height:42px;max-width:140px;object-fit:contain;flex-shrink:0"/>`
     : "";
   const slogan = brand.showSlogan
     ? `<div style="font-size:9.5px;color:rgba(255,255,255,0.85);font-style:italic;margin-top:2px">${escapeHtml(brand.slogan!)}</div>`
     : "";
-  return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+  return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
     ${logo}
     <div style="min-width:0">
       <div style="font-size:13px;font-weight:800;color:#fff;letter-spacing:-0.01em;line-height:1.1">${escapeHtml(firmName)}</div>

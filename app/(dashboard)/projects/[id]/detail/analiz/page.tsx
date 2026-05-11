@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateProjectDetail } from "@/app/actions/ges";
 import { AnalizDashboard } from "@/components/ges/analiz-dashboard";
+import { parseBrandSettings } from "@/lib/pdf-brand";
 import type { KesifGroup, GesSettings, TimelineData } from "@/lib/ges-defaults";
 
 interface Props {
@@ -12,7 +13,10 @@ interface Props {
 export default async function AnalizPage({ params }: Props) {
   const { id } = await params;
   const user = await requireAuth();
-  const project = await prisma.project.findFirst({ where: { id, organizationId: user.organizationId } });
+  const [project, org] = await Promise.all([
+    prisma.project.findFirst({ where: { id, organizationId: user.organizationId } }),
+    prisma.organization.findUnique({ where: { id: user.organizationId } }),
+  ]);
   if (!project) notFound();
   const detail = await getOrCreateProjectDetail(id);
   return (
@@ -23,6 +27,9 @@ export default async function AnalizPage({ params }: Props) {
       kesifB={detail.kesifB as unknown as KesifGroup[]}
       settings={detail.settings as unknown as GesSettings}
       timeline={detail.timeline as unknown as TimelineData}
+      firmName={org?.name ?? "Firma"}
+      brand={parseBrandSettings(org?.brandSettings)}
+      userEmail={user.email ?? ""}
     />
   );
 }

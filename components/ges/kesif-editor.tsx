@@ -4,6 +4,15 @@ import { useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { saveKesifA, saveKesifB } from "@/app/actions/ges";
 import { useDirtyTracker } from "@/lib/unsaved-changes";
+import {
+  resolveBrand,
+  generateDocId,
+  brandRowHtml,
+  brandFooterHtml,
+  watermarkHtml,
+  type BrandContext,
+  type BrandSettings,
+} from "@/lib/pdf-brand";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -37,6 +46,9 @@ interface Props {
   type: "A" | "B";
   data: KesifGroup[];
   settings: GesSettings;
+  firmName: string;
+  brand: BrandSettings;
+  userEmail: string;
 }
 
 function newItem(groupCode: string, itemCount: number): KesifItem {
@@ -59,11 +71,17 @@ function printKesif(
   groups: KesifGroup[],
   settings: GesSettings,
   grandTotal: number,
+  brand: BrandContext,
+  firmName: string,
+  userEmail: string,
 ) {
   const isA = title.includes("A");
-  const accentColor = isA ? "#059669" : "#7c3aed";
-  const accentLight = isA ? "#ecfdf5" : "#ede9fe";
-  const accentBorder = isA ? "#34d399" : "#a78bfa";
+  // Default emerald (A) / mor (B) — colorEnabled false ise; aksi halde
+  // marka rengi tek paletle her iki tipe de uygulanir.
+  const accentColor = brand.primary !== "#059669" ? brand.primary : (isA ? "#059669" : "#7c3aed");
+  const accentLight = brand.primary !== "#059669" ? brand.primaryLight + "20" : (isA ? "#ecfdf5" : "#ede9fe");
+  const accentBorder = brand.primary !== "#059669" ? brand.primary : (isA ? "#34d399" : "#a78bfa");
+  const docId = generateDocId();
 
   const rows = groups
     .map((g) => {
@@ -117,8 +135,10 @@ function printKesif(
     .total-row td{background:${accentLight};font-weight:700;font-size:10px;border-top:3px double ${accentBorder};color:${accentColor}}
     @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.header{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
   </style></head><body>
-  <div class="header">
+  ${watermarkHtml(brand, firmName)}
+  <div class="header" style="position:relative;z-index:2">
     <div>
+      ${brandRowHtml(brand, firmName)}
       <div class="header h1">${title}</div>
       <div class="sub">${new Date().toLocaleDateString("tr-TR")} · ${groups.reduce((s, g) => s + g.items.length, 0)} kalem · ${groups.length} grup</div>
     </div>
@@ -128,7 +148,7 @@ function printKesif(
     </div>
   </div>
   <div class="accent-bar"></div>
-  <div class="content">
+  <div class="content" style="position:relative;z-index:2">
     <table>
       <thead><tr>
         <th style="width:52px">Kod</th>
@@ -150,6 +170,7 @@ function printKesif(
       </tbody>
     </table>
   </div>
+  ${brandFooterHtml(brand, firmName, userEmail, docId)}
   </body></html>`;
 
   const w = window.open("", "_blank");
@@ -161,7 +182,7 @@ function printKesif(
   }, 300);
 }
 
-export function KesifEditor({ projectId, projectName, type, data, settings }: Props) {
+export function KesifEditor({ projectId, projectName, type, data, settings, firmName, brand, userEmail }: Props) {
   const [groups, setGroups] = useState<KesifGroup[]>(data);
   const [saving, setSaving] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
@@ -173,6 +194,10 @@ export function KesifEditor({ projectId, projectName, type, data, settings }: Pr
   const baselineRef = useRef<string>(JSON.stringify(data));
   const isDirty = JSON.stringify(groups) !== baselineRef.current;
   useDirtyTracker(isDirty);
+
+  // PDF brand context — Profilim'den gelen ayar set'ini dogru renge/logoya
+  // cevirir. printKesif cagrilirken kullanilir.
+  const brandCtx = useMemo(() => resolveBrand(brand), [brand]);
 
   const title =
     type === "A"
@@ -295,7 +320,7 @@ export function KesifEditor({ projectId, projectName, type, data, settings }: Pr
             <Button
               variant="outline"
               size="sm"
-              onClick={() => printKesif(title, groups, settings, grandTotal)}
+              onClick={() => printKesif(title, groups, settings, grandTotal, brandCtx, firmName, userEmail)}
             >
               <FileDown className="size-3.5" />
               PDF

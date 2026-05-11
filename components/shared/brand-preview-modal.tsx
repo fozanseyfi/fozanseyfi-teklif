@@ -150,26 +150,17 @@ export function BrandPreviewModal({ open, onClose, firmName, brand }: Props) {
                   }}
                 >
                   {ctx.showLogo && (
-                    <div
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={ctx.logoUrl}
+                      alt=""
                       style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 7,
-                        background: "rgba(255,255,255,0.95)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
+                        maxHeight: 36,
+                        maxWidth: 110,
+                        objectFit: "contain",
                         flexShrink: 0,
-                        overflow: "hidden",
                       }}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={ctx.logoUrl}
-                        alt=""
-                        style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
-                      />
-                    </div>
+                    />
                   )}
                   <div style={{ minWidth: 0 }}>
                     <div
