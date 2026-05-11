@@ -188,6 +188,16 @@ model Project {
   status      ProjectStatus @default(DRAFT)
   currentStep Int           @default(1)
 
+  // Satış pipeline'ı — Project.status'tan AYRI bir eksen. status proje yaşam
+  // döngüsü (taslak/devam/tamamlandı), pipelineStage satış sürecidir
+  // (gönderildi → inceleniyor → revizyon → kazanıldı/kaybedildi).
+  // null = pipeline'a girmemiş (henüz paylaşılmamış taslak).
+  pipelineStage  PipelineStage? @map("pipeline_stage")
+  // Sadece pipelineStage = LOST iken doldurulur. Yıl sonu raporlamada altın değerinde.
+  lostReason     LostReason?    @map("lost_reason")
+  // Rakip bilgisi — kaybedilen tekliflerde "kime kaybettik?"
+  competitorName String?        @map("competitor_name")
+
   isTemplate    Boolean @default(false)
   templateLabel String?
   templateOrder Int     @default(0)
@@ -202,9 +212,11 @@ model Project {
   proposal        Proposal?
   projectDetail   ProjectDetail?
   shareLinks      ShareLink[]
+  activities      ProjectActivity[]
 
   @@index([isTemplate, templateOrder])
   @@index([organizationId])
+  @@index([pipelineStage])
   @@schema("solar")
 }
 
@@ -271,6 +283,8 @@ model ShareLink {
   revokedAt      DateTime?    @map("revoked_at")
   createdAt      DateTime     @default(now()) @map("created_at")
 
+  activities     ProjectActivity[]
+
   @@index([organizationId, createdAt])
   @@index([projectId])
   @@map("share_links")
@@ -324,6 +338,79 @@ enum ProjectStatus {
   CLOSE_LOST
   CANCELLED
 
+  @@schema("solar")
+}
+
+/// Satış pipeline aşamaları — proje yaşam döngüsünden (Project.status) ayrı.
+/// Yöneticinin satış sürecini izlemesi için.
+enum PipelineStage {
+  SENT          // Müşteriye gönderildi (paylaşım linki üretilince otomatik)
+  UNDER_REVIEW  // Müşteri görüntüledi (ilk view'da otomatik)
+  REVISED       // Müşteri revizyon istedi
+  WON           // Kazanıldı (müşteri kabul etti veya manuel)
+  LOST          // Kaybedildi (manuel; lostReason zorunlu)
+
+  @@schema("solar")
+}
+
+/// Kayıp sebepleri — yıl sonu raporda "neden kaybediyoruz?" sorusunu cevaplar.
+enum LostReason {
+  PRICE          // Fiyatımız yüksekti
+  TECHNICAL      // Teknik çözümümüz uymadı
+  REFERENCE      // Referansımız/firmamız yetersiz bulundu
+  TIMING         // Zamanlama uymadı (proje ertelendi/iptal)
+  RELATIONSHIP   // Müşteri ilişkisi (mevcut sağlayıcıya gitti)
+  OTHER          // Diğer
+
+  @@schema("solar")
+}
+
+/// ProjectActivity tipleri — hem dahili (admin notu, telefon kaydı) hem
+/// public (müşteri paylaşımı görüntüledi/yanıtladı) etkinlikleri kapsar.
+enum ActivityType {
+  CUSTOMER_VIEWED         // Müşteri paylaşım linkini ilk kez görüntüledi (otomatik)
+  CUSTOMER_ACCEPTED       // Müşteri "Kabul Ediyorum" butonuna bastı
+  CUSTOMER_REVISION       // Müşteri "Revizyon İste" butonuna bastı (mesajlı)
+  CUSTOMER_QUESTION       // Müşteri "Soru Sor" butonuna bastı (mesajlı)
+  INTERNAL_NOTE           // Yönetici/kullanıcı eklediği iç not
+  PHONE_CALL              // Telefon görüşmesi kaydı
+  EMAIL_SENT              // Mail gönderildi (manuel kayıt)
+  STAGE_CHANGE            // Pipeline stage değiştirildi (otomatik)
+
+  @@schema("solar")
+}
+
+/// Proje aktivite akışı — hem dahili etkinlikler (admin notları) hem public
+/// share üzerinden müşteri yanıtları tek bir timeline'da toplanır. Pipeline
+/// sayfasında kronolojik gösterilir.
+model ProjectActivity {
+  id              String        @id @default(cuid())
+  projectId       String        @map("project_id")
+  project         Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organizationId  String        @map("organization_id") @db.Uuid
+
+  type            ActivityType
+  // Müşteri yanıtlarında müşterinin yazdığı not, iç notlarda kullanıcının metni.
+  message         String?
+  // Etkinliği kim tetikledi — internal user için actorId, public müşteri için
+  // null (snapshot adı message/details içinde tutulur).
+  actorId         String?       @map("actor_id") @db.Uuid
+  actorEmail      String?       @map("actor_email")
+  actorName       String?       @map("actor_name")
+
+  // Public müşteri yanıtıysa hangi paylaşım linkinden geldiği (analitik için).
+  shareLinkId     String?       @map("share_link_id")
+  shareLink       ShareLink?    @relation(fields: [shareLinkId], references: [id], onDelete: SetNull)
+
+  // Free-form metadata: STAGE_CHANGE'de fromStage/toStage, vb.
+  details         Json          @default("{}")
+
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  @@index([projectId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([type])
+  @@map("project_activities")
   @@schema("solar")
 }
 

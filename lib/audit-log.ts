@@ -72,4 +72,11 @@ export const ACTION_LABELS: Record<string, string> = {
   create_share_link: "Paylaşım linki oluşturdu",
   revoke_share_link: "Paylaşım linkini iptal etti",
   send_share_email: "Paylaşım linkini e-posta ile gönderdi",
+  // Müşteri yanıtları (public share)
+  customer_accepted: "Müşteri teklifi kabul etti",
+  customer_revision_request: "Müşteri revizyon istedi",
+  customer_question: "Müşteri soru sordu",
+  // Pipeline
+  update_pipeline_stage: "Pipeline aşamasını değiştirdi",
+  add_project_activity: "Proje notu/aktivitesi ekledi",
 };
