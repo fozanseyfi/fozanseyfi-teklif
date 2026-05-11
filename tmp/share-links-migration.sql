@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS solar.share_links (
   id              text PRIMARY KEY,
   token           text UNIQUE NOT NULL,
   organization_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
-  project_id      text NOT NULL REFERENCES solar.projects(id) ON DELETE CASCADE,
+  project_id      text NOT NULL REFERENCES solar."Project"(id) ON DELETE CASCADE,
   created_by_id   uuid NOT NULL,
   customer_label  text,
   included_tabs   jsonb NOT NULL,
