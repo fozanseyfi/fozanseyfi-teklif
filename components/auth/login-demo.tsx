@@ -25,6 +25,11 @@ import {
   UserPlus,
   Shield,
   Check,
+  Share2,
+  Send,
+  Link2,
+  Clock,
+  ChevronDown,
 } from "lucide-react";
 
 interface Slide {
@@ -45,6 +50,7 @@ const SLIDES: Slide[] = [
   { id: "ring",       badge: "Maliyet Halkası",        kicker: "07 — ANALİZ",        title: "Hangi grup ne kadar yüküm getiriyor — drill-down halka",         body: <RingDemo /> },
   { id: "dor",        badge: "Kapsam Tablosu (DoR)",   kicker: "08 — KAPSAM",        title: "Tedarik, Montaj ve Devreye Alma — kapsamı detayıyla paylaş",     body: <DorDemo /> },
   { id: "team",       badge: "Ekip & Yetkilendirme",   kicker: "09 — EKİP",          title: "E-postayla davet et, rol ata, kaynak erişimini kişi bazlı ayarla", body: <TeamDemo /> },
+  { id: "share",      badge: "Paylaşım Linkleri",      kicker: "10 — PAYLAŞIM",      title: "Müşteriye e-posta ile teklif linki gönder, görüntülenmeyi izle",  body: <ShareDemo /> },
 ];
 
 export function LoginDemo() {
@@ -1227,6 +1233,314 @@ function TeamDemo() {
           Roller ve proje-bazlı erişim seviyeleri tek tıkla değişir; davet
           edilen kullanıcı kendi panelini de korur.
         </p>
+      </div>
+    </div>
+  );
+}
+
+/* ─── 10 — Public Share Link & E-mail ────────────────────────────────── */
+
+// 4 frame'lik animasyon: proje seçildi → e-posta yazılıyor → tab'ler
+// işaretli, "Link Oluştur" pulse → mail gönderildi, sağda müşteri postası
+// + görüntülenme sayacı.
+type ShareTabId = "kesif-a" | "boq" | "p-boq" | "analiz" | "dor";
+
+interface ShareTabDot {
+  id: ShareTabId;
+  label: string;
+  checked: boolean;
+}
+
+const SHARE_FRAMES: {
+  projectPicked: boolean;
+  projectLabel: string;
+  emailTyped: string;
+  tabs: ShareTabDot[];
+  buttonPulse: boolean;
+  buttonSent: boolean;
+  emailOpen: boolean;
+  viewCount: number;
+}[] = [
+  // Frame 0: form boş, sağ taraf gri "Henüz link yok"
+  {
+    projectPicked: false,
+    projectLabel: "Proje seç…",
+    emailTyped: "",
+    tabs: [
+      { id: "kesif-a", label: "Keşif-A", checked: false },
+      { id: "boq",     label: "Fiyatsız BoQ", checked: false },
+      { id: "p-boq",   label: "Özet P-BoQ",  checked: false },
+      { id: "analiz",  label: "Analiz",      checked: false },
+      { id: "dor",     label: "DoR",         checked: false },
+    ],
+    buttonPulse: false,
+    buttonSent: false,
+    emailOpen: false,
+    viewCount: 0,
+  },
+  // Frame 1: proje seçildi + e-posta yazılıyor (caret)
+  {
+    projectPicked: true,
+    projectLabel: "Çimsa 12 MWp ÇGES",
+    emailTyped: "satinalma@cimsa.com",
+    tabs: [
+      { id: "kesif-a", label: "Keşif-A", checked: true },
+      { id: "boq",     label: "Fiyatsız BoQ", checked: true },
+      { id: "p-boq",   label: "Özet P-BoQ",  checked: false },
+      { id: "analiz",  label: "Analiz",      checked: false },
+      { id: "dor",     label: "DoR",         checked: false },
+    ],
+    buttonPulse: false,
+    buttonSent: false,
+    emailOpen: false,
+    viewCount: 0,
+  },
+  // Frame 2: tab'ler işaretli, "Link Oluştur" butonu pulse
+  {
+    projectPicked: true,
+    projectLabel: "Çimsa 12 MWp ÇGES",
+    emailTyped: "satinalma@cimsa.com",
+    tabs: [
+      { id: "kesif-a", label: "Keşif-A", checked: true },
+      { id: "boq",     label: "Fiyatsız BoQ", checked: true },
+      { id: "p-boq",   label: "Özet P-BoQ",  checked: true },
+      { id: "analiz",  label: "Analiz",      checked: false },
+      { id: "dor",     label: "DoR",         checked: true },
+    ],
+    buttonPulse: true,
+    buttonSent: false,
+    emailOpen: false,
+    viewCount: 0,
+  },
+  // Frame 3: link gönderildi, sağda müşteri e-postası + görüntüleme sayacı 3
+  {
+    projectPicked: true,
+    projectLabel: "Çimsa 12 MWp ÇGES",
+    emailTyped: "satinalma@cimsa.com",
+    tabs: [
+      { id: "kesif-a", label: "Keşif-A", checked: true },
+      { id: "boq",     label: "Fiyatsız BoQ", checked: true },
+      { id: "p-boq",   label: "Özet P-BoQ",  checked: true },
+      { id: "analiz",  label: "Analiz",      checked: false },
+      { id: "dor",     label: "DoR",         checked: true },
+    ],
+    buttonPulse: false,
+    buttonSent: true,
+    emailOpen: true,
+    viewCount: 3,
+  },
+];
+
+function ShareDemo() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setStep((s) => (s + 1) % SHARE_FRAMES.length), 2400);
+    return () => clearInterval(t);
+  }, []);
+  const f = SHARE_FRAMES[step];
+
+  return (
+    <div className="grid w-full grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      {/* ── Sol: Paylaşım formu ────────────────────────────────────────── */}
+      <div className="flex flex-col gap-3 rounded-2xl border bg-white p-4 shadow-sm">
+        <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <Share2 className="size-3.5" />
+          Yeni paylaşım oluştur
+        </p>
+
+        {/* Proje dropdown */}
+        <div>
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            Proje
+          </p>
+          <div
+            className={cn(
+              "flex items-center justify-between rounded-lg border px-2.5 py-2 text-[12px] font-medium transition-colors",
+              f.projectPicked
+                ? "border-emerald-200 bg-emerald-50/40 text-slate-900"
+                : "border-slate-200 bg-slate-50/60 text-slate-400",
+            )}
+          >
+            <span className="truncate">{f.projectLabel}</span>
+            <ChevronDown className="size-3.5 shrink-0 text-slate-400" />
+          </div>
+        </div>
+
+        {/* Müşteri e-posta — caret */}
+        <div>
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            Müşteri E-postası
+          </p>
+          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/60 px-2.5 py-2 text-[12px] font-medium text-slate-700">
+            <Mail className="size-3.5 text-slate-400" />
+            <span className="font-mono text-[12px] tabular-nums">
+              {f.emailTyped || <span className="text-slate-400">musteri@firma.com</span>}
+            </span>
+            {step === 1 && (
+              <span className="ml-0.5 inline-block h-3 w-[1.5px] animate-pulse bg-slate-700" />
+            )}
+          </div>
+        </div>
+
+        {/* Tab checkbox listesi */}
+        <div>
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            Paylaşılacak Bölümler
+          </p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {f.tabs.map((t) => (
+              <div
+                key={t.id}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10.5px] font-semibold transition-all",
+                  t.checked
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                    : "border-slate-200 bg-white text-slate-400",
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex size-3 shrink-0 items-center justify-center rounded-sm border transition-all",
+                    t.checked
+                      ? "border-emerald-600 bg-emerald-600 text-white"
+                      : "border-slate-300 bg-white",
+                  )}
+                >
+                  {t.checked && <Check className="size-2" />}
+                </span>
+                <span className="truncate">{t.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Link Oluştur butonu — pulse efekti */}
+        <button
+          type="button"
+          className={cn(
+            "mt-auto inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-semibold transition-all",
+            f.buttonSent
+              ? "bg-emerald-600 text-white shadow-md"
+              : "bg-emerald-600 text-white shadow-sm",
+            f.buttonPulse && !f.buttonSent && "scale-105 shadow-lg ring-2 ring-emerald-300",
+          )}
+          tabIndex={-1}
+        >
+          {f.buttonSent ? (
+            <>
+              <Check className="size-3.5" />
+              Mail gönderildi
+            </>
+          ) : (
+            <>
+              <Send className="size-3.5" />
+              Link Oluştur & Mail Gönder
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* ── Sağ: Müşteri mail önizleme + Görüntülenme ──────────────────── */}
+      <div className="flex flex-col gap-3">
+        {/* Üst: e-posta önizleme (Gmail tarzı) */}
+        <div
+          className={cn(
+            "flex flex-col gap-2 rounded-2xl border bg-white p-4 shadow-sm transition-all",
+            f.emailOpen ? "opacity-100" : "opacity-40",
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white">
+              S
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[11px] font-semibold text-slate-900">
+                Solar Teklif
+              </p>
+              <p className="truncate font-mono text-[9.5px] text-slate-400">
+                noreply@…  ·  satinalma@cimsa.com
+              </p>
+            </div>
+            <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0 text-[9px] font-semibold text-emerald-700">
+              Yeni
+            </span>
+          </div>
+
+          <p className="text-[12px] font-bold text-slate-900">
+            Çimsa 12 MWp ÇGES teklif belgesi
+          </p>
+
+          {/* Mail içerik özeti */}
+          <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-2.5">
+            <p className="text-[10.5px] leading-relaxed text-slate-600">
+              Merhaba, hazırladığımız teklif belgeleri için aşağıdaki bağlantıyı
+              kullanabilirsiniz.
+            </p>
+            <div className="mt-2 flex justify-center">
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-[10.5px] font-semibold text-white shadow-sm",
+                  f.emailOpen && "animate-in-up",
+                )}
+                style={f.emailOpen ? { animationDuration: "400ms" } : undefined}
+              >
+                <Link2 className="size-3" />
+                Teklifi Görüntüle →
+              </span>
+            </div>
+            <p className="mt-2 flex items-center justify-center gap-1 text-[9.5px] text-slate-400">
+              <Clock className="size-2.5" />
+              7 gün geçerli
+            </p>
+          </div>
+        </div>
+
+        {/* Alt: Aktif Linkler tablosu (görüntülenme sayacı) */}
+        <div className="flex flex-col gap-2 rounded-2xl border bg-white p-4 shadow-sm">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <Eye className="size-3.5" />
+            Aktif link · canlı izlenme
+          </p>
+
+          <div className="rounded-lg border border-slate-200 p-2.5">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="truncate text-[11px] font-semibold text-slate-900">
+                  Çimsa 12 MWp ÇGES
+                </p>
+                <p className="mt-0.5 flex items-center gap-1 text-[9.5px] text-slate-500">
+                  <Mail className="size-2.5" />
+                  satinalma@cimsa.com
+                </p>
+              </div>
+              <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0 text-[9px] font-semibold text-emerald-700">
+                Aktif
+              </span>
+            </div>
+
+            <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-2">
+              <span className="flex items-center gap-1 text-[10px] text-slate-500">
+                <Eye className="size-2.5" />
+                Görüntülenme
+              </span>
+              <span
+                key={f.viewCount}
+                className={cn(
+                  "tabular-nums text-[14px] font-extrabold text-slate-900 transition-all",
+                  f.viewCount > 0 && "animate-in-up text-emerald-700",
+                )}
+                style={f.viewCount > 0 ? { animationDuration: "400ms" } : undefined}
+              >
+                {f.viewCount}
+              </span>
+            </div>
+          </div>
+
+          <p className="text-[10px] leading-snug text-slate-500">
+            Süresiz, 1 günlük, 7 günlük… senin belirlediğin sürede otomatik
+            kapanır. İstediğin an iptal edersin.
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -21,6 +21,7 @@ import {
   PlayCircle,
   ChevronDown,
   Users,
+  Share2,
 } from "lucide-react";
 
 interface Step {
@@ -177,6 +178,23 @@ const STEPS: Step[] = [
     tip: "Görüntüleyici rolü; teklifi inceleyip PDF indirmesi gereken müşteri tarafı kişiler için idealdir — hiçbir veri değiştiremez, sadece okur.",
     href: "/admin/users",
   },
+  {
+    num: "13",
+    icon: Share2,
+    title: "Müşteri / Yatırımcıya Paylaşım Linki Gönder",
+    shortDesc: "Tek tıkla salt-okunur link üret, e-postayla yolla, görüntüleme sayısını izle.",
+    details: [
+      "Yönetim → Paylaşım Linkleri sayfasından proje seç, hangi sekmelerin paylaşılacağını işaretle (Keşif-A/B, Fiyatsız BoQ, Fiyatlı BoQ, Özet/Detaylı P-BoQ, Analiz, DoR).",
+      "Geçerlilik süresi (1 gün / 7 gün / 30 gün / 90 gün / süresiz) seç — süre bitince link otomatik kapanır.",
+      "Müşteri E-posta alanını doldurursan link otomatik olarak müşteriye mail edilir; boş bırakırsan sadece panoya kopyalanır.",
+      "Müşteri linke tıklayınca giriş yapmadan sadece seçili sekmeleri görür — kâr marjları, maliyetler ve editor uyarıları otomatik gizlenir.",
+      "Her sekmenin altında 'PDF İndir' butonu çalışır; teklif belgesini PDF olarak kaydedebilir.",
+      "Aktif Linkler tablosunda her linkin görüntülenme sayısını ve son görüntüleme zamanını canlı takip edersin; istediğin an 'İptal Et' ile linki kapatabilirsin.",
+      "'Tekrar Mail At' butonu, kayıtlı müşteri e-postasına aynı linki yeniden gönderir — takip maili için pratiktir.",
+    ],
+    tip: "Fiyatlı BoQ ve Analiz sekmelerini paylaşırken dikkat: bunlar maliyet/kâr bilgilerini gösterir, müşteriye genelde gönderilmez. Form sarı uyarı şeridi ile bu durumu hatırlatır.",
+    href: "/admin/share-links",
+  },
 ];
 
 export default async function HelpPage() {
@@ -199,7 +217,7 @@ export default async function HelpPage() {
               SolarTeklif Platformunu Adım Adım Tanıyın
             </h1>
             <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-              Şablonla başlayıp müşteri-hazır PDF'e ulaşana kadar 11 adımda tüm akışı inceleyin.
+              Şablonla başlayıp müşteriyle paylaşıma kadar 13 adımda tüm akışı inceleyin.
               Her adımda ne yapılır, hangi değer otomatik hesaplanır, ne tip pratikler işinizi
               kolaylaştırır — burada yazılı.
             </p>
