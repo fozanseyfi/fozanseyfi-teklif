@@ -1281,8 +1281,8 @@ const SHARE_FRAMES: {
   // Frame 1: proje seçildi + e-posta yazılıyor (caret)
   {
     projectPicked: true,
-    projectLabel: "Çimsa 12 MWp ÇGES",
-    emailTyped: "satinalma@cimsa.com",
+    projectLabel: "Örnek-1 GES",
+    emailTyped: "satinalma@firma.com",
     tabs: [
       { id: "kesif-a", label: "Keşif-A", checked: true },
       { id: "boq",     label: "Fiyatsız BoQ", checked: true },
@@ -1298,8 +1298,8 @@ const SHARE_FRAMES: {
   // Frame 2: tab'ler işaretli, "Link Oluştur" butonu pulse
   {
     projectPicked: true,
-    projectLabel: "Çimsa 12 MWp ÇGES",
-    emailTyped: "satinalma@cimsa.com",
+    projectLabel: "Örnek-1 GES",
+    emailTyped: "satinalma@firma.com",
     tabs: [
       { id: "kesif-a", label: "Keşif-A", checked: true },
       { id: "boq",     label: "Fiyatsız BoQ", checked: true },
@@ -1315,8 +1315,8 @@ const SHARE_FRAMES: {
   // Frame 3: link gönderildi, sağda müşteri e-postası + görüntüleme sayacı 3
   {
     projectPicked: true,
-    projectLabel: "Çimsa 12 MWp ÇGES",
-    emailTyped: "satinalma@cimsa.com",
+    projectLabel: "Örnek-1 GES",
+    emailTyped: "satinalma@firma.com",
     tabs: [
       { id: "kesif-a", label: "Keşif-A", checked: true },
       { id: "boq",     label: "Fiyatsız BoQ", checked: true },
@@ -1458,7 +1458,7 @@ function ShareDemo() {
                 Solar Teklif
               </p>
               <p className="truncate font-mono text-[9.5px] text-slate-400">
-                noreply@…  ·  satinalma@cimsa.com
+                noreply@…  ·  satinalma@firma.com
               </p>
             </div>
             <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0 text-[9px] font-semibold text-emerald-700">
@@ -1467,7 +1467,7 @@ function ShareDemo() {
           </div>
 
           <p className="text-[12px] font-bold text-slate-900">
-            Çimsa 12 MWp ÇGES teklif belgesi
+            Örnek-1 GES teklif belgesi
           </p>
 
           {/* Mail içerik özeti */}
@@ -1506,11 +1506,11 @@ function ShareDemo() {
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="truncate text-[11px] font-semibold text-slate-900">
-                  Çimsa 12 MWp ÇGES
+                  Örnek-1 GES
                 </p>
                 <p className="mt-0.5 flex items-center gap-1 text-[9.5px] text-slate-500">
                   <Mail className="size-2.5" />
-                  satinalma@cimsa.com
+                  satinalma@firma.com
                 </p>
               </div>
               <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0 text-[9px] font-semibold text-emerald-700">
