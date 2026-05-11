@@ -22,6 +22,7 @@ import {
 import { downloadExcel } from "@/lib/excel-export";
 import { DetailPageHeader, prevHref } from "@/components/ges/detail-page-header";
 import { resolveBrand, generateDocId, brandRowHtml, brandFooterHtml, watermarkHtml, type BrandSettings } from "@/lib/pdf-brand";
+import { useReadOnly } from "@/lib/readonly-context";
 
 function fmt(n: number, d = 0) {
   return n.toLocaleString("tr-TR", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -54,6 +55,7 @@ export function BoQView({
   userEmail,
   defaultShowPrices = false,
 }: Props) {
+  const isReadonly = useReadOnly();
   const [search, setSearch] = useState("");
   const [showPrices, setShowPrices] = useState(defaultShowPrices);
 
@@ -389,13 +391,18 @@ export function BoQView({
           </>
         }
         notice={
-          <span>
-            <strong>Bilgi:</strong> BoQ yatırımcıyla paylaşılan kapsam listesidir; boş (miktar = 0)
-            kalemler <strong>otomatik silinir</strong> ve görünür kalemler{" "}
-            <strong>yeniden sıralanır</strong>. Bu nedenle grup içi kod numaraları
-            (örn. A.1.1, A.1.2…) keşif sayfalarındaki orijinal kodlarla birebir
-            uyuşmayabilir.
-          </span>
+          // Editor bilgilendirmesi — public share ve view mode'da gizli; yalnizca
+          // BoQ'yu duzenleyen ekip uyelerine gosterilir, musteri sayfasinda
+          // gereksiz teknik detay.
+          isReadonly ? undefined : (
+            <span>
+              <strong>Bilgi:</strong> BoQ yatırımcıyla paylaşılan kapsam listesidir; boş (miktar = 0)
+              kalemler <strong>otomatik silinir</strong> ve görünür kalemler{" "}
+              <strong>yeniden sıralanır</strong>. Bu nedenle grup içi kod numaraları
+              (örn. A.1.1, A.1.2…) keşif sayfalarındaki orijinal kodlarla birebir
+              uyuşmayabilir.
+            </span>
+          )
         }
       />
 

@@ -516,23 +516,29 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                 <span className="inline-flex items-center gap-1 rounded-md bg-primary-soft px-2 py-0.5 font-bold text-primary-soft-foreground">
                   Toplam ${fmt(salePrice)} / ₺{fmt(salePrice * settings.usd)}
                 </span>
-                <span className="text-[11px] text-muted-foreground">
-                  · varsayılan kar %{defaultMarginPct.toFixed(1)}
-                </span>
-                {excludedCodes.size > 0 && (
-                  <span className="text-[11px] text-muted-foreground">
-                    · {excludedCodes.size} karsız
-                  </span>
-                )}
-                {hiddenCodes.size > 0 && (
-                  <span className="text-[11px] text-muted-foreground">
-                    · {hiddenCodes.size} gizli
-                  </span>
-                )}
-                {Object.keys(marginOverrides).length > 0 && (
-                  <span className="text-[11px] text-info-soft-foreground">
-                    · {Object.keys(marginOverrides).length} kalemde özel kar
-                  </span>
+                {/* Kar % ve editor-ozel meta yazilari sadece dashboard
+                    editorde gozukur. Public share (mode set) icin gizli. */}
+                {!mode && (
+                  <>
+                    <span className="text-[11px] text-muted-foreground">
+                      · varsayılan kar %{defaultMarginPct.toFixed(1)}
+                    </span>
+                    {excludedCodes.size > 0 && (
+                      <span className="text-[11px] text-muted-foreground">
+                        · {excludedCodes.size} karsız
+                      </span>
+                    )}
+                    {hiddenCodes.size > 0 && (
+                      <span className="text-[11px] text-muted-foreground">
+                        · {hiddenCodes.size} gizli
+                      </span>
+                    )}
+                    {Object.keys(marginOverrides).length > 0 && (
+                      <span className="text-[11px] text-info-soft-foreground">
+                        · {Object.keys(marginOverrides).length} kalemde özel kar
+                      </span>
+                    )}
+                  </>
                 )}
               </>
             }
@@ -602,7 +608,9 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
               </>
             }
             notice={
-              hiddenCodes.size > 0 ? (
+              // Editor bilgilendirmesi — public share'de gizli (musteri zaten
+              // pozisyon-bazli numaralari "dogal" siralama olarak alir).
+              !mode && hiddenCodes.size > 0 ? (
                 <span>
                   <strong>Bilgi:</strong> Gizlenen {hiddenCodes.size} kalem listede görünmüyor; kod
                   numaraları görünür kalemlere göre <strong>yeniden sıralandı</strong>. Orijinal
