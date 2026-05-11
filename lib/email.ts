@@ -1,12 +1,22 @@
 import "server-only";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const RESEND_KEY = process.env.RESEND_API_KEY;
-const FROM_ADDR = process.env.EMAIL_FROM ?? "noreply@fozanseyfi.com";
+const GMAIL_USER = process.env.GMAIL_USER;
+const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
+const FROM_ADDR = process.env.EMAIL_FROM ?? GMAIL_USER ?? "";
 
-function getClient(): Resend | null {
-  if (!RESEND_KEY) return null;
-  return new Resend(RESEND_KEY);
+let cachedTransporter: nodemailer.Transporter | null = null;
+
+function getTransporter(): nodemailer.Transporter | null {
+  if (!GMAIL_USER || !GMAIL_APP_PASSWORD) return null;
+  if (cachedTransporter) return cachedTransporter;
+  cachedTransporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
+  });
+  return cachedTransporter;
 }
 
 interface SendShareEmailArgs {
@@ -20,17 +30,17 @@ interface SendShareEmailArgs {
 }
 
 /**
- * Müşteri/yatırımcıya paylaşım linki e-posta olarak gönderilir.
- * Resend kurulu değilse sessizce false döner (toast'la kullanıcıya bilgi
- * verilir, ana akış bozulmaz).
+ * Müşteri/yatırımcıya paylaşım linki Gmail SMTP üzerinden gönderilir.
+ * GMAIL_USER + GMAIL_APP_PASSWORD env vars tanımlı değilse sessizce
+ * false döner (toast'la kullanıcıya bilgi verilir, ana akış bozulmaz).
  */
 export async function sendShareLinkEmail(
   args: SendShareEmailArgs,
 ): Promise<{ sent: boolean; error?: string }> {
-  const client = getClient();
-  if (!client) {
-    console.warn("[email] RESEND_API_KEY tanimli degil, mail atilmadi");
-    return { sent: false, error: "Mail servisi yapılandırılmamış (RESEND_API_KEY eksik)" };
+  const tx = getTransporter();
+  if (!tx) {
+    console.warn("[email] GMAIL_USER veya GMAIL_APP_PASSWORD tanimli degil, mail atilmadi");
+    return { sent: false, error: "Mail servisi yapılandırılmamış (env vars eksik)" };
   }
 
   const subject = `${args.firmName} — ${args.projectName} teklif belgesi`;
@@ -38,20 +48,16 @@ export async function sendShareLinkEmail(
   const text = buildShareEmailText(args);
 
   try {
-    const { error } = await client.emails.send({
+    await tx.sendMail({
       from: FROM_ADDR,
       to: args.to,
       subject,
       html,
       text,
     });
-    if (error) {
-      console.warn("[email] Resend api hatası:", error);
-      return { sent: false, error: String(error.message ?? error) };
-    }
     return { sent: true };
   } catch (err) {
-    console.warn("[email] beklenmeyen hata:", err);
+    console.warn("[email] gönderim hatası:", err);
     return { sent: false, error: err instanceof Error ? err.message : "Bilinmeyen hata" };
   }
 }
