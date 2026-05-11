@@ -10,6 +10,12 @@ function isInviteRoute(pathname: string): boolean {
   return pathname.startsWith("/invite/");
 }
 
+// /share/* path'i public — token ile yetkilendirme yapilir, auth aranmaz.
+// Misafire/yatirimciya read-only sayfa gosterir.
+function isShareRoute(pathname: string): boolean {
+  return pathname.startsWith("/share/");
+}
+
 // Auth callback (Supabase email link redirect) ve API route'lari guard'in
 // disinda tutulur — kendi yetkilendirmelerini yapar veya zaten public'tir.
 function isExempt(pathname: string): boolean {
@@ -36,8 +42,9 @@ export async function proxy(request: NextRequest) {
   const isPublicRoute = publicRoutes.some((r) => pathname === r || pathname.startsWith(r + "?"));
   const isAuthRoute = authRoutes.some((r) => pathname === r || pathname.startsWith(r + "?"));
   const isInvite = isInviteRoute(pathname);
+  const isShare = isShareRoute(pathname);
 
-  if (!authed && !isPublicRoute && !isInvite) {
+  if (!authed && !isPublicRoute && !isInvite && !isShare) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

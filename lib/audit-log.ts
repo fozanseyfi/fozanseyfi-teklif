@@ -68,4 +68,7 @@ export const ACTION_LABELS: Record<string, string> = {
   update_brand: "Marka ayarlarını güncelledi",
   upload_brand_logo: "Marka logosunu yükledi",
   remove_brand_logo: "Marka logosunu kaldırdı",
+  // Paylaşım
+  create_share_link: "Paylaşım linki oluşturdu",
+  revoke_share_link: "Paylaşım linkini iptal etti",
 };

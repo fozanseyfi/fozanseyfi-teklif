@@ -70,6 +70,7 @@ model Organization {
   hiddenResources UserHiddenResource[] @relation("HiddenInOrg")
   lockedResources UserLockedResource[] @relation("LockedInOrg")
   auditLogs       AuditLog[]
+  shareLinks      ShareLink[]
 
   @@map("organizations")
   @@schema("public")
@@ -200,6 +201,7 @@ model Project {
   costItems       CostItem[]
   proposal        Proposal?
   projectDetail   ProjectDetail?
+  shareLinks      ShareLink[]
 
   @@index([isTemplate, templateOrder])
   @@index([organizationId])
@@ -238,6 +240,36 @@ model AuditLog {
   @@index([actorId])
   @@index([resourceType, resourceId])
   @@map("audit_logs")
+  @@schema("solar")
+}
+
+/// Müşteri/yatırımcı için public, tokenlı paylaşım linki. Auth gerektirmez.
+/// Yönetici belirli tab'leri (BoQ, Analiz, DoR vb.) seçer, süre verir;
+/// `/share/<token>` URL'i public olur. Revoked veya expired olunca 404 döner
+/// ama satır audit/forensic için DB'de kalır.
+model ShareLink {
+  id             String       @id @default(cuid())
+  token          String       @unique
+  organizationId String       @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  projectId      String       @map("project_id")
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdById    String       @map("created_by_id") @db.Uuid
+  // Yönetici notu — "Çimsa müşteri", "Yatırımcı XYZ" gibi iç etiket.
+  customerLabel  String?      @map("customer_label")
+  // İçerilen tab kimlikleri: ["kesif-a", "kesif-b", "boq", "priced-boq", "analiz", "dor"]
+  includedTabs   Json         @map("included_tabs")
+  // null = süresiz
+  expiresAt      DateTime?    @map("expires_at")
+  viewCount      Int          @default(0) @map("view_count")
+  lastViewedAt   DateTime?    @map("last_viewed_at")
+  // Doluysa link iptal edilmiştir; public sayfada 404 döner.
+  revokedAt      DateTime?    @map("revoked_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@index([organizationId, createdAt])
+  @@index([projectId])
+  @@map("share_links")
   @@schema("solar")
 }
 

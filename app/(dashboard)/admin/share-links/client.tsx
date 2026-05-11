@@ -1,0 +1,467 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Share2, Copy, Trash2, Link as LinkIcon, ExternalLink, Eye, Clock } from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { createShareLink, revokeShareLink } from "@/app/actions/share";
+import { SHARE_TABS, type SharePreset } from "@/lib/share-tabs";
+
+interface ProjectOption {
+  id: string;
+  name: string;
+  customerName: string;
+}
+
+interface LinkRow {
+  id: string;
+  token: string;
+  projectId: string;
+  projectName: string;
+  customerLabel: string | null;
+  includedTabs: string[];
+  expiresAt: string | null;
+  viewCount: number;
+  lastViewedAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+}
+
+interface Props {
+  projects: ProjectOption[];
+  links: LinkRow[];
+  organizationName: string;
+}
+
+const PRESET_OPTIONS: { value: SharePreset; label: string }[] = [
+  { value: "1d", label: "1 gün" },
+  { value: "7d", label: "7 gün" },
+  { value: "30d", label: "30 gün" },
+  { value: "90d", label: "90 gün" },
+  { value: "infinite", label: "Süresiz" },
+];
+
+const TAB_LABEL_MAP = Object.fromEntries(SHARE_TABS.map((t) => [t.id, t.label]));
+
+function formatDateTime(iso: string | null): string {
+  if (!iso) return "—";
+  return new Intl.DateTimeFormat("tr-TR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(iso));
+}
+
+function getStatus(link: LinkRow): {
+  label: string;
+  tone: "active" | "expired" | "revoked";
+} {
+  if (link.revokedAt) return { label: "İptal Edildi", tone: "revoked" };
+  if (link.expiresAt && new Date(link.expiresAt).getTime() < Date.now()) {
+    return { label: "Süresi Doldu", tone: "expired" };
+  }
+  return { label: "Aktif", tone: "active" };
+}
+
+function formatRemaining(expiresAt: string | null): string {
+  if (!expiresAt) return "Süresiz";
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  if (ms <= 0) return "Süresi doldu";
+  const days = Math.floor(ms / (24 * 3600 * 1000));
+  if (days >= 1) return `${days} gün kaldı`;
+  const hours = Math.floor(ms / (3600 * 1000));
+  if (hours >= 1) return `${hours} saat kaldı`;
+  return "1 saatten az";
+}
+
+export function ShareLinksClient({ projects, links, organizationName }: Props) {
+  const [selectedProject, setSelectedProject] = useState<string>("");
+  const [customerLabel, setCustomerLabel] = useState("");
+  const [preset, setPreset] = useState<SharePreset>("7d");
+  const [selectedTabs, setSelectedTabs] = useState<Set<string>>(
+    new Set(SHARE_TABS.map((t) => t.id)),
+  );
+  const [pending, startTransition] = useTransition();
+
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+
+  function toggleTab(id: string) {
+    setSelectedTabs((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text);
+    toast.success("Link kopyalandı");
+  }
+
+  function handleSubmit() {
+    if (!selectedProject) {
+      toast.error("Proje seçmelisin");
+      return;
+    }
+    if (selectedTabs.size === 0) {
+      toast.error("En az bir bölüm seçmelisin");
+      return;
+    }
+    const fd = new FormData();
+    fd.set("projectId", selectedProject);
+    fd.set("customerLabel", customerLabel.trim());
+    fd.set("preset", preset);
+    selectedTabs.forEach((t) => fd.append("tabs", t));
+
+    startTransition(async () => {
+      const result = await createShareLink(fd);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      if (result.url) {
+        const fullUrl = `${baseUrl}/share/${result.url}`;
+        copyToClipboard(fullUrl);
+        toast.success("Link oluşturuldu ve panoya kopyalandı");
+      }
+      // Reset
+      setCustomerLabel("");
+    });
+  }
+
+  function handleRevoke(id: string) {
+    if (!confirm("Bu paylaşım linkini iptal etmek istediğinden emin misin? İptal edilen link tekrar açılamaz.")) return;
+    startTransition(async () => {
+      const result = await revokeShareLink(id);
+      if (result.error) toast.error(result.error);
+      else toast.success(result.success ?? "İptal edildi");
+    });
+  }
+
+  const activeLinks = useMemo(() => links.filter((l) => !l.revokedAt && (!l.expiresAt || new Date(l.expiresAt).getTime() > Date.now())), [links]);
+  const archivedLinks = useMemo(() => links.filter((l) => l.revokedAt || (l.expiresAt && new Date(l.expiresAt).getTime() <= Date.now())), [links]);
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-6">
+      {/* Hero */}
+      <Card className="overflow-hidden border-emerald-200 shadow-sm">
+        <CardContent className="p-0">
+          <div className="space-y-4 p-6">
+            <div className="flex items-start gap-3">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
+                <Share2 className="size-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10.5px] font-semibold uppercase tracking-wider text-emerald-700">
+                  Yönetici Paneli
+                </p>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                  Paylaşım Linkleri
+                </h1>
+                <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                  <strong className="text-slate-900">{organizationName}</strong>{" "}
+                  panelindeki projelerin müşteri/yatırımcıya gönderilebilir
+                  read-only linkleri. Hangi sekmelerin (Keşif, BoQ, Analiz, DoR)
+                  paylaşılacağını ve süresini sen belirlersin. Müşteri linke
+                  tıklayınca sadece seçili sekmeleri görür ve PDF indirebilir.
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Yeni Paylaşım Oluştur */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <LinkIcon className="size-4" /> Yeni Paylaşım Oluştur
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="project">Proje</Label>
+              <Select value={selectedProject} onValueChange={setSelectedProject}>
+                <SelectTrigger id="project" className="w-full">
+                  <SelectValue placeholder="Proje seç..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.length === 0 && (
+                    <SelectItem value="__none__" disabled>
+                      Hiç proje yok
+                    </SelectItem>
+                  )}
+                  {projects.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                      {p.customerName && (
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          · {p.customerName}
+                        </span>
+                      )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="customerLabel">Müşteri Notu (opsiyonel)</Label>
+              <Input
+                id="customerLabel"
+                placeholder="örn: Çimsa müşteri, Yatırımcı XYZ"
+                value={customerLabel}
+                onChange={(e) => setCustomerLabel(e.target.value)}
+                maxLength={120}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Paylaşılacak Bölümler</Label>
+            <div className="grid gap-2 rounded-lg border bg-muted/30 p-3 sm:grid-cols-3">
+              {SHARE_TABS.map((t) => (
+                <label
+                  key={t.id}
+                  className="flex cursor-pointer items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm transition-colors hover:bg-muted/40"
+                >
+                  <Checkbox
+                    checked={selectedTabs.has(t.id)}
+                    onCheckedChange={() => toggleTab(t.id)}
+                  />
+                  <span className="font-medium text-foreground">{t.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="preset">Geçerlilik Süresi</Label>
+              <Select value={preset} onValueChange={(v) => setPreset(v as SharePreset)}>
+                <SelectTrigger id="preset" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRESET_OPTIONS.map((p) => (
+                    <SelectItem key={p.value} value={p.value}>
+                      {p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                disabled={pending || !selectedProject || selectedTabs.size === 0}
+                className="w-full sm:w-auto"
+              >
+                <LinkIcon className="size-4" /> Link Oluştur
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Aktif Linkler */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <LinkIcon className="size-4" /> Aktif Linkler ({activeLinks.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {activeLinks.length === 0 ? (
+            <div className="rounded-lg border border-dashed bg-muted/30 p-8 text-center text-sm text-muted-foreground">
+              Henüz aktif paylaşım linki yok. Yukarıdan yeni bir link oluştur.
+            </div>
+          ) : (
+            <LinkTable
+              rows={activeLinks}
+              baseUrl={baseUrl}
+              onCopy={copyToClipboard}
+              onRevoke={handleRevoke}
+              showRevoke
+              pending={pending}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Arşiv */}
+      {archivedLinks.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Clock className="size-4" /> Geçmiş ({archivedLinks.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <LinkTable
+              rows={archivedLinks}
+              baseUrl={baseUrl}
+              onCopy={copyToClipboard}
+              onRevoke={handleRevoke}
+              showRevoke={false}
+              pending={pending}
+            />
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function LinkTable({
+  rows,
+  baseUrl,
+  onCopy,
+  onRevoke,
+  showRevoke,
+  pending,
+}: {
+  rows: LinkRow[];
+  baseUrl: string;
+  onCopy: (s: string) => void;
+  onRevoke: (id: string) => void;
+  showRevoke: boolean;
+  pending: boolean;
+}) {
+  return (
+    <div className="overflow-hidden rounded-lg border">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-muted text-muted-foreground">
+            <th className="px-3 py-2.5 text-left font-medium">Proje / Müşteri</th>
+            <th className="px-3 py-2.5 text-left font-medium">Bölümler</th>
+            <th className="px-3 py-2.5 text-left font-medium">Süre</th>
+            <th className="px-3 py-2.5 text-left font-medium">Görüntülenme</th>
+            <th className="px-3 py-2.5 text-left font-medium">Durum</th>
+            <th className="px-3 py-2.5" />
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          {rows.map((l) => {
+            const url = `${baseUrl}/share/${l.token}`;
+            const status = getStatus(l);
+            return (
+              <tr key={l.id} className="hover:bg-muted/40">
+                <td className="px-3 py-3">
+                  <div className="font-medium text-foreground">{l.projectName}</div>
+                  {l.customerLabel && (
+                    <div className="mt-0.5 text-[11px] text-muted-foreground">
+                      {l.customerLabel}
+                    </div>
+                  )}
+                  <div className="mt-0.5 text-[10.5px] text-muted-foreground">
+                    Oluşturuldu: {formatDateTime(l.createdAt)}
+                  </div>
+                </td>
+                <td className="px-3 py-3">
+                  <div className="flex flex-wrap gap-1">
+                    {l.includedTabs.map((t) => (
+                      <Badge
+                        key={t}
+                        variant="outline"
+                        className="text-[10px] font-semibold"
+                      >
+                        {TAB_LABEL_MAP[t] ?? t}
+                      </Badge>
+                    ))}
+                  </div>
+                </td>
+                <td className="px-3 py-3 text-xs text-foreground whitespace-nowrap">
+                  {formatRemaining(l.expiresAt)}
+                  {l.expiresAt && (
+                    <div className="text-[10px] text-muted-foreground">
+                      {formatDateTime(l.expiresAt)}
+                    </div>
+                  )}
+                </td>
+                <td className="px-3 py-3 text-xs text-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <Eye className="size-3.5 text-muted-foreground" />
+                    <span className="font-semibold">{l.viewCount}</span>
+                  </div>
+                  {l.lastViewedAt && (
+                    <div className="mt-0.5 text-[10px] text-muted-foreground">
+                      Son: {formatDateTime(l.lastViewedAt)}
+                    </div>
+                  )}
+                </td>
+                <td className="px-3 py-3">
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "text-[10px] font-semibold",
+                      status.tone === "active" && "border-emerald-200 bg-emerald-50 text-emerald-700",
+                      status.tone === "expired" && "border-amber-200 bg-amber-50 text-amber-700",
+                      status.tone === "revoked" && "border-red-200 bg-red-50 text-red-700",
+                    )}
+                  >
+                    {status.label}
+                  </Badge>
+                </td>
+                <td className="px-3 py-3">
+                  <div className="flex items-center justify-end gap-1.5">
+                    {status.tone === "active" && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => onCopy(url)}
+                          className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                          title="Linki kopyala"
+                        >
+                          <Copy className="size-3.5" />
+                        </button>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                          title="Yeni sekmede aç"
+                        >
+                          <ExternalLink className="size-3.5" />
+                        </a>
+                      </>
+                    )}
+                    {showRevoke && status.tone === "active" && (
+                      <button
+                        type="button"
+                        onClick={() => onRevoke(l.id)}
+                        disabled={pending}
+                        className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                        title="İptal et"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}

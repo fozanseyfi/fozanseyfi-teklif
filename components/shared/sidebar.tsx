@@ -18,6 +18,7 @@ import {
   Check,
   ChevronDown,
   ScrollText,
+  Share2,
   ChevronLeft,
   ChevronRight,
   Menu,
@@ -71,6 +72,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Yönetim",
     items: [
       { href: "/admin/users", icon: Users, label: "Kullanıcılar", adminOnly: true },
+      { href: "/admin/share-links", icon: Share2, label: "Paylaşım Linkleri", adminOnly: true },
       { href: "/admin/audit", icon: ScrollText, label: "Aktivite Kayıtları", adminOnly: true },
       { href: "/firm-settings", icon: UserCircle2, label: "Profilim" },
       { href: "/notifications", icon: Bell, label: "Bildirimler" },
