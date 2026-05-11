@@ -54,8 +54,12 @@ export async function submitShareResponse(
 
   const name = ((fd.get("name") as string) ?? "").trim().slice(0, 120);
   const email = ((fd.get("email") as string) ?? "").trim().slice(0, 160);
+  const phone = ((fd.get("phone") as string) ?? "").trim().slice(0, 40);
   const message = ((fd.get("message") as string) ?? "").trim().slice(0, 4000);
 
+  if (!name) {
+    return { error: "Ad Soyad zorunludur" };
+  }
   // Revizyon ve soru için mesaj zorunlu — kabul için opsiyonel.
   if (kind !== "accept" && !message) {
     return { error: "Mesaj alanı zorunludur" };
@@ -84,15 +88,18 @@ export async function submitShareResponse(
 
   const project = link.project;
 
-  // 1) Activity yaz
+  // 1) Activity yaz — phone details içine yazılır (snapshot için)
   await recordActivity({
     projectId: project.id,
     organizationId: project.organizationId,
     type: KIND_TO_ACTIVITY[kind],
     message: message || null,
-    customer: { name: name || null, email: email || null },
+    customer: { name, email: email || null },
     shareLinkId: link.id,
-    details: { customerLabel: link.customerLabel ?? null },
+    details: {
+      customerLabel: link.customerLabel ?? null,
+      customerPhone: phone || null,
+    },
   });
 
   // 2) Pipeline stage'i güncelle (varsa)
@@ -102,7 +109,7 @@ export async function submitShareResponse(
       projectId: project.id,
       organizationId: project.organizationId,
       newStage: targetStage,
-      customer: { name: name || null, email: email || null },
+      customer: { name, email: email || null },
       shareLinkId: link.id,
       reason: kind === "accept" ? "Müşteri kabul etti" : "Müşteri revizyon istedi",
     });
@@ -111,14 +118,15 @@ export async function submitShareResponse(
   // 3) Audit log (müşteri snapshot'ı ile — internal actor değil)
   await logAuditAsCustomer(
     project.organizationId,
-    name || email || "Müşteri",
+    name,
     KIND_TO_AUDIT_ACTION[kind],
     project.id,
     project.name,
     {
       shareLinkId: link.id,
-      customerName: name || null,
+      customerName: name,
       customerEmail: email || null,
+      customerPhone: phone || null,
       hasMessage: Boolean(message),
     },
   );
@@ -131,8 +139,9 @@ export async function submitShareResponse(
       projectName: project.name || "Proje",
       customerLabel: link.customerLabel,
       responseKind: kind,
-      customerName: name || null,
+      customerName: name,
       customerEmail: email || null,
+      customerPhone: phone || null,
       message: message || null,
       projectUrl: `${getAppUrl()}/projects/${project.id}/detail`,
     });

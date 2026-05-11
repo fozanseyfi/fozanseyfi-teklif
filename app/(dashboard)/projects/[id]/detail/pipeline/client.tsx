@@ -386,6 +386,9 @@ export function PipelineClient({ project, activities }: Props) {
                               {a.actorEmail && a.actorName && (
                                 <span className="text-muted-foreground/60"> · {a.actorEmail}</span>
                               )}
+                              {typeof a.details?.customerPhone === "string" && a.details.customerPhone && (
+                                <span className="text-muted-foreground/60"> · {a.details.customerPhone}</span>
+                              )}
                             </p>
                           )}
                           {a.shareLinkLabel && (

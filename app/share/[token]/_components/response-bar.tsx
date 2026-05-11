@@ -135,11 +135,16 @@ function ResponseModal({
 }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
   const messageRequired = kind !== "accept";
 
   function handleSubmit() {
+    if (!name.trim()) {
+      toast.error("Ad Soyad zorunludur");
+      return;
+    }
     if (messageRequired && !message.trim()) {
       toast.error("Lütfen mesaj yazın");
       return;
@@ -147,6 +152,7 @@ function ResponseModal({
     const fd = new FormData();
     fd.set("name", name.trim());
     fd.set("email", email.trim());
+    fd.set("phone", phone.trim());
     fd.set("message", message.trim());
 
     startTransition(async () => {
@@ -195,7 +201,7 @@ function ResponseModal({
 
           <div className="space-y-1.5">
             <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Adınız <span className="font-normal text-slate-400">(opsiyonel)</span>
+              Ad Soyad <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
@@ -203,24 +209,42 @@ function ResponseModal({
               onChange={(e) => setName(e.target.value)}
               maxLength={120}
               disabled={pending}
+              required
               placeholder="Ad Soyad"
               className="w-full rounded-md border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:opacity-50"
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              E-posta <span className="font-normal text-slate-400">(opsiyonel)</span>
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              maxLength={160}
-              disabled={pending}
-              placeholder="ornek@firma.com"
-              className="w-full rounded-md border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:opacity-50"
-            />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                E-posta <span className="font-normal text-slate-400">(opsiyonel)</span>
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                maxLength={160}
+                disabled={pending}
+                placeholder="ornek@firma.com"
+                className="w-full rounded-md border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:opacity-50"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Telefon <span className="font-normal text-slate-400">(opsiyonel)</span>
+              </label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                maxLength={40}
+                disabled={pending}
+                placeholder="+90 5XX XXX XX XX"
+                className="w-full rounded-md border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:opacity-50"
+              />
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -262,7 +286,7 @@ function ResponseModal({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={pending || (messageRequired && !message.trim())}
+            disabled={pending || !name.trim() || (messageRequired && !message.trim())}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-[12.5px] font-semibold text-white shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50",
             )}

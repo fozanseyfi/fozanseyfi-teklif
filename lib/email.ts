@@ -156,8 +156,9 @@ interface SendCustomerResponseArgs {
   projectName: string;
   customerLabel: string | null;
   responseKind: CustomerResponseKind;
-  customerName: string | null;
+  customerName: string;
   customerEmail: string | null;
+  customerPhone: string | null;
   message: string | null;
   // Dashboard'da projeye doğrudan link (kullanıcı tıklayıp inceleyebilir).
   projectUrl: string;
@@ -216,12 +217,13 @@ function buildCustomerResponseHtml(
   const customerLine = args.customerLabel
     ? `<p style="margin:8px 0 0;color:#475569;font-size:14px">Müşteri notu (iç etiket): <strong>${escapeHtml(args.customerLabel)}</strong></p>`
     : "";
-  const customerIdentity =
-    args.customerName || args.customerEmail
-      ? `<p style="margin:0;color:#334155;font-size:13px"><strong>İmza:</strong> ${
-          args.customerName ? escapeHtml(args.customerName) : "—"
-        }${args.customerEmail ? ` &lt;${escapeHtml(args.customerEmail)}&gt;` : ""}</p>`
-      : "";
+  const contactBits: string[] = [];
+  if (args.customerEmail) contactBits.push(`E-posta: <a href="mailto:${escapeHtml(args.customerEmail)}" style="color:${head.tone};text-decoration:none">${escapeHtml(args.customerEmail)}</a>`);
+  if (args.customerPhone) contactBits.push(`Telefon: <a href="tel:${escapeHtml(args.customerPhone)}" style="color:${head.tone};text-decoration:none">${escapeHtml(args.customerPhone)}</a>`);
+  const customerIdentity = `
+    <p style="margin:0;color:#334155;font-size:14px"><strong>${escapeHtml(args.customerName)}</strong></p>
+    ${contactBits.length ? `<p style="margin:4px 0 0;color:#64748b;font-size:12.5px">${contactBits.join(" &nbsp;·&nbsp; ")}</p>` : ""}
+  `;
   const messageBlock = args.message
     ? `<div style="margin-top:14px;padding:12px 14px;background:#f8fafc;border-left:3px solid ${head.tone};border-radius:6px"><p style="margin:0;font-size:13px;line-height:1.55;color:#0f172a;white-space:pre-wrap">${escapeHtml(args.message)}</p></div>`
     : "";
@@ -259,8 +261,9 @@ function buildCustomerResponseText(
   return [
     `${head.emoji} ${head.subject} — ${args.projectName}`,
     "",
-    args.customerName ? `İmza: ${args.customerName}` : null,
+    `Müşteri: ${args.customerName}`,
     args.customerEmail ? `E-posta: ${args.customerEmail}` : null,
+    args.customerPhone ? `Telefon: ${args.customerPhone}` : null,
     args.customerLabel ? `Müşteri etiketi: ${args.customerLabel}` : null,
     args.message ? `\nMesaj:\n${args.message}` : null,
     "",
