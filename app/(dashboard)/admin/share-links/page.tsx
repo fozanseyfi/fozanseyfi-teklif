@@ -34,6 +34,7 @@ export default async function ShareLinksPage() {
     projectId: l.projectId,
     projectName: l.project.name || "İsimsiz Proje",
     customerLabel: l.customerLabel,
+    recipientEmail: l.recipientEmail,
     includedTabs: Array.isArray(l.includedTabs)
       ? (l.includedTabs as unknown[]).filter((t): t is string => typeof t === "string")
       : [],

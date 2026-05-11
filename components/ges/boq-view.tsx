@@ -37,11 +37,25 @@ interface Props {
   firmName: string;
   brand: BrandSettings;
   userEmail: string;
+  // Public paylasimda kullanilir: fiyatli/fiyatsiz BoQ ayrimi icin ilk
+  // gorunumu admin secer; toggle butonu readonly'de gizlenir (data-edit-only).
+  defaultShowPrices?: boolean;
 }
 
-export function BoQView({ projectId, projectName, project, kesifA, kesifB, settings, firmName, brand, userEmail }: Props) {
+export function BoQView({
+  projectId,
+  projectName,
+  project,
+  kesifA,
+  kesifB,
+  settings,
+  firmName,
+  brand,
+  userEmail,
+  defaultShowPrices = false,
+}: Props) {
   const [search, setSearch] = useState("");
-  const [showPrices, setShowPrices] = useState(false);
+  const [showPrices, setShowPrices] = useState(defaultShowPrices);
 
   const allGroups = useMemo(() => [...kesifA, ...kesifB], [kesifA, kesifB]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
@@ -354,6 +368,7 @@ export function BoQView({ projectId, projectName, project, kesifA, kesifB, setti
               size="sm"
               onClick={() => setShowPrices((s) => !s)}
               title={showPrices ? "Fiyatları gizle (yalnız kapsam)" : "Fiyatları göster"}
+              data-edit-only
             >
               {showPrices ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
               {showPrices ? "Fiyatlar açık" : "Fiyatlar kapalı"}

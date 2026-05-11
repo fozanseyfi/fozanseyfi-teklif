@@ -55,6 +55,13 @@ interface Props {
   firmName: string;
   brand: BrandSettings;
   userEmail: string;
+  // Public paylasimda kullanilir:
+  //   - undefined = dashboard editor modu (her sey gozukur)
+  //   - "detailed" = public share detayli — editor banner ve fazla butonlar
+  //                  gizli, sadece "Detay PDF" butonu gozukur
+  //   - "summary"  = public share ozet — basit grup-toplam tablosu render
+  //                  edilir, sadece "Ozet PDF" butonu gozukur
+  mode?: "summary" | "detailed";
 }
 
 interface PrintMeta {
@@ -136,7 +143,7 @@ function buildSalePrices(
   return { map, defaultMarginPct };
 }
 
-export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, settings, firmName, brand, userEmail }: Props) {
+export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, settings, firmName, brand, userEmail, mode }: Props) {
   // Brand context (PDF print icin) — printSummary/Detail handler'lari
   // buildPrintHtml'e brand'i de geciriyor.
   const brandCtx = useMemo(() => resolveBrand(brand), [brand]);
@@ -475,24 +482,27 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
 
   return (
     <div className="space-y-4">
-      {/* Editor uyari banner — sadece dahili kullanim icin, PDF'te yok */}
-      <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3">
-        <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warning-soft-foreground" />
-        <div>
-          <p className="text-sm font-semibold text-warning-soft-foreground">
-            Birim Fiyat Cetveli — Müşteriye gönderilecek belge
-          </p>
-          <p className="mt-0.5 text-xs text-warning-soft-foreground/90">
-            Bu sekmede toplam tutarın kalemlere orantısal dağıtımını
-            düzenleyebilirsiniz. <strong>⊘ Karsız</strong> ile bir kalemin üzerine
-            kar yansıtılmaz; <strong>🚫 Gizle</strong> ile kalem PDF'ten tamamen
-            çıkarılır ve onun payı diğer kalemlere otomatik dağıtılır.{" "}
-            <strong>Kar %</strong> sütunundan bir kaleme özel marj girince diğer
-            kalemler kalan bütçeyi orantısal absorbe eder. Kar oranları sadece
-            editör için — PDF/Excel'de gözükmez.
-          </p>
+      {/* Editor uyari banner — sadece dahili kullanim icin, public share'de
+          mode set oldugunda gizli (musteri editor talimatlarini gormesin). */}
+      {!mode && (
+        <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3">
+          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warning-soft-foreground" />
+          <div>
+            <p className="text-sm font-semibold text-warning-soft-foreground">
+              Birim Fiyat Cetveli — Müşteriye gönderilecek belge
+            </p>
+            <p className="mt-0.5 text-xs text-warning-soft-foreground/90">
+              Bu sekmede toplam tutarın kalemlere orantısal dağıtımını
+              düzenleyebilirsiniz. <strong>⊘ Karsız</strong> ile bir kalemin üzerine
+              kar yansıtılmaz; <strong>🚫 Gizle</strong> ile kalem PDF'ten tamamen
+              çıkarılır ve onun payı diğer kalemlere otomatik dağıtılır.{" "}
+              <strong>Kar %</strong> sütunundan bir kaleme özel marj girince diğer
+              kalemler kalan bütçeyi orantısal absorbe eder. Kar oranları sadece
+              editör için — PDF/Excel'de gözükmez.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {(() => {
         const allOpen = filteredGroups.every((g) => !collapsed[g.code]);
@@ -528,15 +538,21 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
             }
             actions={
               <>
-                <Button variant="outline" size="sm" onClick={handlePrintSummary}>
-                  <FileDown className="size-3.5" /> Özet PDF
-                </Button>
-                <Button variant="outline" size="sm" onClick={handlePrintDetail}>
-                  <FileDown className="size-3.5" /> Detay PDF
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleExcel}>
-                  <FileSpreadsheet className="size-3.5" /> Excel
-                </Button>
+                {(!mode || mode === "summary") && (
+                  <Button variant="outline" size="sm" onClick={handlePrintSummary}>
+                    <FileDown className="size-3.5" /> Özet PDF
+                  </Button>
+                )}
+                {(!mode || mode === "detailed") && (
+                  <Button variant="outline" size="sm" onClick={handlePrintDetail}>
+                    <FileDown className="size-3.5" /> Detay PDF
+                  </Button>
+                )}
+                {!mode && (
+                  <Button variant="outline" size="sm" onClick={handleExcel}>
+                    <FileSpreadsheet className="size-3.5" /> Excel
+                  </Button>
+                )}
               </>
             }
             secondary={
@@ -551,15 +567,17 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                     onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowHidden((v) => !v)}
-                  title={showHidden ? "Gizli kalemleri gizle" : "Gizli kalemleri göster"}
-                >
-                  {showHidden ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
-                  {showHidden ? "Gizliler görünür" : "Gizliler kapalı"}
-                </Button>
+                {!mode && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowHidden((v) => !v)}
+                    title={showHidden ? "Gizli kalemleri gizle" : "Gizli kalemleri göster"}
+                  >
+                    {showHidden ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
+                    {showHidden ? "Gizliler görünür" : "Gizliler kapalı"}
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
@@ -597,7 +615,81 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
         );
       })()}
 
-      {/* Groups */}
+      {/* Public share summary view — basit grup-toplam tablosu, mevcut detayli
+          gorunumun yerini alir. Yalnizca mode === "summary" oldugunda render
+          edilir; dashboard editoru ve detayli paylasimda atlanir. */}
+      {mode === "summary" && (
+        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-muted text-muted-foreground">
+                <th className="w-16 px-3 py-2.5 text-left font-medium">Kod</th>
+                <th className="px-3 py-2.5 text-left font-medium">Grup</th>
+                <th className="w-20 px-3 py-2.5 text-center font-medium">Kalem</th>
+                <th className="w-32 px-3 py-2.5 text-right font-medium">USD</th>
+                <th className="w-32 px-3 py-2.5 text-right font-medium">TRY</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {allGroups
+                .map((g) => ({
+                  ...g,
+                  items: g.items.filter((it) => !hiddenCodes.has(it.code)),
+                }))
+                .filter((g) => g.items.length > 0)
+                .map((g) => {
+                  const grpTotal = groupSaleTotals.get(g.code) ?? 0;
+                  const isA = g.code.startsWith("A");
+                  const dispCode = getDisplayGroupCode(g.code);
+                  return (
+                    <tr key={g.code} className="hover:bg-muted/40">
+                      <td className="px-3 py-2.5">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "font-mono text-xs",
+                            isA
+                              ? "border-primary/30 bg-primary-soft text-primary-soft-foreground"
+                              : "border-info/30 bg-info-soft text-info-soft-foreground",
+                          )}
+                        >
+                          {dispCode}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-2.5 font-medium text-foreground">{g.name}</td>
+                      <td className="px-3 py-2.5 text-center text-xs text-muted-foreground">
+                        {g.items.length}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-bold text-foreground tabular-nums">
+                        ${fmt(grpTotal)}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-muted-foreground tabular-nums">
+                        ₺{fmt(grpTotal * settings.usd)}
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-primary/30 bg-primary-soft">
+                <td colSpan={3} className="px-3 py-3 text-right font-semibold text-primary-soft-foreground">
+                  GENEL TOPLAM
+                </td>
+                <td className="px-3 py-3 text-right font-bold text-primary-soft-foreground tabular-nums">
+                  ${fmt(salePrice)}
+                </td>
+                <td className="px-3 py-3 text-right font-semibold text-primary-soft-foreground/80 tabular-nums">
+                  ₺{fmt(salePrice * settings.usd)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+
+      {/* Detailed groups view — public share detailed + dashboard editor.
+          mode === "summary" oldugunda atlanir. */}
+      {mode !== "summary" && (
       <div className="space-y-2">
         {filteredGroups.map((group) => {
           const isA = group.code.startsWith("A");
@@ -698,10 +790,10 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                           <th className="w-28 px-3 py-2 text-right font-medium text-muted-foreground">
                             Tutar (USD)
                           </th>
-                          <th className="w-28 px-3 py-2 text-center font-medium text-muted-foreground">
+                          <th data-edit-only className="w-28 px-3 py-2 text-center font-medium text-muted-foreground">
                             Kar %
                           </th>
-                          <th className="w-44 px-3 py-2 text-center font-medium text-muted-foreground">
+                          <th data-edit-only className="w-44 px-3 py-2 text-center font-medium text-muted-foreground">
                             Durum
                           </th>
                         </tr>
@@ -777,7 +869,7 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                               >
                                 ${fmt(sp)}
                               </td>
-                              <td className="px-2 py-1.5">
+                              <td data-edit-only className="px-2 py-1.5">
                                 {hidden || excluded ? (
                                   <span className="block text-center text-[11px] text-muted-foreground/60">—</span>
                                 ) : (
@@ -789,7 +881,7 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                                   />
                                 )}
                               </td>
-                              <td className="px-3 py-1.5">
+                              <td data-edit-only className="px-3 py-1.5">
                                 <div className="flex items-center justify-center gap-1.5">
                                   <button
                                     data-edit-only
@@ -842,8 +934,8 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                           <td className="px-3 py-2 text-right font-bold text-primary-soft-foreground">
                             ${fmt(grpTotal)}
                           </td>
-                          <td />
-                          <td />
+                          <td data-edit-only />
+                          <td data-edit-only />
                         </tr>
                       </tfoot>
                     </table>
@@ -871,6 +963,7 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

@@ -4,28 +4,57 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit-log";
+import { sendShareLinkEmail } from "@/lib/email";
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
-import { VALID_TAB_IDS, PRESET_DAYS, type SharePreset } from "@/lib/share-tabs";
+import {
+  SHARE_TABS,
+  VALID_TAB_IDS,
+  PRESET_DAYS,
+  type SharePreset,
+} from "@/lib/share-tabs";
 
 function generateToken(): string {
   // 32 char base62 → ~190 bit entropy. URL-safe, predict edilemez.
   return randomBytes(24).toString("base64url");
 }
 
-export async function createShareLink(
-  fd: FormData,
-): Promise<{ success?: string; error?: string; url?: string }> {
+function getAppUrl(): string {
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://teklif.fozanseyfi.com";
+  return base.replace(/\/+$/, "");
+}
+
+function tabLabelsFor(tabIds: string[]): string[] {
+  return tabIds
+    .map((id) => SHARE_TABS.find((t) => t.id === id)?.label)
+    .filter((l): l is string => Boolean(l));
+}
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+export async function createShareLink(fd: FormData): Promise<{
+  success?: string;
+  error?: string;
+  url?: string;
+  emailSent?: boolean;
+  emailError?: string;
+}> {
   const user = await requireAuth();
   if (!isAdmin(user)) return { error: "Yetkin yok" };
 
   const projectId = (fd.get("projectId") as string)?.trim();
   const customerLabel = ((fd.get("customerLabel") as string) ?? "").trim();
+  const recipientEmail = ((fd.get("recipientEmail") as string) ?? "").trim();
   const preset = (fd.get("preset") as SharePreset) ?? "7d";
   const tabsRaw = fd.getAll("tabs") as string[];
 
   if (!projectId) return { error: "Proje seçilmedi" };
   if (!(preset in PRESET_DAYS)) return { error: "Süre geçersiz" };
+  if (recipientEmail && !isValidEmail(recipientEmail)) {
+    return { error: "E-posta adresi geçersiz" };
+  }
   const tabs = tabsRaw.filter((t) => VALID_TAB_IDS.has(t));
   if (tabs.length === 0) return { error: "En az bir bölüm seçmelisin" };
 
@@ -45,6 +74,7 @@ export async function createShareLink(
       projectId: project.id,
       createdById: user.id,
       customerLabel: customerLabel || null,
+      recipientEmail: recipientEmail || null,
       includedTabs: tabs as never,
       expiresAt,
     },
@@ -53,17 +83,91 @@ export async function createShareLink(
   await logAudit(user, "create_share_link", "project", project.id, project.name, {
     shareLinkId: link.id,
     customerLabel: customerLabel || null,
+    recipientEmail: recipientEmail || null,
     tabs,
     preset,
     expiresAt: expiresAt?.toISOString() ?? null,
   });
+
+  // E-posta atılır (kullanıcı email girdiyse). Hata durumunda toast'la bilgi
+  // ver, link yine de oluşturulmuş olur (mail asenkron yan iş).
+  let emailSent = false;
+  let emailError: string | undefined;
+  if (recipientEmail) {
+    const result = await sendShareLinkEmail({
+      to: recipientEmail,
+      firmName: user.organization.name,
+      projectName: project.name || "Proje",
+      customerLabel: customerLabel || null,
+      shareUrl: `${getAppUrl()}/share/${link.token}`,
+      expiresAt,
+      includedTabLabels: tabLabelsFor(tabs),
+    });
+    emailSent = result.sent;
+    emailError = result.error;
+
+    if (emailSent) {
+      await logAudit(user, "send_share_email", "project", project.id, project.name, {
+        shareLinkId: link.id,
+        recipientEmail,
+      });
+    }
+  }
 
   revalidatePath("/admin/share-links");
 
   return {
     success: "Paylaşım linki oluşturuldu",
     url: link.token,
+    emailSent,
+    emailError,
   };
+}
+
+export async function resendShareLinkEmail(
+  id: string,
+): Promise<{ success?: string; error?: string }> {
+  const user = await requireAuth();
+  if (!isAdmin(user)) return { error: "Yetkin yok" };
+
+  const link = await prisma.shareLink.findFirst({
+    where: { id, organizationId: user.organizationId },
+    include: { project: { select: { id: true, name: true } } },
+  });
+  if (!link) return { error: "Link bulunamadı" };
+  if (link.revokedAt) return { error: "İptal edilmiş linkin maili gönderilemez" };
+  if (link.expiresAt && link.expiresAt.getTime() < Date.now()) {
+    return { error: "Süresi dolmuş linkin maili gönderilemez" };
+  }
+  if (!link.recipientEmail) {
+    return { error: "Bu linkte kayıtlı bir e-posta adresi yok" };
+  }
+
+  const tabs = Array.isArray(link.includedTabs)
+    ? (link.includedTabs as unknown[]).filter((t): t is string => typeof t === "string")
+    : [];
+
+  const result = await sendShareLinkEmail({
+    to: link.recipientEmail,
+    firmName: user.organization.name,
+    projectName: link.project.name || "Proje",
+    customerLabel: link.customerLabel,
+    shareUrl: `${getAppUrl()}/share/${link.token}`,
+    expiresAt: link.expiresAt,
+    includedTabLabels: tabLabelsFor(tabs),
+  });
+
+  if (!result.sent) {
+    return { error: result.error ?? "Mail gönderilemedi" };
+  }
+
+  await logAudit(user, "send_share_email", "project", link.project.id, link.project.name, {
+    shareLinkId: link.id,
+    recipientEmail: link.recipientEmail,
+    resend: true,
+  });
+
+  return { success: `Mail ${link.recipientEmail} adresine gönderildi` };
 }
 
 export async function revokeShareLink(

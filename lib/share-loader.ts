@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { parseBrandSettings, type BrandSettings } from "@/lib/pdf-brand";
+import { normalizeTabId } from "@/lib/share-tabs";
 import type { Project } from "@prisma/client";
 
 export interface ShareContext {
@@ -49,10 +50,18 @@ export const loadShareContext = cache(async (token: string): Promise<ShareContex
     where: { projectId: link.projectId },
   });
 
-  // includedTabs Json — string[] olarak güvenle parse et
-  const tabs = Array.isArray(link.includedTabs)
+  // includedTabs Json — string[] olarak güvenle parse et + eski id'leri yeni
+  // id'lere migrate et (boq → boq-unpriced, priced-boq → priced-boq-detailed).
+  const rawTabs = Array.isArray(link.includedTabs)
     ? (link.includedTabs as unknown[]).filter((t): t is string => typeof t === "string")
     : [];
+  const tabs = Array.from(
+    new Set(
+      rawTabs
+        .map((t) => normalizeTabId(t))
+        .filter((t): t is NonNullable<typeof t> => t !== null),
+    ),
+  );
 
   return {
     link: {

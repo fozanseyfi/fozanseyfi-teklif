@@ -71,4 +71,5 @@ export const ACTION_LABELS: Record<string, string> = {
   // Paylaşım
   create_share_link: "Paylaşım linki oluşturdu",
   revoke_share_link: "Paylaşım linkini iptal etti",
+  send_share_email: "Paylaşım linkini e-posta ile gönderdi",
 };

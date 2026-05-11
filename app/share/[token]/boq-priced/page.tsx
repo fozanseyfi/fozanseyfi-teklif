@@ -1,4 +1,4 @@
-import { PricedBoQ } from "@/components/ges/priced-boq";
+import { BoQView } from "@/components/ges/boq-view";
 import { requireShareTab } from "../_components/share-guard";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
 
@@ -6,12 +6,12 @@ interface Props {
   params: Promise<{ token: string }>;
 }
 
-export default async function SharePricedBoqPage({ params }: Props) {
+export default async function ShareBoqPricedPage({ params }: Props) {
   const { token } = await params;
-  const ctx = await requireShareTab(token, "priced-boq");
+  const ctx = await requireShareTab(token, "boq-priced");
 
   return (
-    <PricedBoQ
+    <BoQView
       projectId={ctx.project.id}
       projectName={ctx.project.name || "İsimsiz Proje"}
       project={ctx.project}
@@ -21,6 +21,7 @@ export default async function SharePricedBoqPage({ params }: Props) {
       firmName={ctx.firmName}
       brand={ctx.brand}
       userEmail=""
+      defaultShowPrices={true}
     />
   );
 }

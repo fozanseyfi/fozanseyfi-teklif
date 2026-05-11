@@ -3,7 +3,8 @@ import { Toaster } from "sonner";
 import { ReadOnlyProvider } from "@/lib/readonly-context";
 import { loadShareContext, recordShareView } from "@/lib/share-loader";
 import { ShareHeader } from "./_components/share-header";
-import { SHARE_TABS } from "@/lib/share-tabs";
+import { ShareExpiryStrip } from "./_components/share-expiry-strip";
+import { SHARE_TABS, normalizeTabId } from "@/lib/share-tabs";
 
 interface Props {
   children: React.ReactNode;
@@ -19,8 +20,14 @@ export default async function ShareLayout({ children, params }: Props) {
   // Hata yutsun ki public sayfa görünmesin diye fail edip dönmesin.
   await recordShareView(ctx.link.id);
 
-  // Sadece içerilen tab'leri göster — yöneticinin seçimine sadık kal.
-  const tabs = SHARE_TABS.filter((t) => ctx.link.includedTabs.includes(t.id));
+  // İncluded tabs'ı normalize et (eski "boq"/"priced-boq" id'leri yeni
+  // id'lere donusturulur). Sadece valid id'ler tab nav'a duser.
+  const normalizedIncluded = new Set(
+    ctx.link.includedTabs
+      .map((id) => normalizeTabId(id))
+      .filter((id): id is NonNullable<typeof id> => id !== null),
+  );
+  const tabs = SHARE_TABS.filter((t) => normalizedIncluded.has(t.id));
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -32,12 +39,18 @@ export default async function ShareLayout({ children, params }: Props) {
         token={ctx.link.token}
         tabs={tabs}
       />
+      <ShareExpiryStrip
+        expiresAt={ctx.link.expiresAt?.toISOString() ?? null}
+        brand={ctx.brand}
+      />
       {/* Public paylaşım her zaman read-only — ReadOnlyProvider true ile
           sarınca KesifEditor, DorEditor vb. komponentler save/edit
-          butonlarını gizler ama "PDF İndir" butonu görünür kalır. */}
+          butonlarını gizler ama "PDF İndir" butonu görünür kalır.
+          data-readonly-reason="share" → globals.css'te "Görüntüleme modu"
+          banner'i bu reason icin gizlenir (musteri sayfasinda gereksiz). */}
       <ReadOnlyProvider value={true}>
         <main className="mx-auto max-w-[1440px] p-4 sm:p-6 lg:p-8">
-          <div className="template-readonly" data-readonly-reason="view">
+          <div className="template-readonly" data-readonly-reason="share">
             {children}
           </div>
         </main>

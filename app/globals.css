@@ -464,3 +464,10 @@
   background: rgb(241 245 249 / 0.7);
   border-color: rgb(148 163 184);
 }
+
+/* Public paylasim sayfasi — banner gizli. Musteri/yatirimci icin "salt
+   okunur" uyarisi gereksiz; sayfa zaten kendini bir paylasim olarak
+   tanitmis durumda (firma marka header'i + sure stripi). */
+.template-readonly[data-readonly-reason="share"]::before {
+  display: none;
+}

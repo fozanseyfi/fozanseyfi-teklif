@@ -14,10 +14,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Share2, Copy, Trash2, Link as LinkIcon, ExternalLink, Eye, Clock } from "lucide-react";
+import { Share2, Copy, Trash2, Link as LinkIcon, ExternalLink, Eye, Clock, Mail, AlertTriangle, Send } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { createShareLink, revokeShareLink } from "@/app/actions/share";
+import { createShareLink, revokeShareLink, resendShareLinkEmail } from "@/app/actions/share";
 import { SHARE_TABS, type SharePreset } from "@/lib/share-tabs";
 
 interface ProjectOption {
@@ -32,6 +32,7 @@ interface LinkRow {
   projectId: string;
   projectName: string;
   customerLabel: string | null;
+  recipientEmail: string | null;
   includedTabs: string[];
   expiresAt: string | null;
   viewCount: number;
@@ -92,11 +93,18 @@ function formatRemaining(expiresAt: string | null): string {
 export function ShareLinksClient({ projects, links, organizationName }: Props) {
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [customerLabel, setCustomerLabel] = useState("");
+  const [recipientEmail, setRecipientEmail] = useState("");
   const [preset, setPreset] = useState<SharePreset>("7d");
+  // Varsayilan secim: musteriye guvenle gidebilecek tab'ler isaretli, hassas
+  // (Fiyatli BoQ + Analiz) bos. Yonetici isteyerek isaretler.
   const [selectedTabs, setSelectedTabs] = useState<Set<string>>(
-    new Set(SHARE_TABS.map((t) => t.id)),
+    new Set(SHARE_TABS.filter((t) => !t.sensitive).map((t) => t.id)),
   );
   const [pending, startTransition] = useTransition();
+
+  const anySensitiveSelected = SHARE_TABS.some(
+    (t) => t.sensitive && selectedTabs.has(t.id),
+  );
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
@@ -126,6 +134,7 @@ export function ShareLinksClient({ projects, links, organizationName }: Props) {
     const fd = new FormData();
     fd.set("projectId", selectedProject);
     fd.set("customerLabel", customerLabel.trim());
+    fd.set("recipientEmail", recipientEmail.trim());
     fd.set("preset", preset);
     selectedTabs.forEach((t) => fd.append("tabs", t));
 
@@ -139,9 +148,15 @@ export function ShareLinksClient({ projects, links, organizationName }: Props) {
         const fullUrl = `${baseUrl}/share/${result.url}`;
         copyToClipboard(fullUrl);
         toast.success("Link oluşturuldu ve panoya kopyalandı");
+        if (recipientEmail.trim() && result.emailSent) {
+          toast.success(`Mail ${recipientEmail.trim()} adresine gönderildi`);
+        } else if (recipientEmail.trim() && !result.emailSent) {
+          toast.error(`Mail gönderilemedi: ${result.emailError ?? "bilinmeyen hata"}`);
+        }
       }
       // Reset
       setCustomerLabel("");
+      setRecipientEmail("");
     });
   }
 
@@ -151,6 +166,14 @@ export function ShareLinksClient({ projects, links, organizationName }: Props) {
       const result = await revokeShareLink(id);
       if (result.error) toast.error(result.error);
       else toast.success(result.success ?? "İptal edildi");
+    });
+  }
+
+  function handleResend(id: string) {
+    startTransition(async () => {
+      const result = await resendShareLinkEmail(id);
+      if (result.error) toast.error(result.error);
+      else toast.success(result.success ?? "Mail gönderildi");
     });
   }
 
@@ -234,22 +257,61 @@ export function ShareLinksClient({ projects, links, organizationName }: Props) {
             </div>
           </div>
 
+          <div className="space-y-1.5">
+            <Label htmlFor="recipientEmail">
+              Müşteri E-postası <span className="text-xs font-normal text-muted-foreground">(opsiyonel — boş bırakırsan sadece link kopyalanır)</span>
+            </Label>
+            <div className="relative">
+              <Mail className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="recipientEmail"
+                type="email"
+                placeholder="musteri@firma.com"
+                value={recipientEmail}
+                onChange={(e) => setRecipientEmail(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label>Paylaşılacak Bölümler</Label>
-            <div className="grid gap-2 rounded-lg border bg-muted/30 p-3 sm:grid-cols-3">
-              {SHARE_TABS.map((t) => (
-                <label
-                  key={t.id}
-                  className="flex cursor-pointer items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm transition-colors hover:bg-muted/40"
-                >
-                  <Checkbox
-                    checked={selectedTabs.has(t.id)}
-                    onCheckedChange={() => toggleTab(t.id)}
-                  />
-                  <span className="font-medium text-foreground">{t.label}</span>
-                </label>
-              ))}
+            <div className="grid gap-2 rounded-lg border bg-muted/30 p-3 sm:grid-cols-2 lg:grid-cols-3">
+              {SHARE_TABS.map((t) => {
+                const isSensitive = !!t.sensitive;
+                const isChecked = selectedTabs.has(t.id);
+                return (
+                  <label
+                    key={t.id}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm transition-colors hover:bg-muted/40",
+                      isSensitive && isChecked && "border-warning/50 bg-warning-soft/40",
+                    )}
+                  >
+                    <Checkbox
+                      checked={isChecked}
+                      onCheckedChange={() => toggleTab(t.id)}
+                    />
+                    <span className="flex-1 font-medium text-foreground">{t.label}</span>
+                    {isSensitive && (
+                      <AlertTriangle
+                        className="size-3.5 text-warning-soft-foreground"
+                        aria-label="Maliyet/kâr bilgisi içerir"
+                      />
+                    )}
+                  </label>
+                );
+              })}
             </div>
+            {anySensitiveSelected && (
+              <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning-soft px-3 py-2.5 text-xs text-warning-soft-foreground">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                <span>
+                  <strong>Dikkat:</strong> İşaretlediğin bölümlerden biri <strong>maliyet/kâr</strong> bilgisi içeriyor (<strong>Fiyatlı BoQ</strong> · <strong>Analiz</strong>).
+                  Bu içerikler müşteri/yatırımcıya genelde gönderilmez — şirket içi paylaşım için uygundur. Göndereceğine emin ol.
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -300,6 +362,7 @@ export function ShareLinksClient({ projects, links, organizationName }: Props) {
               baseUrl={baseUrl}
               onCopy={copyToClipboard}
               onRevoke={handleRevoke}
+              onResend={handleResend}
               showRevoke
               pending={pending}
             />
@@ -321,6 +384,7 @@ export function ShareLinksClient({ projects, links, organizationName }: Props) {
               baseUrl={baseUrl}
               onCopy={copyToClipboard}
               onRevoke={handleRevoke}
+              onResend={handleResend}
               showRevoke={false}
               pending={pending}
             />
@@ -336,6 +400,7 @@ function LinkTable({
   baseUrl,
   onCopy,
   onRevoke,
+  onResend,
   showRevoke,
   pending,
 }: {
@@ -343,6 +408,7 @@ function LinkTable({
   baseUrl: string;
   onCopy: (s: string) => void;
   onRevoke: (id: string) => void;
+  onResend: (id: string) => void;
   showRevoke: boolean;
   pending: boolean;
 }) {
@@ -370,6 +436,11 @@ function LinkTable({
                   {l.customerLabel && (
                     <div className="mt-0.5 text-[11px] text-muted-foreground">
                       {l.customerLabel}
+                    </div>
+                  )}
+                  {l.recipientEmail && (
+                    <div className="mt-0.5 inline-flex items-center gap-1 text-[10.5px] text-info-soft-foreground">
+                      <Mail className="size-2.5" /> {l.recipientEmail}
                     </div>
                   )}
                   <div className="mt-0.5 text-[10.5px] text-muted-foreground">
@@ -442,6 +513,17 @@ function LinkTable({
                         >
                           <ExternalLink className="size-3.5" />
                         </a>
+                        {l.recipientEmail && (
+                          <button
+                            type="button"
+                            onClick={() => onResend(l.id)}
+                            disabled={pending}
+                            className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-info-soft hover:text-info-soft-foreground disabled:opacity-50"
+                            title={`Maili ${l.recipientEmail} adresine yeniden gönder`}
+                          >
+                            <Send className="size-3.5" />
+                          </button>
+                        )}
                       </>
                     )}
                     {showRevoke && status.tone === "active" && (

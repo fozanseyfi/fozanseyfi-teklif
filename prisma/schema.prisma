@@ -257,6 +257,10 @@ model ShareLink {
   createdById    String       @map("created_by_id") @db.Uuid
   // Yönetici notu — "Çimsa müşteri", "Yatırımcı XYZ" gibi iç etiket.
   customerLabel  String?      @map("customer_label")
+  // Müşteri/yatırımcı e-postası — link e-posta ile gönderildiğinde kayıt
+  // edilir, sonradan "Tekrar Mail At" butonuyla yeniden gönderebilmek için.
+  // Boş bırakılırsa sadece link panoya kopyalanır, e-posta gönderilmez.
+  recipientEmail String?      @map("recipient_email")
   // İçerilen tab kimlikleri: ["kesif-a", "kesif-b", "boq", "priced-boq", "analiz", "dor"]
   includedTabs   Json         @map("included_tabs")
   // null = süresiz
