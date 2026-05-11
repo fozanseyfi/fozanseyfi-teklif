@@ -145,3 +145,127 @@ function escapeHtml(s: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
+
+// ─── Müşteri yanıtı bildirim e-postası ────────────────────────────────
+
+export type CustomerResponseKind = "accept" | "revision" | "question";
+
+interface SendCustomerResponseArgs {
+  to: string; // proje sahibi e-postası
+  firmName: string;
+  projectName: string;
+  customerLabel: string | null;
+  responseKind: CustomerResponseKind;
+  customerName: string | null;
+  customerEmail: string | null;
+  message: string | null;
+  // Dashboard'da projeye doğrudan link (kullanıcı tıklayıp inceleyebilir).
+  projectUrl: string;
+}
+
+const RESPONSE_KIND_HEADERS: Record<CustomerResponseKind, { emoji: string; subject: string; tone: string }> = {
+  accept: {
+    emoji: "✅",
+    subject: "MÜŞTERİ TEKLİFİ KABUL ETTİ",
+    tone: "#059669",
+  },
+  revision: {
+    emoji: "↻",
+    subject: "MÜŞTERİ REVİZYON İSTEDİ",
+    tone: "#d97706",
+  },
+  question: {
+    emoji: "❓",
+    subject: "MÜŞTERİ SORU SORDU",
+    tone: "#2563eb",
+  },
+};
+
+/**
+ * Müşteri paylaşım sayfasında bir butona bastığında, proje sahibine bildirim
+ * maili gönderir. Mail servisi yapılandırılmamışsa sessizce false döner —
+ * ana akış (DB kaydı) bozulmasın diye.
+ */
+export async function sendCustomerResponseEmail(
+  args: SendCustomerResponseArgs,
+): Promise<{ sent: boolean; error?: string }> {
+  const tx = getTransporter();
+  if (!tx) {
+    console.warn("[email] mail servisi yapilandirilmamis, musteri yaniti bildirimi atilmadi");
+    return { sent: false, error: "Mail servisi yapılandırılmamış" };
+  }
+
+  const head = RESPONSE_KIND_HEADERS[args.responseKind];
+  const subject = `${head.emoji} ${head.subject} — ${args.projectName}`;
+  const html = buildCustomerResponseHtml(args, head);
+  const text = buildCustomerResponseText(args, head);
+
+  try {
+    await tx.sendMail({ from: FROM_ADDR, to: args.to, subject, html, text });
+    return { sent: true };
+  } catch (err) {
+    console.warn("[email] musteri yanit bildirimi gonderilemedi:", err);
+    return { sent: false, error: err instanceof Error ? err.message : "Bilinmeyen hata" };
+  }
+}
+
+function buildCustomerResponseHtml(
+  args: SendCustomerResponseArgs,
+  head: { emoji: string; subject: string; tone: string },
+): string {
+  const customerLine = args.customerLabel
+    ? `<p style="margin:8px 0 0;color:#475569;font-size:14px">Müşteri notu (iç etiket): <strong>${escapeHtml(args.customerLabel)}</strong></p>`
+    : "";
+  const customerIdentity =
+    args.customerName || args.customerEmail
+      ? `<p style="margin:0;color:#334155;font-size:13px"><strong>İmza:</strong> ${
+          args.customerName ? escapeHtml(args.customerName) : "—"
+        }${args.customerEmail ? ` &lt;${escapeHtml(args.customerEmail)}&gt;` : ""}</p>`
+      : "";
+  const messageBlock = args.message
+    ? `<div style="margin-top:14px;padding:12px 14px;background:#f8fafc;border-left:3px solid ${head.tone};border-radius:6px"><p style="margin:0;font-size:13px;line-height:1.55;color:#0f172a;white-space:pre-wrap">${escapeHtml(args.message)}</p></div>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html lang="tr"><head><meta charset="utf-8" /><title>${escapeHtml(head.subject)}</title></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0f172a">
+  <div style="max-width:560px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06)">
+    <div style="background:${head.tone};padding:22px 28px;color:#fff">
+      <p style="margin:0;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.88">${escapeHtml(args.firmName)}</p>
+      <h1 style="margin:6px 0 0;font-size:18px;font-weight:700">${head.emoji} ${escapeHtml(head.subject)}</h1>
+      <p style="margin:6px 0 0;font-size:14px;opacity:.95">${escapeHtml(args.projectName)}</p>
+    </div>
+    <div style="padding:22px 28px">
+      ${customerIdentity}
+      ${customerLine}
+      ${messageBlock}
+      <div style="margin:22px 0 4px;text-align:center">
+        <a href="${args.projectUrl}" style="display:inline-block;background:${head.tone};color:#fff;padding:11px 26px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">
+          Projeyi Aç →
+        </a>
+      </div>
+      <p style="margin:14px 0 0;font-size:11.5px;color:#94a3b8;text-align:center">
+        Pipeline sekmesinden aktiviteyi inceleyebilir, yanıt verebilirsin.
+      </p>
+    </div>
+  </div>
+</body></html>`;
+}
+
+function buildCustomerResponseText(
+  args: SendCustomerResponseArgs,
+  head: { emoji: string; subject: string; tone: string },
+): string {
+  return [
+    `${head.emoji} ${head.subject} — ${args.projectName}`,
+    "",
+    args.customerName ? `İmza: ${args.customerName}` : null,
+    args.customerEmail ? `E-posta: ${args.customerEmail}` : null,
+    args.customerLabel ? `Müşteri etiketi: ${args.customerLabel}` : null,
+    args.message ? `\nMesaj:\n${args.message}` : null,
+    "",
+    `Projeyi aç: ${args.projectUrl}`,
+  ]
+    .filter((l): l is string => l !== null)
+    .join("\n");
+}

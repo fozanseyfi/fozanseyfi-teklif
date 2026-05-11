@@ -3,7 +3,9 @@ import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { parseBrandSettings, type BrandSettings } from "@/lib/pdf-brand";
 import { normalizeTabId } from "@/lib/share-tabs";
+import { recordActivity, setPipelineStage } from "@/lib/project-activity";
 import type { Project } from "@prisma/client";
+import type { CustomerResponseKind } from "@/lib/email";
 
 export interface ShareContext {
   link: {
@@ -24,6 +26,10 @@ export interface ShareContext {
   };
   firmName: string;
   brand: BrandSettings;
+  // Müşterinin daha önce kabul / revizyon yanıtı verdiyse buradan okunur,
+  // yanıt bar'ı kilitli "zaten yanıtlandı" görünümüne döner.
+  // Soru sorma sayılmaz (müşteri ek soru sorabilir).
+  alreadyResponded: { kind: CustomerResponseKind; at: string } | null;
 }
 
 /**
@@ -63,6 +69,25 @@ export const loadShareContext = cache(async (token: string): Promise<ShareContex
     ),
   );
 
+  // Bu paylaşım üzerinden gelmiş kabul/revizyon var mı? Soru sorma sayılmaz.
+  const lastDecision = await prisma.projectActivity.findFirst({
+    where: {
+      shareLinkId: link.id,
+      type: { in: ["CUSTOMER_ACCEPTED", "CUSTOMER_REVISION"] },
+    },
+    orderBy: { createdAt: "desc" },
+    select: { type: true, createdAt: true },
+  });
+  const alreadyResponded = lastDecision
+    ? {
+        kind:
+          lastDecision.type === "CUSTOMER_ACCEPTED"
+            ? ("accept" as CustomerResponseKind)
+            : ("revision" as CustomerResponseKind),
+        at: lastDecision.createdAt.toISOString(),
+      }
+    : null;
+
   return {
     link: {
       id: link.id,
@@ -82,6 +107,7 @@ export const loadShareContext = cache(async (token: string): Promise<ShareContex
     },
     firmName: link.organization.name,
     brand: parseBrandSettings(link.organization.brandSettings),
+    alreadyResponded,
   };
 });
 
@@ -89,9 +115,26 @@ export const loadShareContext = cache(async (token: string): Promise<ShareContex
  * Görüntülenme sayısını artırır. Layout'tan tek sefer çağrılır (cache yok —
  * her sayfa yüklenmesinde counter artar). Hata yutsun ki public sayfa
  * görünmesin diye logu fail edip dönmesin.
+ *
+ * İlk view'da (viewCount=0 iken) ek olarak:
+ *   - CUSTOMER_VIEWED activity yazılır
+ *   - Project.pipelineStage SENT iken UNDER_REVIEW'a otomatik yükselir
+ *   (manuel STAGE_CHANGE activity'si setPipelineStage tarafından eklenir)
  */
 export async function recordShareView(linkId: string): Promise<void> {
   try {
+    // Mevcut state'i oku (ilk view mu yoksa tekrar view mu?)
+    const before = await prisma.shareLink.findUnique({
+      where: { id: linkId },
+      select: {
+        viewCount: true,
+        projectId: true,
+        project: { select: { organizationId: true, pipelineStage: true } },
+      },
+    });
+    if (!before) return;
+
+    // Counter increment
     await prisma.shareLink.update({
       where: { id: linkId },
       data: {
@@ -99,6 +142,28 @@ export async function recordShareView(linkId: string): Promise<void> {
         lastViewedAt: new Date(),
       },
     });
+
+    // İlk view ise yan etkileri tetikle (activity + otomatik stage geçişi).
+    if (before.viewCount === 0) {
+      await recordActivity({
+        projectId: before.projectId,
+        organizationId: before.project.organizationId,
+        type: "CUSTOMER_VIEWED",
+        shareLinkId: linkId,
+      });
+
+      // SENT iken otomatik UNDER_REVIEW'a yükselt. Daha ileri stage'de
+      // (REVISED, WON, LOST) ise dokunma — yöneticinin manuel kararı saklı.
+      if (before.project.pipelineStage === "SENT") {
+        await setPipelineStage({
+          projectId: before.projectId,
+          organizationId: before.project.organizationId,
+          newStage: "UNDER_REVIEW",
+          shareLinkId: linkId,
+          reason: "Müşteri ilk kez görüntüledi",
+        });
+      }
+    }
   } catch (err) {
     console.warn("[share-loader] view increment failed:", err);
   }

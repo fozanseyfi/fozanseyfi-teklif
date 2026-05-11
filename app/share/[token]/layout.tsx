@@ -4,6 +4,7 @@ import { ReadOnlyProvider } from "@/lib/readonly-context";
 import { loadShareContext, recordShareView } from "@/lib/share-loader";
 import { ShareHeader } from "./_components/share-header";
 import { ShareExpiryStrip } from "./_components/share-expiry-strip";
+import { ShareResponseBar } from "./_components/response-bar";
 import { SHARE_TABS, normalizeTabId } from "@/lib/share-tabs";
 
 interface Props {
@@ -55,6 +56,16 @@ export default async function ShareLayout({ children, params }: Props) {
           </div>
         </main>
       </ReadOnlyProvider>
+
+      {/* Müşteri yanıt çubuğu — sayfa sonuna sticky.
+          Kullanıcı kabul/revizyon yanıtı verdiyse "zaten yanıtlandı"
+          görünümüne döner. */}
+      <ShareResponseBar
+        token={ctx.link.token}
+        brand={ctx.brand}
+        alreadyResponded={ctx.alreadyResponded}
+      />
+
       <footer className="mx-auto max-w-[1440px] px-4 pb-8 pt-4 text-center text-[10.5px] text-slate-500">
         {ctx.firmName} tarafından paylaşıldı · Bu sayfa müşteri/yatırımcı için hazırlanmıştır.
       </footer>
