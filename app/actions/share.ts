@@ -5,6 +5,7 @@ import { requireAuth } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit-log";
 import { sendShareLinkEmail } from "@/lib/email";
+import { setPipelineStage } from "@/lib/project-activity";
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
 import {
@@ -60,7 +61,7 @@ export async function createShareLink(fd: FormData): Promise<{
 
   const project = await prisma.project.findFirst({
     where: { id: projectId, organizationId: user.organizationId },
-    select: { id: true, name: true },
+    select: { id: true, name: true, pipelineStage: true },
   });
   if (!project) return { error: "Proje bulunamadı" };
 
@@ -79,6 +80,19 @@ export async function createShareLink(fd: FormData): Promise<{
       expiresAt,
     },
   });
+
+  // Pipeline aşaması: henüz pipeline'a girmemişse SENT'e at. Daha ileri
+  // bir aşamadaysa (UNDER_REVIEW, REVISED, WON, LOST) dokunma.
+  if (project.pipelineStage === null) {
+    await setPipelineStage({
+      projectId: project.id,
+      organizationId: user.organizationId,
+      newStage: "SENT",
+      actor: { id: user.id, email: user.email, fullName: user.fullName },
+      shareLinkId: link.id,
+      reason: "Paylaşım linki oluşturuldu",
+    });
+  }
 
   await logAudit(user, "create_share_link", "project", project.id, project.name, {
     shareLinkId: link.id,

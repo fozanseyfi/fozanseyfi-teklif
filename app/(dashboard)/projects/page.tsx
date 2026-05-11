@@ -23,6 +23,7 @@ import {
 import { calc } from "@/lib/ges-engine";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
 import { DeleteProjectButton } from "@/components/project/delete-project-button";
+import { PIPELINE_STAGE_LABELS, PIPELINE_STAGE_TONE } from "@/lib/pipeline-labels";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "success" | "warning" | "destructive" | "info"> = {
   DRAFT: "secondary",
@@ -247,17 +248,30 @@ export default async function ProjectsPage({ searchParams }: Props) {
                           )}
                         </td>
                         <td className="px-6 py-4 text-center">
-                          {isCompletionStatus(project.status) ? (
-                            <ProjectStatusChanger
-                              projectId={project.id}
-                              currentStatus={project.status}
-                              allowedTransitions={[...COMPLETION_TRANSITION_VALUES]}
-                            />
-                          ) : (
-                            <Badge variant={STATUS_VARIANT[project.status]}>
-                              {PROJECT_STATUS_LABELS[project.status]}
-                            </Badge>
-                          )}
+                          <div className="flex flex-col items-center gap-1">
+                            {isCompletionStatus(project.status) ? (
+                              <ProjectStatusChanger
+                                projectId={project.id}
+                                currentStatus={project.status}
+                                allowedTransitions={[...COMPLETION_TRANSITION_VALUES]}
+                              />
+                            ) : (
+                              <Badge variant={STATUS_VARIANT[project.status]}>
+                                {PROJECT_STATUS_LABELS[project.status]}
+                              </Badge>
+                            )}
+                            {project.pipelineStage && (
+                              <span
+                                className={cn(
+                                  "inline-flex items-center rounded-full border px-1.5 py-0 text-[9.5px] font-semibold uppercase tracking-wider",
+                                  PIPELINE_STAGE_TONE[project.pipelineStage],
+                                )}
+                                title="Pipeline aşaması"
+                              >
+                                {PIPELINE_STAGE_LABELS[project.pipelineStage]}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="hidden px-6 py-4 text-right text-xs text-muted-foreground sm:table-cell">
                           {formatDate(project.updatedAt)}

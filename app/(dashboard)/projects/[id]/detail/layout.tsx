@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getProjectAccess } from "@/lib/project-access";
 import { GesDetailNav } from "@/components/ges/ges-detail-nav";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, User, Zap, Sparkles, LayoutTemplate, Lock, Unlock } from "lucide-react";
+import { MapPin, User, Zap, Sparkles, LayoutTemplate, Lock, Unlock, GitBranch } from "lucide-react";
+import { PIPELINE_STAGE_LABELS, PIPELINE_STAGE_TONE } from "@/lib/pipeline-labels";
 import type { GesSettings, KesifGroup } from "@/lib/ges-defaults";
 import { useTemplate, setTemplateLock } from "@/app/actions/templates";
 import { cn } from "@/lib/utils";
@@ -171,6 +172,21 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
             <Badge className="h-5 px-1.5 text-[9.5px]" variant={statusVariant}>
               {statusLabel}
             </Badge>
+          )}
+
+          {/* Pipeline aşaması — durum badge'in yaninda, sablonlar disinda gozukur.
+              Detayli yonetim Pipeline sekmesinde. */}
+          {!isTemplate && project.pipelineStage && (
+            <span
+              className={cn(
+                "inline-flex h-5 items-center gap-0.5 rounded-full border px-1.5 text-[9.5px] font-semibold uppercase tracking-wider",
+                PIPELINE_STAGE_TONE[project.pipelineStage],
+              )}
+              title="Pipeline aşaması — Pipeline sekmesinden yönetin"
+            >
+              <GitBranch className="mr-0.5 size-2.5" />
+              {PIPELINE_STAGE_LABELS[project.pipelineStage]}
+            </span>
           )}
 
           {/* Sağa yaslanan: müşteri · lokasyon · güç */}

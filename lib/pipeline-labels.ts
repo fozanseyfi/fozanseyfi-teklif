@@ -1,0 +1,40 @@
+// Pipeline + activity etiketleri ve renk tonları — client/server her yerden
+// kullanılabilsin diye server-only sınırı içermez. Saf veridir.
+
+import type { ActivityType, PipelineStage } from "@prisma/client";
+
+export const PIPELINE_STAGE_LABELS: Record<PipelineStage, string> = {
+  SENT: "Gönderildi",
+  UNDER_REVIEW: "İnceleniyor",
+  REVISED: "Revizyon İstendi",
+  WON: "Kazanıldı",
+  LOST: "Kaybedildi",
+};
+
+export const PIPELINE_STAGE_TONE: Record<PipelineStage, string> = {
+  SENT: "border-sky-200 bg-sky-50 text-sky-700",
+  UNDER_REVIEW: "border-amber-200 bg-amber-50 text-amber-700",
+  REVISED: "border-violet-200 bg-violet-50 text-violet-700",
+  WON: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  LOST: "border-rose-200 bg-rose-50 text-rose-700",
+};
+
+export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
+  CUSTOMER_VIEWED: "Müşteri paylaşımı görüntüledi",
+  CUSTOMER_ACCEPTED: "Müşteri kabul etti",
+  CUSTOMER_REVISION: "Müşteri revizyon istedi",
+  CUSTOMER_QUESTION: "Müşteri soru sordu",
+  INTERNAL_NOTE: "İç not",
+  PHONE_CALL: "Telefon görüşmesi",
+  EMAIL_SENT: "Mail gönderildi",
+  STAGE_CHANGE: "Aşama değişti",
+};
+
+export const LOST_REASON_LABELS: Record<string, string> = {
+  PRICE: "Fiyat",
+  TECHNICAL: "Teknik",
+  REFERENCE: "Referans",
+  TIMING: "Zamanlama",
+  RELATIONSHIP: "Müşteri ilişkisi",
+  OTHER: "Diğer",
+};
