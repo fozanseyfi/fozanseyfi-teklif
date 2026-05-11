@@ -3,6 +3,7 @@
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { loadEditableProject } from "@/lib/project-access";
+import { logAudit } from "@/lib/audit-log";
 import { revalidatePath } from "next/cache";
 import { DEF_KA, DEF_KB, DEF_S, DEF_TL, DEF_DOR } from "@/lib/ges-defaults";
 import { applyAutoQty, applyAutoQtyKB } from "@/lib/ges-engine";
@@ -125,6 +126,7 @@ async function recomputeProjectStatus(projectId: string) {
 
 export async function saveProjectInfo(projectId: string, formData: FormData, advance = false) {
   const project = await loadEditableProject(projectId);
+  const user = await requireAuth();
 
   const name = formData.get("name") as string;
   const customerName = formData.get("customerName") as string;
@@ -203,11 +205,13 @@ export async function saveProjectInfo(projectId: string, formData: FormData, adv
   }
 
   if (advance) await bumpGesStep(projectId, 1);
+  await logAudit(user, "save_project_info", "project", projectId, name || project.name, { advance });
   revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 
 export async function saveTeknik(projectId: string, data: Record<string, unknown>, advance = false) {
   const project = await loadEditableProject(projectId);
+  const user = await requireAuth();
 
   const dcGuc = Number(data.dcGuc) || 0;
   const panelCount = Number(data.panelAdet) || 0;
@@ -262,11 +266,18 @@ export async function saveTeknik(projectId: string, data: Record<string, unknown
   });
 
   if (advance) await bumpGesStep(projectId, 2);
+  await logAudit(user, "save_teknik", "project", projectId, project.name, {
+    advance,
+    dcGuc: dcGuc,
+    panelCount,
+    inverterCount,
+  });
   revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 
 export async function saveFizibilite(projectId: string, data: Record<string, unknown>) {
   const project = await loadEditableProject(projectId);
+  const user = await requireAuth();
 
   await prisma.project.update({
     where: { id: projectId },
@@ -296,11 +307,13 @@ export async function saveFizibilite(projectId: string, data: Record<string, unk
     update: { settings: newSettings as never },
   });
 
+  await logAudit(user, "save_fizibilite", "project", projectId, project.name);
   revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 
 export async function saveGesSettings(projectId: string, settings: Record<string, unknown>) {
   const project = await loadEditableProject(projectId);
+  const user = await requireAuth();
 
   const detail = await prisma.projectDetail.findUnique({ where: { projectId } });
   const oldSettings = (detail?.settings as Record<string, unknown>) || {};
@@ -319,6 +332,9 @@ export async function saveGesSettings(projectId: string, settings: Record<string
     update: { settings: newSettings as never },
   });
 
+  await logAudit(user, "save_ges_settings", "project", projectId, project.name, {
+    fields: Object.keys(settings),
+  });
   revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 
@@ -345,6 +361,7 @@ function renumberGroups(groups: unknown[]): unknown[] {
 
 export async function saveKesifA(projectId: string, kesifA: unknown[], advance = false) {
   const project = await loadEditableProject(projectId);
+  const user = await requireAuth();
 
   const normalized = renumberGroups(kesifA);
   await prisma.projectDetail.upsert({
@@ -361,11 +378,16 @@ export async function saveKesifA(projectId: string, kesifA: unknown[], advance =
   });
 
   if (advance) await bumpGesStep(projectId, 3);
+  await logAudit(user, "save_kesif_a", "project", projectId, project.name, {
+    advance,
+    groupCount: Array.isArray(normalized) ? normalized.length : 0,
+  });
   revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 
 export async function saveKesifB(projectId: string, kesifB: unknown[], advance = false) {
   const project = await loadEditableProject(projectId);
+  const user = await requireAuth();
 
   const normalized = renumberGroups(kesifB);
   await prisma.projectDetail.upsert({
@@ -382,11 +404,16 @@ export async function saveKesifB(projectId: string, kesifB: unknown[], advance =
   });
 
   if (advance) await bumpGesStep(projectId, 4);
+  await logAudit(user, "save_kesif_b", "project", projectId, project.name, {
+    advance,
+    groupCount: Array.isArray(normalized) ? normalized.length : 0,
+  });
   revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 
 export async function saveTimeline(projectId: string, timeline: unknown, advance = false) {
   const project = await loadEditableProject(projectId);
+  const user = await requireAuth();
 
   await prisma.projectDetail.upsert({
     where: { projectId },
@@ -418,6 +445,7 @@ export async function saveTimeline(projectId: string, timeline: unknown, advance
   // status DRAFT'a doner.
   await recomputeProjectStatus(projectId);
 
+  await logAudit(user, "save_timeline", "project", projectId, project.name, { advance });
   revalidatePath(`/projects/${projectId}/detail`, "layout");
   revalidatePath("/dashboard");
   revalidatePath("/projects");
@@ -425,6 +453,7 @@ export async function saveTimeline(projectId: string, timeline: unknown, advance
 
 export async function saveDor(projectId: string, dor: unknown[]) {
   const project = await loadEditableProject(projectId);
+  const user = await requireAuth();
 
   await prisma.projectDetail.upsert({
     where: { projectId },
@@ -439,6 +468,7 @@ export async function saveDor(projectId: string, dor: unknown[]) {
     update: { dor: dor as never },
   });
 
+  await logAudit(user, "save_dor", "project", projectId, project.name);
   revalidatePath(`/projects/${projectId}/detail`, "layout");
 }
 

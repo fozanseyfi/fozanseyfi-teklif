@@ -69,6 +69,7 @@ model Organization {
 
   hiddenResources UserHiddenResource[] @relation("HiddenInOrg")
   lockedResources UserLockedResource[] @relation("LockedInOrg")
+  auditLogs       AuditLog[]
 
   @@map("organizations")
   @@schema("public")
@@ -202,6 +203,41 @@ model Project {
 
   @@index([isTemplate, templateOrder])
   @@index([organizationId])
+  @@schema("solar")
+}
+
+/// Audit log — kim, ne zaman, hangi projede, ne yaptı? Yöneticilerin
+/// görebileceği zaman damgalı kayıt akışı. Foreign key actor (Profile) için
+/// YOKTU bilinçli — kullanıcı silinse bile log korunur, sadece email/name
+/// snapshot saklanır.
+model AuditLog {
+  id             String       @id @default(cuid())
+  organizationId String       @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actorId        String?      @map("actor_id") @db.Uuid
+  actorEmail     String?      @map("actor_email")
+  actorName      String?      @map("actor_name")
+
+  // Insanca okunabilir aksiyon adi: "save_project_info", "save_teknik",
+  // "save_kesif_a", "save_kesif_b", "save_timeline", "save_dor",
+  // "delete_project", "use_template", "create_project", "invite_user", vb.
+  action         String
+
+  // resourceType: "project" | "template" | "user" | "settings"
+  resourceType   String       @map("resource_type")
+  resourceId     String?      @map("resource_id")
+  // Snapshot: proje silinse bile log'da hangi proje olduğu görülsün.
+  resourceName   String?      @map("resource_name")
+
+  // Free-form ek bilgi: degisen alan(lar), miktar farki, advance flag vs.
+  details        Json         @default("{}")
+
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@index([organizationId, createdAt])
+  @@index([actorId])
+  @@index([resourceType, resourceId])
+  @@map("audit_logs")
   @@schema("solar")
 }
 
