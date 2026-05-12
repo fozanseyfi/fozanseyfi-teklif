@@ -392,9 +392,8 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
           })
           .join("");
         return `<tr class="group-row">
-        <td colspan="2"><span class="${isA ? "badge-a" : "badge-b"}">${dispCode}</span> <strong>${g.name}</strong></td>
-        <td colspan="5"></td>
-        <td style="text-align:right;font-weight:800;color:${isA ? "#059669" : "#047857"}">$${fmt(grpTotal)}</td>
+        <td colspan="7" style="white-space:nowrap"><span class="${isA ? "badge-a" : "badge-b"}">${dispCode}</span> <strong>${g.name}</strong></td>
+        <td style="text-align:right;font-weight:800;color:${isA ? "#059669" : "#047857"};white-space:nowrap">$${fmt(grpTotal)}</td>
       </tr>${itemRows}`;
       })
       .join("");
