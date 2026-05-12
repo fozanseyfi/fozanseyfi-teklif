@@ -50,7 +50,9 @@ interface Props {
 const PRESET_OPTIONS: { value: SharePreset; label: string }[] = [
   { value: "1d", label: "1 gün" },
   { value: "7d", label: "7 gün" },
+  { value: "14d", label: "14 gün" },
   { value: "30d", label: "30 gün" },
+  { value: "60d", label: "60 gün" },
   { value: "90d", label: "90 gün" },
   { value: "infinite", label: "Süresiz" },
 ];
@@ -274,40 +276,71 @@ export function ShareLinksClient({ projects, links, organizationName }: Props) {
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label>Paylaşılacak Bölümler</Label>
-            <div className="grid gap-2 rounded-lg border bg-muted/30 p-3 sm:grid-cols-2 lg:grid-cols-3">
-              {SHARE_TABS.map((t) => {
-                const isSensitive = !!t.sensitive;
-                const isChecked = selectedTabs.has(t.id);
-                return (
-                  <label
-                    key={t.id}
-                    className={cn(
-                      "flex cursor-pointer items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm transition-colors hover:bg-muted/40",
-                      isSensitive && isChecked && "border-warning/50 bg-warning-soft/40",
-                    )}
-                  >
-                    <Checkbox
-                      checked={isChecked}
-                      onCheckedChange={() => toggleTab(t.id)}
-                    />
-                    <span className="flex-1 font-medium text-foreground">{t.label}</span>
-                    {isSensitive && (
+
+            {/* Güvenli grup — müşteriye gönderilebilir */}
+            <div className="space-y-1.5">
+              <p className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-emerald-700">
+                <span className="inline-block size-1.5 rounded-full bg-emerald-500" />
+                Müşteri / yatırımcıya açıkça gönderilebilir
+              </p>
+              <div className="grid gap-2 rounded-lg border border-emerald-200/60 bg-emerald-50/30 p-3 sm:grid-cols-2 lg:grid-cols-3">
+                {SHARE_TABS.filter((t) => !t.sensitive).map((t) => {
+                  const isChecked = selectedTabs.has(t.id);
+                  return (
+                    <label
+                      key={t.id}
+                      className="flex cursor-pointer items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm transition-colors hover:bg-muted/40"
+                    >
+                      <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={() => toggleTab(t.id)}
+                      />
+                      <span className="flex-1 font-medium text-foreground">{t.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Hassas grup — maliyet/kâr içerir */}
+            <div className="space-y-1.5">
+              <p className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-warning-soft-foreground">
+                <AlertTriangle className="size-3" />
+                Maliyet / kâr içerir — dikkatli kullanın
+              </p>
+              <div className="grid gap-2 rounded-lg border border-warning/40 bg-warning-soft/30 p-3 sm:grid-cols-2 lg:grid-cols-3">
+                {SHARE_TABS.filter((t) => t.sensitive).map((t) => {
+                  const isChecked = selectedTabs.has(t.id);
+                  return (
+                    <label
+                      key={t.id}
+                      className={cn(
+                        "flex cursor-pointer items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm transition-colors hover:bg-muted/40",
+                        isChecked && "border-warning/60 bg-warning-soft/60",
+                      )}
+                    >
+                      <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={() => toggleTab(t.id)}
+                      />
+                      <span className="flex-1 font-medium text-foreground">{t.label}</span>
                       <AlertTriangle
                         className="size-3.5 text-warning-soft-foreground"
                         aria-label="Maliyet/kâr bilgisi içerir"
                       />
-                    )}
-                  </label>
-                );
-              })}
+                    </label>
+                  );
+                })}
+              </div>
             </div>
+
             {anySensitiveSelected && (
               <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning-soft px-3 py-2.5 text-xs text-warning-soft-foreground">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" />
                 <span>
-                  <strong>Dikkat:</strong> İşaretlediğin bölümlerden biri <strong>maliyet/kâr</strong> bilgisi içeriyor (<strong>Keşif-A</strong> · <strong>Keşif-B</strong> · <strong>Fiyatlı BoQ</strong> · <strong>Analiz</strong>).
+                  <strong>Dikkat:</strong> İşaretlediğin bölümlerden biri <strong>maliyet/kâr</strong> bilgisi içeriyor.
                   Bu içerikler müşteri/yatırımcıya genelde gönderilmez — şirket içi paylaşım için uygundur. Göndereceğine emin ol.
                 </span>
               </div>
@@ -413,7 +446,136 @@ function LinkTable({
   pending: boolean;
 }) {
   return (
-    <div className="overflow-hidden rounded-lg border">
+    <>
+      {/* Mobile: kart yığını — yatay scroll yerine her satır kart, aksiyon
+          butonları kart altında her zaman görünür kalır. */}
+      <div className="space-y-2.5 sm:hidden">
+        {rows.map((l) => {
+          const url = `${baseUrl}/share/${l.token}`;
+          const status = getStatus(l);
+          return (
+            <div
+              key={l.id}
+              className="rounded-lg border bg-card p-3 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-semibold text-foreground">
+                    {l.projectName}
+                  </p>
+                  {l.customerLabel && (
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      {l.customerLabel}
+                    </p>
+                  )}
+                  {l.recipientEmail && (
+                    <p className="mt-0.5 inline-flex items-center gap-1 text-[10.5px] text-info-soft-foreground">
+                      <Mail className="size-2.5" /> {l.recipientEmail}
+                    </p>
+                  )}
+                </div>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "shrink-0 text-[10px] font-semibold",
+                    status.tone === "active" && "border-emerald-200 bg-emerald-50 text-emerald-700",
+                    status.tone === "expired" && "border-amber-200 bg-amber-50 text-amber-700",
+                    status.tone === "revoked" && "border-red-200 bg-red-50 text-red-700",
+                  )}
+                >
+                  {status.label}
+                </Badge>
+              </div>
+
+              {/* Bölümler */}
+              <div className="mt-2 flex flex-wrap gap-1">
+                {l.includedTabs.map((t) => (
+                  <Badge key={t} variant="outline" className="text-[10px] font-semibold">
+                    {TAB_LABEL_MAP[t] ?? t}
+                  </Badge>
+                ))}
+              </div>
+
+              {/* Süre + Görüntülenme */}
+              <div className="mt-2 grid grid-cols-2 gap-2 border-t border-slate-100 pt-2 text-[11px]">
+                <div>
+                  <p className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Süre
+                  </p>
+                  <p className="mt-0.5 text-foreground">{formatRemaining(l.expiresAt)}</p>
+                  {l.expiresAt && (
+                    <p className="text-[10px] text-muted-foreground">
+                      {formatDateTime(l.expiresAt)}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <p className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Görüntülenme
+                  </p>
+                  <p className="mt-0.5 inline-flex items-center gap-1 text-foreground">
+                    <Eye className="size-3 text-muted-foreground" />
+                    <span className="font-semibold">{l.viewCount}</span>
+                  </p>
+                  {l.lastViewedAt && (
+                    <p className="text-[10px] text-muted-foreground">
+                      Son: {formatDateTime(l.lastViewedAt)}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Aksiyon butonları — etiketli, mobile'da net görünür */}
+              {status.tone === "active" && (
+                <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 sm:grid-cols-4">
+                  <button
+                    type="button"
+                    onClick={() => onCopy(url)}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[11.5px] font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                  >
+                    <Copy className="size-3.5" /> Kopyala
+                  </button>
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[11.5px] font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                  >
+                    <ExternalLink className="size-3.5" /> Linke Git
+                  </a>
+                  {l.recipientEmail && (
+                    <button
+                      type="button"
+                      onClick={() => onResend(l.id)}
+                      disabled={pending}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-md border border-info/30 bg-info-soft/40 px-2 py-1.5 text-[11.5px] font-semibold text-info-soft-foreground transition-colors hover:bg-info-soft/70 disabled:opacity-50"
+                    >
+                      <Send className="size-3.5" /> Tekrar Mail
+                    </button>
+                  )}
+                  {showRevoke && (
+                    <button
+                      type="button"
+                      onClick={() => onRevoke(l.id)}
+                      disabled={pending}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-md border border-rose-200 bg-rose-50/40 px-2 py-1.5 text-[11.5px] font-semibold text-rose-700 transition-colors hover:bg-rose-50 disabled:opacity-50"
+                    >
+                      <Trash2 className="size-3.5" /> İptal Et
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <p className="mt-2 text-[10px] text-muted-foreground/70">
+                Oluşturuldu: {formatDateTime(l.createdAt)}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop: tablo */}
+      <div className="hidden overflow-hidden rounded-lg border sm:block">
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-muted text-muted-foreground">
@@ -544,6 +706,7 @@ function LinkTable({
           })}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }

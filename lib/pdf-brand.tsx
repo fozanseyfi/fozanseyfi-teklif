@@ -33,7 +33,11 @@ export interface BrandSettings {
   // Firma tanıtım PDF'i (Supabase Storage public URL).
   brochureUrl?: string;
   brochureFileName?: string;
-  // Referans listesi — paylaşımdaki "Referanslar" sekmesinde gösterilir.
+  // Referans listesi PDF'i — public Referanslar sekmesinde tabloyla birlikte gösterilir.
+  // Tablo + PDF birlikte de olabilir; biri/diğeri/ikisi yok da olabilir.
+  referencesBrochureUrl?: string;
+  referencesBrochureFileName?: string;
+  // Referans listesi (yapısal) — paylaşımdaki "Referanslar" sekmesinde gösterilir.
   references?: BrandReference[];
 }
 
@@ -69,6 +73,8 @@ export function parseBrandSettings(raw: unknown): BrandSettings {
     contact: pickStr("contact"),
     brochureUrl: pickStr("brochureUrl"),
     brochureFileName: pickStr("brochureFileName"),
+    referencesBrochureUrl: pickStr("referencesBrochureUrl"),
+    referencesBrochureFileName: pickStr("referencesBrochureFileName"),
     references,
   };
 }

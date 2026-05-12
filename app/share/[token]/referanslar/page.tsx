@@ -1,4 +1,4 @@
-import { Award, MapPin, Zap, Calendar, Briefcase } from "lucide-react";
+import { Award, MapPin, Zap, Calendar, Briefcase, FileText, ExternalLink, Download } from "lucide-react";
 import { requireShareTab } from "../_components/share-guard";
 
 interface Props {
@@ -15,6 +15,10 @@ export default async function ShareReferanslarPage({ params }: Props) {
 
   const accent = ctx.brand.colorEnabled && ctx.brand.color ? ctx.brand.color : "#059669";
   const refs = ctx.brand.references ?? [];
+  const refPdfUrl = ctx.brand.referencesBrochureUrl;
+  const refPdfFileName = ctx.brand.referencesBrochureFileName ?? "referanslar.pdf";
+  const hasPdf = Boolean(refPdfUrl);
+  const hasTable = refs.length > 0;
 
   // Toplam MWp & yıl aralığı — özet rozet
   const totalMwp = refs.reduce((s, r) => s + (r.mwp ?? 0), 0);
@@ -72,13 +76,55 @@ export default async function ShareReferanslarPage({ params }: Props) {
         )}
       </div>
 
+      {/* Referans PDF kartı — yüklüyse her zaman gözükür */}
+      {hasPdf && (
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-start gap-4 p-5">
+            <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+              <FileText className="size-7" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[13.5px] font-semibold text-slate-900">
+                Referans Listesi (PDF)
+              </p>
+              <p className="mt-0.5 truncate text-[12px] text-slate-500">
+                {refPdfFileName}
+              </p>
+              <p className="mt-2 text-[12px] leading-relaxed text-slate-600">
+                Gerçekleştirdiğimiz projelerin detaylı referans belgesi.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <a
+                  href={refPdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-[12.5px] font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: accent }}
+                >
+                  <ExternalLink className="size-3.5" />
+                  Yeni Sekmede Aç
+                </a>
+                <a
+                  href={refPdfUrl}
+                  download={refPdfFileName}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-4 py-2 text-[12.5px] font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                >
+                  <Download className="size-3.5" />
+                  İndir
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Liste */}
-      {refs.length === 0 ? (
+      {!hasTable && !hasPdf ? (
         <div className="rounded-xl border border-dashed bg-white p-8 text-center text-[13px] text-slate-500">
           Bu firma henüz referans projelerini paylaşmamış. Detaylı bilgi için
           firma yetkilisiyle iletişime geçebilirsiniz.
         </div>
-      ) : (
+      ) : !hasTable ? null : (
         <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
           {/* Mobile: kart yığını (referans başına bir kart) */}
           <ul className="divide-y divide-slate-100 sm:hidden">

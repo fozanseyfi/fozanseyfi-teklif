@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/permissions";
+import { isProjectVisible } from "@/lib/project-status";
 import { redirect } from "next/navigation";
 import { ShareLinksClient } from "./client";
 
@@ -8,11 +9,24 @@ export default async function ShareLinksPage() {
   const user = await requireAuth();
   if (!isAdmin(user)) redirect("/dashboard");
 
-  const [projects, links] = await Promise.all([
+  const [projectsRaw, links] = await Promise.all([
+    // Adı boş olan / yarim kalmis (gesStep < 2) projeler paylaşım dropdown'una
+    // dusmesin — kullanici "isimsiz proje" gormesin. Filtre Projeler sayfasi
+    // ile ayni (isProjectVisible).
     prisma.project.findMany({
-      where: { organizationId: user.organizationId, isTemplate: false },
+      where: {
+        organizationId: user.organizationId,
+        isTemplate: false,
+        name: { not: "" },
+      },
       orderBy: { updatedAt: "desc" },
-      select: { id: true, name: true, customerName: true },
+      select: {
+        id: true,
+        name: true,
+        customerName: true,
+        status: true,
+        projectDetail: { select: { settings: true } },
+      },
     }),
     prisma.shareLink.findMany({
       where: { organizationId: user.organizationId },
@@ -22,9 +36,11 @@ export default async function ShareLinksPage() {
     }),
   ]);
 
+  const projects = projectsRaw.filter(isProjectVisible);
+
   const projectOptions = projects.map((p) => ({
     id: p.id,
-    name: p.name || "İsimsiz Proje",
+    name: p.name,
     customerName: p.customerName,
   }));
 
@@ -32,7 +48,7 @@ export default async function ShareLinksPage() {
     id: l.id,
     token: l.token,
     projectId: l.projectId,
-    projectName: l.project.name || "İsimsiz Proje",
+    projectName: l.project.name || "(Adsız proje)",
     customerLabel: l.customerLabel,
     recipientEmail: l.recipientEmail,
     includedTabs: Array.isArray(l.includedTabs)

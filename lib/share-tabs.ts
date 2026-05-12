@@ -22,7 +22,7 @@ export interface ShareTabInfo {
 }
 
 export const SHARE_TABS: ShareTabInfo[] = [
-  { id: "firma", label: "Firma" },
+  { id: "firma", label: "Firma Tanıtımı" },
   { id: "referanslar", label: "Referanslar" },
   { id: "kesif-a", label: "Keşif-A", sensitive: true },
   { id: "kesif-b", label: "Keşif-B", sensitive: true },
@@ -49,12 +49,14 @@ export function normalizeTabId(id: string): ShareTab | null {
   return null;
 }
 
-export type SharePreset = "1d" | "7d" | "30d" | "90d" | "infinite";
+export type SharePreset = "1d" | "7d" | "14d" | "30d" | "60d" | "90d" | "infinite";
 
 export const PRESET_DAYS: Record<SharePreset, number | null> = {
   "1d": 1,
   "7d": 7,
+  "14d": 14,
   "30d": 30,
+  "60d": 60,
   "90d": 90,
   infinite: null,
 };

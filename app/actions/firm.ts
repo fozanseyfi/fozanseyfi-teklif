@@ -245,6 +245,103 @@ export async function removeBrandBrochure() {
   return { success: "Tanıtım PDF'i kaldırıldı" };
 }
 
+// ─── Referans listesi PDF'i ───────────────────────────────────────────
+
+export async function uploadReferencesBrochure(formData: FormData) {
+  const user = await requireAuth();
+  if (!isAdmin(user)) return { error: "Sadece yöneticiler yükleyebilir" };
+
+  const file = formData.get("brochure") as File | null;
+  if (!file || file.size === 0) return { error: "Dosya seçilmedi" };
+  if (file.size > 10 * 1024 * 1024) return { error: "PDF 10 MB'tan büyük olamaz" };
+  if (file.type !== "application/pdf") {
+    return { error: "Sadece PDF formatı kabul edilir" };
+  }
+
+  const admin = createSupabaseAdmin();
+  const path = `org-${user.organizationId}/references/referanslar-${Date.now()}.pdf`;
+
+  const { error: uploadError } = await admin.storage
+    .from("brand-logos")
+    .upload(path, file, { contentType: "application/pdf", upsert: true });
+  if (uploadError) {
+    return { error: `PDF yüklenemedi: ${uploadError.message}` };
+  }
+
+  const { data: pub } = admin.storage.from("brand-logos").getPublicUrl(path);
+  if (!pub?.publicUrl) return { error: "PDF URL'si alınamadı" };
+
+  const org = await prisma.organization.findUnique({
+    where: { id: user.organizationId },
+  });
+  const current = parseBrandSettings(org?.brandSettings);
+
+  if (current.referencesBrochureUrl) {
+    try {
+      const oldUrl = new URL(current.referencesBrochureUrl);
+      const idx = oldUrl.pathname.indexOf("/brand-logos/");
+      if (idx >= 0) {
+        const oldPath = oldUrl.pathname.slice(idx + "/brand-logos/".length);
+        await admin.storage.from("brand-logos").remove([oldPath]);
+      }
+    } catch {
+      // sessiz yut
+    }
+  }
+
+  await prisma.organization.update({
+    where: { id: user.organizationId },
+    data: {
+      brandSettings: {
+        ...current,
+        referencesBrochureUrl: pub.publicUrl,
+        referencesBrochureFileName: file.name,
+      } as never,
+    },
+  });
+
+  revalidatePath("/firm-settings");
+  return { success: "Referans PDF'i yüklendi" };
+}
+
+export async function removeReferencesBrochure() {
+  const user = await requireAuth();
+  if (!isAdmin(user)) return { error: "Sadece yöneticiler kaldırabilir" };
+
+  const org = await prisma.organization.findUnique({
+    where: { id: user.organizationId },
+  });
+  const current = parseBrandSettings(org?.brandSettings);
+
+  if (current.referencesBrochureUrl) {
+    try {
+      const admin = createSupabaseAdmin();
+      const url = new URL(current.referencesBrochureUrl);
+      const idx = url.pathname.indexOf("/brand-logos/");
+      if (idx >= 0) {
+        const path = url.pathname.slice(idx + "/brand-logos/".length);
+        await admin.storage.from("brand-logos").remove([path]);
+      }
+    } catch {
+      // sessiz yut
+    }
+  }
+
+  await prisma.organization.update({
+    where: { id: user.organizationId },
+    data: {
+      brandSettings: {
+        ...current,
+        referencesBrochureUrl: undefined,
+        referencesBrochureFileName: undefined,
+      } as never,
+    },
+  });
+
+  revalidatePath("/firm-settings");
+  return { success: "Referans PDF'i kaldırıldı" };
+}
+
 // ─── Referans listesi ─────────────────────────────────────────────────
 
 export async function saveBrandReferences(formData: FormData) {

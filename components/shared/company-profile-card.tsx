@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import {
   uploadBrandBrochure,
   removeBrandBrochure,
+  uploadReferencesBrochure,
+  removeReferencesBrochure,
   saveBrandReferences,
 } from "@/app/actions/firm";
 import type { BrandSettings, BrandReference } from "@/lib/pdf-brand";
@@ -27,12 +29,16 @@ import { toast } from "sonner";
 interface Props {
   initialBrochureUrl?: string;
   initialBrochureFileName?: string;
+  initialReferencesBrochureUrl?: string;
+  initialReferencesBrochureFileName?: string;
   initialReferences: BrandReference[];
 }
 
 export function CompanyProfileCard({
   initialBrochureUrl,
   initialBrochureFileName,
+  initialReferencesBrochureUrl,
+  initialReferencesBrochureFileName,
   initialReferences,
 }: Props) {
   // ─── Tanıtım PDF state ───────────────────────────────────────────────
@@ -67,10 +73,7 @@ export function CompanyProfileCard({
       if (r?.error) toast.error(r.error);
       else if (r?.success) {
         toast.success(r.success);
-        // Sayfayi yenilemeden anlik feedback: bu local state'i tahmini guncelle
         setBrochureFileName(fileName);
-        // url server'da set edildi; sayfa yenilenince guncel gelir, ama hemen
-        // gosterilebilmesi icin "Tanıtım yüklü" durumuna gec.
         setBrochureUrl((prev) => prev ?? "uploading");
       }
       e.target.value = "";
@@ -87,6 +90,59 @@ export function CompanyProfileCard({
         toast.success(r.success);
         setBrochureUrl(undefined);
         setBrochureFileName(undefined);
+      }
+    });
+  }
+
+  // ─── Referans PDF state ──────────────────────────────────────────────
+  const [refPdfUrl, setRefPdfUrl] = useState<string | undefined>(initialReferencesBrochureUrl);
+  const [refPdfFileName, setRefPdfFileName] = useState<string | undefined>(initialReferencesBrochureFileName);
+  const refFileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingRef, startUploadRef] = useTransition();
+  const [removingRefPdf, startRemoveRefPdf] = useTransition();
+
+  function onPickRefFile() {
+    refFileInputRef.current?.click();
+  }
+
+  function onRefFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("PDF 10 MB'tan büyük olamaz");
+      e.target.value = "";
+      return;
+    }
+    if (file.type !== "application/pdf") {
+      toast.error("Sadece PDF formatı kabul edilir");
+      e.target.value = "";
+      return;
+    }
+    const fd = new FormData();
+    fd.append("brochure", file);
+    const fileName = file.name;
+    startUploadRef(async () => {
+      const r = await uploadReferencesBrochure(fd);
+      if (r?.error) toast.error(r.error);
+      else if (r?.success) {
+        toast.success(r.success);
+        setRefPdfFileName(fileName);
+        setRefPdfUrl((prev) => prev ?? "uploading");
+      }
+      e.target.value = "";
+    });
+  }
+
+  function onRemoveRefPdf() {
+    if (!refPdfUrl) return;
+    if (!confirm("Referans PDF'ini kaldırmak istediğine emin misin?")) return;
+    startRemoveRefPdf(async () => {
+      const r = await removeReferencesBrochure();
+      if (r?.error) toast.error(r.error);
+      else if (r?.success) {
+        toast.success(r.success);
+        setRefPdfUrl(undefined);
+        setRefPdfFileName(undefined);
       }
     });
   }
@@ -240,15 +296,108 @@ export function CompanyProfileCard({
         <div className="ml-0 border-t border-slate-100 sm:ml-12" />
 
         {/* ─── Referanslar ─────────────────────────────────────────────── */}
-        <section className="ml-0 space-y-3 sm:ml-12">
+        <section className="ml-0 space-y-4 sm:ml-12">
           <div className="flex items-center gap-2">
             <Award className="size-4 text-slate-500" />
             <h4 className="text-[13px] font-semibold text-slate-800">
-              Referans Projeler
+              Referanslar
               <span className="ml-2 font-normal text-[11px] text-slate-400">
-                ({refs.length} kayıt)
+                PDF veya tablo — biri yeterli, ikisi de eklenebilir
               </span>
             </h4>
+          </div>
+
+          {/* Referans PDF upload — opsiyonel */}
+          <div className="space-y-2">
+            <p className="text-[11.5px] font-semibold text-slate-700">
+              Referans Listesi PDF'i{" "}
+              <span className="font-normal text-[10.5px] text-slate-400">
+                (opsiyonel · max 10 MB)
+              </span>
+            </p>
+            {refPdfUrl ? (
+              <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-3">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
+                  <FileText className="size-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[12.5px] font-medium text-slate-900">
+                    {refPdfFileName ?? "referanslar.pdf"}
+                  </p>
+                  <p className="mt-0.5 text-[10.5px] text-slate-500">
+                    Yüklü — paylaşımda Referanslar sekmesinde gösterilir
+                  </p>
+                </div>
+                {refPdfUrl !== "uploading" && (
+                  <a
+                    href={refPdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    <ExternalLink className="size-3" />
+                    Aç
+                  </a>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onPickRefFile}
+                  disabled={uploadingRef}
+                  className="gap-1"
+                >
+                  {uploadingRef ? <Loader2 className="size-3 animate-spin" /> : <Upload className="size-3" />}
+                  Değiştir
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onRemoveRefPdf}
+                  disabled={removingRefPdf}
+                  className="gap-1 border-rose-200 text-rose-600 hover:bg-rose-50"
+                >
+                  {removingRefPdf ? <Loader2 className="size-3 animate-spin" /> : <X className="size-3" />}
+                  Kaldır
+                </Button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={onPickRefFile}
+                disabled={uploadingRef}
+                className="flex w-full flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50/40 px-4 py-4 text-center transition-colors hover:border-emerald-300 hover:bg-emerald-50/30 disabled:opacity-50"
+              >
+                {uploadingRef ? (
+                  <Loader2 className="size-5 animate-spin text-slate-400" />
+                ) : (
+                  <Upload className="size-5 text-slate-400" />
+                )}
+                <span className="text-[12px] font-medium text-slate-700">
+                  {uploadingRef ? "Yükleniyor..." : "Referans PDF'i Yükle"}
+                </span>
+                <span className="text-[10.5px] text-slate-500">
+                  Şirket içi referans belgenizi PDF olarak yükleyin
+                </span>
+              </button>
+            )}
+            <input
+              ref={refFileInputRef}
+              type="file"
+              accept="application/pdf"
+              onChange={onRefFileChange}
+              className="hidden"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-[11.5px] font-semibold text-slate-700">
+              Referans Tablosu
+            </span>
+            <span className="text-[10.5px] text-slate-400">
+              ({refs.length} kayıt — opsiyonel)
+            </span>
           </div>
 
           {refs.length === 0 ? (
