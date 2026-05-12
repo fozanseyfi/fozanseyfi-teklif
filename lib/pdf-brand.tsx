@@ -186,7 +186,10 @@ export function brandFooterHtml(
     minute: "2-digit",
   });
   const extras = [brand.taxNumber, brand.contact].filter(Boolean).join(" · ");
-  return `<div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:8px;color:#94a3b8;font-family:'Courier New',monospace;letter-spacing:0.04em;padding:0 16px">
+  // Footer statik akışta — içeriğin altında, üstte ince ayırıcı çizgi.
+  // Eski `position:fixed` viewport'a yapışıp tablo ile çakışıyordu;
+  // şimdi tablo bitince footer kendi sırasında basılır.
+  return `<div style="margin-top:32px;padding:10px 16px 4px;border-top:1px solid #e2e8f0;text-align:center;font-size:8px;color:#94a3b8;font-family:'Courier New',monospace;letter-spacing:0.04em;page-break-inside:avoid;break-inside:avoid">
     <strong style="color:#475569;font-weight:600">${escapeHtml(firmName.toUpperCase())}</strong>
     ${extras ? ` · <span style="font-family:'Inter',sans-serif">${escapeHtml(extras)}</span>` : ""}
      · ${escapeHtml(userEmail)} · ${date} · doc-id: <strong style="color:#475569">${docId}</strong>
