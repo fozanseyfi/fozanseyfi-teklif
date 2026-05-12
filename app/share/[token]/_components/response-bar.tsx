@@ -16,20 +16,20 @@ interface Props {
 }
 
 const KIND_LABELS: Record<CustomerResponseKind, string> = {
-  accept: "Kabul Ediyorum",
+  accept: "Onayla",
   revision: "Revizyon İste",
   question: "Soru Sor",
 };
 
 const KIND_TITLES: Record<CustomerResponseKind, string> = {
-  accept: "Teklifi Kabul Et",
+  accept: "Teklifi Onayla",
   revision: "Revizyon İste",
   question: "Soru Sor",
 };
 
 const KIND_DESCRIPTIONS: Record<CustomerResponseKind, string> = {
   accept:
-    "Bu teklifi kabul ettiğinize dair tercihiniz proje sahibine bildirilecek. İsterseniz adınızı ve kısa bir not ekleyebilirsiniz.",
+    "Bu teklifi onayladığınıza dair tercihiniz proje sahibine bildirilecek. İsterseniz adınızı ve kısa bir not ekleyebilirsiniz.",
   revision:
     "Hangi noktaların revize edilmesini istediğinizi yazın. Proje sahibi en kısa sürede dönüş yapacak.",
   question:
@@ -37,7 +37,7 @@ const KIND_DESCRIPTIONS: Record<CustomerResponseKind, string> = {
 };
 
 const PREVIOUS_LABELS: Record<CustomerResponseKind, string> = {
-  accept: "Bu teklif kabul edildi olarak işaretlendi",
+  accept: "Bu teklif onaylandı olarak işaretlendi",
   revision: "Bu teklif için revizyon istendi",
   question: "Bu teklif için soru iletildi",
 };
@@ -104,7 +104,7 @@ export function ShareResponseBar({ token, brand, alreadyResponded }: Props) {
               style={{ backgroundColor: accent }}
             >
               <CheckCircle2 className="size-3.5" />
-              Kabul Ediyorum
+              Onayla
             </button>
           </div>
         </div>

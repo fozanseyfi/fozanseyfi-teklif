@@ -2,6 +2,8 @@
 // kisitlamasi yuzunden non-async export'lar burada tutulur.
 
 export type ShareTab =
+  | "firma"
+  | "referanslar"
   | "kesif-a"
   | "kesif-b"
   | "boq-unpriced"
@@ -20,8 +22,10 @@ export interface ShareTabInfo {
 }
 
 export const SHARE_TABS: ShareTabInfo[] = [
-  { id: "kesif-a", label: "Keşif-A" },
-  { id: "kesif-b", label: "Keşif-B" },
+  { id: "firma", label: "Firma" },
+  { id: "referanslar", label: "Referanslar" },
+  { id: "kesif-a", label: "Keşif-A", sensitive: true },
+  { id: "kesif-b", label: "Keşif-B", sensitive: true },
   { id: "boq-unpriced", label: "Fiyatsız BoQ" },
   { id: "boq-priced", label: "Fiyatlı BoQ", sensitive: true },
   { id: "priced-boq-summary", label: "Özet Teklif (P-BoQ)" },

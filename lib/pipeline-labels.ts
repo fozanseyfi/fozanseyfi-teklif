@@ -21,7 +21,7 @@ export const PIPELINE_STAGE_TONE: Record<PipelineStage, string> = {
 
 export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
   CUSTOMER_VIEWED: "Müşteri paylaşımı görüntüledi",
-  CUSTOMER_ACCEPTED: "Müşteri kabul etti",
+  CUSTOMER_ACCEPTED: "Müşteri teklifi onayladı",
   CUSTOMER_REVISION: "Müşteri revizyon istedi",
   CUSTOMER_QUESTION: "Müşteri soru sordu",
   INTERNAL_NOTE: "İç not",

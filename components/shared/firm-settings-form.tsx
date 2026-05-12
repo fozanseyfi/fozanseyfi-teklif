@@ -9,6 +9,7 @@ import {
 } from "@/app/actions/firm";
 import type { BrandSettings } from "@/lib/pdf-brand";
 import { BrandSettingsCard } from "@/components/shared/brand-settings-card";
+import { CompanyProfileCard } from "@/components/shared/company-profile-card";
 import { switchOrganization } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -273,6 +274,17 @@ export function FirmSettingsForm({ firm, profile, platformRole, joinedAt, panels
          ───────────────────────────────────────────────────────────────── */}
       {isAdmin && (
         <BrandSettingsCard firmName={firm.name} initialBrand={brand} />
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────
+          FİRMA PROFİLİ — Tanıtım PDF + Referans listesi (paylaşımda)
+         ───────────────────────────────────────────────────────────────── */}
+      {isAdmin && (
+        <CompanyProfileCard
+          initialBrochureUrl={brand.brochureUrl}
+          initialBrochureFileName={brand.brochureFileName}
+          initialReferences={brand.references ?? []}
+        />
       )}
 
       {/* ─────────────────────────────────────────────────────────────────

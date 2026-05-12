@@ -12,6 +12,14 @@
  * `app/actions/firm.ts` "use server" dosyasi non-async export edemedigi icin
  * bu tip + parser burada.
  */
+export interface BrandReference {
+  customer: string;
+  sector?: string;
+  mwp?: number;
+  year?: number;
+  location?: string;
+}
+
 export interface BrandSettings {
   logoUrl?: string;
   logoEnabled?: boolean;
@@ -22,6 +30,11 @@ export interface BrandSettings {
   watermarkEnabled?: boolean;
   taxNumber?: string;
   contact?: string;
+  // Firma tanıtım PDF'i (Supabase Storage public URL).
+  brochureUrl?: string;
+  brochureFileName?: string;
+  // Referans listesi — paylaşımdaki "Referanslar" sekmesinde gösterilir.
+  references?: BrandReference[];
 }
 
 /** JSON'dan tip-guvenli BrandSettings okur — eski org'larda alan yoksa default. */
@@ -32,6 +45,18 @@ export function parseBrandSettings(raw: unknown): BrandSettings {
     typeof o[k] === "string" ? (o[k] as string) : undefined;
   const pickBool = (k: string) =>
     typeof o[k] === "boolean" ? (o[k] as boolean) : undefined;
+  // Referans listesi — array of objects; her satır {customer, ...} formatında.
+  const refs = Array.isArray(o.references) ? o.references : [];
+  const references: BrandReference[] = refs
+    .filter((r): r is Record<string, unknown> => typeof r === "object" && r !== null)
+    .map((r) => ({
+      customer: typeof r.customer === "string" ? r.customer : "",
+      sector: typeof r.sector === "string" ? r.sector : undefined,
+      mwp: typeof r.mwp === "number" ? r.mwp : undefined,
+      year: typeof r.year === "number" ? r.year : undefined,
+      location: typeof r.location === "string" ? r.location : undefined,
+    }))
+    .filter((r) => r.customer.trim().length > 0);
   return {
     logoUrl: pickStr("logoUrl"),
     logoEnabled: pickBool("logoEnabled"),
@@ -42,6 +67,9 @@ export function parseBrandSettings(raw: unknown): BrandSettings {
     watermarkEnabled: pickBool("watermarkEnabled"),
     taxNumber: pickStr("taxNumber"),
     contact: pickStr("contact"),
+    brochureUrl: pickStr("brochureUrl"),
+    brochureFileName: pickStr("brochureFileName"),
+    references,
   };
 }
 

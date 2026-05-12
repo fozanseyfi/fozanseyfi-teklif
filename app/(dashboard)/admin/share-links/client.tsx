@@ -307,7 +307,7 @@ export function ShareLinksClient({ projects, links, organizationName }: Props) {
               <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning-soft px-3 py-2.5 text-xs text-warning-soft-foreground">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" />
                 <span>
-                  <strong>Dikkat:</strong> İşaretlediğin bölümlerden biri <strong>maliyet/kâr</strong> bilgisi içeriyor (<strong>Fiyatlı BoQ</strong> · <strong>Analiz</strong>).
+                  <strong>Dikkat:</strong> İşaretlediğin bölümlerden biri <strong>maliyet/kâr</strong> bilgisi içeriyor (<strong>Keşif-A</strong> · <strong>Keşif-B</strong> · <strong>Fiyatlı BoQ</strong> · <strong>Analiz</strong>).
                   Bu içerikler müşteri/yatırımcıya genelde gönderilmez — şirket içi paylaşım için uygundur. Göndereceğine emin ol.
                 </span>
               </div>

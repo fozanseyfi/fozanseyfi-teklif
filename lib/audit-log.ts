@@ -73,9 +73,13 @@ export const ACTION_LABELS: Record<string, string> = {
   revoke_share_link: "Paylaşım linkini iptal etti",
   send_share_email: "Paylaşım linkini e-posta ile gönderdi",
   // Müşteri yanıtları (public share)
-  customer_accepted: "Müşteri teklifi kabul etti",
+  customer_accepted: "Müşteri teklifi onayladı",
   customer_revision_request: "Müşteri revizyon istedi",
   customer_question: "Müşteri soru sordu",
+  // Marka — tanıtım PDF + referanslar
+  upload_brand_brochure: "Firma tanıtım PDF'ini yükledi",
+  remove_brand_brochure: "Firma tanıtım PDF'ini kaldırdı",
+  save_brand_references: "Referans listesini güncelledi",
   // Pipeline
   update_pipeline_stage: "Pipeline aşamasını değiştirdi",
   add_project_activity: "Proje notu/aktivitesi ekledi",

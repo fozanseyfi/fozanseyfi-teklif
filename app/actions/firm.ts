@@ -146,6 +146,152 @@ export async function removeBrandLogo() {
   return { success: "Logo kaldırıldı" };
 }
 
+// ─── Firma Tanıtım PDF'i ──────────────────────────────────────────────
+
+export async function uploadBrandBrochure(formData: FormData) {
+  const user = await requireAuth();
+  if (!isAdmin(user)) return { error: "Sadece yöneticiler tanıtım yükleyebilir" };
+
+  const file = formData.get("brochure") as File | null;
+  if (!file || file.size === 0) return { error: "Dosya seçilmedi" };
+  if (file.size > 10 * 1024 * 1024) return { error: "PDF 10 MB'tan büyük olamaz" };
+  if (file.type !== "application/pdf") {
+    return { error: "Sadece PDF formatı kabul edilir" };
+  }
+
+  const admin = createSupabaseAdmin();
+  // Bucket'i logo ile aynı tutuyoruz (zaten public, aynı RLS); brochures/ alt-klasörü.
+  const path = `org-${user.organizationId}/brochures/firma-${Date.now()}.pdf`;
+
+  const { error: uploadError } = await admin.storage
+    .from("brand-logos")
+    .upload(path, file, { contentType: "application/pdf", upsert: true });
+  if (uploadError) {
+    return { error: `PDF yüklenemedi: ${uploadError.message}` };
+  }
+
+  const { data: pub } = admin.storage.from("brand-logos").getPublicUrl(path);
+  if (!pub?.publicUrl) return { error: "PDF URL'si alınamadı" };
+
+  const org = await prisma.organization.findUnique({
+    where: { id: user.organizationId },
+  });
+  const current = parseBrandSettings(org?.brandSettings);
+
+  // Önce eski PDF'i Storage'dan sil — gereksiz dosya birikmesin.
+  if (current.brochureUrl) {
+    try {
+      const oldUrl = new URL(current.brochureUrl);
+      const idx = oldUrl.pathname.indexOf("/brand-logos/");
+      if (idx >= 0) {
+        const oldPath = oldUrl.pathname.slice(idx + "/brand-logos/".length);
+        await admin.storage.from("brand-logos").remove([oldPath]);
+      }
+    } catch {
+      // sessiz yut
+    }
+  }
+
+  await prisma.organization.update({
+    where: { id: user.organizationId },
+    data: {
+      brandSettings: {
+        ...current,
+        brochureUrl: pub.publicUrl,
+        brochureFileName: file.name,
+      } as never,
+    },
+  });
+
+  revalidatePath("/firm-settings");
+  return { success: "Tanıtım PDF'i yüklendi" };
+}
+
+export async function removeBrandBrochure() {
+  const user = await requireAuth();
+  if (!isAdmin(user)) return { error: "Sadece yöneticiler kaldırabilir" };
+
+  const org = await prisma.organization.findUnique({
+    where: { id: user.organizationId },
+  });
+  const current = parseBrandSettings(org?.brandSettings);
+
+  if (current.brochureUrl) {
+    try {
+      const admin = createSupabaseAdmin();
+      const url = new URL(current.brochureUrl);
+      const idx = url.pathname.indexOf("/brand-logos/");
+      if (idx >= 0) {
+        const path = url.pathname.slice(idx + "/brand-logos/".length);
+        await admin.storage.from("brand-logos").remove([path]);
+      }
+    } catch {
+      // sessiz yut
+    }
+  }
+
+  await prisma.organization.update({
+    where: { id: user.organizationId },
+    data: {
+      brandSettings: {
+        ...current,
+        brochureUrl: undefined,
+        brochureFileName: undefined,
+      } as never,
+    },
+  });
+
+  revalidatePath("/firm-settings");
+  return { success: "Tanıtım PDF'i kaldırıldı" };
+}
+
+// ─── Referans listesi ─────────────────────────────────────────────────
+
+export async function saveBrandReferences(formData: FormData) {
+  const user = await requireAuth();
+  if (!isAdmin(user)) return { error: "Sadece yöneticiler düzenleyebilir" };
+
+  const rawJson = (formData.get("references") as string) ?? "[]";
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawJson);
+  } catch {
+    return { error: "Geçersiz referans formatı" };
+  }
+  if (!Array.isArray(parsed)) return { error: "Geçersiz referans listesi" };
+
+  // Temizle + valide et (server-side; client'a güvenme)
+  const cleaned = parsed
+    .filter((r): r is Record<string, unknown> => typeof r === "object" && r !== null)
+    .map((r) => ({
+      customer: typeof r.customer === "string" ? r.customer.trim().slice(0, 200) : "",
+      sector: typeof r.sector === "string" ? r.sector.trim().slice(0, 120) : undefined,
+      mwp: typeof r.mwp === "number" && Number.isFinite(r.mwp) ? r.mwp : undefined,
+      year: typeof r.year === "number" && Number.isFinite(r.year) ? Math.round(r.year) : undefined,
+      location: typeof r.location === "string" ? r.location.trim().slice(0, 200) : undefined,
+    }))
+    .filter((r) => r.customer.length > 0)
+    .slice(0, 200); // max 200 referans
+
+  const org = await prisma.organization.findUnique({
+    where: { id: user.organizationId },
+  });
+  const current = parseBrandSettings(org?.brandSettings);
+
+  await prisma.organization.update({
+    where: { id: user.organizationId },
+    data: {
+      brandSettings: {
+        ...current,
+        references: cleaned,
+      } as never,
+    },
+  });
+
+  revalidatePath("/firm-settings");
+  return { success: `${cleaned.length} referans kaydedildi` };
+}
+
 // Kullanicinin profil bilgilerini gunceller (sadece kendi profili).
 // E-posta degisimi Supabase auth uzerinden yapilir; bu fonksiyon e-posta'yi
 // guncellemez — sadece adi ve digerleri.

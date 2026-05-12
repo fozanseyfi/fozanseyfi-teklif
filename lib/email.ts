@@ -167,7 +167,7 @@ interface SendCustomerResponseArgs {
 const RESPONSE_KIND_HEADERS: Record<CustomerResponseKind, { emoji: string; subject: string; tone: string }> = {
   accept: {
     emoji: "✅",
-    subject: "MÜŞTERİ TEKLİFİ KABUL ETTİ",
+    subject: "MÜŞTERİ TEKLİFİ ONAYLADI",
     tone: "#059669",
   },
   revision: {
