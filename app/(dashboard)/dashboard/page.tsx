@@ -232,7 +232,7 @@ export default async function DashboardPage() {
         />
         <MetricCard
           icon={CheckCircle}
-          label="Close Win"
+          label="Closed Win"
           value={String(closeWinCount)}
           sublabel="kazanılan proje"
           accent

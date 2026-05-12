@@ -60,7 +60,7 @@ export const PROJECT_STATUS_LABELS: Record<string, string> = {
   IN_PROGRESS: "Devam Ediyor",
   COMPLETED: "Tamamlandı",
   SENT: "Müşteriye Gönderildi",
-  CLOSE_WIN: "Close Win",
+  CLOSE_WIN: "Closed Win",
   CLOSE_LOST: "Close Lost",
   CANCELLED: "Proje İptal",
 };

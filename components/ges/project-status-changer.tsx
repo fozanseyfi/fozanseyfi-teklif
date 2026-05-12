@@ -22,7 +22,7 @@ const STATUSES = [
   },
   {
     value: "CLOSE_WIN",
-    label: "Close Win",
+    label: "Closed Win",
     pill: "bg-success text-success-foreground border-success/30",
     dot: "bg-success-foreground/70",
   },
