@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { DetailPageHeader, prevHref } from "@/components/ges/detail-page-header";
+import { useReadOnly } from "@/lib/readonly-context";
 
 function fmt(n: number, d = 0) {
   return n.toLocaleString("tr-TR", {
@@ -183,6 +184,7 @@ function printKesif(
 }
 
 export function KesifEditor({ projectId, projectName, type, data, settings, firmName, brand, userEmail }: Props) {
+  const isReadonly = useReadOnly();
   const [groups, setGroups] = useState<KesifGroup[]>(data);
   const [saving, setSaving] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
@@ -441,40 +443,40 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
             {!isCollapsed && (
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
+                  <table className="w-full text-[12px] sm:text-xs">
                     <thead>
                       <tr className="border-b bg-muted/50">
-                        <th className="w-16 px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <th className="w-14 px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:w-16">
                           Kod
                         </th>
-                        <th className="min-w-[140px] px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <th className="min-w-[120px] px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:min-w-[140px]">
                           Tanım
                         </th>
-                        <th className="min-w-[120px] px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <th className={cn("min-w-[120px] px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden md:table-cell")}>
                           Tip/Model
                         </th>
-                        <th className="min-w-[100px] px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <th className={cn("min-w-[100px] px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden md:table-cell")}>
                           Marka
                         </th>
-                        <th className="w-14 px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <th className={cn("w-14 px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden sm:table-cell")}>
                           Birim
                         </th>
-                        <th className="w-24 px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <th className="w-20 px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:w-24">
                           Miktar
                         </th>
-                        <th className="w-16 px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <th className={cn("w-16 px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden sm:table-cell")}>
                           Para
                         </th>
-                        <th className="w-24 px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <th className={cn("w-24 px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden sm:table-cell")}>
                           Birim Fiyat
                         </th>
-                        <th className="w-28 px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <th className="w-24 px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:w-28">
                           Toplam USD
                         </th>
-                        <th className="w-24 px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <th className={cn("w-24 px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden lg:table-cell")}>
                           $/Wp
                         </th>
-                        <th className="w-8 px-2 py-2" />
+                        <th className="w-8 px-2 py-2" data-edit-only />
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -504,10 +506,10 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
                               isReadOnly ? "bg-info-soft/30" : "hover:bg-muted/40",
                             )}
                           >
-                            <td className="px-2 py-1.5 font-mono text-xs text-muted-foreground">
+                            <td className="whitespace-nowrap px-2 py-2 align-top font-mono text-[11px] text-muted-foreground sm:py-1.5 sm:text-xs">
                               {item.code}
                             </td>
-                            <td className="px-2 py-1.5">
+                            <td className="px-2 py-2 align-top sm:py-1.5">
                               {isReadOnly ? (
                                 <span className="px-1 text-xs">{item.tanim}</span>
                               ) : (
@@ -519,8 +521,14 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
                                   }
                                 />
                               )}
+                              {/* Mobile fallback: Tip/Marka readonly modda Tanım altına ekle */}
+                              {isReadonly && (item.tip || item.marka) && (
+                                <span className="mt-0.5 block text-[10.5px] text-muted-foreground md:hidden">
+                                  {[item.tip, item.marka].filter(Boolean).join(" · ")}
+                                </span>
+                              )}
                             </td>
-                            <td className="px-2 py-1.5">
+                            <td className={cn("px-2 py-1.5 align-top", isReadonly && "hidden md:table-cell")}>
                               {isReadOnly ? (
                                 <span className="px-1 text-xs text-muted-foreground">
                                   {item.tip || "—"}
@@ -535,7 +543,7 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
                                 />
                               )}
                             </td>
-                            <td className="px-2 py-1.5">
+                            <td className={cn("px-2 py-1.5 align-top", isReadonly && "hidden md:table-cell")}>
                               {isReadOnly ? (
                                 <span className="px-1 text-xs text-muted-foreground">
                                   {item.marka || "—"}
@@ -550,7 +558,7 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
                                 />
                               )}
                             </td>
-                            <td className="px-2 py-1.5">
+                            <td className={cn("px-2 py-1.5 align-top", isReadonly && "hidden sm:table-cell")}>
                               {isReadOnly ? (
                                 <span className="px-1 text-xs text-muted-foreground">
                                   {item.birim}
@@ -565,10 +573,16 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
                                 />
                               )}
                             </td>
-                            <td className="px-2 py-1.5">
+                            <td className="whitespace-nowrap px-2 py-2 align-top sm:py-1.5">
                               {isReadOnly ? (
                                 <span className="block px-1 text-right text-xs text-muted-foreground">
                                   {fmt(item.miktar, item.code.startsWith("A.3") ? 3 : 0)}
+                                  {/* Birim mobile'da gizli; miktar yanına ekle */}
+                                  {isReadonly && (
+                                    <span className="ml-1 text-[10.5px] font-normal sm:hidden">
+                                      {item.birim}
+                                    </span>
+                                  )}
                                 </span>
                               ) : (
                                 <Input
@@ -587,7 +601,7 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
                                 />
                               )}
                             </td>
-                            <td className="px-2 py-1.5">
+                            <td className={cn("px-2 py-1.5 align-top", isReadonly && "hidden sm:table-cell")}>
                               {isReadOnly ? (
                                 <span className="px-1 text-xs text-muted-foreground">
                                   {item.fiyatCur}
@@ -611,7 +625,7 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
                                 </select>
                               )}
                             </td>
-                            <td className="px-2 py-1.5">
+                            <td className={cn("px-2 py-1.5 align-top", isReadonly && "hidden sm:table-cell")}>
                               {isReadOnly ? (
                                 <span className="block px-1 text-right text-xs font-semibold text-info-soft-foreground">
                                   {item.code.startsWith("A.1")
@@ -635,13 +649,13 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
                                 />
                               )}
                             </td>
-                            <td className="px-2 py-1.5 text-right font-semibold">
+                            <td className="whitespace-nowrap px-2 py-2 text-right align-top font-semibold sm:py-1.5">
                               ${fmt(totalUsd)}
                             </td>
-                            <td className="px-2 py-1.5 text-right text-xs text-info-soft-foreground">
+                            <td className={cn("whitespace-nowrap px-2 py-1.5 text-right align-top text-xs text-info-soft-foreground", isReadonly && "hidden lg:table-cell")}>
                               {perWp > 0 ? `$${perWp.toFixed(4)}` : "—"}
                             </td>
-                            <td className="px-2 py-1.5 text-center">
+                            <td className="px-2 py-1.5 text-center align-top" data-edit-only>
                               {isReadOnly ? (
                                 <span
                                   className="px-1 text-[9px] font-semibold text-info-soft-foreground"

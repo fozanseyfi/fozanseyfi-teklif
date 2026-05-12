@@ -771,31 +771,33 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
               {!isCollapsed && (
                 <CardContent className="p-0">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
+                    {/* Mobile (sm/md altı): public share modunda (mode set) Tip/Marka/Birim
+                        sütunları gizli, müşteri sadece Kod-Tanım-Miktar-Fiyat görür. */}
+                    <table className="w-full text-[12px] sm:text-xs">
                       <thead>
                         <tr className="border-b bg-muted">
-                          <th className="w-20 px-3 py-2 text-left font-medium text-muted-foreground">
+                          <th className="w-14 px-2 py-2 text-left font-medium text-muted-foreground sm:w-20 sm:px-3">
                             Kod
                           </th>
-                          <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                          <th className="px-2 py-2 text-left font-medium text-muted-foreground sm:px-3">
                             Tanım
                           </th>
-                          <th className="w-32 px-3 py-2 text-left font-medium text-muted-foreground">
+                          <th className={cn("w-32 px-3 py-2 text-left font-medium text-muted-foreground", mode && "hidden md:table-cell")}>
                             Tip/Model
                           </th>
-                          <th className="w-28 px-3 py-2 text-left font-medium text-muted-foreground">
+                          <th className={cn("w-28 px-3 py-2 text-left font-medium text-muted-foreground", mode && "hidden md:table-cell")}>
                             Marka
                           </th>
-                          <th className="w-16 px-3 py-2 text-center font-medium text-muted-foreground">
+                          <th className={cn("w-16 px-3 py-2 text-center font-medium text-muted-foreground", mode && "hidden sm:table-cell")}>
                             Birim
                           </th>
-                          <th className="w-24 px-3 py-2 text-right font-medium text-muted-foreground">
+                          <th className="w-20 px-2 py-2 text-right font-medium text-muted-foreground sm:w-24 sm:px-3">
                             Miktar
                           </th>
-                          <th className="w-28 px-3 py-2 text-right font-medium text-muted-foreground">
+                          <th className={cn("w-28 px-3 py-2 text-right font-medium text-muted-foreground", mode && "hidden sm:table-cell")}>
                             Birim Fiyat
                           </th>
-                          <th className="w-28 px-3 py-2 text-right font-medium text-muted-foreground">
+                          <th className="w-20 px-2 py-2 text-right font-medium text-muted-foreground sm:w-28 sm:px-3">
                             Tutar (USD)
                           </th>
                           <th data-edit-only className="w-28 px-3 py-2 text-center font-medium text-muted-foreground">
@@ -829,7 +831,7 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                             >
                               <td
                                 className={cn(
-                                  "px-3 py-1.5 font-mono",
+                                  "whitespace-nowrap px-2 py-2 align-top font-mono text-[11px] sm:px-3 sm:py-1.5 sm:text-xs",
                                   hidden || excluded
                                     ? "text-muted-foreground/60"
                                     : "text-muted-foreground",
@@ -839,23 +841,35 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                               </td>
                               <td
                                 className={cn(
-                                  "px-3 py-1.5",
+                                  "px-2 py-2 align-top sm:px-3 sm:py-1.5",
                                   hidden || excluded ? "text-muted-foreground" : "text-foreground",
                                 )}
                               >
                                 {item.tanim}
+                                {/* Mobile fallback: Tip/Marka public share modunda Tanım altına */}
+                                {mode && (item.tip || item.marka) && (
+                                  <span className="mt-0.5 block text-[10.5px] text-muted-foreground md:hidden">
+                                    {[item.tip, item.marka].filter(Boolean).join(" · ")}
+                                  </span>
+                                )}
                               </td>
-                              <td className="px-3 py-1.5 text-muted-foreground">{item.tip}</td>
-                              <td className="px-3 py-1.5 text-muted-foreground">{item.marka}</td>
-                              <td className="whitespace-nowrap px-3 py-1.5 text-center text-muted-foreground">
+                              <td className={cn("px-3 py-1.5 align-top text-muted-foreground", mode && "hidden md:table-cell")}>{item.tip}</td>
+                              <td className={cn("px-3 py-1.5 align-top text-muted-foreground", mode && "hidden md:table-cell")}>{item.marka}</td>
+                              <td className={cn("whitespace-nowrap px-3 py-1.5 text-center align-top text-muted-foreground", mode && "hidden sm:table-cell")}>
                                 {item.birim}
                               </td>
-                              <td className="px-3 py-1.5 text-right tabular-nums text-foreground">
+                              <td className="whitespace-nowrap px-2 py-2 text-right align-top tabular-nums text-foreground sm:px-3 sm:py-1.5">
                                 {fmt(item.miktar, item.miktar < 100 ? 2 : 0)}
+                                {mode && (
+                                  <span className="ml-1 text-[10.5px] font-normal text-muted-foreground sm:hidden">
+                                    {item.birim}
+                                  </span>
+                                )}
                               </td>
                               <td
                                 className={cn(
-                                  "px-3 py-1.5 text-right tabular-nums",
+                                  "whitespace-nowrap px-3 py-1.5 text-right align-top tabular-nums",
+                                  mode && "hidden sm:table-cell",
                                   hidden
                                     ? "text-muted-foreground line-through"
                                     : excluded
@@ -867,7 +881,7 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                               </td>
                               <td
                                 className={cn(
-                                  "px-3 py-1.5 text-right font-semibold tabular-nums",
+                                  "whitespace-nowrap px-2 py-2 text-right align-top font-semibold tabular-nums sm:px-3 sm:py-1.5",
                                   hidden
                                     ? "text-muted-foreground line-through"
                                     : excluded

@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { DetailPageHeader, prevHref } from "@/components/ges/detail-page-header";
+import { useReadOnly } from "@/lib/readonly-context";
 
 const RESP_OPTIONS = ["Yüklenici", "İşveren", "Paylaşımlı", "—"];
 
@@ -72,6 +73,7 @@ interface Props {
 }
 
 export function DorEditor({ projectId, projectName, data, firmName, brand, userEmail }: Props) {
+  const isReadonly = useReadOnly();
   // Mevcut kayıtlarda madde tanımlarında "1.1 Sözleşme..." gibi prefix
   // bulunan veriler temizlenerek state'e yükleniyor; kullanıcı kaydedince
   // temiz hali DB'ye yazılır. Yeni eklenen maddeler etkilenmez.
@@ -418,16 +420,16 @@ export function DorEditor({ projectId, projectName, data, firmName, brand, userE
             {!isCollapsed && (
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
+                  <table className="w-full text-[12px] sm:text-xs">
                     <thead>
                       <tr className="border-b bg-muted">
-                        <th className="w-14 px-2 py-2 text-center font-medium text-muted-foreground">Kod</th>
-                        <th className="px-3 py-2 text-left font-medium text-muted-foreground">Madde</th>
-                        <th className="w-32 px-3 py-2 text-center font-medium text-muted-foreground">Tedarik</th>
-                        <th className="w-32 px-3 py-2 text-center font-medium text-muted-foreground">Montaj</th>
-                        <th className="w-32 px-3 py-2 text-center font-medium text-muted-foreground">Devreye Alma</th>
-                        <th className="w-56 px-3 py-2 text-left font-medium text-muted-foreground">Notlar</th>
-                        <th className="w-10 px-2 py-2" />
+                        <th className="w-12 px-2 py-2 text-center font-medium text-muted-foreground sm:w-14">Kod</th>
+                        <th className="px-2 py-2 text-left font-medium text-muted-foreground sm:px-3">Madde</th>
+                        <th className="w-20 px-2 py-2 text-center font-medium text-muted-foreground sm:w-32 sm:px-3">Tedarik</th>
+                        <th className="w-20 px-2 py-2 text-center font-medium text-muted-foreground sm:w-32 sm:px-3">Montaj</th>
+                        <th className={cn("w-20 px-2 py-2 text-center font-medium text-muted-foreground sm:w-32 sm:px-3", isReadonly && "hidden sm:table-cell")}>Devreye Alma</th>
+                        <th className={cn("w-56 px-3 py-2 text-left font-medium text-muted-foreground", isReadonly && "hidden md:table-cell")}>Notlar</th>
+                        <th className="w-10 px-2 py-2" data-edit-only />
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -451,23 +453,47 @@ export function DorEditor({ projectId, projectName, data, firmName, brand, userE
                       ) : (
                         group.items.map((item, ii) => (
                           <tr key={ii} className="hover:bg-muted/60">
-                            <td className="px-2 py-1.5 text-center font-mono text-[11px] font-semibold tabular-nums text-muted-foreground">
+                            <td className="whitespace-nowrap px-2 py-2 text-center align-top font-mono text-[11px] font-semibold tabular-nums text-muted-foreground sm:py-1.5">
                               {realGi + 1}.{ii + 1}
                             </td>
-                            <td className="px-3 py-1.5">
+                            <td className="px-2 py-2 align-top sm:px-3 sm:py-1.5">
                               <Input
-                                className="h-7 min-w-[180px] border-transparent bg-transparent px-1 text-xs hover:border-border focus:border-primary"
+                                className="h-7 min-w-[140px] border-transparent bg-transparent px-1 text-xs hover:border-border focus:border-primary sm:min-w-[180px]"
                                 value={item.description}
                                 onChange={(e) =>
                                   updateItem(realGi, ii, "description", e.target.value)
                                 }
                               />
+                              {/* Mobile fallback: Devreye Alma + Notlar readonly modda
+                                  Madde altına özet — gizli sütunlar bilgisi kaybolmasın */}
+                              {isReadonly && (item.devreAma || item.notes) && (
+                                <div className="mt-1 space-y-0.5 sm:hidden">
+                                  {item.devreAma && (
+                                    <span className="block text-[10.5px] text-muted-foreground">
+                                      Devreye Alma: <strong>{item.devreAma}</strong>
+                                    </span>
+                                  )}
+                                  {item.notes && (
+                                    <span className="block whitespace-pre-wrap text-[10.5px] text-muted-foreground/90">
+                                      {item.notes}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </td>
                             {(["tedarik", "montaj", "devreAma"] as const).map((field) => (
-                              <td key={field} className="px-3 py-1.5 text-center">
+                              <td
+                                key={field}
+                                className={cn(
+                                  "px-2 py-1.5 text-center align-top sm:px-3",
+                                  // "devreAma" sütunu mobile'da gizli — yukarıda
+                                  // Madde altına özet eklendi.
+                                  isReadonly && field === "devreAma" && "hidden sm:table-cell",
+                                )}
+                              >
                                 <select
                                   className={cn(
-                                    "w-full rounded border px-2 py-1 text-xs font-medium",
+                                    "w-full rounded border px-1 py-1 text-[11px] font-medium sm:px-2 sm:text-xs",
                                     RESP_COLORS[item[field]] || "border-border bg-card",
                                   )}
                                   value={item[field]}
@@ -483,7 +509,7 @@ export function DorEditor({ projectId, projectName, data, firmName, brand, userE
                                 </select>
                               </td>
                             ))}
-                            <td className="px-3 py-1.5 align-top">
+                            <td className={cn("px-3 py-1.5 align-top", isReadonly && "hidden md:table-cell")}>
                               {/* Notlar — uzun metin satıra sığmasın diye
                                   textarea: edit modunda otomatik buyur, salt
                                   okunurda 2-3 satira ayrilir, taşan kismi

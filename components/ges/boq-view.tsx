@@ -459,21 +459,24 @@ export function BoQView({
               {!isCollapsed && (
                 <CardContent className="p-0">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
+                    {/* Mobile (sm altı): Tip/Marka/Birim sütunları gizli, readonly modda
+                        bilgi yoğunluğu azaltılır ve Kod-Tanım-Miktar-Fiyat tek satıra sığar.
+                        sm ve üzeri ekranlarda tam tablo. */}
+                    <table className="w-full text-[12px] sm:text-xs">
                       <thead>
                         <tr className="border-b bg-muted">
-                          <th className="w-20 px-3 py-2 text-left font-medium text-muted-foreground">Kod</th>
-                          <th className="px-3 py-2 text-left font-medium text-muted-foreground">Tanım</th>
-                          <th className="w-32 px-3 py-2 text-left font-medium text-muted-foreground">Tip/Model</th>
-                          <th className="w-28 px-3 py-2 text-left font-medium text-muted-foreground">Marka</th>
-                          <th className="w-16 px-3 py-2 text-center font-medium text-muted-foreground">Birim</th>
-                          <th className="w-24 px-3 py-2 text-right font-medium text-muted-foreground">Miktar</th>
+                          <th className="w-14 px-2 py-2 text-left font-medium text-muted-foreground sm:w-20 sm:px-3">Kod</th>
+                          <th className="px-2 py-2 text-left font-medium text-muted-foreground sm:px-3">Tanım</th>
+                          <th className={cn("w-32 px-3 py-2 text-left font-medium text-muted-foreground", isReadonly && "hidden md:table-cell")}>Tip/Model</th>
+                          <th className={cn("w-28 px-3 py-2 text-left font-medium text-muted-foreground", isReadonly && "hidden md:table-cell")}>Marka</th>
+                          <th className={cn("w-16 px-3 py-2 text-center font-medium text-muted-foreground", isReadonly && "hidden sm:table-cell")}>Birim</th>
+                          <th className="w-20 px-2 py-2 text-right font-medium text-muted-foreground sm:w-24 sm:px-3">Miktar</th>
                           {showPrices && (
                             <>
-                              <th className="w-28 px-3 py-2 text-right font-medium text-muted-foreground">
+                              <th className={cn("w-28 px-3 py-2 text-right font-medium text-muted-foreground", isReadonly && "hidden sm:table-cell")}>
                                 Birim Fiyat
                               </th>
-                              <th className="w-28 px-3 py-2 text-right font-medium text-muted-foreground">
+                              <th className="w-20 px-2 py-2 text-right font-medium text-muted-foreground sm:w-28 sm:px-3">
                                 Tutar (USD)
                               </th>
                             </>
@@ -487,20 +490,35 @@ export function BoQView({
                           const displayCode = `${group.displayGroupCode}.${idx + 1}`;
                           return (
                             <tr key={item.code} className="transition-colors hover:bg-muted/60">
-                              <td className="px-3 py-1.5 font-mono text-muted-foreground">{displayCode}</td>
-                              <td className="px-3 py-1.5 text-foreground">{item.tanim}</td>
-                              <td className="px-3 py-1.5 text-muted-foreground">{item.tip}</td>
-                              <td className="px-3 py-1.5 text-muted-foreground">{item.marka}</td>
-                              <td className="whitespace-nowrap px-3 py-1.5 text-center text-muted-foreground">{item.birim}</td>
-                              <td className="px-3 py-1.5 text-right tabular-nums text-foreground">
+                              <td className="whitespace-nowrap px-2 py-2 align-top font-mono text-[11px] text-muted-foreground sm:px-3 sm:py-1.5 sm:text-xs">{displayCode}</td>
+                              <td className="px-2 py-2 align-top text-foreground sm:px-3 sm:py-1.5">
+                                {item.tanim}
+                                {/* Mobile'da Tip/Marka sığmadığı için, kalem adının altına
+                                    küçük puntolu olarak ekleyelim — bilgi kaybolmasın. */}
+                                {isReadonly && (item.tip || item.marka) && (
+                                  <span className="mt-0.5 block text-[10.5px] text-muted-foreground md:hidden">
+                                    {[item.tip, item.marka].filter(Boolean).join(" · ")}
+                                  </span>
+                                )}
+                              </td>
+                              <td className={cn("px-3 py-1.5 align-top text-muted-foreground", isReadonly && "hidden md:table-cell")}>{item.tip}</td>
+                              <td className={cn("px-3 py-1.5 align-top text-muted-foreground", isReadonly && "hidden md:table-cell")}>{item.marka}</td>
+                              <td className={cn("whitespace-nowrap px-3 py-1.5 align-top text-center text-muted-foreground", isReadonly && "hidden sm:table-cell")}>{item.birim}</td>
+                              <td className="whitespace-nowrap px-2 py-2 text-right align-top tabular-nums text-foreground sm:px-3 sm:py-1.5">
                                 {fmt(item.miktar, item.miktar < 100 ? 2 : 0)}
+                                {/* Birim mobile'da gizli; miktar yanına ekle */}
+                                {isReadonly && (
+                                  <span className="ml-1 text-[10.5px] font-normal text-muted-foreground sm:hidden">
+                                    {item.birim}
+                                  </span>
+                                )}
                               </td>
                               {showPrices && (
                                 <>
-                                  <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground">
+                                  <td className={cn("whitespace-nowrap px-3 py-1.5 text-right align-top tabular-nums text-muted-foreground", isReadonly && "hidden sm:table-cell")}>
                                     ${fmt(unitUsd, item.code.startsWith("A.1") ? 3 : 2)}
                                   </td>
-                                  <td className="px-3 py-1.5 text-right tabular-nums font-semibold text-foreground">
+                                  <td className="whitespace-nowrap px-2 py-2 text-right align-top tabular-nums font-semibold text-foreground sm:px-3 sm:py-1.5">
                                     ${fmt(cost)}
                                   </td>
                                 </>
