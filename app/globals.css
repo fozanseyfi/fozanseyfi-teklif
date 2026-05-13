@@ -484,40 +484,41 @@
   100% { background-position: -200% center; }
 }
 
-/* Light background (beyaz/açık) üzerinde: koyu emerald → açık emerald gradient. */
+/* Light background — emerald üzerinde çok yumuşak parıltı.
+   Sade tutuldu: ana renk emerald-700, sadece ortada hafif açılma. */
 .shimmer-text {
   background: linear-gradient(
     90deg,
-    #064e3b 0%,
-    #047857 25%,
+    #047857 0%,
+    #047857 35%,
     #10b981 50%,
-    #047857 75%,
-    #064e3b 100%
+    #047857 65%,
+    #047857 100%
   );
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
-  animation: shimmer-text-slide 6s linear infinite;
+  animation: shimmer-text-slide 9s linear infinite;
 }
 
-/* Koyu sidebar veya emerald hero üzerinde: beyaz → mint → beyaz gradient. */
+/* Koyu arka plan üzerinde yumuşak beyaz parıltı — accent rengi yok. */
 .shimmer-text-on-dark {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.7) 0%,
-    rgba(255, 255, 255, 1) 30%,
-    #a7f3d0 50%,
-    rgba(255, 255, 255, 1) 70%,
-    rgba(255, 255, 255, 0.7) 100%
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(255, 255, 255, 0.88) 35%,
+    rgba(255, 255, 255, 1) 50%,
+    rgba(255, 255, 255, 0.88) 65%,
+    rgba(255, 255, 255, 0.88) 100%
   );
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
-  animation: shimmer-text-slide 6s linear infinite;
+  animation: shimmer-text-slide 9s linear infinite;
 }
 
 @keyframes shimmer-overlay-slide {
@@ -526,7 +527,9 @@
 }
 
 /* Bir kartın içine pseudo-element ile dalgalanan parıltı şeridi geçirir.
-   Kart "position: relative; overflow: hidden" olmalı. */
+   Kart "position: relative; overflow: hidden" olmalı.
+   Profesyonel görünüm için ince ve düşük opaklıkta — neredeyse fark
+   edilmez ama "premium" hissi verir. */
 .shimmer-overlay::after {
   content: "";
   position: absolute;
@@ -534,13 +537,13 @@
   background: linear-gradient(
     100deg,
     transparent 0%,
-    transparent 35%,
-    rgba(255, 255, 255, 0.18) 50%,
-    transparent 65%,
+    transparent 42%,
+    rgba(255, 255, 255, 0.09) 50%,
+    transparent 58%,
     transparent 100%
   );
   transform: translateX(-100%);
-  animation: shimmer-overlay-slide 7s ease-in-out infinite;
+  animation: shimmer-overlay-slide 12s ease-in-out infinite;
   pointer-events: none;
   z-index: 1;
 }

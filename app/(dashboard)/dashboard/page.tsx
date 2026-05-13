@@ -134,20 +134,19 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      {/* Hero welcome banner — emerald gradient, karşılama
-          shimmer-overlay: kart üzerinde yavaş kayan ışık şeridi
-          shimmer-text-on-dark: başlıkta beyaz→mint→beyaz gradient hareketi */}
+      {/* Hero welcome banner — emerald gradient, karşılama.
+          shimmer-overlay: kart üzerinden yumuşak bir ışık şeridi geçer. */}
       <div className="shimmer-overlay relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary to-emerald-700 px-5 py-6 text-primary-foreground shadow-lg sm:px-8 sm:py-7">
         {/* Dekoratif arkaplan parıltıları */}
         <div className="pointer-events-none absolute -right-20 -top-20 size-64 rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 -left-10 size-48 rounded-full bg-emerald-300/15 blur-3xl" />
 
         <div className="relative z-[2]">
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary-foreground backdrop-blur-sm">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary-foreground backdrop-blur-sm">
             <Sparkles className="size-3" />
             Solar EPC Teklif Yönetimi
-          </div>
-          <h1 className="shimmer-text-on-dark mt-3 inline-block text-2xl font-bold tracking-tight sm:text-3xl">
+          </span>
+          <h1 className="mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl">
             Hoş geldin, {(user.fullName ?? user.email ?? "").split(" ")[0]}
           </h1>
           <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-emerald-50/90 sm:text-[15px]">

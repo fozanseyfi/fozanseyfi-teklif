@@ -557,7 +557,7 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
             <Sun className="size-5" />
           </div>
           <div className={cn("min-w-0 flex-1", showCollapsed ? "lg:hidden" : "")}>
-            <p className="shimmer-text-on-dark truncate text-sm font-semibold tracking-tight">
+            <p className="truncate text-sm font-semibold tracking-tight text-white">
               Solar Teklif Platformu
             </p>
             <p className="truncate text-xs text-sidebar-muted">{firmName}</p>
