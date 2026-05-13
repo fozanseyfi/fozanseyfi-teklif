@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { parseBrandSettings, type BrandSettings } from "@/lib/pdf-brand";
-import { normalizeTabId } from "@/lib/share-tabs";
+import { normalizeTabId, isDocTabId, extractDocId } from "@/lib/share-tabs";
 import { recordActivity, setPipelineStage } from "@/lib/project-activity";
 import type { Project } from "@prisma/client";
 import type { CustomerResponseKind } from "@/lib/email";
@@ -13,6 +13,10 @@ export interface ShareContext {
     token: string;
     customerLabel: string | null;
     includedTabs: string[];
+    // Admin'in paylaşıma eklediği ek belge id'leri. brand.customDocuments
+    // ile eşlenerek public "Belgeler" sekmesinde gösterilir. Silinmiş
+    // belgeler de buradan filtrelenir (kaybolur — paylaşımda da yok).
+    includedDocIds: string[];
     expiresAt: Date | null;
     viewCount: number;
   };
@@ -58,16 +62,46 @@ export const loadShareContext = cache(async (token: string): Promise<ShareContex
 
   // includedTabs Json — string[] olarak güvenle parse et + eski id'leri yeni
   // id'lere migrate et (boq → boq-unpriced, priced-boq → priced-boq-detailed).
+  // "doc:xxx" entry'leri ayrı tutulur — sabit tab değiller, "Belgeler" tab'ı
+  // için meta-data olarak çalışırlar.
   const rawTabs = Array.isArray(link.includedTabs)
     ? (link.includedTabs as unknown[]).filter((t): t is string => typeof t === "string")
     : [];
-  const tabs = Array.from(
+  const docTabEntries = rawTabs.filter(isDocTabId);
+  const sabitTabs = rawTabs.filter((t) => !isDocTabId(t));
+
+  // Brand'deki güncel belge id'leriyle eşle — silinmiş belgeler otomatik
+  // düşer ("kaybolur" semantiği).
+  const brand = parseBrandSettings(link.organization.brandSettings);
+  const validDocIds = new Set((brand.customDocuments ?? []).map((d) => d.id));
+  const includedDocIds = Array.from(
     new Set(
-      rawTabs
+      docTabEntries
+        .map((t) => extractDocId(t))
+        .filter((d): d is string => d !== null && validDocIds.has(d)),
+    ),
+  );
+
+  const normalizedTabs = Array.from(
+    new Set(
+      sabitTabs
         .map((t) => normalizeTabId(t))
         .filter((t): t is NonNullable<typeof t> => t !== null),
     ),
   );
+
+  // Eğer en az 1 geçerli ek belge varsa "belgeler" tab'ını otomatik dahil et.
+  // (Admin form'da hem "belgeler" sentinel hem doc:xxx ekleyebilir, ya da
+  // sadece doc:xxx — her durumda tab nav'da görünür.)
+  let tabs: typeof normalizedTabs;
+  if (includedDocIds.length > 0 && !normalizedTabs.includes("belgeler")) {
+    tabs = [...normalizedTabs, "belgeler"];
+  } else if (includedDocIds.length === 0 && normalizedTabs.includes("belgeler")) {
+    // belgeler sentinel var ama hiç geçerli doc yok → tab'ı çıkar.
+    tabs = normalizedTabs.filter((t) => t !== "belgeler");
+  } else {
+    tabs = normalizedTabs;
+  }
 
   // Bu paylaşım üzerinden gelmiş kabul/revizyon var mı? Soru sorma sayılmaz.
   const lastDecision = await prisma.projectActivity.findFirst({
@@ -94,6 +128,7 @@ export const loadShareContext = cache(async (token: string): Promise<ShareContex
       token: link.token,
       customerLabel: link.customerLabel,
       includedTabs: tabs,
+      includedDocIds,
       expiresAt: link.expiresAt,
       viewCount: link.viewCount,
     },
@@ -106,7 +141,7 @@ export const loadShareContext = cache(async (token: string): Promise<ShareContex
       dor: detail?.dor ?? [],
     },
     firmName: link.organization.name,
-    brand: parseBrandSettings(link.organization.brandSettings),
+    brand,
     alreadyResponded,
   };
 });

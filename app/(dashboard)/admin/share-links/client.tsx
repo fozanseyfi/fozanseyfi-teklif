@@ -18,7 +18,7 @@ import { Share2, Copy, Trash2, Link as LinkIcon, ExternalLink, Eye, Clock, Mail,
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { createShareLink, revokeShareLink, resendShareLinkEmail } from "@/app/actions/share";
-import { SHARE_TABS, type SharePreset } from "@/lib/share-tabs";
+import { SHARE_TABS, buildDocTabId, type SharePreset } from "@/lib/share-tabs";
 
 interface ProjectOption {
   id: string;
@@ -41,10 +41,17 @@ interface LinkRow {
   createdAt: string;
 }
 
+interface CustomDoc {
+  id: string;
+  title: string;
+  fileName: string;
+}
+
 interface Props {
   projects: ProjectOption[];
   links: LinkRow[];
   organizationName: string;
+  customDocuments: CustomDoc[];
 }
 
 const PRESET_OPTIONS: { value: SharePreset; label: string }[] = [
@@ -92,16 +99,19 @@ function formatRemaining(expiresAt: string | null): string {
   return "1 saatten az";
 }
 
-export function ShareLinksClient({ projects, links, organizationName }: Props) {
+export function ShareLinksClient({ projects, links, organizationName, customDocuments }: Props) {
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [customerLabel, setCustomerLabel] = useState("");
   const [recipientEmail, setRecipientEmail] = useState("");
   const [preset, setPreset] = useState<SharePreset>("7d");
   // Varsayilan secim: musteriye guvenle gidebilecek tab'ler isaretli, hassas
-  // (Fiyatli BoQ + Analiz) bos. Yonetici isteyerek isaretler.
+  // (Fiyatli BoQ + Analiz) bos. "belgeler" sentinel'i otomatik turetilir,
+  // selectedTabs'a manuel eklemeye gerek yok. Yonetici isteyerek isaretler.
   const [selectedTabs, setSelectedTabs] = useState<Set<string>>(
-    new Set(SHARE_TABS.filter((t) => !t.sensitive).map((t) => t.id)),
+    new Set(SHARE_TABS.filter((t) => !t.sensitive && t.id !== "belgeler").map((t) => t.id)),
   );
+  // Ek belgeler: her custom doc icin ayri secim. Bos baslar — admin elle ekler.
+  const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
 
   const anySensitiveSelected = SHARE_TABS.some(
@@ -119,6 +129,15 @@ export function ShareLinksClient({ projects, links, organizationName }: Props) {
     });
   }
 
+  function toggleDoc(id: string) {
+    setSelectedDocIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
     toast.success("Link kopyalandı");
@@ -129,8 +148,8 @@ export function ShareLinksClient({ projects, links, organizationName }: Props) {
       toast.error("Proje seçmelisin");
       return;
     }
-    if (selectedTabs.size === 0) {
-      toast.error("En az bir bölüm seçmelisin");
+    if (selectedTabs.size === 0 && selectedDocIds.size === 0) {
+      toast.error("En az bir bölüm veya belge seçmelisin");
       return;
     }
     const fd = new FormData();
@@ -139,6 +158,8 @@ export function ShareLinksClient({ projects, links, organizationName }: Props) {
     fd.set("recipientEmail", recipientEmail.trim());
     fd.set("preset", preset);
     selectedTabs.forEach((t) => fd.append("tabs", t));
+    // Ek belge id'leri "doc:xxx" formatında tabs listesine eklenir
+    selectedDocIds.forEach((id) => fd.append("tabs", buildDocTabId(id)));
 
     startTransition(async () => {
       const result = await createShareLink(fd);
@@ -159,6 +180,7 @@ export function ShareLinksClient({ projects, links, organizationName }: Props) {
       // Reset
       setCustomerLabel("");
       setRecipientEmail("");
+      setSelectedDocIds(new Set());
     });
   }
 
@@ -279,14 +301,16 @@ export function ShareLinksClient({ projects, links, organizationName }: Props) {
           <div className="space-y-3">
             <Label>Paylaşılacak Bölümler</Label>
 
-            {/* Güvenli grup — müşteriye gönderilebilir */}
+            {/* Güvenli grup — müşteriye gönderilebilir.
+                "belgeler" tab'ı listede gözükmez; otomatik olarak en az 1 ek
+                belge seçilince Belgeler sekmesi public sayfada görünür. */}
             <div className="space-y-1.5">
               <p className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-emerald-700">
                 <span className="inline-block size-1.5 rounded-full bg-emerald-500" />
                 Müşteri / yatırımcıya açıkça gönderilebilir
               </p>
               <div className="grid gap-2 rounded-lg border border-emerald-200/60 bg-emerald-50/30 p-3 sm:grid-cols-2 lg:grid-cols-3">
-                {SHARE_TABS.filter((t) => !t.sensitive).map((t) => {
+                {SHARE_TABS.filter((t) => !t.sensitive && t.id !== "belgeler").map((t) => {
                   const isChecked = selectedTabs.has(t.id);
                   return (
                     <label
@@ -303,6 +327,47 @@ export function ShareLinksClient({ projects, links, organizationName }: Props) {
                 })}
               </div>
             </div>
+
+            {/* Ek Belgeler — kullanıcı Profilim'den yüklemişse görünür */}
+            {customDocuments.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-slate-700">
+                  <span className="inline-block size-1.5 rounded-full bg-slate-500" />
+                  Ek Belgeler ({selectedDocIds.size} / {customDocuments.length} seçili)
+                </p>
+                <div className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50/40 p-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {customDocuments.map((d) => {
+                    const isChecked = selectedDocIds.has(d.id);
+                    return (
+                      <label
+                        key={d.id}
+                        className={cn(
+                          "flex cursor-pointer items-start gap-2 rounded-md border bg-card px-3 py-2 text-sm transition-colors hover:bg-muted/40",
+                          isChecked && "border-emerald-300/70 bg-emerald-50/40",
+                        )}
+                      >
+                        <Checkbox
+                          checked={isChecked}
+                          onCheckedChange={() => toggleDoc(d.id)}
+                          className="mt-0.5"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-medium text-foreground">
+                            {d.title}
+                          </span>
+                          <span className="block truncate text-[10.5px] text-muted-foreground">
+                            {d.fileName}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-[10.5px] text-slate-500">
+                  Yeni belge eklemek için: <strong>Profilim → Firma Profili & Referanslar → Ek Belgeler</strong>.
+                </p>
+              </div>
+            )}
 
             {/* Hassas grup — maliyet/kâr içerir */}
             <div className="space-y-1.5">

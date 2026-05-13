@@ -7,8 +7,10 @@ import {
   uploadReferencesBrochure,
   removeReferencesBrochure,
   saveBrandReferences,
+  uploadCustomDocument,
+  removeCustomDocument,
 } from "@/app/actions/firm";
-import type { BrandSettings, BrandReference } from "@/lib/pdf-brand";
+import type { BrandSettings, BrandReference, BrandDocument } from "@/lib/pdf-brand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,6 +25,7 @@ import {
   Trash2,
   Award,
   ExternalLink,
+  Files,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -32,7 +35,10 @@ interface Props {
   initialReferencesBrochureUrl?: string;
   initialReferencesBrochureFileName?: string;
   initialReferences: BrandReference[];
+  initialCustomDocuments: BrandDocument[];
 }
+
+const MAX_CUSTOM_DOCS = 10;
 
 export function CompanyProfileCard({
   initialBrochureUrl,
@@ -40,6 +46,7 @@ export function CompanyProfileCard({
   initialReferencesBrochureUrl,
   initialReferencesBrochureFileName,
   initialReferences,
+  initialCustomDocuments,
 }: Props) {
   // ─── Tanıtım PDF state ───────────────────────────────────────────────
   const [brochureUrl, setBrochureUrl] = useState<string | undefined>(initialBrochureUrl);
@@ -185,6 +192,76 @@ export function CompanyProfileCard({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialBrochureFileName]);
+
+  // ─── Ek Belgeler state ───────────────────────────────────────────────
+  const [customDocs, setCustomDocs] = useState<BrandDocument[]>(initialCustomDocuments);
+  const [docTitle, setDocTitle] = useState("");
+  const docFileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingDoc, startUploadDoc] = useTransition();
+  const [removingDocId, setRemovingDocId] = useState<string | null>(null);
+  const [removingDoc, startRemoveDoc] = useTransition();
+
+  function onPickDocFile() {
+    if (!docTitle.trim()) {
+      toast.error("Önce belge başlığını yaz");
+      return;
+    }
+    docFileInputRef.current?.click();
+  }
+
+  function onDocFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("PDF 10 MB'tan büyük olamaz");
+      e.target.value = "";
+      return;
+    }
+    if (file.type !== "application/pdf") {
+      toast.error("Sadece PDF formatı kabul edilir");
+      e.target.value = "";
+      return;
+    }
+    const fd = new FormData();
+    fd.append("title", docTitle.trim());
+    fd.append("file", file);
+    startUploadDoc(async () => {
+      const r = await uploadCustomDocument(fd);
+      if (r?.error) toast.error(r.error);
+      else if (r?.success && r.documentId) {
+        toast.success(r.success);
+        // Optimistic append; server-driven URL ileride revalidate ile gelir,
+        // şimdilik placeholder url ile dolduralım — gerçek URL revalidate
+        // sonrası ortaya çıkar (sayfa yenilenir).
+        setCustomDocs((prev) => [
+          ...prev,
+          {
+            id: r.documentId!,
+            title: docTitle.trim(),
+            url: "uploading",
+            fileName: file.name,
+            uploadedAt: new Date().toISOString(),
+          },
+        ]);
+        setDocTitle("");
+      }
+      e.target.value = "";
+    });
+  }
+
+  function onRemoveDoc(docId: string) {
+    if (!confirm("Bu belgeyi kaldırmak istediğine emin misin? Paylaşılan linklerden de kaldırılacak.")) return;
+    setRemovingDocId(docId);
+    startRemoveDoc(async () => {
+      const r = await removeCustomDocument(docId);
+      if (r?.error) toast.error(r.error);
+      else if (r?.success) {
+        toast.success(r.success);
+        setCustomDocs((prev) => prev.filter((d) => d.id !== docId));
+      }
+      setRemovingDocId(null);
+    });
+  }
 
   return (
     <Card className="border-slate-200 shadow-sm">
@@ -523,6 +600,116 @@ export function CompanyProfileCard({
             Müşteri sütunu zorunludur; diğer alanlar boş bırakılabilir. Boş "Müşteri" satırları
             kaydedilirken otomatik atlanır.
           </p>
+        </section>
+
+        <div className="ml-0 border-t border-slate-100 sm:ml-12" />
+
+        {/* ─── Ek Belgeler ────────────────────────────────────────────── */}
+        <section className="ml-0 space-y-3 sm:ml-12">
+          <div className="flex items-center gap-2">
+            <Files className="size-4 text-slate-500" />
+            <h4 className="text-[13px] font-semibold text-slate-800">
+              Ek Belgeler
+              <span className="ml-2 font-normal text-[11px] text-slate-400">
+                ({customDocs.length} / {MAX_CUSTOM_DOCS}) — sertifika, katalog, garanti vb.
+              </span>
+            </h4>
+          </div>
+
+          {/* Mevcut belgeler */}
+          {customDocs.length > 0 ? (
+            <ul className="space-y-2">
+              {customDocs.map((d) => (
+                <li
+                  key={d.id}
+                  className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-3"
+                >
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
+                    <FileText className="size-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[12.5px] font-semibold text-slate-900">
+                      {d.title}
+                    </p>
+                    <p className="mt-0.5 truncate text-[10.5px] text-slate-500">
+                      {d.fileName}
+                    </p>
+                  </div>
+                  {d.url !== "uploading" && (
+                    <a
+                      href={d.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      <ExternalLink className="size-3" />
+                      Aç
+                    </a>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onRemoveDoc(d.id)}
+                    disabled={removingDoc && removingDocId === d.id}
+                    className="gap-1 border-rose-200 text-rose-600 hover:bg-rose-50"
+                  >
+                    {removingDoc && removingDocId === d.id ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-3" />
+                    )}
+                    Sil
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-[11.5px] text-slate-500">
+              Henüz ek belge yok. Aşağıdan yeni belge ekleyebilirsin.
+            </p>
+          )}
+
+          {/* Yeni belge ekleme formu — limit dolmadıysa */}
+          {customDocs.length < MAX_CUSTOM_DOCS && (
+            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/40 p-3">
+              <div className="grid gap-2 sm:grid-cols-[2fr_auto]">
+                <Input
+                  type="text"
+                  placeholder="Belge başlığı (örn. ISO 9001 Sertifikası)"
+                  value={docTitle}
+                  onChange={(e) => setDocTitle(e.target.value)}
+                  maxLength={120}
+                  disabled={uploadingDoc}
+                  className="text-[12.5px]"
+                />
+                <Button
+                  type="button"
+                  onClick={onPickDocFile}
+                  disabled={uploadingDoc || !docTitle.trim()}
+                  className="gap-1.5"
+                >
+                  {uploadingDoc ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Plus className="size-3.5" />
+                  )}
+                  PDF Seç & Yükle
+                </Button>
+              </div>
+              <p className="mt-2 text-[10.5px] text-slate-500">
+                Önce başlık yaz, sonra PDF seç (max 10 MB). Eklediğin belgeler paylaşım
+                oluştururken seçenek olarak görünür.
+              </p>
+              <input
+                ref={docFileInputRef}
+                type="file"
+                accept="application/pdf"
+                onChange={onDocFileChange}
+                className="hidden"
+              />
+            </div>
+          )}
         </section>
       </CardContent>
     </Card>

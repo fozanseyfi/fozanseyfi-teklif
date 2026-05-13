@@ -4,6 +4,7 @@
 export type ShareTab =
   | "firma"
   | "referanslar"
+  | "belgeler"
   | "kesif-a"
   | "kesif-b"
   | "boq-unpriced"
@@ -24,6 +25,7 @@ export interface ShareTabInfo {
 export const SHARE_TABS: ShareTabInfo[] = [
   { id: "firma", label: "Firma Tanıtımı" },
   { id: "referanslar", label: "Referanslar" },
+  { id: "belgeler", label: "Belgeler" },
   { id: "kesif-a", label: "Keşif-A", sensitive: true },
   { id: "kesif-b", label: "Keşif-B", sensitive: true },
   { id: "boq-unpriced", label: "Fiyatsız BoQ" },
@@ -47,6 +49,25 @@ export function normalizeTabId(id: string): ShareTab | null {
   if (VALID_TAB_IDS.has(id)) return id as ShareTab;
   if (id in TAB_ID_MIGRATION) return TAB_ID_MIGRATION[id];
   return null;
+}
+
+/**
+ * Custom belge id'leri "doc:xxx" formatında saklanır. Bu prefix sayesinde
+ * sabit tab id'leriyle karışmaz. Filtreleme helper'ı:
+ */
+export const DOC_TAB_PREFIX = "doc:";
+
+export function isDocTabId(id: string): boolean {
+  return id.startsWith(DOC_TAB_PREFIX);
+}
+
+export function extractDocId(id: string): string | null {
+  if (!isDocTabId(id)) return null;
+  return id.slice(DOC_TAB_PREFIX.length);
+}
+
+export function buildDocTabId(docId: string): string {
+  return `${DOC_TAB_PREFIX}${docId}`;
 }
 
 export type SharePreset = "1d" | "7d" | "14d" | "30d" | "60d" | "90d" | "infinite";

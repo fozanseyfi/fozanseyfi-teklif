@@ -20,6 +20,19 @@ export interface BrandReference {
   location?: string;
 }
 
+/**
+ * Ek belge — kullanıcının yüklediği serbest başlıklı PDF (örn. ISO sertifikası,
+ * ürün kataloğu, garanti belgesi). Paylaşım oluştururken hangilerinin dahil
+ * edileceği işaretlenir; müşteri public "Belgeler" sekmesinde görür.
+ */
+export interface BrandDocument {
+  id: string;
+  title: string;
+  url: string;
+  fileName: string;
+  uploadedAt: string; // ISO
+}
+
 export interface BrandSettings {
   logoUrl?: string;
   logoEnabled?: boolean;
@@ -39,6 +52,9 @@ export interface BrandSettings {
   referencesBrochureFileName?: string;
   // Referans listesi (yapısal) — paylaşımdaki "Referanslar" sekmesinde gösterilir.
   references?: BrandReference[];
+  // Serbest başlıklı ek belgeler — admin paylaşımda hangilerini dahil
+  // edeceğini işaretler; müşteri "Belgeler" sekmesinde görür. Max 10.
+  customDocuments?: BrandDocument[];
 }
 
 /** JSON'dan tip-guvenli BrandSettings okur — eski org'larda alan yoksa default. */
@@ -76,7 +92,22 @@ export function parseBrandSettings(raw: unknown): BrandSettings {
     referencesBrochureUrl: pickStr("referencesBrochureUrl"),
     referencesBrochureFileName: pickStr("referencesBrochureFileName"),
     references,
+    customDocuments: parseCustomDocuments(o.customDocuments),
   };
+}
+
+function parseCustomDocuments(raw: unknown): BrandDocument[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((d): d is Record<string, unknown> => typeof d === "object" && d !== null)
+    .map((d) => ({
+      id: typeof d.id === "string" ? d.id : "",
+      title: typeof d.title === "string" ? d.title : "",
+      url: typeof d.url === "string" ? d.url : "",
+      fileName: typeof d.fileName === "string" ? d.fileName : "",
+      uploadedAt: typeof d.uploadedAt === "string" ? d.uploadedAt : "",
+    }))
+    .filter((d) => d.id && d.url && d.title);
 }
 
 /** Marka rengi default emerald. colorEnabled false ise default kullanılır. */

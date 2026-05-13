@@ -6,9 +6,10 @@ import { isAdmin, type Role } from "@/lib/permissions";
 import { generateToken } from "@/lib/utils";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import { createSupabaseServer } from "@/lib/supabase/server";
-import { parseBrandSettings, type BrandSettings } from "@/lib/pdf-brand";
+import { parseBrandSettings, type BrandSettings, type BrandDocument } from "@/lib/pdf-brand";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
+import { randomBytes } from "crypto";
 
 export async function updateFirmProfile(formData: FormData) {
   const user = await requireAuth();
@@ -341,6 +342,113 @@ export async function removeReferencesBrochure() {
 
   revalidatePath("/firm-settings");
   return { success: "Referans PDF'i kaldırıldı" };
+}
+
+// ─── Ek Belgeler — serbest başlıklı PDF'ler ───────────────────────────
+
+const MAX_CUSTOM_DOCS = 10;
+
+export async function uploadCustomDocument(formData: FormData) {
+  const user = await requireAuth();
+  if (!isAdmin(user)) return { error: "Sadece yöneticiler yükleyebilir" };
+
+  const title = ((formData.get("title") as string) ?? "").trim().slice(0, 120);
+  const file = formData.get("file") as File | null;
+
+  if (!title) return { error: "Belge başlığı zorunludur" };
+  if (!file || file.size === 0) return { error: "Dosya seçilmedi" };
+  if (file.size > 10 * 1024 * 1024) return { error: "PDF 10 MB'tan büyük olamaz" };
+  if (file.type !== "application/pdf") {
+    return { error: "Sadece PDF formatı kabul edilir" };
+  }
+
+  // Mevcut belge sayısı limiti
+  const org = await prisma.organization.findUnique({
+    where: { id: user.organizationId },
+  });
+  const current = parseBrandSettings(org?.brandSettings);
+  const existing = current.customDocuments ?? [];
+  if (existing.length >= MAX_CUSTOM_DOCS) {
+    return { error: `En fazla ${MAX_CUSTOM_DOCS} belge yükleyebilirsiniz` };
+  }
+
+  const docId = randomBytes(12).toString("base64url");
+  const admin = createSupabaseAdmin();
+  const path = `org-${user.organizationId}/documents/${docId}-${Date.now()}.pdf`;
+
+  const { error: uploadError } = await admin.storage
+    .from("brand-logos")
+    .upload(path, file, { contentType: "application/pdf", upsert: false });
+  if (uploadError) {
+    return { error: `PDF yüklenemedi: ${uploadError.message}` };
+  }
+
+  const { data: pub } = admin.storage.from("brand-logos").getPublicUrl(path);
+  if (!pub?.publicUrl) return { error: "PDF URL'si alınamadı" };
+
+  const newDoc: BrandDocument = {
+    id: docId,
+    title,
+    url: pub.publicUrl,
+    fileName: file.name,
+    uploadedAt: new Date().toISOString(),
+  };
+
+  await prisma.organization.update({
+    where: { id: user.organizationId },
+    data: {
+      brandSettings: {
+        ...current,
+        customDocuments: [...existing, newDoc],
+      } as never,
+    },
+  });
+
+  revalidatePath("/firm-settings");
+  revalidatePath("/admin/share-links");
+  return { success: "Belge yüklendi", documentId: docId };
+}
+
+export async function removeCustomDocument(documentId: string) {
+  const user = await requireAuth();
+  if (!isAdmin(user)) return { error: "Sadece yöneticiler kaldırabilir" };
+
+  const org = await prisma.organization.findUnique({
+    where: { id: user.organizationId },
+  });
+  const current = parseBrandSettings(org?.brandSettings);
+  const existing = current.customDocuments ?? [];
+  const target = existing.find((d) => d.id === documentId);
+  if (!target) return { error: "Belge bulunamadı" };
+
+  // Storage'tan sil — başarısız olursa metadata'yı temizle, sessiz yut
+  try {
+    const admin = createSupabaseAdmin();
+    const url = new URL(target.url);
+    const idx = url.pathname.indexOf("/brand-logos/");
+    if (idx >= 0) {
+      const path = url.pathname.slice(idx + "/brand-logos/".length);
+      await admin.storage.from("brand-logos").remove([path]);
+    }
+  } catch {
+    // sessiz yut
+  }
+
+  const remaining = existing.filter((d) => d.id !== documentId);
+
+  await prisma.organization.update({
+    where: { id: user.organizationId },
+    data: {
+      brandSettings: {
+        ...current,
+        customDocuments: remaining,
+      } as never,
+    },
+  });
+
+  revalidatePath("/firm-settings");
+  revalidatePath("/admin/share-links");
+  return { success: "Belge kaldırıldı" };
 }
 
 // ─── Referans listesi ─────────────────────────────────────────────────

@@ -13,8 +13,11 @@ import {
   SHARE_TABS,
   VALID_TAB_IDS,
   PRESET_DAYS,
+  isDocTabId,
+  extractDocId,
   type SharePreset,
 } from "@/lib/share-tabs";
+import { parseBrandSettings } from "@/lib/pdf-brand";
 
 function generateToken(): string {
   // 32 char base62 → ~190 bit entropy. URL-safe, predict edilemez.
@@ -57,8 +60,23 @@ export async function createShareLink(fd: FormData): Promise<{
   if (recipientEmail && !isValidEmail(recipientEmail)) {
     return { error: "E-posta adresi geçersiz" };
   }
-  const tabs = tabsRaw.filter((t) => VALID_TAB_IDS.has(t));
-  if (tabs.length === 0) return { error: "En az bir bölüm seçmelisin" };
+  // Tab id'leri: sabit + ek belge "doc:xxx" entry'leri. İkisi de validate
+  // edilir; geçerli olmayanlar atılır.
+  const orgForDocs = await prisma.organization.findUnique({
+    where: { id: user.organizationId },
+    select: { brandSettings: true },
+  });
+  const brandForDocs = parseBrandSettings(orgForDocs?.brandSettings);
+  const validDocIds = new Set((brandForDocs.customDocuments ?? []).map((d) => d.id));
+  const sabitTabs = tabsRaw.filter((t) => !isDocTabId(t) && VALID_TAB_IDS.has(t));
+  const docTabs = tabsRaw
+    .filter((t) => isDocTabId(t))
+    .filter((t) => {
+      const docId = extractDocId(t);
+      return docId !== null && validDocIds.has(docId);
+    });
+  const tabs = [...sabitTabs, ...docTabs];
+  if (tabs.length === 0) return { error: "En az bir bölüm veya belge seçmelisin" };
 
   const project = await prisma.project.findFirst({
     where: { id: projectId, organizationId: user.organizationId },

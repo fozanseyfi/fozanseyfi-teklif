@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/permissions";
 import { isProjectVisible } from "@/lib/project-status";
+import { parseBrandSettings } from "@/lib/pdf-brand";
 import { redirect } from "next/navigation";
 import { ShareLinksClient } from "./client";
 
@@ -9,7 +10,7 @@ export default async function ShareLinksPage() {
   const user = await requireAuth();
   if (!isAdmin(user)) redirect("/dashboard");
 
-  const [projectsRaw, links] = await Promise.all([
+  const [projectsRaw, links, org] = await Promise.all([
     // Adı boş olan / yarim kalmis (gesStep < 2) projeler paylaşım dropdown'una
     // dusmesin — kullanici "isimsiz proje" gormesin. Filtre Projeler sayfasi
     // ile ayni (isProjectVisible).
@@ -34,9 +35,19 @@ export default async function ShareLinksPage() {
       include: { project: { select: { id: true, name: true } } },
       take: 100,
     }),
+    prisma.organization.findUnique({
+      where: { id: user.organizationId },
+      select: { brandSettings: true },
+    }),
   ]);
 
   const projects = projectsRaw.filter(isProjectVisible);
+  const brand = parseBrandSettings(org?.brandSettings);
+  const customDocuments = (brand.customDocuments ?? []).map((d) => ({
+    id: d.id,
+    title: d.title,
+    fileName: d.fileName,
+  }));
 
   const projectOptions = projects.map((p) => ({
     id: p.id,
@@ -66,6 +77,7 @@ export default async function ShareLinksPage() {
       projects={projectOptions}
       links={linkRows}
       organizationName={user.organization.name}
+      customDocuments={customDocuments}
     />
   );
 }
