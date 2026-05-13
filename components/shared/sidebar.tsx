@@ -488,7 +488,9 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
             <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
               <Sun className="size-4" />
             </div>
-            <p className="truncate text-sm font-semibold text-foreground">SolarTeklif</p>
+            <p className="shimmer-text truncate text-sm font-semibold text-foreground">
+              Solar Teklif Platformu
+            </p>
           </div>
         </div>
 
@@ -555,7 +557,9 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
             <Sun className="size-5" />
           </div>
           <div className={cn("min-w-0 flex-1", showCollapsed ? "lg:hidden" : "")}>
-            <p className="text-sm font-semibold tracking-tight text-white">SolarTeklif</p>
+            <p className="shimmer-text-on-dark truncate text-sm font-semibold tracking-tight">
+              Solar Teklif Platformu
+            </p>
             <p className="truncate text-xs text-sidebar-muted">{firmName}</p>
           </div>
           {/* Collapse chevron — desktop only */}
