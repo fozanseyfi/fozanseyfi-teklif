@@ -286,7 +286,6 @@ export function FirmSettingsForm({ firm, profile, platformRole, joinedAt, panels
           initialBrochureFileName={brand.brochureFileName}
           initialReferencesBrochureUrl={brand.referencesBrochureUrl}
           initialReferencesBrochureFileName={brand.referencesBrochureFileName}
-          initialReferences={brand.references ?? []}
           initialCustomDocuments={brand.customDocuments ?? []}
         />
       )}
