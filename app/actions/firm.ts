@@ -7,6 +7,7 @@ import { generateToken } from "@/lib/utils";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { parseBrandSettings, type BrandSettings } from "@/lib/pdf-brand";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
 
 export async function updateFirmProfile(formData: FormData) {
@@ -453,6 +454,12 @@ export async function updateMyPassword(formData: FormData) {
 export async function inviteUser(formData: FormData) {
   const user = await requireAuth();
   if (!isAdmin(user)) return { error: "Bu islem icin yetkin yok" };
+
+  // Supabase davet quota'sı + spam koruma: yöneticisi başına saatte N davet.
+  const rate = await checkRateLimit("invite", user.id);
+  if (!rate.success) {
+    return { error: "Saatlik davet limiti aşıldı. Lütfen sonra tekrar deneyin." };
+  }
 
   const email = (formData.get("email") as string)?.trim().toLowerCase();
   const role = formData.get("role") as Role;

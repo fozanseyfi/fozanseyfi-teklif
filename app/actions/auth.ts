@@ -3,7 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { validateEmail, validatePassword, validateRequired } from "@/lib/validations";
-import { cookies } from "next/headers";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 // "use server" dosyasi sadece async function export edebilir.
@@ -88,6 +89,18 @@ export async function login(_state: ActionResult | undefined, formData: FormData
   const emailError = validateEmail(email);
   if (emailError) return { error: emailError };
   if (!password) return { error: "Şifre zorunludur" };
+
+  // Brute-force koruması: IP + email kombinasyonu başına dakikada N deneme.
+  // Upstash yapılandırılmamışsa no-op (env yoksa).
+  const hdrs = await headers();
+  const ip = getClientIp({ headers: hdrs });
+  const rate = await checkRateLimit("login", `${ip}:${email.toLowerCase()}`);
+  if (!rate.success) {
+    const wait = Math.max(1, Math.ceil((rate.reset - Date.now()) / 60000));
+    return {
+      error: `Çok fazla deneme. ${wait} dakika sonra tekrar deneyin.`,
+    };
+  }
 
   const supabase = await createSupabaseServer();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });

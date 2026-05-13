@@ -5,6 +5,8 @@ import { requireAuth } from "@/lib/auth";
 import { sendCustomerResponseEmail, type CustomerResponseKind } from "@/lib/email";
 import { recordActivity, setPipelineStage } from "@/lib/project-activity";
 import { logAudit } from "@/lib/audit-log";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { headers } from "next/headers";
 import type { ActivityType, PipelineStage } from "@prisma/client";
 
 const KIND_TO_ACTIVITY: Record<CustomerResponseKind, ActivityType> = {
@@ -63,6 +65,14 @@ export async function submitShareResponse(
   // Revizyon ve soru için mesaj zorunlu — kabul için opsiyonel.
   if (kind !== "accept" && !message) {
     return { error: "Mesaj alanı zorunludur" };
+  }
+
+  // Spam koruma: aynı token'a 1 saatte 20'den fazla yanıt gelirse engelle.
+  const hdrs = await headers();
+  const ip = getClientIp({ headers: hdrs });
+  const rate = await checkRateLimit("share-response", `${token}:${ip}`);
+  if (!rate.success) {
+    return { error: "Çok fazla yanıt gönderildi. Lütfen daha sonra tekrar deneyin." };
   }
 
   const link = await prisma.shareLink.findUnique({

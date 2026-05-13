@@ -6,6 +6,7 @@ import { isAdmin } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit-log";
 import { sendShareLinkEmail } from "@/lib/email";
 import { setPipelineStage } from "@/lib/project-activity";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
 import {
@@ -108,6 +109,16 @@ export async function createShareLink(fd: FormData): Promise<{
   let emailSent = false;
   let emailError: string | undefined;
   if (recipientEmail) {
+    // Gmail SMTP quota koruma: kullanıcı başına saatte N mail.
+    const rate = await checkRateLimit("mail-send", user.id);
+    if (!rate.success) {
+      return {
+        success: "Paylaşım linki oluşturuldu (mail saatlik limite ulaştı)",
+        url: link.token,
+        emailSent: false,
+        emailError: "Saatlik mail limiti aşıldı, sonra 'Tekrar Mail At' deneyin",
+      };
+    }
     const result = await sendShareLinkEmail({
       to: recipientEmail,
       firmName: user.organization.name,
