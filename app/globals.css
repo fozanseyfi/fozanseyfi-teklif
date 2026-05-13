@@ -473,52 +473,61 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   SHIMMER — yavaş kayar ışık parıltısı
-   Brand/welcome panellerinde profesyonel bir hareket için. 2 varyant:
-   1) .shimmer-text       — yazı içinde gümüş→beyaz gradient kayar
-   2) .shimmer-overlay    — bir kart üzerinde yavaş ışık şeridi geçer
+   SHIMMER — çok-katmanlı dalgalı parıltı
+   "Premium" hissi için: ana ışık şeridi (yavaş, geniş) + ince hızlı
+   parıltı (daha narrow) + text içinde gradient kayması birlikte çalışır.
+   Sınıflar:
+     .shimmer-text         — light bg üzerinde emerald dalga gradient
+     .shimmer-text-on-dark — koyu/emerald bg üzerinde beyaz dalga gradient
+     .shimmer-overlay      — kart üzerinde çoklu-band ışık dalgaları
    ───────────────────────────────────────────────────────────────────── */
 
 @keyframes shimmer-text-slide {
-  0% { background-position: 200% center; }
+  0%   { background-position: 200% center; }
   100% { background-position: -200% center; }
 }
 
-/* Light background — emerald üzerinde çok yumuşak parıltı.
-   Sade tutuldu: ana renk emerald-700, sadece ortada hafif açılma. */
+/* Light bg — emerald gradient, çoklu band: koyu→açık→koyu→açık→koyu.
+   Birden fazla parıltı dalgası tek pass'ta geçer. */
 .shimmer-text {
   background: linear-gradient(
     90deg,
-    #047857 0%,
-    #047857 35%,
-    #10b981 50%,
-    #047857 65%,
-    #047857 100%
+    #064e3b 0%,
+    #047857 18%,
+    #10b981 32%,
+    #047857 46%,
+    #34d399 56%,
+    #047857 70%,
+    #10b981 82%,
+    #064e3b 100%
   );
-  background-size: 200% auto;
+  background-size: 250% auto;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
-  animation: shimmer-text-slide 9s linear infinite;
+  animation: shimmer-text-slide 7s linear infinite;
 }
 
-/* Koyu arka plan üzerinde yumuşak beyaz parıltı — accent rengi yok. */
+/* Koyu/emerald bg — beyaz dalga, 2 parıltı noktası tek geçişte. */
 .shimmer-text-on-dark {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.88) 0%,
-    rgba(255, 255, 255, 0.88) 35%,
-    rgba(255, 255, 255, 1) 50%,
-    rgba(255, 255, 255, 0.88) 65%,
-    rgba(255, 255, 255, 0.88) 100%
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(255, 255, 255, 1) 18%,
+    #ecfdf5 32%,
+    rgba(255, 255, 255, 0.85) 46%,
+    #a7f3d0 56%,
+    rgba(255, 255, 255, 1) 70%,
+    rgba(255, 255, 255, 0.82) 82%,
+    rgba(255, 255, 255, 0.78) 100%
   );
-  background-size: 200% auto;
+  background-size: 250% auto;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
-  animation: shimmer-text-slide 9s linear infinite;
+  animation: shimmer-text-slide 7s linear infinite;
 }
 
 @keyframes shimmer-overlay-slide {
@@ -526,26 +535,56 @@
   100% { transform: translateX(200%); }
 }
 
-/* Bir kartın içine pseudo-element ile dalgalanan parıltı şeridi geçirir.
-   Kart "position: relative; overflow: hidden" olmalı.
-   Profesyonel görünüm için ince ve düşük opaklıkta — neredeyse fark
-   edilmez ama "premium" hissi verir. */
+@keyframes shimmer-overlay-slide-fast {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(180%); }
+}
+
+/* Çoklu-band ışık dalgası — kart üzerinde tek pass'ta 3 ayrı parıltı şeridi
+   geçer. ::after ana yavaş geniş şerit, ::before ince hızlı sub-şerit.
+   Kart "position: relative; overflow: hidden" olmalı. */
+.shimmer-overlay::before,
 .shimmer-overlay::after {
   content: "";
   position: absolute;
   inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.shimmer-overlay::after {
   background: linear-gradient(
-    100deg,
+    105deg,
     transparent 0%,
-    transparent 42%,
-    rgba(255, 255, 255, 0.09) 50%,
-    transparent 58%,
+    transparent 25%,
+    rgba(255, 255, 255, 0.04) 35%,
+    rgba(255, 255, 255, 0.14) 45%,
+    rgba(255, 255, 255, 0.22) 50%,
+    rgba(255, 255, 255, 0.14) 55%,
+    rgba(255, 255, 255, 0.04) 65%,
+    transparent 75%,
     transparent 100%
   );
   transform: translateX(-100%);
-  animation: shimmer-overlay-slide 12s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 1;
+  animation: shimmer-overlay-slide 8s ease-in-out infinite;
+}
+
+/* İkinci, daha ince + daha hızlı şerit — ana şeritle desenklenmesin diye
+   farklı süre ile. */
+.shimmer-overlay::before {
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    transparent 40%,
+    rgba(255, 255, 255, 0.06) 48%,
+    rgba(255, 255, 255, 0.12) 52%,
+    rgba(255, 255, 255, 0.06) 56%,
+    transparent 64%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: shimmer-overlay-slide-fast 5s ease-in-out infinite;
+  animation-delay: 2.5s;
 }
 
 /* Erişilebilirlik: kullanıcı azaltılmış hareket isterse dur. */
@@ -560,7 +599,8 @@
     -webkit-text-fill-color: white;
     color: white;
   }
-  .shimmer-overlay::after {
+  .shimmer-overlay::after,
+  .shimmer-overlay::before {
     display: none;
   }
 }

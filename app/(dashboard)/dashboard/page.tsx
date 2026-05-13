@@ -146,7 +146,7 @@ export default async function DashboardPage() {
             <Sparkles className="size-3" />
             Solar EPC Teklif Yönetimi
           </span>
-          <h1 className="mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+          <h1 className="shimmer-text-on-dark mt-3 block w-fit text-2xl font-bold tracking-tight sm:text-3xl">
             Hoş geldin, {(user.fullName ?? user.email ?? "").split(" ")[0]}
           </h1>
           <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-emerald-50/90 sm:text-[15px]">
