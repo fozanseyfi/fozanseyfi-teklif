@@ -83,4 +83,7 @@ export const ACTION_LABELS: Record<string, string> = {
   // Pipeline
   update_pipeline_stage: "Pipeline aşamasını değiştirdi",
   add_project_activity: "Proje notu/aktivitesi ekledi",
+  // KVKK / GDPR
+  delete_my_account: "Hesabını sildi",
+  export_my_data: "Kendi verisini indirdi",
 };

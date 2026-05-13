@@ -10,6 +10,7 @@ import {
 import type { BrandSettings } from "@/lib/pdf-brand";
 import { BrandSettingsCard } from "@/components/shared/brand-settings-card";
 import { CompanyProfileCard } from "@/components/shared/company-profile-card";
+import { AccountPrivacyCard } from "@/components/shared/account-privacy-card";
 import { switchOrganization } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -339,6 +340,11 @@ export function FirmSettingsForm({ firm, profile, platformRole, joinedAt, panels
           </div>
         </form>
       </SectionCard>
+
+      {/* ─────────────────────────────────────────────────────────────────
+          KVKK — Hesap silme + veri export
+         ───────────────────────────────────────────────────────────────── */}
+      <AccountPrivacyCard userEmail={profile.email ?? ""} />
 
       {/* ─────────────────────────────────────────────────────────────────
           EKİP ve YETKİLENDİRME — admin için belirgin CTA paneli
