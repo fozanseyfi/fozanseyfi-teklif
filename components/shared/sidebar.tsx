@@ -560,7 +560,6 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
             <p className="truncate text-sm font-semibold tracking-tight text-white">
               Solar Teklif Platformu
             </p>
-            <p className="truncate text-xs text-sidebar-muted">{firmName}</p>
           </div>
           {/* Collapse chevron — desktop only */}
           <button
