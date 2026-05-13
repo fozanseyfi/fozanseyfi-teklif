@@ -1,0 +1,47 @@
+Proprietary License
+
+Copyright (c) 2026 Furkan Ozan SEYFİ. All rights reserved.
+
+Bu yazılım ("Solar Teklif Platformu"), telif hakkı sahibi Furkan Ozan SEYFİ'nin
+mülkiyetindedir. Bu repo public olarak yayımlanmıştır; ancak bu açık kaynak
+lisansı anlamına gelmez.
+
+İzin Verilenler
+---------------
+
+1. Bu repoyu görüntülemek, yıldızlamak, ve eğitim amaçlı incelemek serbesttir.
+2. Bug bildirimi ve güvenlik açığı raporlaması için SECURITY.md'de belirtilen
+   yolla iletişime geçebilirsiniz.
+3. Telif hakkı sahibinden yazılı izin alınması koşuluyla:
+   - Repo'yu fork etmek
+   - Kodu kişisel/dahili (non-commercial) deneme amacıyla çalıştırmak
+   - Repo'ya pull request göndermek
+
+İzin Verilmeyenler
+------------------
+
+Yazılı izin olmadan aşağıdakiler YASAKTIR:
+
+1. Bu yazılımın bir bütününü veya bir kısmını ticari amaçla kullanmak,
+   dağıtmak, satmak veya kiraya vermek.
+2. Bu yazılımı kopyalayıp farklı isim, marka veya kimlikle yeniden
+   paketleyip yayımlamak (rebrand).
+3. Bu yazılımı kendi SaaS, ürün veya hizmetinizin parçası olarak müşterilere
+   sunmak.
+4. Bu yazılımı tersine mühendislik yapmak veya başka türlü kaynak kodunu
+   ifşa etmek (zaten public olan kısımlar dışında).
+5. Bu yazılımı veya türevini eğitim ve ticari kuruluşlarda kurumsal (yani
+   tek kişiyi aşan) iç kullanım amacıyla deploy etmek.
+
+Garanti Reddi
+-------------
+
+Bu yazılım "OLDUĞU GİBİ" sağlanmıştır. Telif hakkı sahibi, açık veya zımni
+hiçbir garanti vermez; satılabilirlik, belirli bir amaca uygunluk ve ihlal
+etmeme garantileri dahil ancak bunlarla sınırlı olmamak üzere. Yazılımın
+kullanımından doğacak hiçbir zarardan telif hakkı sahibi sorumlu tutulamaz.
+
+İletişim
+--------
+
+Lisans ve ticari kullanım talepleri için: fozanseyfi@gmail.com
