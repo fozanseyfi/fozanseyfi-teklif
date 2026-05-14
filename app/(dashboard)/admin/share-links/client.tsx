@@ -14,11 +14,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Share2, Copy, Trash2, Link as LinkIcon, ExternalLink, Eye, Clock, Mail, AlertTriangle, Send } from "lucide-react";
+import { Share2, Copy, Trash2, Link as LinkIcon, ExternalLink, Eye, Clock, Mail, AlertTriangle, Send, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { createShareLink, revokeShareLink, resendShareLinkEmail } from "@/app/actions/share";
 import { SHARE_TABS, buildDocTabId, type SharePreset } from "@/lib/share-tabs";
+import { ShareQrModal } from "@/components/shared/share-qr-modal";
 
 interface ProjectOption {
   id: string;
@@ -458,6 +459,7 @@ export function ShareLinksClient({ projects, links, organizationName, customDocu
             <LinkTable
               rows={activeLinks}
               baseUrl={baseUrl}
+              firmName={organizationName}
               onCopy={copyToClipboard}
               onRevoke={handleRevoke}
               onResend={handleResend}
@@ -480,6 +482,7 @@ export function ShareLinksClient({ projects, links, organizationName, customDocu
             <LinkTable
               rows={archivedLinks}
               baseUrl={baseUrl}
+              firmName={organizationName}
               onCopy={copyToClipboard}
               onRevoke={handleRevoke}
               onResend={handleResend}
@@ -496,6 +499,7 @@ export function ShareLinksClient({ projects, links, organizationName, customDocu
 function LinkTable({
   rows,
   baseUrl,
+  firmName,
   onCopy,
   onRevoke,
   onResend,
@@ -504,12 +508,17 @@ function LinkTable({
 }: {
   rows: LinkRow[];
   baseUrl: string;
+  firmName: string;
   onCopy: (s: string) => void;
   onRevoke: (id: string) => void;
   onResend: (id: string) => void;
   showRevoke: boolean;
   pending: boolean;
 }) {
+  // QR/WhatsApp paylaşım modal'ını hangi link için açıyoruz?
+  const [shareRow, setShareRow] = useState<LinkRow | null>(null);
+  const shareUrl = shareRow ? `${baseUrl}/share/${shareRow.token}` : "";
+
   return (
     <>
       {/* Mobile: kart yığını — yatay scroll yerine her satır kart, aksiyon
@@ -595,10 +604,10 @@ function LinkTable({
                 <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 sm:grid-cols-4">
                   <button
                     type="button"
-                    onClick={() => onCopy(url)}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[11.5px] font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                    onClick={() => setShareRow(l)}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-md bg-emerald-600 px-2 py-1.5 text-[11.5px] font-semibold text-white shadow-sm transition-colors hover:bg-emerald-500"
                   >
-                    <Copy className="size-3.5" /> Kopyala
+                    <QrCode className="size-3.5" /> Paylaş
                   </button>
                   <a
                     href={url}
@@ -606,7 +615,7 @@ function LinkTable({
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[11.5px] font-semibold text-slate-700 transition-colors hover:bg-slate-50"
                   >
-                    <ExternalLink className="size-3.5" /> Linke Git
+                    <ExternalLink className="size-3.5" /> Önizle
                   </a>
                   {l.recipientEmail && (
                     <button
@@ -725,18 +734,19 @@ function LinkTable({
                       <>
                         <button
                           type="button"
-                          onClick={() => onCopy(url)}
-                          className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                          title="Linki kopyala"
+                          onClick={() => setShareRow(l)}
+                          className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white shadow-sm transition-colors hover:bg-emerald-500"
+                          title="QR / WhatsApp / Mail / Kopyala"
                         >
-                          <Copy className="size-3.5" />
+                          <QrCode className="size-3.5" />
+                          Paylaş
                         </button>
                         <a
                           href={url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                          title="Yeni sekmede aç"
+                          title="Yeni sekmede aç (önizle)"
                         >
                           <ExternalLink className="size-3.5" />
                         </a>
@@ -772,6 +782,17 @@ function LinkTable({
         </tbody>
       </table>
       </div>
+
+      {/* QR + WhatsApp paylaşım modal'ı — Paylaş butonu açar */}
+      <ShareQrModal
+        open={shareRow !== null}
+        onClose={() => setShareRow(null)}
+        url={shareUrl}
+        projectName={shareRow?.projectName}
+        customerName={shareRow?.customerLabel ?? undefined}
+        firmName={firmName}
+        recipientEmail={shareRow?.recipientEmail}
+      />
     </>
   );
 }
