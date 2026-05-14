@@ -388,3 +388,240 @@ export async function getRiskFlags(organizationId: string): Promise<RiskFlag[]> 
   ];
   return out.filter((r) => r.count > 0);
 }
+
+export interface YearlyReport {
+  year: number;
+  totals: {
+    offerCount: number;
+    totalMwp: number;
+    wonCount: number;
+    lostCount: number;
+    winRate: number | null;
+    pipelineCount: number;
+    pendingRevenueUsd: number;
+    completedRevenueUsd: number;
+    avgPerKwUsd: number | null;
+  };
+  monthly: { month: string; count: number; mwp: number; wonCount: number }[];
+  topWonProjects: {
+    id: string;
+    name: string;
+    customerName: string;
+    totalPowerKw: number;
+    finalSalePriceUsd: number;
+  }[];
+  topCustomers: {
+    name: string;
+    offerCount: number;
+    wonCount: number;
+    totalMwp: number;
+  }[];
+  statusBreakdown: StatusBreakdownItem[];
+  salespeople: SalespersonStat[];
+}
+
+/**
+ * Verilen yıl için yıllık özet raporu — manuel "Yıllık Rapor Üret"
+ * butonu için. PDF render eden endpoint bu helper'ı çağırır.
+ *
+ * Yılı tamamen seçili yıla göre filtreler (1 Oca – 31 Ara) — bu yıl
+ * henüz bitmemişse "yıl sonu projeksiyon" değil, gerçekleşmiş veridir.
+ */
+export async function getYearlyReport(
+  organizationId: string,
+  year: number,
+): Promise<YearlyReport> {
+  const yearStart = new Date(year, 0, 1);
+  const yearEnd = new Date(year, 11, 31, 23, 59, 59);
+
+  const projects = await prisma.project.findMany({
+    where: {
+      organizationId,
+      isTemplate: false,
+      name: { not: "" },
+      createdAt: { gte: yearStart, lte: yearEnd },
+    },
+    select: {
+      id: true,
+      name: true,
+      customerName: true,
+      status: true,
+      pipelineStage: true,
+      totalPowerKw: true,
+      createdAt: true,
+      projectDetail: { select: { settings: true } },
+      pricingSnapshot: { select: { finalSalePrice: true } },
+      createdBy: { select: { id: true, fullName: true, email: true } },
+    },
+  });
+
+  const visible = projects.filter(isProjectVisible);
+
+  const wonCount = visible.filter((p) => p.pipelineStage === "WON").length;
+  const lostCount = visible.filter((p) => p.pipelineStage === "LOST").length;
+  const winRate =
+    wonCount + lostCount === 0
+      ? null
+      : Math.round((wonCount / (wonCount + lostCount)) * 100);
+
+  const pendingStages = new Set(["SENT", "UNDER_REVIEW", "REVISED"]);
+  const pendingProjects = visible.filter(
+    (p) => p.pipelineStage && pendingStages.has(p.pipelineStage),
+  );
+  const pendingRevenueUsd = pendingProjects.reduce(
+    (s, p) => s + (p.pricingSnapshot?.finalSalePrice ?? 0),
+    0,
+  );
+
+  const completedRevenueUsd = visible
+    .filter((p) => p.pipelineStage === "WON")
+    .reduce((s, p) => s + (p.pricingSnapshot?.finalSalePrice ?? 0), 0);
+
+  const withPrice = visible.filter(
+    (p) => p.pricingSnapshot && p.pricingSnapshot.finalSalePrice > 0 && p.totalPowerKw > 0,
+  );
+  const avgPerKwUsd =
+    withPrice.length === 0
+      ? null
+      : withPrice.reduce(
+          (sum, p) => sum + p.pricingSnapshot!.finalSalePrice / p.totalPowerKw,
+          0,
+        ) / withPrice.length;
+
+  // Aylık bucket'lar — 12 ay
+  const trMonths = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
+  const monthly = Array.from({ length: 12 }, (_, i) => ({
+    month: trMonths[i],
+    count: 0,
+    mwp: 0,
+    wonCount: 0,
+  }));
+  for (const p of visible) {
+    const m = p.createdAt.getMonth();
+    monthly[m].count += 1;
+    monthly[m].mwp += p.totalPowerKw / 1000;
+    if (p.pipelineStage === "WON") monthly[m].wonCount += 1;
+  }
+  // Round mwp
+  for (const m of monthly) m.mwp = Math.round(m.mwp * 100) / 100;
+
+  // Top 5 kazanılan projeler (en yüksek finalSalePrice)
+  const topWonProjects = visible
+    .filter((p) => p.pipelineStage === "WON" && (p.pricingSnapshot?.finalSalePrice ?? 0) > 0)
+    .sort(
+      (a, b) =>
+        (b.pricingSnapshot?.finalSalePrice ?? 0) -
+        (a.pricingSnapshot?.finalSalePrice ?? 0),
+    )
+    .slice(0, 5)
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      customerName: p.customerName ?? "—",
+      totalPowerKw: p.totalPowerKw,
+      finalSalePriceUsd: p.pricingSnapshot?.finalSalePrice ?? 0,
+    }));
+
+  // Top 5 müşteri — kazanılan teklif sayısı, sonra toplam MWp
+  const customerMap = new Map<
+    string,
+    { name: string; offerCount: number; wonCount: number; totalMwp: number }
+  >();
+  for (const p of visible) {
+    if (!p.customerName) continue;
+    const existing = customerMap.get(p.customerName) ?? {
+      name: p.customerName,
+      offerCount: 0,
+      wonCount: 0,
+      totalMwp: 0,
+    };
+    existing.offerCount += 1;
+    existing.totalMwp += p.totalPowerKw / 1000;
+    if (p.pipelineStage === "WON") existing.wonCount += 1;
+    customerMap.set(p.customerName, existing);
+  }
+  const topCustomers = Array.from(customerMap.values())
+    .sort((a, b) => {
+      if (b.wonCount !== a.wonCount) return b.wonCount - a.wonCount;
+      return b.totalMwp - a.totalMwp;
+    })
+    .slice(0, 5)
+    .map((c) => ({ ...c, totalMwp: Math.round(c.totalMwp * 10) / 10 }));
+
+  // Status breakdown (sadece bu yılki)
+  const statusCounts = new Map<string, number>();
+  for (const p of visible) {
+    statusCounts.set(p.status, (statusCounts.get(p.status) ?? 0) + 1);
+  }
+  const statusBreakdown: StatusBreakdownItem[] = Array.from(statusCounts.entries())
+    .map(([status, count]) => ({
+      status,
+      label: PROJECT_STATUS_LABELS[status] ?? status,
+      count,
+      color: STATUS_COLORS[status] ?? "#64748b",
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  // Top 3 satışçı (sadece bu yıldaki projelere göre)
+  const sellerMap = new Map<
+    string,
+    SalespersonStat & { _wonOrLost: number }
+  >();
+  for (const p of visible) {
+    const id = p.createdBy.id;
+    const existing = sellerMap.get(id) ?? {
+      id,
+      name: p.createdBy.fullName ?? p.createdBy.email ?? "—",
+      email: p.createdBy.email ?? "",
+      count: 0,
+      wonCount: 0,
+      wonRate: null,
+      totalMwp: 0,
+      _wonOrLost: 0,
+    };
+    existing.count += 1;
+    existing.totalMwp += p.totalPowerKw / 1000;
+    if (p.pipelineStage === "WON") {
+      existing.wonCount += 1;
+      existing._wonOrLost += 1;
+    } else if (p.pipelineStage === "LOST") {
+      existing._wonOrLost += 1;
+    }
+    sellerMap.set(id, existing);
+  }
+  const salespeople = Array.from(sellerMap.values())
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      email: s.email,
+      count: s.count,
+      wonCount: s.wonCount,
+      wonRate: s._wonOrLost === 0 ? null : Math.round((s.wonCount / s._wonOrLost) * 100),
+      totalMwp: Math.round(s.totalMwp * 10) / 10,
+    }))
+    .sort((a, b) => {
+      if (b.wonCount !== a.wonCount) return b.wonCount - a.wonCount;
+      return b.count - a.count;
+    })
+    .slice(0, 5);
+
+  return {
+    year,
+    totals: {
+      offerCount: visible.length,
+      totalMwp: Math.round(visible.reduce((s, p) => s + p.totalPowerKw / 1000, 0) * 10) / 10,
+      wonCount,
+      lostCount,
+      winRate,
+      pipelineCount: pendingProjects.length,
+      pendingRevenueUsd,
+      completedRevenueUsd,
+      avgPerKwUsd,
+    },
+    monthly,
+    topWonProjects,
+    topCustomers,
+    statusBreakdown,
+    salespeople,
+  };
+}

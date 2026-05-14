@@ -26,6 +26,7 @@ import {
 } from "@/lib/insights";
 import { formatNumber } from "@/lib/utils";
 import { KpiTrendChart } from "./trend-chart";
+import { YearlyReportButton } from "./yearly-report-button";
 import Link from "next/link";
 
 const TR_MONTHS = [
@@ -55,25 +56,28 @@ export default async function AdminInsightsPage() {
     <div className="mx-auto max-w-6xl space-y-6">
       {/* Hero */}
       <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-6 py-7 text-white shadow-lg">
-        <div className="flex items-start gap-3">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm">
-            <BarChart3 className="size-5" />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm">
+              <BarChart3 className="size-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10.5px] font-semibold uppercase tracking-wider text-emerald-300">
+                Yönetici Paneli · {monthLabel}
+              </p>
+              <h1 className="mt-0.5 text-2xl font-bold tracking-tight sm:text-3xl">
+                Firmasal Performans
+              </h1>
+              <p className="mt-1.5 text-sm text-slate-300">
+                Bu ay {snapshot.thisMonthCount} yeni teklif ·{" "}
+                {formatNumber(snapshot.thisMonthMwp, 1)} MWp
+                {snapshot.winRate30d !== null && (
+                  <> · Son 30g kazanma oranı %{snapshot.winRate30d}</>
+                )}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-[10.5px] font-semibold uppercase tracking-wider text-emerald-300">
-              Yönetici Paneli · {monthLabel}
-            </p>
-            <h1 className="mt-0.5 text-2xl font-bold tracking-tight sm:text-3xl">
-              Firmasal Performans
-            </h1>
-            <p className="mt-1.5 text-sm text-slate-300">
-              Bu ay {snapshot.thisMonthCount} yeni teklif ·{" "}
-              {formatNumber(snapshot.thisMonthMwp, 1)} MWp
-              {snapshot.winRate30d !== null && (
-                <> · Son 30g kazanma oranı %{snapshot.winRate30d}</>
-              )}
-            </p>
-          </div>
+          <YearlyReportButton currentYear={now.getFullYear()} />
         </div>
       </div>
 
