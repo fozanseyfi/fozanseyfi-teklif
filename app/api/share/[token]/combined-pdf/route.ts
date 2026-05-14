@@ -1,80 +1,215 @@
 import { NextRequest, NextResponse } from "next/server";
 import { loadShareContext } from "@/lib/share-loader";
-import { SHARE_TABS } from "@/lib/share-tabs";
+import { resolveBrand } from "@/lib/pdf-brand";
+import { calc } from "@/lib/ges-engine";
+import type { KesifGroup, GesSettings, DorGroup, TimelineData } from "@/lib/ges-defaults";
+import { buildKesifPrintHtml } from "@/lib/share-print/kesif";
+import { buildDorPrintHtml } from "@/lib/share-print/dor";
+import { buildBoqPrintHtml } from "@/lib/share-print/boq";
+import {
+  buildPricedBoqSummaryHtml,
+  buildPricedBoqDetailedHtml,
+} from "@/lib/share-print/priced-boq";
+import { buildAnalizPrintHtml } from "@/components/ges/analiz-print";
 
 /**
- * Müşteri seçimli birleşik PDF. Share sayfasında müşteri tab/belge
- * seçer → bu endpoint Puppeteer ile HTML tab'lerini renderler, uploaded
- * PDF'leri direkt indirir, hepsini pdf-lib ile tek dosyada birleştirir.
+ * Müşteri seçimli birleşik PDF — paylaşımda gözüken HER tab'in kendi orijinal
+ * "PDF İndir" şablonuyla aynı çıktıyı server-side üretir, uploaded PDF'lerle
+ * birlikte pdf-lib ile tek dosyada birleştirir.
  *
- * Query: ?items=firma,kesif-a,doc:abc123 (virgülle ayrılmış)
+ * Her tab kendi başlığını korur — pdf-lib dokümanları birbirine
+ * karıştırmadan, her birinin kendi sayfalarıyla ekler. Birinin bittiği
+ * yerde diğerinin ilk sayfası başlar.
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   context: { params: Promise<{ token: string }> },
 ) {
   const { token } = await context.params;
   const ctx = await loadShareContext(token);
   if (!ctx) return NextResponse.json({ error: "Geçersiz link" }, { status: 404 });
 
-  const url = new URL(request.url);
-  const itemsParam = url.searchParams.get("items");
-  if (!itemsParam) {
-    return NextResponse.json({ error: "Seçili öğe yok" }, { status: 400 });
-  }
-  const items = itemsParam.split(",").map((s) => s.trim()).filter(Boolean);
-  if (items.length === 0) {
-    return NextResponse.json({ error: "Seçili öğe yok" }, { status: 400 });
-  }
+  const brandCtx = resolveBrand(ctx.brand);
+  // Public share kullanıcının (müşterinin) emaili yok — branding footer'da
+  // boş geçer, "by <firma>" görünür.
+  const userEmail = "";
+  const projectName = ctx.project.name || "Proje";
 
-  // ─── Whitelist'e karşı doğrula ─────────────────────────────────────
-  const allowedTabIds = new Set(ctx.link.includedTabs);
-  const allowedDocIds = new Set(ctx.link.includedDocIds);
-  const valid = items.filter((it) => {
-    if (it.startsWith("doc:")) return allowedDocIds.has(it.slice(4));
-    return allowedTabIds.has(it);
-  });
-  if (valid.length === 0) {
-    return NextResponse.json({ error: "Geçerli öğe yok" }, { status: 400 });
-  }
+  const kesifA = (ctx.detail.kesifA as unknown as KesifGroup[]) ?? [];
+  const kesifB = (ctx.detail.kesifB as unknown as KesifGroup[]) ?? [];
+  const settings = (ctx.detail.settings as unknown as GesSettings) ?? ({} as GesSettings);
+  const dorGroups = (ctx.detail.dor as unknown as DorGroup[]) ?? [];
+  const timeline = (ctx.detail.timeline as unknown as TimelineData) ?? ({} as TimelineData);
+  const result = calc(kesifA, kesifB, settings);
 
-  // ─── Buffer'ları topla ─────────────────────────────────────────────
+  // Sıralı oluşturma listesi — tab order'ı SHARE_TABS sırasıyla aynı
   type Source =
-    | { kind: "url"; label: string; href: string }
-    | { kind: "tab"; tabId: string; label: string };
+    | { kind: "html"; label: string; html: string }
+    | { kind: "url"; label: string; href: string };
 
   const sources: Source[] = [];
-  for (const it of valid) {
-    if (it === "firma") {
-      if (ctx.brand.brochureUrl) {
-        sources.push({ kind: "url", label: "Firma Tanıtımı", href: ctx.brand.brochureUrl });
-      }
-    } else if (it === "referanslar") {
-      if (ctx.brand.referencesBrochureUrl) {
-        sources.push({
-          kind: "url",
-          label: "Referanslar",
-          href: ctx.brand.referencesBrochureUrl,
-        });
-      }
-    } else if (it === "belgeler") {
-      // "belgeler" tab seçildiyse tüm geçerli ek belgeleri dahil et
-      for (const docId of ctx.link.includedDocIds) {
-        const doc = ctx.brand.customDocuments?.find((d) => d.id === docId);
-        if (doc?.url) {
-          sources.push({ kind: "url", label: doc.title || doc.fileName, href: doc.url });
-        }
-      }
-    } else if (it.startsWith("doc:")) {
-      const docId = it.slice(4);
-      const doc = ctx.brand.customDocuments?.find((d) => d.id === docId);
-      if (doc?.url) {
-        sources.push({ kind: "url", label: doc.title || doc.fileName, href: doc.url });
-      }
-    } else {
-      // HTML tab — Puppeteer ile render edilecek
-      const info = SHARE_TABS.find((t) => t.id === it);
-      if (info) sources.push({ kind: "tab", tabId: it, label: info.label });
+  const tabIds = ctx.link.includedTabs;
+
+  // --- 1) Firma Tanıtımı (uploaded PDF) ---
+  if (tabIds.includes("firma") && ctx.brand.brochureUrl) {
+    sources.push({ kind: "url", label: "Firma Tanıtımı", href: ctx.brand.brochureUrl });
+  }
+
+  // --- 2) Referanslar (uploaded PDF) ---
+  if (tabIds.includes("referanslar") && ctx.brand.referencesBrochureUrl) {
+    sources.push({
+      kind: "url",
+      label: "Referanslar",
+      href: ctx.brand.referencesBrochureUrl,
+    });
+  }
+
+  // --- 3) Keşif-A ---
+  if (tabIds.includes("kesif-a") && kesifA.length > 0) {
+    sources.push({
+      kind: "html",
+      label: "Keşif-A",
+      html: buildKesifPrintHtml({
+        title: "Keşif-A — Mal Listesi",
+        groups: kesifA,
+        settings,
+        grandTotal: result.kaTotal,
+        brand: brandCtx,
+        firmName: ctx.firmName,
+        userEmail,
+      }),
+    });
+  }
+
+  // --- 4) Keşif-B ---
+  if (tabIds.includes("kesif-b") && kesifB.length > 0) {
+    sources.push({
+      kind: "html",
+      label: "Keşif-B",
+      html: buildKesifPrintHtml({
+        title: "Keşif-B — İşçilik & Sair Maliyetler",
+        groups: kesifB,
+        settings,
+        grandTotal: result.kbTotal,
+        brand: brandCtx,
+        firmName: ctx.firmName,
+        userEmail,
+      }),
+    });
+  }
+
+  // --- 5) BoQ (fiyatsız) ---
+  if (tabIds.includes("boq-unpriced")) {
+    sources.push({
+      kind: "html",
+      label: "Fiyatsız BoQ",
+      html: buildBoqPrintHtml({
+        project: ctx.project,
+        projectName,
+        kesifA,
+        kesifB,
+        settings,
+        brand: brandCtx,
+        firmName: ctx.firmName,
+        userEmail,
+        showPrices: false,
+      }),
+    });
+  }
+
+  // --- 6) BoQ (fiyatlı) ---
+  if (tabIds.includes("boq-priced")) {
+    sources.push({
+      kind: "html",
+      label: "Fiyatlı BoQ",
+      html: buildBoqPrintHtml({
+        project: ctx.project,
+        projectName,
+        kesifA,
+        kesifB,
+        settings,
+        brand: brandCtx,
+        firmName: ctx.firmName,
+        userEmail,
+        showPrices: true,
+      }),
+    });
+  }
+
+  // --- 7) Birim Fiyat Cetveli — Özet ---
+  if (tabIds.includes("priced-boq-summary")) {
+    sources.push({
+      kind: "html",
+      label: "Birim Fiyat Cetveli — Özet",
+      html: buildPricedBoqSummaryHtml({
+        project: ctx.project,
+        projectName,
+        kesifA,
+        kesifB,
+        settings,
+        brand: brandCtx,
+        firmName: ctx.firmName,
+        userEmail,
+      }),
+    });
+  }
+
+  // --- 8) Birim Fiyat Cetveli — Detaylı ---
+  if (tabIds.includes("priced-boq-detailed")) {
+    sources.push({
+      kind: "html",
+      label: "Birim Fiyat Cetveli — Detaylı",
+      html: buildPricedBoqDetailedHtml({
+        project: ctx.project,
+        projectName,
+        kesifA,
+        kesifB,
+        settings,
+        brand: brandCtx,
+        firmName: ctx.firmName,
+        userEmail,
+      }),
+    });
+  }
+
+  // --- 9) Analiz ---
+  if (tabIds.includes("analiz")) {
+    sources.push({
+      kind: "html",
+      label: "Analiz",
+      html: buildAnalizPrintHtml({
+        project: ctx.project,
+        settings,
+        kesifA,
+        kesifB,
+        timeline,
+        firmName: ctx.firmName,
+        brand: ctx.brand,
+        userEmail,
+      }),
+    });
+  }
+
+  // --- 10) DoR ---
+  if (tabIds.includes("dor") && dorGroups.length > 0) {
+    sources.push({
+      kind: "html",
+      label: "DoR",
+      html: buildDorPrintHtml({
+        projectName,
+        groups: dorGroups,
+        brand: brandCtx,
+        firmName: ctx.firmName,
+        userEmail,
+      }),
+    });
+  }
+
+  // --- 11) Ek belgeler (her biri uploaded PDF) ---
+  for (const docId of ctx.link.includedDocIds) {
+    const doc = ctx.brand.customDocuments?.find((d) => d.id === docId);
+    if (doc?.url) {
+      sources.push({ kind: "url", label: doc.title || doc.fileName, href: doc.url });
     }
   }
 
@@ -82,83 +217,61 @@ export async function GET(
     return NextResponse.json({ error: "Birleştirilecek içerik yok" }, { status: 400 });
   }
 
-  const origin = url.origin;
+  // ─── PDF buffer'larını topla (sıra korunur) ──────────────────────
   const pdfBuffers: { buf: Buffer; label: string }[] = [];
 
-  // ─── Uploaded PDF'leri paralel indir ──────────────────────────────
-  await Promise.all(
-    sources
-      .filter((s): s is Extract<Source, { kind: "url" }> => s.kind === "url")
-      .map(async (s) => {
+  // HTML kaynaklarını Puppeteer ile render et — tek browser instance,
+  // sırayla page açıp PDF al
+  const htmlSources = sources.filter((s): s is Extract<Source, { kind: "html" }> => s.kind === "html");
+  const browser =
+    htmlSources.length > 0
+      ? await (await import("puppeteer")).default.launch({
+          headless: true,
+          args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        })
+      : null;
+
+  try {
+    for (const s of sources) {
+      if (s.kind === "url") {
         try {
           const r = await fetch(s.href);
-          if (!r.ok) return;
-          const ab = await r.arrayBuffer();
-          pdfBuffers.push({ buf: Buffer.from(ab), label: s.label });
+          if (r.ok) {
+            const ab = await r.arrayBuffer();
+            pdfBuffers.push({ buf: Buffer.from(ab), label: s.label });
+          } else {
+            console.warn(`[combined-pdf] indirme HTTP ${r.status}: ${s.label}`);
+          }
         } catch (e) {
           console.warn(`[combined-pdf] indirme hatası: ${s.label}`, e);
         }
-      }),
-  );
-
-  // ─── HTML tab'lerini Puppeteer ile render et ──────────────────────
-  const tabSources = sources.filter((s): s is Extract<Source, { kind: "tab" }> => s.kind === "tab");
-  if (tabSources.length > 0) {
-    try {
-      const puppeteer = await import("puppeteer");
-      const browser = await puppeteer.default.launch({
-        headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      });
-      try {
-        for (const t of tabSources) {
-          const page = await browser.newPage();
-          try {
-            await page.setViewport({ width: 1280, height: 1024 });
-            await page.goto(`${origin}/share/${token}/${t.tabId}?print=1`, {
-              waitUntil: "networkidle0",
-              timeout: 45_000,
-            });
-            // Share chrome'unu (header / response-bar / strip / footer) gizle
-            await page.addStyleTag({
-              content: `
-                [data-share-chrome] { display: none !important; }
-                body { background: white !important; }
-                main { padding-top: 0 !important; padding-bottom: 0 !important; }
-              `,
-            });
-            const pdf = await page.pdf({
-              format: "A4",
-              printBackground: true,
-              margin: { top: "12mm", bottom: "12mm", left: "15mm", right: "15mm" },
-            });
-            pdfBuffers.push({ buf: Buffer.from(pdf), label: t.label });
-          } catch (e) {
-            console.warn(`[combined-pdf] tab render hatası: ${t.tabId}`, e);
-          } finally {
-            await page.close();
-          }
+      } else if (s.kind === "html" && browser) {
+        const page = await browser.newPage();
+        try {
+          await page.setViewport({ width: 1280, height: 1024 });
+          await page.setContent(s.html, { waitUntil: "networkidle0", timeout: 45_000 });
+          const pdf = await page.pdf({
+            format: "A4",
+            printBackground: true,
+            margin: { top: "14mm", bottom: "14mm", left: "14mm", right: "14mm" },
+          });
+          pdfBuffers.push({ buf: Buffer.from(pdf), label: s.label });
+        } catch (e) {
+          console.warn(`[combined-pdf] render hatası: ${s.label}`, e);
+        } finally {
+          await page.close();
         }
-      } finally {
-        await browser.close();
       }
-    } catch (e) {
-      console.error("[combined-pdf] puppeteer launch hatası:", e);
-      return NextResponse.json({ error: "PDF motoru başlatılamadı" }, { status: 500 });
     }
+  } finally {
+    if (browser) await browser.close();
   }
 
   if (pdfBuffers.length === 0) {
     return NextResponse.json({ error: "Hiçbir içerik üretilemedi" }, { status: 500 });
   }
 
-  // ─── Sıralamayı korumak için items sırasına göre yeniden dizmedim:
-  // pdfBuffers map iteration sırasında zaten doğru sırayla append edildi
-  // (url'leri Promise.all paralel doldurdu ama tab'ler sıralı eklenir).
-  // Daha titiz sıralama için 'sources' indeksini takip edebiliriz —
-  // şimdilik kullanıcının seçim sırası garantili değil, kabul edilebilir.
-
-  // ─── pdf-lib ile birleştir ────────────────────────────────────────
+  // ─── pdf-lib ile sıralı birleştir ─────────────────────────────────
   const { PDFDocument } = await import("pdf-lib");
   const merged = await PDFDocument.create();
   for (const { buf, label } of pdfBuffers) {
@@ -172,10 +285,7 @@ export async function GET(
   }
 
   if (merged.getPageCount() === 0) {
-    return NextResponse.json(
-      { error: "Birleşik PDF oluşturulamadı" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Birleşik PDF oluşturulamadı" }, { status: 500 });
   }
 
   const mergedBytes = await merged.save();

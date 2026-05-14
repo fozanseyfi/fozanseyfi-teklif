@@ -5,7 +5,7 @@ import { loadShareContext, recordShareView } from "@/lib/share-loader";
 import { ShareHeader } from "./_components/share-header";
 import { ShareExpiryStrip } from "./_components/share-expiry-strip";
 import { ShareResponseBar } from "./_components/response-bar";
-import { PdfSelector, buildSelectorItems } from "./_components/pdf-selector";
+import { PdfSelector } from "./_components/pdf-selector";
 import { SHARE_TABS, normalizeTabId } from "@/lib/share-tabs";
 
 interface Props {
@@ -31,14 +31,10 @@ export default async function ShareLayout({ children, params }: Props) {
   );
   const tabs = SHARE_TABS.filter((t) => normalizedIncluded.has(t.id));
 
-  // PDF selector — tab'leri + bireysel ek belgeleri seçilebilir öğelere
-  // dönüştürür. "belgeler" tabı tek bir item olmaz, içindeki her belge
-  // ayrı item olur ki müşteri tek tek seçebilsin.
-  const pdfSelectorItems = buildSelectorItems(
-    tabs,
-    ctx.brand.customDocuments ?? [],
-    ctx.link.includedDocIds,
-  );
+  // "Tek PDF İndir" butonu için içerik var mı? "Belgeler" tabı varsa bireysel
+  // belge sayısı dahil edilir, kendisi sayılmaz (otomatik sentinel'di).
+  const pdfItemCount =
+    tabs.filter((t) => t.id !== "belgeler").length + ctx.link.includedDocIds.length;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -57,7 +53,7 @@ export default async function ShareLayout({ children, params }: Props) {
       <PdfSelector
         token={ctx.link.token}
         brand={ctx.brand}
-        items={pdfSelectorItems}
+        itemCount={pdfItemCount}
       />
       {/* Public paylaşım her zaman read-only — ReadOnlyProvider true ile
           sarınca KesifEditor, DorEditor vb. komponentler save/edit

@@ -37,8 +37,21 @@ function escapeHtml(s: string): string {
  * Patron / direktor seviyesinde sunulabilecek "executive analiz" PDF'i
  * uretir. KPI, maliyet kirilimi, halka grafigi, top kalemler, cash flow,
  * doviz duyarliligi — hepsi tek belgede.
+ *
+ * Client tarafindan `printAnaliz()` cagrilir (window.open + print).
+ * Server tarafi (combined-pdf endpoint) `buildAnalizPrintHtml()` cagirip
+ * HTML'i Puppeteer'a verir. Ikisi de ayni HTML uretir.
  */
-export function printAnaliz({ project, settings: s, kesifA, kesifB, timeline, firmName, brand, userEmail }: PrintArgs) {
+export function printAnaliz(args: PrintArgs) {
+  const html = buildAnalizPrintHtml(args);
+  const w = window.open("", "_blank");
+  if (!w) return;
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => w.print(), 400);
+}
+
+export function buildAnalizPrintHtml({ project, settings: s, kesifA, kesifB, timeline, firmName, brand, userEmail }: PrintArgs): string {
   const result = calc(kesifA, kesifB, s);
   const dcWp = s.dcGuc * 1_000_000;
   const dcKw = s.dcGuc * 1000;
@@ -421,9 +434,5 @@ ${watermarkHtml(brandCtx, firmName)}
 ${brandFooterHtml(brandCtx, firmName, userEmail, docId)}
 </body></html>`;
 
-  const w = window.open("", "_blank");
-  if (!w) return;
-  w.document.write(html);
-  w.document.close();
-  setTimeout(() => w.print(), 400);
+  return html;
 }
