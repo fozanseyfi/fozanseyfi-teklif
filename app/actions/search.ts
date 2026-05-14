@@ -92,13 +92,13 @@ export async function globalSearch(rawQuery: string): Promise<SearchResult[]> {
       take: 6,
     }),
     // Kalem araması için projelerin Keşif JSON'larını cast ederek ILIKE.
-    // ProjectDetail'i ekstra select ediyoruz — kalem listesini JS'de
-    // parse edip eşleşeni bulacağız (DB'den geçerli kalemleri çekemiyoruz
-    // çünkü Prisma JSON array içinde arama destekliyor değil).
+    // Tablolar solar schema'sında, organizationId snake_case (organization_id)
+    // map'li — diğer kolonlar (isTemplate, updatedAt, projectId, kesifA/B)
+    // camelCase olduğu gibi DB'de duruyor.
     prisma.$queryRaw<{ id: string }[]>`
-      SELECT p.id FROM "Project" p
-      LEFT JOIN "ProjectDetail" d ON d."projectId" = p.id
-      WHERE p."organizationId" = ${user.organizationId}
+      SELECT p.id FROM solar."Project" p
+      LEFT JOIN solar."ProjectDetail" d ON d."projectId" = p.id
+      WHERE p."organization_id" = ${user.organizationId}::uuid
         AND p."isTemplate" = false
         AND p.name <> ''
         AND (
