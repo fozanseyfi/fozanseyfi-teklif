@@ -14,23 +14,42 @@ import {
   HelpCircle,
   MessageCircle,
   Boxes,
-  Sun,
-  LogOut,
-  ChevronDown,
   BarChart3,
+  ChevronsLeft,
+  ArrowRight,
+  Globe,
   Check,
 } from "lucide-react";
 
-// 5 alternatif sidebar tasarımı — sadece görsel inceleme için.
-// Kullanıcı beğendiğini söyleyince gerçek sidebar componente uygulanacak.
+// Referans: kullanıcı diğer platformundan ekran görüntüsü paylaştı.
+// Karakteristik: açık/beyaz bg, üstte emerald gradient CTA pill, renkli
+// vertical bar + dot ile section label'ları, sağ tarafta nokta aktif
+// göstergesi, "DARALT <<" butonu.
+//
+// 5 varyasyon hazırladım — aynı temel iskelet, farklı vurgular.
 
-const NAV_GROUPS = [
+interface NavItem {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  active?: boolean;
+}
+
+interface NavGroup {
+  label: string;
+  // Section indicator rengi — referansda her grubun farklı rengi var
+  accent: string;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
   {
     label: "Ana Menü",
+    accent: "emerald",
     items: [{ icon: LayoutDashboard, label: "Dashboard", active: true }],
   },
   {
     label: "Çalışma Alanı",
+    accent: "blue",
     items: [
       { icon: FolderOpen, label: "Projeler" },
       { icon: Upload, label: "Proje Yükle" },
@@ -40,27 +59,42 @@ const NAV_GROUPS = [
   },
   {
     label: "Yönetim",
+    accent: "purple",
     items: [
       { icon: Users, label: "Kullanıcılar" },
       { icon: Share2, label: "Paylaşım Linkleri" },
       { icon: ScrollText, label: "Aktivite Kayıtları" },
       { icon: UserCircle2, label: "Profilim" },
-      { icon: Bell, label: "Bildirimler" },
       { icon: BarChart3, label: "Firma Performansı" },
     ],
   },
   {
     label: "Destek",
+    accent: "orange",
     items: [
       { icon: HelpCircle, label: "Nasıl Çalışır" },
+      { icon: Bell, label: "Bildirimler" },
       { icon: MessageCircle, label: "İletişime Geç" },
     ],
   },
   {
-    label: "Diğer Platformlar",
+    label: "Diğer",
+    accent: "emerald",
     items: [{ icon: Boxes, label: "Diğer Platformlar" }],
   },
 ];
+
+// Renk paleti — accent isimleri Tailwind class'larına eşlenir
+const ACCENT_COLORS: Record<
+  string,
+  { dot: string; bar: string; label: string }
+> = {
+  emerald: { dot: "bg-emerald-500", bar: "bg-emerald-500", label: "text-emerald-700" },
+  blue: { dot: "bg-blue-500", bar: "bg-blue-500", label: "text-blue-700" },
+  purple: { dot: "bg-purple-500", bar: "bg-purple-500", label: "text-purple-700" },
+  orange: { dot: "bg-orange-500", bar: "bg-orange-500", label: "text-orange-700" },
+  slate: { dot: "bg-slate-400", bar: "bg-slate-400", label: "text-slate-500" },
+};
 
 export default async function SidebarAltsMockupPage() {
   await requireAuth();
@@ -76,177 +110,75 @@ export default async function SidebarAltsMockupPage() {
           Mockup Listesine Dön
         </Link>
         <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">
-          Sidebar Alternatifleri · Önizleme
+          Sidebar — 5 Yeni Tasarım
         </span>
       </div>
 
       <header className="rounded-2xl border bg-white p-5">
-        <h1 className="text-xl font-bold tracking-tight">Sidebar Renk/Stil Alternatifleri</h1>
+        <h1 className="text-xl font-bold tracking-tight">
+          Sidebar Tasarım Alternatifleri v2
+        </h1>
         <p className="mt-1 text-[13px] text-slate-600">
-          5 farklı stil — beğendiğini söyle (A/B/C/D/E), gerçek sidebar
-          componente onu uygulayalım.
-        </p>
-        <p className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] text-slate-600">
-          <span className="size-2 rounded-full bg-slate-900" />
-          <strong>Mevcut:</strong> bg slate-900 · fg slate-300 (çok koyu)
+          Paylaştığın referansa dayalı 5 farklı varyasyon — açık tema, renkli
+          kategori çubukları, gradient CTA pill, nokta aktif göstergesi. Hangisini
+          beğenirsen gerçek sidebar'a uygulayalım.
         </p>
       </header>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <SidebarCard
-          letter="A"
-          name="Light & Clean"
-          rationale="Notion / Linear tarzı — beyaz arkaplan, slate yazılar, aktif itemda emerald tint. En modern ve nötr."
-          variant="light"
+        <SidebarPreview
+          letter="V1"
+          name="Referans Birebir"
+          rationale="Paylaştığın ekran görüntüsünün direkt karşılığı — beyaz bg, her grup için farklı renkli vertical bar + dot, aktif item sağ tarafta yeşil nokta, üstte emerald gradient Portfolio pill."
+          variant="reference"
         />
-        <SidebarCard
-          letter="B"
-          name="Soft Gray"
-          rationale="Hafif gri arkaplan (slate-50), beyaz değil ama parlak değil. Konseptçe Notion'a yakın ama daha yumuşak."
-          variant="soft-gray"
+        <SidebarPreview
+          letter="V2"
+          name="Tek Aksent (Sadeleştirilmiş)"
+          rationale="Aynı iskelet ama tüm gruplar slate-400. Renkli kategori yerine sade slate çubukları — daha minimal, dağılma yok. Marka rengi sadece aktif item ve CTA pill'de."
+          variant="single-accent"
         />
-        <SidebarCard
-          letter="C"
-          name="Slate-700 (Mid Dark)"
-          rationale="Mevcuda en yakın — sadece koyuluğu azaltır. Karanlık kalmasını seviyorsan ama tonu biraz açmak istiyorsan."
-          variant="mid-dark"
+        <SidebarPreview
+          letter="V3"
+          name="Pill Aktif"
+          rationale="Referans ile aynı renkli grup başlıkları, ama aktif item sağdaki nokta yerine emerald-50 dolu pill'de — Notion tarzı. Daha belirgin."
+          variant="pill-active"
         />
-        <SidebarCard
-          letter="D"
-          name="Emerald Tinted"
-          rationale="Çok hafif emerald yeşili arkaplan (emerald-50). Marka rengiyle entegre, sıcak ve davetkar."
-          variant="emerald-tint"
+        <SidebarPreview
+          letter="V4"
+          name="Gradient Header + Beyaz Nav"
+          rationale="Üst başlık + Portfolio pill emerald gradient bandı içinde. Nav listesi beyaz. Hibrit — marka rengi üstte güçlü, alttaki nav ferah."
+          variant="gradient-top"
         />
-        <SidebarCard
-          letter="E"
-          name="Emerald Header + White"
-          rationale="Üst banda emerald gradient (firma adı/kullanıcı orada), nav listesi beyaz. Hibrit — hem marka hem ferahlık."
-          variant="hybrid"
+        <SidebarPreview
+          letter="V5"
+          name="Kompakt + Sol Çubuk"
+          rationale="Yoğun layout — küçük item satırları (compact spacing). Renkli vertical bar grup label'ının solunda, daha incelmiş. Daha fazla item ekrana sığar."
+          variant="compact"
         />
       </div>
 
       <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
         <p className="text-[13px] text-emerald-900">
-          <strong>Beğendiğin harfi söyle</strong> (örn. "B" veya "D"),{" "}
+          <strong>Beğendiğin numarayı söyle</strong> (örn. "V2" veya "V3"),{" "}
           <code className="rounded bg-white px-1 py-0.5 text-[11px] ring-1 ring-emerald-200">
             components/shared/sidebar.tsx
           </code>{" "}
-          dosyasındaki renk token'larını ona göre güncelleyim.
+          dosyasına uygulayalım.
         </p>
       </div>
     </div>
   );
 }
 
-type Variant = "light" | "soft-gray" | "mid-dark" | "emerald-tint" | "hybrid";
+type Variant =
+  | "reference"
+  | "single-accent"
+  | "pill-active"
+  | "gradient-top"
+  | "compact";
 
-const VARIANT_STYLES: Record<
-  Variant,
-  {
-    container: string;
-    border?: string;
-    title: string;
-    role: string;
-    groupLabel: string;
-    navIdle: string;
-    navIdleIcon: string;
-    navActive: string;
-    activeIndicator?: string;
-    topbarUser: string;
-    topbarFirm: string;
-    chevron: string;
-    section: string;
-    logoBg: string;
-    logoFg: string;
-    logoutBtn: string;
-  }
-> = {
-  light: {
-    container: "bg-white border-r border-slate-200 text-slate-700",
-    title: "text-slate-900",
-    role: "text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200",
-    groupLabel: "text-slate-400",
-    navIdle: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-    navIdleIcon: "text-slate-400",
-    navActive: "bg-emerald-50 text-emerald-800 font-semibold",
-    activeIndicator: "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-5 before:w-[3px] before:rounded-r-full before:bg-emerald-600",
-    topbarUser: "text-slate-900",
-    topbarFirm: "text-slate-500",
-    chevron: "text-slate-400",
-    section: "border-t border-slate-100",
-    logoBg: "bg-emerald-600",
-    logoFg: "text-white",
-    logoutBtn: "text-slate-500 hover:bg-rose-50 hover:text-rose-700",
-  },
-  "soft-gray": {
-    container: "bg-slate-50 border-r border-slate-200 text-slate-700",
-    title: "text-slate-900",
-    role: "text-emerald-700 bg-white ring-1 ring-emerald-200",
-    groupLabel: "text-slate-400",
-    navIdle: "text-slate-600 hover:bg-white hover:text-slate-900",
-    navIdleIcon: "text-slate-400",
-    navActive: "bg-white text-emerald-700 font-semibold shadow-sm ring-1 ring-slate-200",
-    topbarUser: "text-slate-900",
-    topbarFirm: "text-slate-500",
-    chevron: "text-slate-400",
-    section: "border-t border-slate-200",
-    logoBg: "bg-emerald-600",
-    logoFg: "text-white",
-    logoutBtn: "text-slate-500 hover:bg-rose-50 hover:text-rose-700",
-  },
-  "mid-dark": {
-    container: "bg-slate-700 text-slate-200",
-    title: "text-white",
-    role: "text-emerald-300 bg-emerald-900/40 ring-1 ring-emerald-700/40",
-    groupLabel: "text-slate-400",
-    navIdle: "text-slate-300 hover:bg-slate-600 hover:text-white",
-    navIdleIcon: "text-slate-400",
-    navActive: "bg-slate-800 text-white font-semibold",
-    activeIndicator: "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-5 before:w-[3px] before:rounded-r-full before:bg-emerald-400",
-    topbarUser: "text-white",
-    topbarFirm: "text-slate-400",
-    chevron: "text-slate-400",
-    section: "border-t border-slate-600",
-    logoBg: "bg-emerald-500",
-    logoFg: "text-white",
-    logoutBtn: "text-slate-400 hover:bg-rose-900/30 hover:text-rose-200",
-  },
-  "emerald-tint": {
-    container: "bg-emerald-50 border-r border-emerald-100 text-slate-700",
-    title: "text-emerald-900",
-    role: "text-emerald-700 bg-white ring-1 ring-emerald-200",
-    groupLabel: "text-emerald-700/60",
-    navIdle: "text-slate-700 hover:bg-white hover:text-emerald-900",
-    navIdleIcon: "text-emerald-700/60",
-    navActive: "bg-emerald-600 text-white font-semibold shadow-sm",
-    topbarUser: "text-emerald-900",
-    topbarFirm: "text-emerald-700/70",
-    chevron: "text-emerald-700/60",
-    section: "border-t border-emerald-100",
-    logoBg: "bg-white",
-    logoFg: "text-emerald-700",
-    logoutBtn: "text-slate-500 hover:bg-rose-50 hover:text-rose-700",
-  },
-  hybrid: {
-    container: "bg-white border-r border-slate-200 text-slate-700",
-    title: "text-white",
-    role: "text-white bg-white/15 ring-1 ring-white/30",
-    groupLabel: "text-slate-400",
-    navIdle: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-    navIdleIcon: "text-slate-400",
-    navActive: "bg-emerald-50 text-emerald-800 font-semibold",
-    activeIndicator: "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-5 before:w-[3px] before:rounded-r-full before:bg-emerald-600",
-    topbarUser: "text-white",
-    topbarFirm: "text-emerald-100",
-    chevron: "text-emerald-100",
-    section: "border-t border-slate-100",
-    logoBg: "bg-white/20 backdrop-blur",
-    logoFg: "text-white",
-    logoutBtn: "text-slate-500 hover:bg-rose-50 hover:text-rose-700",
-  },
-};
-
-function SidebarCard({
+function SidebarPreview({
   letter,
   name,
   rationale,
@@ -257,15 +189,11 @@ function SidebarCard({
   rationale: string;
   variant: Variant;
 }) {
-  const s = VARIANT_STYLES[variant];
-  const isHybrid = variant === "hybrid";
-
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/60 px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <span className="flex size-6 items-center justify-center rounded-full bg-emerald-600 text-[11px] font-bold text-white">
+          <span className="flex size-7 items-center justify-center rounded-full bg-emerald-600 text-[11px] font-bold text-white">
             {letter}
           </span>
           <strong className="text-[14px] text-slate-900">{name}</strong>
@@ -279,93 +207,230 @@ function SidebarCard({
         </button>
       </div>
 
-      {/* Rationale */}
-      <div className="border-b border-slate-100 bg-slate-50/30 px-4 py-2 text-[11.5px] text-slate-600">
+      <div className="border-b border-slate-100 bg-slate-50/30 px-4 py-2 text-[11.5px] leading-relaxed text-slate-600">
         {rationale}
       </div>
 
-      {/* Mini sidebar preview */}
-      <div className={`flex h-[480px] w-full ${s.container}`}>
-        <div className="flex w-full flex-col">
-          {/* Top: firm + user box (hybrid'de gradient bar) */}
-          <div
-            className={
-              isHybrid
-                ? "bg-gradient-to-br from-emerald-600 to-emerald-700 px-3 py-3 text-white"
-                : "px-3 py-3"
-            }
-          >
-            <div className="flex items-center gap-2">
-              <div
-                className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${s.logoBg} ${s.logoFg}`}
-              >
-                <Sun className="size-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className={`truncate text-[11px] font-bold ${s.title}`}>
-                  Solar Teklif
-                </p>
-                <p className={`truncate text-[9.5px] ${s.topbarFirm}`}>
-                  Firma Adı A.Ş.
-                </p>
-              </div>
-              <ChevronDown className={`size-3 ${s.chevron}`} />
-            </div>
-            <div className="mt-2 flex items-center justify-between gap-2 rounded-md bg-black/5 px-2 py-1.5 text-[10.5px]">
-              <span className={s.topbarUser}>
-                <strong>Ozan S.</strong>
-              </span>
-              <span className={`rounded-full px-1.5 py-0 text-[9px] font-bold ${s.role}`}>
-                Yönetici
-              </span>
-            </div>
-          </div>
+      <div className="flex h-[640px] w-full bg-slate-50/30 p-3">
+        <SidebarBody variant={variant} />
+      </div>
+    </div>
+  );
+}
 
-          {/* Nav groups */}
-          <div className="flex-1 overflow-y-auto px-2 py-2">
-            {NAV_GROUPS.map((g) => (
-              <div key={g.label} className="mb-2">
-                <p
-                  className={`mb-1 px-2 text-[9px] font-bold uppercase tracking-wider ${s.groupLabel}`}
-                >
-                  {g.label}
-                </p>
-                <ul className="space-y-0.5">
-                  {g.items.map((it) => {
-                    const Icon = it.icon;
-                    const isActive = "active" in it && it.active;
-                    return (
-                      <li key={it.label}>
-                        <div
-                          className={`relative flex items-center gap-2 rounded-md px-2 py-1.5 text-[11px] transition-colors ${
-                            isActive
-                              ? `${s.navActive} ${s.activeIndicator ?? ""}`
-                              : s.navIdle
-                          }`}
-                        >
-                          <Icon
-                            className={`size-3.5 ${isActive ? "" : s.navIdleIcon}`}
-                          />
-                          <span className="truncate">{it.label}</span>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
-          </div>
+function SidebarBody({ variant }: { variant: Variant }) {
+  // Variant'a göre genel container stili
+  const containerClass =
+    variant === "gradient-top"
+      ? "flex w-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+      : "flex w-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm";
 
-          {/* Logout */}
-          <div className={`p-2 ${s.section}`}>
-            <button
-              type="button"
-              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[11px] font-semibold transition-colors ${s.logoutBtn}`}
-            >
-              <LogOut className="size-3.5" />
-              Çıkış Yap
-            </button>
+  return (
+    <div className={containerClass}>
+      {/* Header / Top */}
+      <Header variant={variant} />
+
+      {/* Portfolio CTA pill */}
+      <PortfolioPill variant={variant} />
+
+      {/* Nav groups */}
+      <div className="flex-1 overflow-y-auto px-2 pb-2 pt-2">
+        {NAV_GROUPS.map((g, gi) => (
+          <NavGroupRender key={g.label} group={g} variant={variant} isLast={gi === NAV_GROUPS.length - 1} />
+        ))}
+      </div>
+
+      {/* Footer avatar */}
+      <Footer />
+    </div>
+  );
+}
+
+function Header({ variant }: { variant: Variant }) {
+  if (variant === "gradient-top") {
+    return (
+      <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 px-3 py-3 text-white">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white/15 backdrop-blur-sm">
+              <BarChart3 className="size-3.5" />
+            </div>
+            <p className="text-[12px] font-bold">
+              Solar <span className="font-normal text-emerald-100">Teklif</span>
+            </p>
           </div>
+          <button className="flex items-center gap-0.5 text-[10px] font-semibold text-emerald-100 hover:text-white">
+            DARALT <ChevronsLeft className="size-3" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center justify-between border-b border-slate-100 px-3 py-3">
+      <div className="flex items-center gap-2">
+        <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-slate-900 text-white">
+          <BarChart3 className="size-3.5" />
+        </div>
+        <p className="text-[12px] font-bold text-slate-900">
+          Solar <span className="font-normal text-slate-500">Teklif</span>
+        </p>
+      </div>
+      <button className="flex items-center gap-0.5 text-[10px] font-semibold text-slate-400 hover:text-slate-700">
+        DARALT <ChevronsLeft className="size-3" />
+      </button>
+    </div>
+  );
+}
+
+function PortfolioPill({ variant }: { variant: Variant }) {
+  // Gradient-top varyasyonunda üstteki banttan sonra dış padding ile gelir
+  return (
+    <div className="px-2 pt-2">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between rounded-xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 px-3 py-2.5 text-left text-white shadow-sm transition-transform hover:scale-[1.01]"
+      >
+        <div className="flex items-center gap-2">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/20 backdrop-blur-sm">
+            <Globe className="size-3.5" />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold leading-tight">Portfolio</p>
+            <p className="text-[9px] text-emerald-50">Tüm Projeler</p>
+          </div>
+        </div>
+        <ArrowRight className="size-3.5 text-white/80" />
+      </button>
+    </div>
+  );
+}
+
+function NavGroupRender({
+  group,
+  variant,
+  isLast,
+}: {
+  group: NavGroup;
+  variant: Variant;
+  isLast: boolean;
+}) {
+  const accent =
+    variant === "single-accent" ? ACCENT_COLORS.slate : ACCENT_COLORS[group.accent];
+
+  const compact = variant === "compact";
+
+  return (
+    <div className={compact ? "mb-1.5" : "mb-2.5"}>
+      {/* Section label */}
+      <div className="mb-1 flex items-center gap-1.5 px-2 pt-2">
+        {variant === "compact" ? (
+          <span className={`h-3 w-[2px] rounded-sm ${accent.bar}`} />
+        ) : (
+          <span className={`size-1.5 rounded-full ${accent.dot}`} />
+        )}
+        <p
+          className={`text-[9px] font-bold uppercase tracking-[0.1em] ${accent.label}`}
+        >
+          {group.label}
+        </p>
+      </div>
+
+      {/* Items */}
+      <ul className={compact ? "space-y-0" : "space-y-0.5"}>
+        {group.items.map((it) => (
+          <NavItemRender key={it.label} item={it} variant={variant} />
+        ))}
+      </ul>
+
+      {!isLast && variant !== "compact" && (
+        <div className="mx-2 my-1 border-t border-slate-100" />
+      )}
+    </div>
+  );
+}
+
+function NavItemRender({ item, variant }: { item: NavItem; variant: Variant }) {
+  const Icon = item.icon;
+  const active = item.active;
+
+  // Pill aktif varyasyonu
+  if (variant === "pill-active") {
+    return (
+      <li>
+        <div
+          className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-[11px] transition-colors ${
+            active
+              ? "bg-emerald-50 font-semibold text-emerald-700 ring-1 ring-emerald-200"
+              : "text-slate-600 hover:bg-slate-50"
+          }`}
+        >
+          <Icon
+            className={`size-3.5 ${active ? "text-emerald-600" : "text-slate-400"}`}
+          />
+          <span className="truncate">{item.label}</span>
+        </div>
+      </li>
+    );
+  }
+
+  // Compact varyasyonu — daha sıkı padding
+  if (variant === "compact") {
+    return (
+      <li>
+        <div
+          className={`flex items-center justify-between gap-2 rounded-md px-2 py-1 text-[11px] transition-colors ${
+            active
+              ? "bg-emerald-50/60 font-semibold text-emerald-700"
+              : "text-slate-700 hover:bg-slate-50"
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <Icon
+              className={`size-3.5 ${active ? "text-emerald-600" : "text-slate-500"}`}
+            />
+            <span className="truncate">{item.label}</span>
+          </span>
+          {active && <span className="size-1.5 rounded-full bg-emerald-500" />}
+        </div>
+      </li>
+    );
+  }
+
+  // Default (V1/V2/V4): nokta aktif göstergesi sağda
+  return (
+    <li>
+      <div
+        className={`flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-[11px] transition-colors ${
+          active
+            ? "font-semibold text-emerald-700"
+            : "text-slate-700 hover:bg-slate-50"
+        }`}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <Icon
+            className={`size-3.5 ${active ? "text-emerald-600" : "text-slate-500"}`}
+          />
+          <span className="truncate">{item.label}</span>
+        </span>
+        {active && <span className="size-1.5 shrink-0 rounded-full bg-emerald-500" />}
+      </div>
+    </li>
+  );
+}
+
+function Footer() {
+  return (
+    <div className="border-t border-slate-100 p-2">
+      <div className="flex items-center gap-2 rounded-md px-2 py-1.5">
+        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-[11px] font-bold text-white">
+          O
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[11px] font-semibold text-slate-800">
+            Ozan Seyfi
+          </p>
+          <p className="truncate text-[9.5px] text-slate-500">Yönetici</p>
         </div>
       </div>
     </div>
