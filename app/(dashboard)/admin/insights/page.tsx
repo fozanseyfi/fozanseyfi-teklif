@@ -63,10 +63,10 @@ export default async function AdminInsightsPage() {
             </div>
             <div className="min-w-0">
               <p className="text-[10.5px] font-semibold uppercase tracking-wider text-emerald-300">
-                Yönetici Paneli · {monthLabel}
+                Firma Performansı · {monthLabel}
               </p>
               <h1 className="mt-0.5 text-2xl font-bold tracking-tight sm:text-3xl">
-                Firmasal Performans
+                Aylık Özet
               </h1>
               <p className="mt-1.5 text-sm text-slate-300">
                 Bu ay {snapshot.thisMonthCount} yeni teklif ·{" "}
