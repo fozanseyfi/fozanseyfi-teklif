@@ -68,69 +68,23 @@ function SectionHeader({
   );
 }
 
-async function fetchExchangeRates(): Promise<{ usd?: number; eur?: number }> {
-  // Tek istekle USD ve EUR'u ceken, CORS-acik birden fazla saglayicidan
-  // siralı olarak dene. Birinde hata olursa digerine gec.
-  const providers: Array<() => Promise<{ usd?: number; eur?: number }>> = [
-    // exchangerate.host — ucretsiz, CORS acik, tek istekte multi-base/symbols
-    async () => {
-      const res = await fetch(
-        "https://api.exchangerate.host/latest?base=TRY&symbols=USD,EUR",
-        { cache: "no-store" },
-      );
-      if (!res.ok) throw new Error("exchangerate.host HTTP " + res.status);
-      const data = await res.json();
-      const usd = data?.rates?.USD;
-      const eur = data?.rates?.EUR;
-      // base=TRY oldugundan rates 1 TRY = 0.0X USD/EUR cinsinden gelir;
-      // bizim formata cevir (1 USD = X TRY).
-      return {
-        usd: usd ? 1 / usd : undefined,
-        eur: eur ? 1 / eur : undefined,
-      };
-    },
-    // open.er-api.com — ucretsiz, CORS acik, base=TRY ile rates
-    async () => {
-      const res = await fetch("https://open.er-api.com/v6/latest/TRY", {
-        cache: "no-store",
-      });
-      if (!res.ok) throw new Error("open.er-api HTTP " + res.status);
-      const data = await res.json();
-      const usd = data?.rates?.USD;
-      const eur = data?.rates?.EUR;
-      return {
-        usd: usd ? 1 / usd : undefined,
-        eur: eur ? 1 / eur : undefined,
-      };
-    },
-    // Frankfurter — ECB tabanli; calisirsa bonus, calismazsa diger ikisi yedek
-    async () => {
-      const [usdRes, eurRes] = await Promise.all([
-        fetch("https://api.frankfurter.dev/v1/latest?base=USD&symbols=TRY", {
-          cache: "no-store",
-        }),
-        fetch("https://api.frankfurter.dev/v1/latest?base=EUR&symbols=TRY", {
-          cache: "no-store",
-        }),
-      ]);
-      const usdData = await usdRes.json();
-      const eurData = await eurRes.json();
-      return {
-        usd: usdData?.rates?.TRY,
-        eur: eurData?.rates?.TRY,
-      };
-    },
-  ];
-
-  for (const provider of providers) {
-    try {
-      const r = await provider();
-      if (typeof r.usd === "number" && r.usd > 0 && typeof r.eur === "number" && r.eur > 0) {
-        return r;
-      }
-    } catch (e) {
-      console.warn("[fx] provider failed:", e);
+async function fetchExchangeRates(): Promise<{
+  usd?: number;
+  eur?: number;
+  source?: string;
+}> {
+  // Sunucu tarafı /api/fx/latest endpoint'i kullanılır — TCMB + 3 yedek
+  // provider + 30 dk cache + hard fallback. Tarayıcıdan direkt provider
+  // çağırmak CORS/rate-limit nedeniyle güvenilmez olduğundan kaldırıldı.
+  try {
+    const res = await fetch("/api/fx/latest", { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if (typeof data.usd === "number" && typeof data.eur === "number") {
+      return { usd: data.usd, eur: data.eur, source: data.source };
     }
+  } catch (e) {
+    console.warn("[fx] /api/fx/latest failed:", e);
   }
   return {};
 }
@@ -148,14 +102,26 @@ export function TeknikForm({ projectId, projectName, settings }: Props) {
   async function refreshFx(silent = false) {
     setFxLoading(true);
     try {
-      const { usd, eur } = await fetchExchangeRates();
+      const { usd, eur, source } = await fetchExchangeRates();
       if (typeof usd === "number" || typeof eur === "number") {
         setS((p) => ({
           ...p,
           ...(typeof usd === "number" ? { usd } : {}),
           ...(typeof eur === "number" ? { eur } : {}),
         }));
-        if (!silent) toast.success("Kurlar güncellendi");
+        if (!silent) {
+          if (source === "fallback") {
+            // Tüm canlı provider'lar başarısız oldu — server fallback değer
+            // döndü. Kullanıcı bunu bilsin ki manuel düzeltebilsin.
+            toast.warning(
+              "Canlı kur alınamadı — son bilinen ortalama değer dolduruldu. Kontrol edip kaydedin.",
+            );
+          } else {
+            toast.success(
+              source ? `Kurlar güncellendi (${source})` : "Kurlar güncellendi",
+            );
+          }
+        }
       } else if (!silent) {
         toast.error("Kur servisi yanıt vermedi");
       }
