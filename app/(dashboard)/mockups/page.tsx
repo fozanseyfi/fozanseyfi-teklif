@@ -11,6 +11,9 @@ import {
   Sparkles,
   AlertTriangle,
   Palette,
+  Layers,
+  Brain,
+  Building2,
 } from "lucide-react";
 
 /**
@@ -117,6 +120,57 @@ const MOCKUPS: MockupCard[] = [
       "Karar verdikten sonra ~30 dk'lık iş",
     ],
     href: "/mockups/sidebar-alts",
+  },
+  {
+    id: "scenario-compare",
+    code: "A/B",
+    title: "A/B Senaryo Karşılaştırma",
+    subtitle: "Satışçı — müşteriye 3 alternatif sun",
+    description:
+      "Aynı projeyi 3 farklı senaryoda fiyatla (Ekonomik / Dengeli / Premium). Yan yana CAPEX, IRR, payback farkını gör. Müşteriye '3 alternatifimiz var' PDF. Sektörde nadir, closing rate +%30.",
+    icon: Layers,
+    effort: "~3 gün",
+    highlights: [
+      "3 senaryo yan yana — CAPEX, MWp, IRR, payback",
+      "Detaylı karşılaştırma tablosu — kazanan otomatik vurgu",
+      "Sistem önerisi — hangisini öne çıkar (LCOE/IRR optimum)",
+      "3 senaryolu PDF (müşteriye gönderim için)",
+    ],
+    href: "/mockups/scenario-compare",
+  },
+  {
+    id: "anomaly",
+    code: "AI",
+    title: "Akıllı Maliyet Uyarısı",
+    subtitle: "Operatör + Patron — hatalı teklif önleme",
+    description:
+      "Keşif girerken arka planda kendi geçmiş projelerine bak. Bu marka/sınıf için ortalama ne ödedin? %15+ sapmışsa anlık sarı uyarı. 'AI gibi' hissettirir, satışçı pahalıya/ucuza teklif göndermez.",
+    icon: Brain,
+    effort: "~1 gün",
+    highlights: [
+      "Geçmiş projelerden anomaly detection (otomatik)",
+      "Yüksek/düşük sapma için ayrı uyarı tonu",
+      "Popover: hangi projelerle karşılaştırıldığını göster",
+      "Bilinçli aksiyonu 'görmezden gel' ile pas geçilebilir",
+    ],
+    href: "/mockups/anomaly-warn",
+  },
+  {
+    id: "lcoe",
+    code: "F1",
+    title: "LCOE + Banka Raporu",
+    subtitle: "Patron — yatırımcı/banka standardı PDF",
+    description:
+      "Müşteri kredi başvurusu yapacağım deyince ekstra evrak hazırlama. Sistem LCOE, IRR, NPV, payback, sensitivite içeren 5 sayfalık bankacı standardı PDF üretir. TR'de bu yok denecek seviyede nadir.",
+    icon: Building2,
+    effort: "~1.5 gün",
+    highlights: [
+      "LCOE hesabı (25 yıl ortalama elektrik maliyeti)",
+      "Sensitivite analizi: elektrik fiyatı ±%30, faiz ±%5",
+      "PDF kapak + 25 yıl cash flow tablosu + sonuç sayfası",
+      "Tek butonla download — Word/Excel uğraşı yok",
+    ],
+    href: "/mockups/lcoe-report",
   },
 ];
 
