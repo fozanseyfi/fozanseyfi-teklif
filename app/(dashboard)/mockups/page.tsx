@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Sparkles,
   AlertTriangle,
+  Palette,
 } from "lucide-react";
 
 /**
@@ -99,6 +100,23 @@ const MOCKUPS: MockupCard[] = [
       "Otomatik aylık takvim ile yılda 1 mail",
     ],
     href: "/mockups/yearly-report",
+  },
+  {
+    id: "sidebar-alts",
+    code: "UI",
+    title: "Sidebar Renk Alternatifleri",
+    subtitle: "Tasarım — mevcut karanlık sidebar yerine 5 farklı stil",
+    description:
+      "Mevcut sidebar (slate-900) çok koyu. 5 alternatif renk/stil yan yana: Light & Clean, Soft Gray, Mid Dark, Emerald Tinted, Hybrid (header+white). Beğeneni gerçek sidebar'a uygulayalım.",
+    icon: Palette,
+    effort: "30 dk",
+    highlights: [
+      "5 farklı palet — mini sidebar önizlemesi",
+      "Aktif item state'i her tasarımda gösterilir",
+      "Hover, group label, logout butonu hepsi render edilir",
+      "Karar verdikten sonra ~30 dk'lık iş",
+    ],
+    href: "/mockups/sidebar-alts",
   },
 ];
 
