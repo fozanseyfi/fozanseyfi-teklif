@@ -20,6 +20,7 @@ import {
   ScrollText,
   Share2,
   Search,
+  BarChart3,
   ChevronLeft,
   ChevronRight,
   Menu,
@@ -72,6 +73,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Yönetim",
     items: [
+      { href: "/admin/insights", icon: BarChart3, label: "Yönetici Paneli", adminOnly: true },
       { href: "/admin/users", icon: Users, label: "Kullanıcılar", adminOnly: true },
       { href: "/admin/share-links", icon: Share2, label: "Paylaşım Linkleri", adminOnly: true },
       { href: "/admin/audit", icon: ScrollText, label: "Aktivite Kayıtları", adminOnly: true },
