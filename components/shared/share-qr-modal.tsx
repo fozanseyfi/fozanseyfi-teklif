@@ -58,11 +58,15 @@ export function ShareQrModal({
 
   if (!open) return null;
 
-  // Paylaşım mesajı — kullanıcı pre-filled görsün, isterse mesajı düzenler
+  // Paylaşım mesajı — kullanıcı pre-filled görsün, isterse mesajı düzenler.
+  // WhatsApp markdown desteklemez ama URL'i otomatik tıklanabilir yapar +
+  // OG tag varsa preview kart gösterir. Format: link satırının üstünde
+  // proje adlı etiket → "[Proje Adı] Teklif Dosyası" gibi okunur.
   const greeting = customerName ? `Merhaba ${customerName},` : "Merhaba,";
-  const projectLabel = projectName ? ` "${projectName}"` : "";
-  const firmLabel = firmName ? ` (${firmName})` : "";
-  const shareText = `${greeting}\n\nHazırladığım${projectLabel} teklif sunumuna aşağıdaki bağlantıdan ulaşabilirsiniz:\n\n${url}\n\nSorularınız için müsaitim${firmLabel}.`;
+  const projectNameClean = projectName?.trim() || "Solar GES";
+  const linkLabel = `${projectNameClean} Teklif Dosyası`;
+  const firmTail = firmName ? `\n${firmName}` : "";
+  const shareText = `${greeting}\n\nHazırladığımız "${projectNameClean}" teklif sunumuna aşağıdaki bağlantıdan ulaşabilirsiniz:\n\n📄 ${linkLabel}\n${url}\n\nSorularınız için müsaitim.${firmTail}`;
 
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
   const mailtoUrl = recipientEmail

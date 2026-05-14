@@ -30,6 +30,11 @@ import {
   Link2,
   Clock,
   ChevronDown,
+  Upload,
+  FileSpreadsheet,
+  QrCode,
+  MessageCircle,
+  Smartphone,
 } from "lucide-react";
 
 interface Slide {
@@ -51,6 +56,8 @@ const SLIDES: Slide[] = [
   { id: "dor",        badge: "Kapsam Tablosu (DoR)",   kicker: "08 — KAPSAM",        title: "Tedarik, Montaj ve Devreye Alma — kapsamı detayıyla paylaş",     body: <DorDemo /> },
   { id: "team",       badge: "Ekip & Yetkilendirme",   kicker: "09 — EKİP",          title: "E-postayla davet et, rol ata, kaynak erişimini kişi bazlı ayarla", body: <TeamDemo /> },
   { id: "share",      badge: "Paylaşım Linkleri",      kicker: "10 — PAYLAŞIM",      title: "Müşteriye e-posta ile teklif linki gönder, görüntülenmeyi izle",  body: <ShareDemo /> },
+  { id: "import",     badge: "Excel'den Proje Yükle",  kicker: "11 — TOPLU İMPORT",  title: "Eski projelerini Excel'den sürükle-bırak, sayfa kolonları otomatik eşler", body: <ImportDemo /> },
+  { id: "qrshare",    badge: "QR + WhatsApp Paylaş",   kicker: "12 — HIZLI PAYLAŞ",  title: "Saha/fuarda müşteri telefonundan QR'ı taratır, tek tık WhatsApp",  body: <QrShareDemo /> },
 ];
 
 export function LoginDemo() {
@@ -1542,6 +1549,461 @@ function ShareDemo() {
           </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// ImportDemo — Excel'den proje yükleme akışı
+// ───────────────────────────────────────────────────────────────────────
+
+interface ImportFrame {
+  stage: "idle" | "dropping" | "parsing" | "preview" | "done";
+  hint: string;
+}
+
+const IMPORT_FRAMES: ImportFrame[] = [
+  { stage: "idle", hint: "Excel'i sürükle bırak" },
+  { stage: "dropping", hint: "Dosya alındı..." },
+  { stage: "parsing", hint: "Kolonlar okunuyor..." },
+  { stage: "preview", hint: "Auto-detect ile eşlendi — onayla" },
+  { stage: "done", hint: "Proje oluşturuldu ✓" },
+];
+
+const IMPORT_ROWS = [
+  { kod: "A.1.1", tanim: "Solar Panel 540W", miktar: "1.000.000", fiyat: "$0.185", birim: "Wp" },
+  { kod: "A.2.1", tanim: "String İnverter 100kW", miktar: "10", fiyat: "$4.500", birim: "adet" },
+  { kod: "A.4.1", tanim: "DC Kablo 1x6", miktar: "12.000", fiyat: "$0.72", birim: "mt" },
+  { kod: "B.1.1", tanim: "Panel Montaj İşçilik", miktar: "1", fiyat: "$25.000", birim: "MW" },
+];
+
+const IMPORT_MAPPINGS = [
+  { our: "Kod", their: "Kalem Kodu", matched: true },
+  { our: "Tanım", their: "Açıklama", matched: true },
+  { our: "Miktar", their: "Adet", matched: true },
+  { our: "Fiyat", their: "Birim Fiyat USD", matched: true },
+  { our: "Birim", their: "Ölçü", matched: true },
+];
+
+function ImportDemo() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setStep((s) => (s + 1) % IMPORT_FRAMES.length), 2200);
+    return () => clearInterval(t);
+  }, []);
+  const f = IMPORT_FRAMES[step];
+
+  return (
+    <div className="grid w-full grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+      {/* SOL: Drop zone + mapping */}
+      <div className="flex flex-col gap-3 rounded-2xl border bg-white p-4 shadow-sm">
+        <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <Upload className="size-3.5" />
+          Excel'den İçe Aktar
+        </p>
+
+        {/* Drop zone — animation */}
+        <div
+          className={cn(
+            "relative flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 transition-all",
+            f.stage === "idle"
+              ? "border-slate-300 bg-slate-50/40"
+              : f.stage === "dropping"
+                ? "scale-[1.02] border-emerald-400 bg-emerald-50/50 shadow-md ring-2 ring-emerald-200"
+                : "border-emerald-300 bg-emerald-50/30",
+          )}
+        >
+          {f.stage === "idle" ? (
+            <Upload className="size-7 text-slate-400" />
+          ) : f.stage === "dropping" ? (
+            <FileSpreadsheet className="size-7 animate-bounce text-emerald-600" />
+          ) : (
+            <FileSpreadsheet className="size-7 text-emerald-600" />
+          )}
+          <p className="text-center text-[11px] font-semibold text-slate-700">
+            {f.stage === "idle" ? (
+              "Excel'i buraya sürükle"
+            ) : (
+              <span className="text-emerald-700">
+                eski-projelerim.xlsx <span className="text-[9.5px] text-slate-500">(24 satır)</span>
+              </span>
+            )}
+          </p>
+          <p className="text-[9.5px] text-slate-400">{f.hint}</p>
+        </div>
+
+        {/* Auto-detect mapping list */}
+        <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+          <p className="mb-1.5 flex items-center gap-1 text-[9.5px] font-semibold uppercase tracking-wider text-slate-500">
+            <Sparkles className="size-2.5 text-emerald-600" />
+            Kolon Eşleme (Otomatik)
+          </p>
+          <ul className="space-y-1">
+            {IMPORT_MAPPINGS.map((m, i) => {
+              const visible =
+                f.stage === "parsing" ? i < 3 : f.stage === "idle" || f.stage === "dropping" ? false : true;
+              return (
+                <li
+                  key={m.our}
+                  className={cn(
+                    "flex items-center justify-between rounded-md px-2 py-1 text-[10px] transition-all duration-300",
+                    visible
+                      ? "bg-emerald-50/40 opacity-100"
+                      : "bg-slate-50 opacity-0",
+                  )}
+                  style={{ transitionDelay: `${i * 80}ms` }}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span className="font-mono text-[9.5px] text-slate-500">
+                      {m.their}
+                    </span>
+                    <ArrowDownUp className="size-2.5 rotate-90 text-slate-300" />
+                    <span className="font-semibold text-slate-800">{m.our}</span>
+                  </span>
+                  {visible && (
+                    <Check className="size-3 text-emerald-600" strokeWidth={3} />
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
+
+      {/* SAĞ: Önizleme tablosu + sonuç */}
+      <div className="flex flex-col gap-3 rounded-2xl border bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <FileSpreadsheet className="size-3.5" />
+            Önizleme
+          </p>
+          {f.stage === "done" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[9.5px] font-bold text-emerald-700 ring-1 ring-emerald-200">
+              <CheckCircle2 className="size-2.5" />
+              Aktarıldı
+            </span>
+          )}
+        </div>
+
+        {/* Tablo */}
+        <div className="overflow-hidden rounded-lg border">
+          <table className="w-full text-[10.5px]">
+            <thead className="bg-slate-100 text-[8.5px] uppercase tracking-wider text-slate-600">
+              <tr>
+                <th className="px-2 py-1.5 text-left font-bold">Kod</th>
+                <th className="px-2 py-1.5 text-left font-bold">Tanım</th>
+                <th className="px-2 py-1.5 text-right font-bold">Miktar</th>
+                <th className="px-2 py-1.5 text-right font-bold">Fiyat</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {IMPORT_ROWS.map((r, i) => {
+                const visible =
+                  f.stage === "preview" || f.stage === "done"
+                    ? true
+                    : f.stage === "parsing" && i === 0;
+                return (
+                  <tr
+                    key={r.kod}
+                    className={cn(
+                      "transition-all duration-300",
+                      visible ? "opacity-100" : "opacity-0",
+                      r.kod.startsWith("A") ? "bg-white" : "bg-slate-50/50",
+                    )}
+                    style={{ transitionDelay: `${i * 100}ms` }}
+                  >
+                    <td className="px-2 py-1 font-mono text-[9.5px] text-slate-500">
+                      <span
+                        className={cn(
+                          "rounded px-1 py-0.5 text-[8.5px] font-bold",
+                          r.kod.startsWith("A")
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-sky-100 text-sky-700",
+                        )}
+                      >
+                        {r.kod}
+                      </span>
+                    </td>
+                    <td className="px-2 py-1 truncate font-medium text-slate-800">
+                      {r.tanim}
+                    </td>
+                    <td className="px-2 py-1 text-right tabular-nums text-slate-700">
+                      {r.miktar}
+                    </td>
+                    <td className="px-2 py-1 text-right font-bold tabular-nums text-emerald-700">
+                      {r.fiyat}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Sonuç banner */}
+        <div
+          className={cn(
+            "mt-auto flex items-center gap-2 rounded-lg border px-3 py-2 transition-all",
+            f.stage === "done"
+              ? "border-emerald-300 bg-emerald-50/80 ring-2 ring-emerald-200"
+              : "border-slate-200 bg-slate-50/40",
+          )}
+        >
+          {f.stage === "done" ? (
+            <>
+              <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-emerald-600 text-white">
+                <Check className="size-3.5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold text-emerald-800">
+                  Proje oluşturuldu
+                </p>
+                <p className="text-[9.5px] text-slate-600">
+                  Keşif-A: 3 grup · Keşif-B: 1 grup · 24 kalem
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <Sparkles className="size-3.5 text-slate-400" />
+              <p className="text-[10px] text-slate-500">
+                A.x kodlar Keşif-A'ya, B.x kodlar Keşif-B'ye otomatik dağılır.
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// QrShareDemo — QR + WhatsApp hızlı paylaşım modalı
+// ───────────────────────────────────────────────────────────────────────
+
+interface QrFrame {
+  hover: "qr" | "wa" | "mail" | null;
+  phoneStep: 0 | 1 | 2; // 0=idle, 1=scanning, 2=opened
+}
+
+const QR_FRAMES: QrFrame[] = [
+  { hover: null, phoneStep: 0 },
+  { hover: "qr", phoneStep: 1 },
+  { hover: "qr", phoneStep: 2 },
+  { hover: "wa", phoneStep: 2 },
+  { hover: "mail", phoneStep: 2 },
+];
+
+function QrShareDemo() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setStep((s) => (s + 1) % QR_FRAMES.length), 2000);
+    return () => clearInterval(t);
+  }, []);
+  const f = QR_FRAMES[step];
+
+  return (
+    <div className="grid w-full grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+      {/* SOL: Paylaş modalı */}
+      <div className="flex flex-col gap-3 rounded-2xl border bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <Share2 className="size-3.5" />
+            Paylaş
+          </p>
+          <span className="text-[10px] text-slate-400">Çimsa GES · 2.5 MWp</span>
+        </div>
+
+        {/* QR kod — fake pattern */}
+        <div className="mx-auto flex flex-col items-center gap-1.5">
+          <div
+            className={cn(
+              "relative rounded-xl border-2 bg-white p-2 transition-all",
+              f.hover === "qr"
+                ? "scale-105 border-emerald-400 shadow-lg ring-2 ring-emerald-200"
+                : "border-slate-200 shadow-sm",
+            )}
+          >
+            <FakeQrCode />
+            {/* Scanning line — sadece phone "scanning" durumundayken */}
+            {f.phoneStep === 1 && (
+              <div
+                className="pointer-events-none absolute inset-x-2 top-2 h-[3px] rounded-full bg-emerald-500/80 shadow-[0_0_8px_rgba(16,185,129,0.7)]"
+                style={{ animation: "qr-scan 1.5s ease-in-out infinite" }}
+              />
+            )}
+          </div>
+          <p className="text-[9.5px] font-semibold text-slate-500">
+            Telefonun kamerasıyla taratabilirsin
+          </p>
+        </div>
+
+        {/* URL satırı */}
+        <div className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5">
+          <Link2 className="size-3 text-slate-400" />
+          <code className="min-w-0 flex-1 truncate font-mono text-[9.5px] text-slate-600">
+            solarteklif.com/share/x9k2…
+          </code>
+          <span className="rounded bg-white px-1.5 py-0.5 text-[8.5px] font-bold text-slate-700 ring-1 ring-slate-200">
+            Kopyala
+          </span>
+        </div>
+
+        {/* Aksiyon butonları */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            className={cn(
+              "inline-flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[11px] font-semibold text-white shadow-sm transition-all",
+              f.hover === "wa"
+                ? "scale-[1.04] bg-[#1ebe57] shadow-md ring-2 ring-emerald-300"
+                : "bg-[#25D366]",
+            )}
+            tabIndex={-1}
+          >
+            <MessageCircle className="size-3.5" />
+            WhatsApp
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "inline-flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[11px] font-semibold text-white shadow-sm transition-all",
+              f.hover === "mail"
+                ? "scale-[1.04] bg-slate-900 shadow-md ring-2 ring-slate-400"
+                : "bg-slate-800",
+            )}
+            tabIndex={-1}
+          >
+            <Mail className="size-3.5" />
+            Mail
+          </button>
+        </div>
+      </div>
+
+      {/* SAĞ: Telefon mockup */}
+      <div className="flex items-center justify-center">
+        <div className="relative rounded-[24px] border-[6px] border-slate-800 bg-slate-900 px-1 py-3 shadow-xl">
+          {/* Notch */}
+          <div className="absolute left-1/2 top-1 h-1 w-12 -translate-x-1/2 rounded-full bg-slate-700" />
+
+          {/* Ekran */}
+          <div className="flex h-[260px] w-[140px] flex-col gap-1 overflow-hidden rounded-[16px] bg-white p-2">
+            {f.phoneStep === 0 && (
+              <div className="flex flex-1 flex-col items-center justify-center gap-2 text-slate-400">
+                <Smartphone className="size-8" />
+                <p className="text-center text-[9px]">QR'ı taratınca burası açılır</p>
+              </div>
+            )}
+
+            {f.phoneStep === 1 && (
+              <div className="flex flex-1 flex-col items-center justify-center gap-2">
+                <div className="rounded-md border-2 border-emerald-500 p-2">
+                  <FakeQrCode size={60} />
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
+                  <p className="text-[9px] font-semibold text-emerald-700">Taranıyor...</p>
+                </div>
+              </div>
+            )}
+
+            {f.phoneStep === 2 && (
+              <>
+                {/* Mini browser bar */}
+                <div className="flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5">
+                  <Lock className="size-2 text-emerald-600" />
+                  <span className="font-mono text-[7px] text-slate-500">solarteklif.com</span>
+                </div>
+                {/* Sayfa içeriği — hero */}
+                <div className="rounded-md bg-gradient-to-br from-slate-900 to-slate-700 p-1.5 text-white">
+                  <p className="text-[7px] font-bold text-emerald-300">HOŞ GELDİN</p>
+                  <p className="text-[8.5px] font-bold">Çimsa GES Teklifi</p>
+                  <p className="mt-0.5 text-[6.5px] text-slate-300">2.5 MWp · Çatı GES</p>
+                </div>
+                {/* Tab nav */}
+                <div className="flex gap-0.5">
+                  <span className="rounded bg-emerald-600 px-1 py-0.5 text-[6px] font-bold text-white">
+                    Özet
+                  </span>
+                  <span className="rounded bg-slate-100 px-1 py-0.5 text-[6px] text-slate-600">
+                    BoQ
+                  </span>
+                  <span className="rounded bg-slate-100 px-1 py-0.5 text-[6px] text-slate-600">
+                    Analiz
+                  </span>
+                </div>
+                {/* Mini grafik */}
+                <div className="flex flex-1 flex-col gap-1 rounded border border-slate-200 bg-slate-50/50 p-1">
+                  <p className="text-[6.5px] font-bold text-slate-600">EPC Satış</p>
+                  <p className="text-[10px] font-black text-emerald-700">$1.2M</p>
+                  <p className="text-[6px] text-slate-500">25 yıl: $4.8M tasarruf</p>
+                  <div className="mt-auto flex h-3 items-end gap-0.5">
+                    {[40, 65, 80, 55, 90, 70].map((h, i) => (
+                      <div
+                        key={i}
+                        className="flex-1 rounded-t bg-emerald-500"
+                        style={{ height: `${h}%` }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Basit fake QR — 13x13 grid, decorative
+function FakeQrCode({ size = 100 }: { size?: number }) {
+  const dots = [
+    "1111111010101011111111",
+    "1000001011101011000001",
+    "1011101001010011011101",
+    "1011101010111011011101",
+    "1011101011010011011101",
+    "1000001011001011000001",
+    "1111111010101011111111",
+    "0000000011001100000000",
+    "1010110111010101110100",
+    "0011001011010110100110",
+    "1100110010110101010111",
+    "0101010111001101011010",
+    "1011100110111001100101",
+    "0010101010101010101101",
+    "1101011001011010110010",
+    "0000000010110111100110",
+    "1111111011001100100111",
+    "1000001001101110110010",
+    "1011101010010100001101",
+    "1011101011110110110111",
+    "1011101001011000011001",
+    "1000001011110011010101",
+    "1111111010010110010110",
+  ];
+  const cell = size / 22;
+  return (
+    <div
+      className="relative grid bg-white"
+      style={{
+        width: size,
+        height: size,
+        gridTemplateColumns: `repeat(22, ${cell}px)`,
+        gridTemplateRows: `repeat(22, ${cell}px)`,
+      }}
+    >
+      {dots.slice(0, 22).map((row, ri) =>
+        row.slice(0, 22).split("").map((c, ci) => (
+          <div
+            key={`${ri}-${ci}`}
+            style={{
+              backgroundColor: c === "1" ? "#0f172a" : "#fff",
+            }}
+          />
+        )),
+      )}
     </div>
   );
 }
