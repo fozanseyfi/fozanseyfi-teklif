@@ -34,6 +34,7 @@ export function ShareExpiryStrip({ expiresAt, brand }: Props) {
   if (!expiresAt) {
     return (
       <div
+        data-share-chrome="expiry"
         className="border-b border-slate-200 bg-white/60 px-4 py-2 text-center text-[12px] text-slate-600 sm:px-6 lg:px-8"
         style={{ borderBottomColor: `${accent}22` }}
       >

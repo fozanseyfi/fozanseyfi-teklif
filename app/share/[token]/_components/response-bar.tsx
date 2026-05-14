@@ -56,6 +56,7 @@ export function ShareResponseBar({ token, brand, alreadyResponded }: Props) {
     }).format(new Date(alreadyResponded.at));
     return (
       <div
+        data-share-chrome="response"
         className="sticky bottom-0 z-20 mx-auto max-w-[1440px] border-t-2 border-emerald-200 bg-emerald-50/95 px-4 py-3 text-center backdrop-blur-md sm:px-6 lg:px-8"
         style={{ borderTopColor: `${accent}55` }}
       >
@@ -75,7 +76,10 @@ export function ShareResponseBar({ token, brand, alreadyResponded }: Props) {
 
   return (
     <>
-      <div className="sticky bottom-0 z-20 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-md sm:px-6 lg:px-8">
+      <div
+        data-share-chrome="response"
+        className="sticky bottom-0 z-20 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-md sm:px-6 lg:px-8"
+      >
         <div className="mx-auto flex max-w-[1440px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[12px] font-medium text-slate-600">
             Teklifle ilgili kararınız:
