@@ -1,6 +1,7 @@
 import { requireAuth, getUserOrganizations } from "@/lib/auth";
 import { Sidebar } from "@/components/shared/sidebar";
 import { Footer } from "@/components/shared/footer";
+import { GlobalSearch } from "@/components/shared/global-search";
 import { Toaster } from "sonner";
 import { UnsavedChangesProvider } from "@/lib/unsaved-changes";
 
@@ -39,6 +40,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <Footer />
         </div>
         <Toaster theme="light" position="top-right" richColors />
+        {/* Global Ctrl+K arama — her sayfada aktif, modal kapalı render
+            edilir (sadece açıkken DOM'da görünür). */}
+        <GlobalSearch />
       </div>
     </UnsavedChangesProvider>
   );

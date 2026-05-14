@@ -19,6 +19,7 @@ import {
   ChevronDown,
   ScrollText,
   Share2,
+  Search,
   ChevronLeft,
   ChevronRight,
   Menu,
@@ -502,8 +503,30 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
           <PanelSwitcher firmName={firmName} organizations={organizations ?? []} />
         </div>
 
-        {/* Right: bell + user */}
+        {/* Right: search + bell + user */}
         <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+          {/* Global Ctrl+K arama tetikleyici — ikon (mobile) veya rozet (desktop). */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("solar:open-search"))}
+            aria-label="Ara (Ctrl+K)"
+            title="Ara — Ctrl+K"
+            className="hidden items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:flex"
+          >
+            <Search className="size-3.5" />
+            <span className="text-[11.5px]">Ara</span>
+            <kbd className="rounded border border-border bg-muted/50 px-1 py-0 font-mono text-[9.5px] font-semibold">
+              Ctrl+K
+            </kbd>
+          </button>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("solar:open-search"))}
+            aria-label="Ara"
+            className="flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:hidden"
+          >
+            <Search className="size-4" />
+          </button>
           <Link
             href="/notifications"
             aria-label="Bildirimler"
