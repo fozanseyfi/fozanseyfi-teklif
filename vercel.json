@@ -2,6 +2,9 @@
   "functions": {
     "app/api/pdf/**": {
       "maxDuration": 60
+    },
+    "app/api/share/[token]/combined-pdf/route.ts": {
+      "maxDuration": 60
     }
   }
 }

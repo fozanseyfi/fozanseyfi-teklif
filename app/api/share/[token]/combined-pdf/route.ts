@@ -223,13 +223,27 @@ export async function GET(
   // HTML kaynaklarını Puppeteer ile render et — tek browser instance,
   // sırayla page açıp PDF al
   const htmlSources = sources.filter((s): s is Extract<Source, { kind: "html" }> => s.kind === "html");
-  const browser =
-    htmlSources.length > 0
-      ? await (await import("puppeteer")).default.launch({
-          headless: true,
-          args: ["--no-sandbox", "--disable-setuid-sandbox"],
-        })
-      : null;
+
+  // Hata teşhisi için her başarısızlığı topla — sonunda toast'a düzgün
+  // mesaj dönebilelim. Console.log dev sunucu stdout'unda Windows'ta
+  // bufferlanıp gözükmüyor.
+  const failures: string[] = [];
+
+  let browser: import("puppeteer").Browser | null = null;
+  if (htmlSources.length > 0) {
+    try {
+      const puppeteer = (await import("puppeteer")).default;
+      browser = await puppeteer.launch({
+        headless: true,
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      });
+    } catch (e) {
+      return NextResponse.json(
+        { error: `Puppeteer başlatılamadı: ${(e as Error).message}` },
+        { status: 500 },
+      );
+    }
+  }
 
   try {
     for (const s of sources) {
@@ -240,16 +254,19 @@ export async function GET(
             const ab = await r.arrayBuffer();
             pdfBuffers.push({ buf: Buffer.from(ab), label: s.label });
           } else {
-            console.warn(`[combined-pdf] indirme HTTP ${r.status}: ${s.label}`);
+            failures.push(`${s.label}: HTTP ${r.status}`);
           }
         } catch (e) {
-          console.warn(`[combined-pdf] indirme hatası: ${s.label}`, e);
+          failures.push(`${s.label}: ${(e as Error).message}`);
         }
       } else if (s.kind === "html" && browser) {
         const page = await browser.newPage();
         try {
           await page.setViewport({ width: 1280, height: 1024 });
-          await page.setContent(s.html, { waitUntil: "networkidle0", timeout: 45_000 });
+          // waitUntil "load" — DOMContentLoaded + window onload tetiklendikten
+          // sonra devam et. networkidle0 harici imaj/CDN'lerde takılabiliyor;
+          // load yeterli, eksik imaj kırık ikon olarak basılır (kabul).
+          await page.setContent(s.html, { waitUntil: "load", timeout: 20_000 });
           const pdf = await page.pdf({
             format: "A4",
             printBackground: true,
@@ -257,7 +274,7 @@ export async function GET(
           });
           pdfBuffers.push({ buf: Buffer.from(pdf), label: s.label });
         } catch (e) {
-          console.warn(`[combined-pdf] render hatası: ${s.label}`, e);
+          failures.push(`${s.label}: ${(e as Error).message}`);
         } finally {
           await page.close();
         }
@@ -268,7 +285,15 @@ export async function GET(
   }
 
   if (pdfBuffers.length === 0) {
-    return NextResponse.json({ error: "Hiçbir içerik üretilemedi" }, { status: 500 });
+    return NextResponse.json(
+      {
+        error:
+          failures.length > 0
+            ? `Hiçbir bölüm üretilemedi: ${failures.join(" | ")}`
+            : "Hiçbir içerik üretilemedi",
+      },
+      { status: 500 },
+    );
   }
 
   // ─── pdf-lib ile sıralı birleştir ─────────────────────────────────
