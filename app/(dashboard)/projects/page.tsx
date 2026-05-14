@@ -12,7 +12,7 @@ import {
   PROJECT_STATUS_LABELS,
   INSTALLATION_TYPE_LABELS,
 } from "@/lib/utils";
-import { Plus, FolderOpen, Eye } from "lucide-react";
+import { Plus, FolderOpen, Eye, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjectStatusChanger } from "@/components/ges/project-status-changer";
 import {
@@ -126,6 +126,23 @@ export default async function ProjectsPage({ searchParams }: Props) {
             Yeni Proje
           </Link>
         </Button>
+      </div>
+
+      {/* Ctrl+K kısayol ipucu — her sayfadan açılan global arama */}
+      <div className="flex items-center gap-2 rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-3 py-2 text-[12px] text-slate-600">
+        <Search className="size-3.5 shrink-0 text-emerald-600" />
+        <span>
+          Hızlı arama için her sayfada{" "}
+          <kbd className="mx-0.5 rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">
+            Ctrl
+          </kbd>
+          <span className="text-slate-400">+</span>
+          <kbd className="mx-0.5 rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">
+            K
+          </kbd>{" "}
+          tuşlarına basabilir veya üst bardaki büyüteç ikonunu kullanabilirsin —
+          proje adı, müşteri veya lokasyonla arama yapar.
+        </span>
       </div>
 
       {/* Filtreler */}
