@@ -54,21 +54,25 @@ export default async function AdminInsightsPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      {/* Hero */}
-      <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-6 py-7 text-white shadow-lg">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      {/* Hero — platform emerald paleti (dashboard ile uyumlu) */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary to-emerald-700 px-6 py-7 text-primary-foreground shadow-lg">
+        {/* Dekoratif arkaplan parıltıları */}
+        <div className="pointer-events-none absolute -right-20 -top-20 size-64 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-10 size-48 rounded-full bg-emerald-300/15 blur-3xl" />
+
+        <div className="relative z-[2] flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white shadow-sm backdrop-blur-sm">
               <BarChart3 className="size-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10.5px] font-semibold uppercase tracking-wider text-emerald-300">
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-emerald-50/90">
                 Firma Performansı · {monthLabel}
               </p>
-              <h1 className="mt-0.5 text-2xl font-bold tracking-tight sm:text-3xl">
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
                 Aylık Özet
               </h1>
-              <p className="mt-1.5 text-sm text-slate-300">
+              <p className="mt-1.5 text-sm leading-relaxed text-emerald-50/90">
                 Bu ay {snapshot.thisMonthCount} yeni teklif ·{" "}
                 {formatNumber(snapshot.thisMonthMwp, 1)} MWp
                 {snapshot.winRate30d !== null && (

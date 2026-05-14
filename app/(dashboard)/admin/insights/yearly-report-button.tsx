@@ -40,15 +40,15 @@ export function YearlyReportButton({ currentYear }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 p-1.5 backdrop-blur-sm">
+    <div className="flex items-center gap-2 rounded-lg border border-white/20 bg-white/15 p-1.5 backdrop-blur-sm">
       <select
         value={selected}
         onChange={(e) => setSelected(parseInt(e.target.value, 10))}
         disabled={busy}
-        className="rounded-md bg-slate-900/50 px-2.5 py-1.5 text-[12px] font-semibold text-white outline-none ring-1 ring-white/10 hover:ring-white/20 disabled:opacity-50"
+        className="rounded-md bg-white/10 px-2.5 py-1.5 text-[12px] font-semibold text-white outline-none ring-1 ring-white/30 hover:ring-white/50 disabled:opacity-50"
       >
         {years.map((y) => (
-          <option key={y} value={y} className="bg-slate-900 text-white">
+          <option key={y} value={y} className="bg-emerald-700 text-white">
             {y}
           </option>
         ))}
@@ -57,7 +57,7 @@ export function YearlyReportButton({ currentYear }: Props) {
         type="button"
         onClick={handleDownload}
         disabled={busy}
-        className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500 px-3 py-1.5 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-[12px] font-semibold text-primary shadow-sm transition-colors hover:bg-white/95 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {busy ? <Loader2 className="size-3.5 animate-spin" /> : <FileDown className="size-3.5" />}
         Yıllık Rapor
