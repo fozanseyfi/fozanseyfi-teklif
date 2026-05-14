@@ -7,6 +7,7 @@ import {
   Search,
   FolderOpen,
   User,
+  Package,
   Loader2,
   CornerDownLeft,
   ArrowUp,
@@ -250,12 +251,14 @@ function ResultItem({
   subtitle: string;
   onSelect: () => void;
 }) {
-  const Icon = kind === "project" ? FolderOpen : User;
+  const Icon = kind === "project" ? FolderOpen : kind === "customer" ? User : Package;
   const tone =
     kind === "project"
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-      : "border-sky-200 bg-sky-50 text-sky-700";
-  const label = kind === "project" ? "Proje" : "Müşteri";
+      : kind === "customer"
+        ? "border-sky-200 bg-sky-50 text-sky-700"
+        : "border-amber-200 bg-amber-50 text-amber-700";
+  const label = kind === "project" ? "Proje" : kind === "customer" ? "Müşteri" : "Kalem";
 
   return (
     <Command.Item

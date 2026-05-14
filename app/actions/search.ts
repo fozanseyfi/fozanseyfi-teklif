@@ -5,8 +5,10 @@ import { requireAuth } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
 import { getHiddenResourceIds } from "@/lib/permission-server";
 import { isProjectVisible } from "@/lib/project-status";
+import { toUSD } from "@/lib/ges-engine";
+import type { KesifGroup, GesSettings, KesifItem } from "@/lib/ges-defaults";
 
-export type SearchKind = "project" | "customer";
+export type SearchKind = "project" | "customer" | "item";
 
 export interface SearchResult {
   kind: SearchKind;
@@ -17,17 +19,25 @@ export interface SearchResult {
 }
 
 /**
- * Global Ctrl+K arama — proje adı + müşteri adı + proje lokasyonu.
+ * Global Ctrl+K arama. Üç tür sonuç döner:
+ *   • project — proje adı / lokasyonu eşleşenler
+ *   • customer — müşteri adı eşleşenler (proje türetmesi)
+ *   • item — Keşif-A/B kalem eşleşmeleri (tanım/tip/marka/kod)
+ *           → "Solar Panel 540W" yazınca farklı projelerdeki kalemleri
+ *             ve USD birim fiyatını gösterir
+ *
  * Sadece aktif görünen projeler (isTemplate=false + isProjectVisible).
  * Gizli kaynaklar admin değilse filtrelenir.
  *
- * Şu an basit ILIKE (Postgres LIKE case-insensitive). 1000+ proje
- * varsa tsvector + GIN index'e yükseltmek gerekir.
+ * Şu an basit ILIKE (Postgres LIKE case-insensitive). Item araması için
+ * proje detaylarının JSON kolonu üzerinde text cast + ILIKE kullanılır —
+ * 1000+ proje varsa tsvector + GIN index'e yükseltmek gerekir.
  */
 export async function globalSearch(rawQuery: string): Promise<SearchResult[]> {
   const user = await requireAuth();
   const q = rawQuery.trim();
   if (!q) return [];
+  if (q.length < 2) return []; // tek harf = çok geniş arama
 
   // Admin değilse gizli proje/müşteri ID'lerini al — filter dışı tut.
   const [hiddenProjectIds, hiddenCustomerNames] = await Promise.all([
@@ -37,8 +47,9 @@ export async function globalSearch(rawQuery: string): Promise<SearchResult[]> {
 
   // ILIKE pattern — SQL injection güvenli (Prisma parametre eklemesi)
   const pattern = `%${q}%`;
+  const qLower = q.toLowerCase();
 
-  const [projectsRaw, customers] = await Promise.all([
+  const [projectsRaw, customers, itemCandidates] = await Promise.all([
     prisma.project.findMany({
       where: {
         organizationId: user.organizationId,
@@ -80,6 +91,23 @@ export async function globalSearch(rawQuery: string): Promise<SearchResult[]> {
       distinct: ["customerName"],
       take: 6,
     }),
+    // Kalem araması için projelerin Keşif JSON'larını cast ederek ILIKE.
+    // ProjectDetail'i ekstra select ediyoruz — kalem listesini JS'de
+    // parse edip eşleşeni bulacağız (DB'den geçerli kalemleri çekemiyoruz
+    // çünkü Prisma JSON array içinde arama destekliyor değil).
+    prisma.$queryRaw<{ id: string }[]>`
+      SELECT p.id FROM "Project" p
+      LEFT JOIN "ProjectDetail" d ON d."projectId" = p.id
+      WHERE p."organizationId" = ${user.organizationId}
+        AND p."isTemplate" = false
+        AND p.name <> ''
+        AND (
+          d."kesifA"::text ILIKE ${pattern}
+          OR d."kesifB"::text ILIKE ${pattern}
+        )
+      ORDER BY p."updatedAt" DESC
+      LIMIT 20
+    `,
   ]);
 
   // isProjectVisible filter — yarım kalmış projeler dışarıda
@@ -112,7 +140,6 @@ export async function globalSearch(rawQuery: string): Promise<SearchResult[]> {
   for (const c of customers) {
     if (!c.customerName || seenCustomers.has(c.customerName)) continue;
     seenCustomers.add(c.customerName);
-    // Müşteri "card"ı yerine doğrudan müşteri detay sayfasına git (slug = url-safe ad)
     const slug = encodeURIComponent(c.customerName);
     results.push({
       kind: "customer",
@@ -123,5 +150,89 @@ export async function globalSearch(rawQuery: string): Promise<SearchResult[]> {
     });
   }
 
-  return results.slice(0, 18);
+  // Kalem eşleşmelerini ekle — proje detaylarını yükle, JSON'u parse et,
+  // tanim/tip/marka/code içinde arama yap, USD'ye çevir.
+  const itemCandidateIds = itemCandidates.map((r) => r.id);
+  if (itemCandidateIds.length > 0) {
+    const candidateProjects = await prisma.project.findMany({
+      where: {
+        id: { in: itemCandidateIds },
+        ...(hiddenProjectIds.length ? { id: { notIn: hiddenProjectIds } } : {}),
+        ...(hiddenCustomerNames.length
+          ? { customerName: { notIn: hiddenCustomerNames } }
+          : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        customerName: true,
+        projectDetail: {
+          select: { kesifA: true, kesifB: true, settings: true },
+        },
+      },
+    });
+
+    const itemResults: SearchResult[] = [];
+    for (const p of candidateProjects.filter(isProjectVisible)) {
+      if (!p.projectDetail) continue;
+      const kesifA = (p.projectDetail.kesifA as unknown as KesifGroup[]) ?? [];
+      const kesifB = (p.projectDetail.kesifB as unknown as KesifGroup[]) ?? [];
+      const settings = (p.projectDetail.settings as unknown as GesSettings) ?? null;
+
+      for (const [groups, type] of [[kesifA, "A"], [kesifB, "B"]] as const) {
+        for (const g of groups) {
+          for (const it of g.items) {
+            if (!matchesItem(it, qLower)) continue;
+            // USD'ye çevir — settings yoksa raw değer
+            const usdUnit = settings
+              ? toUSD(it.rawFiyat, it.fiyatCur, settings)
+              : it.rawFiyat;
+            const totalUsd = usdUnit * it.miktar;
+            const titleParts = [it.tanim];
+            if (it.marka) titleParts.push(it.marka);
+            const subtitleParts: string[] = [];
+            subtitleParts.push(p.name);
+            if (it.miktar > 0) {
+              subtitleParts.push(
+                `${it.miktar.toLocaleString("tr-TR", { maximumFractionDigits: it.miktar < 100 ? 2 : 0 })} ${it.birim}`,
+              );
+            }
+            subtitleParts.push(
+              `$${usdUnit.toLocaleString("en-US", { maximumFractionDigits: 3 })}/${it.birim}`,
+            );
+            if (totalUsd > 0) {
+              subtitleParts.push(`Σ $${totalUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}`);
+            }
+            itemResults.push({
+              kind: "item",
+              id: `${p.id}-${it.code}`,
+              title: titleParts.join(" · "),
+              subtitle: subtitleParts.join(" · "),
+              href: `/projects/${p.id}/detail/${type === "A" ? "kesif-a" : "kesif-b"}`,
+            });
+            // Aynı projede aynı kalem birden çok grupta tekrarlanabilir,
+            // ama farklı kodlu — yine de cap koy
+            if (itemResults.length >= 30) break;
+          }
+          if (itemResults.length >= 30) break;
+        }
+        if (itemResults.length >= 30) break;
+      }
+      if (itemResults.length >= 30) break;
+    }
+
+    // En fazla 8 kalem sonucu göster — proje listesinin önüne geçmesin
+    results.push(...itemResults.slice(0, 8));
+  }
+
+  return results.slice(0, 24);
+}
+
+function matchesItem(item: KesifItem, qLower: string): boolean {
+  const fields = [item.tanim, item.tip, item.marka, item.code];
+  for (const f of fields) {
+    if (f && f.toLowerCase().includes(qLower)) return true;
+  }
+  return false;
 }

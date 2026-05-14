@@ -141,7 +141,9 @@ export default async function ProjectsPage({ searchParams }: Props) {
             K
           </kbd>{" "}
           tuşlarına basabilir veya üst bardaki büyüteç ikonunu kullanabilirsin —
-          proje adı, müşteri veya lokasyonla arama yapar.
+          proje adı, müşteri, lokasyon veya{" "}
+          <strong className="text-slate-700">kalem</strong> ("Solar Panel" gibi)
+          ile arama yapar; hangi projede ne fiyatla teklif verildiğini görürsün.
         </span>
       </div>
 
