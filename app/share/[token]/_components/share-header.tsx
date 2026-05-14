@@ -35,10 +35,7 @@ export function ShareHeader({
   const showLogo = brand.logoEnabled && brand.logoUrl;
 
   return (
-    <header
-      data-share-chrome="header"
-      className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur-md"
-    >
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur-md">
       {/* Üst: marka + proje meta */}
       <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3 min-w-0">
