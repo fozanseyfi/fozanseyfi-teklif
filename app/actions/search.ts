@@ -5,7 +5,7 @@ import { requireAuth } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
 import { getHiddenResourceIds } from "@/lib/permission-server";
 import { isProjectVisible } from "@/lib/project-status";
-import { toUSD } from "@/lib/ges-engine";
+import { toUSD, calc } from "@/lib/ges-engine";
 import type { KesifGroup, GesSettings, KesifItem } from "@/lib/ges-defaults";
 
 export type SearchKind = "project" | "customer" | "item";
@@ -74,7 +74,9 @@ export async function globalSearch(rawQuery: string): Promise<SearchResult[]> {
         status: true,
         totalPowerKw: true,
         projectLocation: true,
-        projectDetail: { select: { settings: true } },
+        projectDetail: {
+          select: { settings: true, kesifA: true, kesifB: true },
+        },
       },
     }),
     // Aktif projelerden türetilen müşteri seti (Customer tablosu yok)
@@ -118,14 +120,61 @@ export async function globalSearch(rawQuery: string): Promise<SearchResult[]> {
   for (const p of projects) {
     const subtitleParts: string[] = [];
     if (p.customerName) subtitleParts.push(p.customerName);
-    if (p.totalPowerKw > 0) {
-      subtitleParts.push(
-        p.totalPowerKw >= 1000
-          ? `${(p.totalPowerKw / 1000).toFixed(1)} MWp`
-          : `${p.totalPowerKw.toFixed(0)} kWp`,
-      );
+
+    // Güç ve fiyat — settings/kesif varsa calc() ile USD satış + $/kWp
+    let mwpLabel = "";
+    let mweLabel = "";
+    let salePriceLabel = "";
+    let perKwLabel = "";
+
+    if (p.projectDetail) {
+      const settings = (p.projectDetail.settings as unknown as GesSettings) ?? null;
+      const kesifA = (p.projectDetail.kesifA as unknown as KesifGroup[]) ?? [];
+      const kesifB = (p.projectDetail.kesifB as unknown as KesifGroup[]) ?? [];
+
+      if (settings) {
+        if (settings.dcGuc > 0) {
+          mwpLabel = settings.dcGuc >= 1
+            ? `${settings.dcGuc.toFixed(2)} MWp`
+            : `${(settings.dcGuc * 1000).toFixed(0)} kWp`;
+        }
+        if (settings.acGuc > 0) {
+          mweLabel = settings.acGuc >= 1
+            ? `${settings.acGuc.toFixed(2)} MWe`
+            : `${(settings.acGuc * 1000).toFixed(0)} kWe`;
+        }
+
+        try {
+          const r = calc(kesifA, kesifB, settings);
+          if (r.salePriceUsd > 0) {
+            salePriceLabel = r.salePriceUsd >= 1_000_000
+              ? `$${(r.salePriceUsd / 1_000_000).toFixed(2)}M`
+              : r.salePriceUsd >= 1_000
+                ? `$${(r.salePriceUsd / 1_000).toFixed(0)}K`
+                : `$${Math.round(r.salePriceUsd)}`;
+            if (r.perKwUsd > 0) {
+              perKwLabel = `$${r.perKwUsd.toFixed(0)}/kWp`;
+            }
+          }
+        } catch {
+          // calc() bir nedenle başarısız olursa fiyat gizli kalır
+        }
+      }
     }
+
+    // Fallback: settings yoksa eski totalPowerKw göster
+    if (!mwpLabel && p.totalPowerKw > 0) {
+      mwpLabel = p.totalPowerKw >= 1000
+        ? `${(p.totalPowerKw / 1000).toFixed(2)} MWp`
+        : `${p.totalPowerKw.toFixed(0)} kWp`;
+    }
+
+    const powerLabel = [mwpLabel, mweLabel].filter(Boolean).join(" / ");
+    if (powerLabel) subtitleParts.push(powerLabel);
+    if (salePriceLabel) subtitleParts.push(salePriceLabel);
+    if (perKwLabel) subtitleParts.push(perKwLabel);
     if (p.projectLocation) subtitleParts.push(p.projectLocation);
+
     results.push({
       kind: "project",
       id: p.id,

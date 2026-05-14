@@ -143,7 +143,8 @@ export default async function ProjectsPage({ searchParams }: Props) {
           tuşlarına basabilir veya üst bardaki büyüteç ikonunu kullanabilirsin —
           proje adı, müşteri, lokasyon veya{" "}
           <strong className="text-slate-700">kalem</strong> ("Solar Panel" gibi)
-          ile arama yapar; hangi projede ne fiyatla teklif verildiğini görürsün.
+          ile arama yapar. Sadece görüntüleme — hangi projede ne fiyat, kaç MWp
+          olduğunu hızlıca görmek için.
         </span>
       </div>
 

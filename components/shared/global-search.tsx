@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
 import {
   Search,
@@ -9,54 +8,15 @@ import {
   User,
   Package,
   Loader2,
-  CornerDownLeft,
-  ArrowUp,
-  ArrowDown,
-  Clock,
 } from "lucide-react";
 import { globalSearch, type SearchResult } from "@/app/actions/search";
 import { cn } from "@/lib/utils";
-
-const RECENT_KEY = "solar-global-search-recent";
-const RECENT_LIMIT = 5;
-
-interface RecentItem {
-  kind: SearchResult["kind"];
-  title: string;
-  subtitle: string;
-  href: string;
-}
-
-function loadRecent(): RecentItem[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(RECENT_KEY);
-    if (!raw) return [];
-    const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? arr.slice(0, RECENT_LIMIT) : [];
-  } catch {
-    return [];
-  }
-}
-
-function pushRecent(item: RecentItem) {
-  if (typeof window === "undefined") return;
-  try {
-    const existing = loadRecent().filter((r) => r.href !== item.href);
-    const next = [item, ...existing].slice(0, RECENT_LIMIT);
-    window.localStorage.setItem(RECENT_KEY, JSON.stringify(next));
-  } catch {
-    // sessiz yut
-  }
-}
 
 export function GlobalSearch() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [recent, setRecent] = useState<RecentItem[]>([]);
   const [pending, startTransition] = useTransition();
-  const router = useRouter();
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Global Cmd+K / Ctrl+K listener — her sayfadan açar.
@@ -80,10 +40,9 @@ export function GlobalSearch() {
     };
   }, []);
 
-  // Açılınca recent'ı yükle ve query'i sıfırla
+  // Açılınca query'i sıfırla
   useEffect(() => {
     if (open) {
-      setRecent(loadRecent());
       setQuery("");
       setResults([]);
     }
@@ -113,23 +72,11 @@ export function GlobalSearch() {
     };
   }, [query, open]);
 
-  function handleSelect(item: SearchResult | RecentItem) {
-    pushRecent({
-      kind: item.kind,
-      title: item.title,
-      subtitle: item.subtitle,
-      href: item.href,
-    });
-    setOpen(false);
-    router.push(item.href);
-  }
-
   if (!open) return null;
 
-  const showRecent = !query.trim() && recent.length > 0;
   const showResults = query.trim() && results.length > 0;
   const showEmpty = query.trim() && !pending && results.length === 0;
-  const showHint = !query.trim() && recent.length === 0;
+  const showHint = !query.trim();
 
   return (
     <div
@@ -162,7 +109,7 @@ export function GlobalSearch() {
                 Aramaya başlamak için yazın.
                 <br />
                 <span className="text-[11px] text-slate-400">
-                  Proje adı, müşteri veya lokasyon ile arayabilirsiniz.
+                  Proje, müşteri, lokasyon veya kalem ile arayabilirsiniz.
                 </span>
               </div>
             )}
@@ -171,28 +118,6 @@ export function GlobalSearch() {
               <div className="px-4 py-8 text-center text-[13px] text-slate-500">
                 <strong>"{query}"</strong> için sonuç bulunamadı.
               </div>
-            )}
-
-            {showRecent && (
-              <Command.Group
-                heading={
-                  <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                    <Clock className="size-3" /> Son Açılanlar
-                  </span>
-                }
-                className="px-2 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5"
-              >
-                {recent.map((r) => (
-                  <ResultItem
-                    key={`recent-${r.href}`}
-                    value={`recent-${r.href}`}
-                    kind={r.kind}
-                    title={r.title}
-                    subtitle={r.subtitle}
-                    onSelect={() => handleSelect(r)}
-                  />
-                ))}
-              </Command.Group>
             )}
 
             {showResults && (
@@ -206,12 +131,11 @@ export function GlobalSearch() {
               >
                 {results.map((r) => (
                   <ResultItem
-                    key={r.href}
+                    key={`${r.kind}-${r.id}`}
                     value={`${r.kind}-${r.id}`}
                     kind={r.kind}
                     title={r.title}
                     subtitle={r.subtitle}
-                    onSelect={() => handleSelect(r)}
                   />
                 ))}
               </Command.Group>
@@ -219,17 +143,7 @@ export function GlobalSearch() {
           </Command.List>
 
           <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/60 px-4 py-2 text-[10.5px] text-slate-500">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-1">
-                <ArrowUp className="size-2.5" />
-                <ArrowDown className="size-2.5" />
-                Gez
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <CornerDownLeft className="size-2.5" />
-                Aç
-              </span>
-            </div>
+            <span>Sadece arama ve görüntüleme — tıklama navigasyon yapmaz.</span>
             <span>Ctrl+K her sayfadan açar</span>
           </div>
         </Command>
@@ -243,13 +157,11 @@ function ResultItem({
   kind,
   title,
   subtitle,
-  onSelect,
 }: {
   value: string;
   kind: SearchResult["kind"];
   title: string;
   subtitle: string;
-  onSelect: () => void;
 }) {
   const Icon = kind === "project" ? FolderOpen : kind === "customer" ? User : Package;
   const tone =
@@ -260,14 +172,19 @@ function ResultItem({
         : "border-amber-200 bg-amber-50 text-amber-700";
   const label = kind === "project" ? "Proje" : kind === "customer" ? "Müşteri" : "Kalem";
 
+  // Sadece görüntüleme — onSelect yok, navigasyon yok. cmdk Item'ı yine
+  // klavye ile gezilebilir (focus highlight kalır) ama tıklama/enter etkisiz.
   return (
     <Command.Item
       value={value}
-      onSelect={onSelect}
+      onSelect={() => {
+        /* no-op — Ctrl+K sadece arama + bilgi görüntüleme */
+      }}
       className={cn(
-        "flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 text-[13px] transition-colors",
-        "aria-selected:bg-emerald-50 hover:bg-slate-50",
+        "flex items-center gap-3 rounded-md px-2 py-2 text-[13px] transition-colors",
+        "aria-selected:bg-slate-50",
       )}
+      style={{ cursor: "default" }}
     >
       <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white shadow-sm ring-1 ring-slate-200">
         <Icon className="size-3.5 text-slate-600" />
