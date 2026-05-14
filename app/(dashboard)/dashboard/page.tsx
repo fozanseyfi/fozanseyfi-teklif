@@ -188,14 +188,14 @@ export default async function DashboardPage() {
             <MetricCard
               icon={Zap}
               label="Toplam Kurulu Güç"
-              value={totalMWp.toFixed(2)}
+              value={Math.round(totalMWp).toLocaleString("tr-TR")}
               unit="MWp"
               sublabel={`bugüne kadar hazırlanan ${allWithPrice.length} teklif`}
             />
             <MetricCard
               icon={BarChart3}
               label="Ortalama Proje Gücü"
-              value={avgMWp.toFixed(2)}
+              value={Math.round(avgMWp).toLocaleString("tr-TR")}
               unit="MWp"
               sublabel="proje başına"
             />
