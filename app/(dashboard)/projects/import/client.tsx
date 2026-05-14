@@ -491,7 +491,7 @@ export function ProjectImportClient() {
               <Input
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
-                placeholder="Örnek: Çimsa 2.5 MWp ÇGES"
+                placeholder="Örnek: 2.5 MWp Çatı GES Projesi"
                 className="mt-1"
               />
             </div>

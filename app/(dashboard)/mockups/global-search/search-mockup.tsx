@@ -29,18 +29,18 @@ interface SearchResult {
 // Fake index — production'da Postgres tsvector + Prisma full-text query
 const ALL_RESULTS: SearchResult[] = [
   // Projects
-  { kind: "project", title: "Akzo Nobel 8.4 MWp ÇGES", subtitle: "Müşteri: Akzo Nobel · 480 panel · DRAFT", href: "#", recent: true, frequent: true },
-  { kind: "project", title: "Eskişehir OSB Sanayi GES", subtitle: "Müşteri: ESKOSB · 12 MWp · UNDER_REVIEW", href: "#", recent: true },
-  { kind: "project", title: "Çayırova Lojistik Çatı GES", subtitle: "Müşteri: ARC Lojistik · 2.4 MWp · WON", href: "#", frequent: true },
-  { kind: "project", title: "Konya Tarımsal GES Pilot", subtitle: "Müşteri: KTB Birlik · 5 MWp · SENT", href: "#" },
-  { kind: "project", title: "İzmir Cam Sanayi 18 MWp", subtitle: "Müşteri: Trakya Cam · 18 MWp · REVISED", href: "#" },
-  { kind: "project", title: "Bursa Tekstil Çatı 1.2 MWp", subtitle: "Müşteri: Aksan · 1.2 MWp · COMPLETED", href: "#", recent: true },
+  { kind: "project", title: "Sanayi Tesisi 8.4 MWp ÇGES", subtitle: "Müşteri: Anadolu Sanayi A.Ş. · 480 panel · DRAFT", href: "#", recent: true, frequent: true },
+  { kind: "project", title: "OSB Sanayi GES", subtitle: "Müşteri: Bölge OSB · 12 MWp · UNDER_REVIEW", href: "#", recent: true },
+  { kind: "project", title: "Lojistik Çatı GES", subtitle: "Müşteri: Lojistik Holding · 2.4 MWp · WON", href: "#", frequent: true },
+  { kind: "project", title: "Tarımsal GES Pilot", subtitle: "Müşteri: Tarım Birliği · 5 MWp · SENT", href: "#" },
+  { kind: "project", title: "Cam Sanayi 18 MWp", subtitle: "Müşteri: Cam Sanayi A.Ş. · 18 MWp · REVISED", href: "#" },
+  { kind: "project", title: "Tekstil Çatı 1.2 MWp", subtitle: "Müşteri: Tekstil A.Ş. · 1.2 MWp · COMPLETED", href: "#", recent: true },
 
   // Customers
-  { kind: "customer", title: "Akzo Nobel", subtitle: "Sanayi · 3 proje · son: 4 gün önce", href: "#", recent: true },
-  { kind: "customer", title: "ESKOSB Sanayi Bölgesi", subtitle: "OSB · 7 proje · son: 1 hafta önce", href: "#" },
-  { kind: "customer", title: "ARC Lojistik A.Ş.", subtitle: "Lojistik · 2 proje · son: 2 ay önce", href: "#", frequent: true },
-  { kind: "customer", title: "Trakya Cam Sanayi", subtitle: "Cam · 1 proje · son: 6 gün önce", href: "#" },
+  { kind: "customer", title: "Anadolu Sanayi A.Ş.", subtitle: "Sanayi · 3 proje · son: 4 gün önce", href: "#", recent: true },
+  { kind: "customer", title: "Bölge OSB", subtitle: "OSB · 7 proje · son: 1 hafta önce", href: "#" },
+  { kind: "customer", title: "Lojistik Holding", subtitle: "Lojistik · 2 proje · son: 2 ay önce", href: "#", frequent: true },
+  { kind: "customer", title: "Cam Sanayi A.Ş.", subtitle: "Cam · 1 proje · son: 6 gün önce", href: "#" },
 
   // Item codes
   { kind: "item", title: "A.1.1 — Solar Panel", subtitle: "Kategori: Panel · 18 projede kullanılıyor", href: "#" },
@@ -99,7 +99,7 @@ export function SearchMockup() {
             setQuery(e.target.value);
             setActiveIdx(0);
           }}
-          placeholder="Proje adı, müşteri veya kalem kodu yaz... (örn: 'Akzo', 'A.1.3', 'Konya')"
+          placeholder="Proje adı, müşteri veya kalem kodu yaz... (örn: 'Sanayi', 'A.1.3', 'Konya')"
           className="flex-1 bg-transparent text-[14px] text-slate-900 outline-none placeholder:text-slate-400"
         />
         <kbd className="hidden rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-500 sm:inline">

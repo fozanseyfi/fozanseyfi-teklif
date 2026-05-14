@@ -55,9 +55,9 @@ const SLIDES: Slide[] = [
   { id: "ring",       badge: "Maliyet Halkası",        kicker: "07 — ANALİZ",        title: "Hangi grup ne kadar yüküm getiriyor — drill-down halka",         body: <RingDemo /> },
   { id: "dor",        badge: "Kapsam Tablosu (DoR)",   kicker: "08 — KAPSAM",        title: "Tedarik, Montaj ve Devreye Alma — kapsamı detayıyla paylaş",     body: <DorDemo /> },
   { id: "team",       badge: "Ekip & Yetkilendirme",   kicker: "09 — EKİP",          title: "E-postayla davet et, rol ata, kaynak erişimini kişi bazlı ayarla", body: <TeamDemo /> },
-  { id: "share",      badge: "Paylaşım Linkleri",      kicker: "10 — PAYLAŞIM",      title: "Müşteriye e-posta ile teklif linki gönder, görüntülenmeyi izle",  body: <ShareDemo /> },
+  { id: "share",      badge: "Paylaşım Linkleri",      kicker: "10 — PAYLAŞIM",      title: "E-posta ile teklif linki gönder, görüntülenmeyi izle",  body: <ShareDemo /> },
   { id: "import",     badge: "Excel'den Proje Yükle",  kicker: "11 — TOPLU İMPORT",  title: "Eski projelerini Excel'den sürükle-bırak, sayfa kolonları otomatik eşler", body: <ImportDemo /> },
-  { id: "qrshare",    badge: "QR + WhatsApp Paylaş",   kicker: "12 — HIZLI PAYLAŞ",  title: "Saha/fuarda müşteri telefonundan QR'ı taratır, tek tık WhatsApp",  body: <QrShareDemo /> },
+  { id: "qrshare",    badge: "QR + WhatsApp Paylaş",   kicker: "12 — HIZLI PAYLAŞ",  title: "QR kod ile telefonda aç, tek tık WhatsApp veya mail",  body: <QrShareDemo /> },
 ];
 
 export function LoginDemo() {
@@ -1811,7 +1811,7 @@ function QrShareDemo() {
             <Share2 className="size-3.5" />
             Paylaş
           </p>
-          <span className="text-[10px] text-slate-400">Çimsa GES · 2.5 MWp</span>
+          <span className="text-[10px] text-slate-400">Örnek Proje · 2.5 MWp</span>
         </div>
 
         {/* QR kod — fake pattern */}
@@ -1917,7 +1917,7 @@ function QrShareDemo() {
                 {/* Sayfa içeriği — hero */}
                 <div className="rounded-md bg-gradient-to-br from-slate-900 to-slate-700 p-1.5 text-white">
                   <p className="text-[7px] font-bold text-emerald-300">HOŞ GELDİN</p>
-                  <p className="text-[8.5px] font-bold">Çimsa GES Teklifi</p>
+                  <p className="text-[8.5px] font-bold">Solar GES Teklifi</p>
                   <p className="mt-0.5 text-[6.5px] text-slate-300">2.5 MWp · Çatı GES</p>
                 </div>
                 {/* Tab nav */}

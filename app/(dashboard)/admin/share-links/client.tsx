@@ -274,7 +274,7 @@ export function ShareLinksClient({ projects, links, organizationName, customDocu
               <Label htmlFor="customerLabel">Müşteri Notu (opsiyonel)</Label>
               <Input
                 id="customerLabel"
-                placeholder="örn: Çimsa müşteri, Yatırımcı XYZ"
+                placeholder="örn: Yatırımcı, Mühendislik Ofisi"
                 value={customerLabel}
                 onChange={(e) => setCustomerLabel(e.target.value)}
                 maxLength={120}

@@ -242,7 +242,7 @@ export default async function KpiDashboardMockupPage() {
                 3
               </span>
               <span>
-                <strong>3 ayı geçmiş cevap bekleyen teklif</strong> — Çimsa, Akzo Nobel, Bizim Toptan
+                <strong>3 ayı geçmiş cevap bekleyen teklif</strong> — 3 müşteri için takip mailı önerilir
               </span>
             </li>
             <li className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50/40 p-2.5">
