@@ -201,12 +201,18 @@ export async function createRevision(projectId: string): Promise<{ id: string }>
   );
   const last = revisions[revisions.length - 1];
   const newId = randomBytes(8).toString("base64url");
+  // Yeni revize, son revizenin birebir kopyası: kalemler, fiyatlar, KDV, kur,
+  // ÖDEME ŞEKLİ ve TEKLİF NOTLARI da aynen gelir (kullanıcı sonra değiştirebilir).
   const newRev = {
     id: newId,
     label: `Revize ${revisions.length}`,
     createdAt: isoNow,
     items: last.items.map((it) => ({ ...it })),
-    meta: { ...last.meta },
+    meta: {
+      ...last.meta,
+      notes: last.meta.notes,
+      paymentTerms: (last.meta.paymentTerms ?? []).map((p) => ({ ...p })),
+    },
   };
   revisions.push(newRev);
 
