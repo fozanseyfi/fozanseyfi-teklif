@@ -5,10 +5,11 @@ import {
   parseQuoteItems,
   parseQuoteMeta,
   computeQuoteTotals,
-  lineUnitSaleTRY,
-  lineTotalSaleTRY,
+  lineUnitSaleOut,
+  lineTotalSaleOut,
   QUOTE_ITEM_KIND_LABELS,
   type QuoteItemKindT,
+  type QuoteOutputCurrency,
 } from "@/lib/quote";
 
 interface Props {
@@ -28,6 +29,8 @@ export default async function ShareTeklifPage({ params }: Props) {
   const meta = parseQuoteMeta(ctx.detail.settings);
   const totals = computeQuoteTotals(items, meta);
   const rates = { usd: meta.usd, eur: meta.eur };
+  const out: QuoteOutputCurrency = meta.outputCurrency || "TRY";
+  const sym = totals.symbol;
 
   const groups: { kind: QuoteItemKindT; rows: typeof items }[] = (
     [
@@ -101,15 +104,16 @@ export default async function ShareTeklifPage({ params }: Props) {
                             {it.code && it.name && (
                               <span className="ml-1 text-[10.5px] text-slate-400">· {it.code}</span>
                             )}
+                            {it.desc && <span className="block text-[11px] text-slate-500">{it.desc}</span>}
                           </td>
                           <td className="whitespace-nowrap px-3 py-2 text-right text-slate-600">
                             {fmt(it.qty, it.qty % 1 === 0 ? 0 : 2)} {it.unit}
                           </td>
                           <td className="whitespace-nowrap px-3 py-2 text-right text-slate-600">
-                            ₺{fmt(lineUnitSaleTRY(it, rates), 2)}
+                            {sym}{fmt(lineUnitSaleOut(it, out, rates), 2)}
                           </td>
                           <td className="whitespace-nowrap px-3 py-2 text-right font-semibold text-slate-800">
-                            ₺{fmt(lineTotalSaleTRY(it, rates))}
+                            {sym}{fmt(lineTotalSaleOut(it, out, rates))}
                           </td>
                         </tr>
                       ))}
@@ -124,18 +128,18 @@ export default async function ShareTeklifPage({ params }: Props) {
           <div className="ml-auto w-full max-w-xs space-y-1 text-[13px]">
             <div className="flex justify-between text-slate-600">
               <span>Ara Toplam</span>
-              <span>₺{fmt(totals.subtotal)}</span>
+              <span>{sym}{fmt(totals.subtotal)}</span>
             </div>
             <div className="flex justify-between text-slate-600">
               <span>KDV (%{fmt(meta.kdvRate)})</span>
-              <span>₺{fmt(totals.kdv)}</span>
+              <span>{sym}{fmt(totals.kdv)}</span>
             </div>
             <div
               className="mt-1 flex justify-between rounded-md px-3 py-2 text-base font-bold"
               style={{ color: accent, backgroundColor: `${accent}12` }}
             >
               <span>Genel Toplam</span>
-              <span>₺{fmt(totals.grandTotal)}</span>
+              <span>{sym}{fmt(totals.grandTotal)}</span>
             </div>
           </div>
 

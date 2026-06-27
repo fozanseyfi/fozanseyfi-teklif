@@ -7,17 +7,20 @@ import { useDirtyTracker } from "@/lib/unsaved-changes";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Save, ArrowRight, BarChart3 } from "lucide-react";
+import { Save, ArrowRight, BarChart3, StickyNote } from "lucide-react";
 import { toast } from "sonner";
 import { DetailPageHeader } from "@/components/ges/detail-page-header";
 import {
   type QuoteItem,
   type QuoteMeta,
+  type QuoteOutputCurrency,
   QUOTE_ITEM_KIND_LABELS,
   lineTotalCostTRY,
-  lineUnitSaleTRY,
-  lineTotalSaleTRY,
+  lineUnitSaleOut,
+  lineTotalSaleOut,
   computeQuoteTotals,
 } from "@/lib/quote";
 
@@ -43,8 +46,10 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
   const isDirty = JSON.stringify({ items, meta }) !== baseline.current;
   useDirtyTracker(isDirty);
 
+  const out: QuoteOutputCurrency = meta.outputCurrency || "TRY";
   const rates = { usd: meta.usd, eur: meta.eur };
   const totals = computeQuoteTotals(items, meta);
+  const sym = totals.symbol;
 
   function setMargin(id: string, marginPct: number) {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, marginPct } : it)));
@@ -105,7 +110,7 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
         }
       />
 
-      {/* Toplu marj + KDV */}
+      {/* Toplu marj + KDV + teklif para birimi */}
       <Card>
         <CardContent className="flex flex-wrap items-center gap-4 p-4">
           <div className="flex items-center gap-2" data-edit-only>
@@ -122,15 +127,28 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
               Uygula
             </Button>
           </div>
-          <div className="ml-auto flex items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground">KDV %</span>
-            <Input
-              type="number"
-              step="1"
-              className="h-8 w-20 text-sm"
-              value={meta.kdvRate}
-              onChange={(e) => setMeta((p) => ({ ...p, kdvRate: parseFloat(e.target.value) || 0 }))}
-            />
+          <div className="ml-auto flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground">Teklif Para Birimi</span>
+              <select
+                className="h-8 rounded-md border bg-card px-2 text-sm font-semibold"
+                value={out}
+                onChange={(e) => setMeta((p) => ({ ...p, outputCurrency: e.target.value as QuoteOutputCurrency }))}
+              >
+                <option value="TRY">₺ TL</option>
+                <option value="USD">$ USD</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground">KDV %</span>
+              <Input
+                type="number"
+                step="1"
+                className="h-8 w-20 text-sm"
+                value={meta.kdvRate}
+                onChange={(e) => setMeta((p) => ({ ...p, kdvRate: parseFloat(e.target.value) || 0 }))}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -147,8 +165,8 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
                   <th className="w-16 px-2 py-2 text-right">Miktar</th>
                   <th className="w-28 px-2 py-2 text-right">Birim Maliyet (₺)</th>
                   <th className="w-20 px-2 py-2 text-right">Kâr %</th>
-                  <th className="w-28 px-2 py-2 text-right">Birim Satış (₺)</th>
-                  <th className="w-28 px-2 py-2 text-right">Satır Toplam (₺)</th>
+                  <th className="w-28 px-2 py-2 text-right">Birim Satış ({sym})</th>
+                  <th className="w-28 px-2 py-2 text-right">Satır Toplam ({sym})</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -160,17 +178,18 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
                         <span
                           className={cn(
                             "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
-                            it.kind === "HIZMET"
-                              ? "bg-violet-100 text-violet-700"
-                              : "bg-sky-100 text-sky-700",
+                            it.kind === "HIZMET" ? "bg-violet-100 text-violet-700" : "bg-sky-100 text-sky-700",
                           )}
                         >
                           {QUOTE_ITEM_KIND_LABELS[it.kind]}
                         </span>
                       </td>
-                      <td className="px-2 py-1.5">{it.name || it.code || "—"}</td>
+                      <td className="px-2 py-1.5">
+                        <span className="font-medium">{it.name || it.code || "—"}</span>
+                        {it.desc && <span className="ml-1 text-[11px] text-muted-foreground">— {it.desc}</span>}
+                      </td>
                       <td className="px-2 py-1.5 text-right tabular-nums">
-                        {fmt(it.qty, 0)} {it.unit}
+                        {fmt(it.qty, it.qty % 1 === 0 ? 0 : 2)} {it.unit}
                       </td>
                       <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">
                         ₺{fmt(unitCostTRY, 2)}
@@ -185,10 +204,10 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
                         />
                       </td>
                       <td className="px-2 py-1.5 text-right tabular-nums font-medium">
-                        ₺{fmt(lineUnitSaleTRY(it, rates), 2)}
+                        {sym}{fmt(lineUnitSaleOut(it, out, rates), 2)}
                       </td>
                       <td className="px-2 py-1.5 text-right tabular-nums font-semibold">
-                        ₺{fmt(lineTotalSaleTRY(it, rates))}
+                        {sym}{fmt(lineTotalSaleOut(it, out, rates))}
                       </td>
                     </tr>
                   );
@@ -199,42 +218,52 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
         </CardContent>
       </Card>
 
+      {/* Teklif notları */}
+      <Card>
+        <CardContent className="space-y-2 p-4" data-edit-only>
+          <Label className="flex items-center gap-1.5 text-sm">
+            <StickyNote className="size-4 text-muted-foreground" /> Teklif Notları
+          </Label>
+          <Textarea
+            rows={3}
+            value={meta.notes ?? ""}
+            onChange={(e) => setMeta((p) => ({ ...p, notes: e.target.value }))}
+            placeholder="Teslimat süresi, ödeme koşulları, garanti vb. — PDF'de gösterilir."
+            maxLength={2000}
+          />
+        </CardContent>
+      </Card>
+
       {/* Toplamlar */}
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardContent className="space-y-2 p-5">
             <p className="flex items-center gap-2 text-sm font-semibold">
-              <BarChart3 className="size-4 text-primary" /> Müşteri Toplamı
+              <BarChart3 className="size-4 text-primary" /> Müşteri Toplamı ({sym})
             </p>
             <div className="space-y-1 text-sm">
-              <Row label="Ara Toplam (KDV hariç)" value={`₺${fmt(totals.subtotal)}`} />
-              <Row label={`KDV (%${fmt(meta.kdvRate)})`} value={`₺${fmt(totals.kdv)}`} />
+              <Row label="Ara Toplam (KDV hariç)" value={`${sym}${fmt(totals.subtotal)}`} />
+              <Row label={`KDV (%${fmt(meta.kdvRate)})`} value={`${sym}${fmt(totals.kdv)}`} />
               <div className="mt-1 flex items-center justify-between border-t pt-2 text-base font-bold text-primary">
                 <span>Genel Toplam</span>
-                <span className="tabular-nums">₺{fmt(totals.grandTotal)}</span>
+                <span className="tabular-nums">{sym}{fmt(totals.grandTotal)}</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* İç kâr özeti — sadece kullanıcıya, PDF'de gözükmez */}
+        {/* İç kâr özeti — her zaman TL, PDF'de gözükmez */}
         <Card className="border-dashed">
           <CardContent className="space-y-2 p-5">
-            <p className="text-sm font-semibold text-muted-foreground">İç Özet (müşteriye gösterilmez)</p>
+            <p className="text-sm font-semibold text-muted-foreground">İç Özet (her zaman ₺ — müşteriye gösterilmez)</p>
             <div className="space-y-1 text-sm">
-              <Row label="Toplam Maliyet" value={`₺${fmt(totals.totalCost)}`} muted />
-              <Row label="Toplam Kâr" value={`₺${fmt(totals.profit)}`} muted />
+              <Row label="Toplam Maliyet" value={`₺${fmt(totals.totalCostTRY)}`} muted />
+              <Row label="Toplam Kâr" value={`₺${fmt(totals.profitTRY)}`} muted />
               <Row
                 label="Ortalama Kâr Oranı"
-                value={totals.totalCost > 0 ? `%${fmt((totals.profit / totals.totalCost) * 100, 1)}` : "—"}
+                value={totals.totalCostTRY > 0 ? `%${fmt((totals.profitTRY / totals.totalCostTRY) * 100, 1)}` : "—"}
                 muted
               />
-              <div className="mt-1 flex justify-between border-t pt-2 text-xs text-muted-foreground">
-                <span>Malzeme / Hizmet</span>
-                <span className="tabular-nums">
-                  ₺{fmt(totals.malzemeSubtotal)} / ₺{fmt(totals.hizmetSubtotal)}
-                </span>
-              </div>
             </div>
           </CardContent>
         </Card>

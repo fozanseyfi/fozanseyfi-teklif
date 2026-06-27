@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCatalog } from "@/app/actions/quote";
+import { listCatalogItems } from "@/app/actions/materials";
 import { QuoteItemsEditor } from "@/components/ges/quote-items-editor";
 import { parseQuoteItems, parseQuoteMeta } from "@/lib/quote";
 
@@ -25,7 +25,7 @@ export default async function QuoteItemsPage({ params }: Props) {
 
   const items = parseQuoteItems(project.projectDetail?.quoteItems);
   const meta = parseQuoteMeta(project.projectDetail?.settings);
-  const catalog = await getCatalog();
+  const catalog = await listCatalogItems();
 
   return (
     <QuoteItemsEditor

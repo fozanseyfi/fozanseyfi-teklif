@@ -121,6 +121,7 @@ export async function saveQuote(
     usd: meta.usd,
     eur: meta.eur,
     kdvRate: meta.kdvRate,
+    outputCurrency: meta.outputCurrency,
     quoteNo: meta.quoteNo,
     quoteDate: meta.quoteDate,
     validityDays: meta.validityDays,
@@ -149,19 +150,15 @@ export async function saveQuote(
   revalidatePath("/dashboard");
 }
 
+// Teklifte kullanılan kodları kataloğa (fiyatsız) garanti et — inline "yeni
+// kaydet" dışında elle eklenenler de kataloğa düşsün. Fiyat saklanmaz.
 async function upsertCatalog(organizationId: string, items: QuoteItem[]) {
   const seen = new Set<string>();
   for (const it of items) {
     const code = it.code.trim();
     if (!code || seen.has(code)) continue;
     seen.add(code);
-    const data = {
-      name: it.name.trim() || code,
-      unit: it.unit || "adet",
-      kind: it.kind,
-      lastUnitCost: it.unitCost || 0,
-      currency: it.currency,
-    };
+    const data = { name: it.name.trim() || code, unit: it.unit || "adet", kind: it.kind };
     try {
       await prisma.materialCatalogItem.upsert({
         where: { organizationId_code: { organizationId, code } },
@@ -172,18 +169,4 @@ async function upsertCatalog(organizationId: string, items: QuoteItem[]) {
       // tekil kalem upsert'i hata verirse teklif kaydını engelleme
     }
   }
-}
-
-/** Firma kataloğunu döner — Kalemler editöründe kod ile otomatik dolum için. */
-export async function getCatalog(): Promise<
-  { code: string; name: string; unit: string; kind: "MALZEME" | "HIZMET"; lastUnitCost: number; currency: string }[]
-> {
-  const user = await requireAuth();
-  const rows = await prisma.materialCatalogItem.findMany({
-    where: { organizationId: user.organizationId },
-    orderBy: { updatedAt: "desc" },
-    take: 1000,
-    select: { code: true, name: true, unit: true, kind: true, lastUnitCost: true, currency: true },
-  });
-  return rows;
 }
