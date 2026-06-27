@@ -104,7 +104,7 @@ export function buildQuotePrintHtml({
   // Teklif notları — her satır ayrı madde.
   const noteLines = (meta.notes ?? "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   const notesHtml = noteLines.length
-    ? `<div class="block"><div class="blk-ttl">Notlar</div><ul>${noteLines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>`
+    ? `<div class="block"><div class="blk-ttl">Notlar</div><ol>${noteLines.map((l) => `<li>${esc(l)}</li>`).join("")}</ol></div>`
     : "";
 
   return `<!DOCTYPE html>
@@ -140,7 +140,7 @@ export function buildQuotePrintHtml({
   .note { margin-top:14px; font-size:10px; color:#64748b; }
   .block { margin-top:14px; page-break-inside:avoid; break-inside:avoid; }
   .blk-ttl { font-size:11px; font-weight:700; color:#334155; margin-bottom:4px; }
-  .block ul { margin:0; padding-left:18px; }
+  .block ul, .block ol { margin:0; padding-left:20px; }
   .block li { font-size:11px; color:#475569; margin:2px 0; white-space:pre-line; }
   .approve { margin-top:26px; border:1.5px dashed #cbd5e1; border-radius:8px; padding:14px 16px; page-break-inside:avoid; break-inside:avoid; }
   .approve .ttl { font-size:11px; font-weight:700; color:#334155; margin-bottom:10px; display:flex; align-items:center; gap:8px; }

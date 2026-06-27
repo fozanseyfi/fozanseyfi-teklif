@@ -161,7 +161,7 @@ export default async function ShareTeklifPage({ params }: Props) {
           {(meta.notes ?? "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean).length > 0 && (
             <div className="text-[12px]">
               <p className="font-semibold text-slate-700">Notlar</p>
-              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-slate-600">
+              <ol className="mt-1 list-decimal space-y-0.5 pl-5 text-slate-600">
                 {(meta.notes ?? "")
                   .split(/\r?\n/)
                   .map((l) => l.trim())
@@ -169,7 +169,7 @@ export default async function ShareTeklifPage({ params }: Props) {
                   .map((l, i) => (
                     <li key={i}>{l}</li>
                   ))}
-              </ul>
+              </ol>
             </div>
           )}
 

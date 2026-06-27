@@ -9,7 +9,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Save, ArrowRight, BarChart3, StickyNote, CreditCard, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -45,6 +44,16 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
   const [meta, setMeta] = useState<QuoteMeta>(initialMeta);
   const [saving, setSaving] = useState(false);
   const [bulkMargin, setBulkMargin] = useState("");
+  // Teklif notları madde madde (1-2-3). meta.notes = satırların "\n" ile birleşimi.
+  const [noteItems, setNoteItems] = useState<string[]>(() => {
+    const arr = (initialMeta.notes ?? "").split(/\r?\n/).filter((l) => l.trim().length > 0);
+    return arr;
+  });
+
+  function updateNotes(next: string[]) {
+    setNoteItems(next);
+    setMeta((p) => ({ ...p, notes: next.join("\n") }));
+  }
 
   const baseline = useRef(JSON.stringify({ items: initialItems, meta: initialMeta }));
   const isDirty = JSON.stringify({ items, meta }) !== baseline.current;
@@ -304,18 +313,45 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
         </Card>
 
         <Card>
-          <CardContent className="space-y-2 p-4" data-edit-only>
-            <Label className="flex items-center gap-1.5 text-sm">
-              <StickyNote className="size-4 text-muted-foreground" /> Teklif Notları
-            </Label>
-            <p className="text-[11px] text-muted-foreground">Her satır PDF&apos;de ayrı madde olarak gösterilir.</p>
-            <Textarea
-              rows={5}
-              value={meta.notes ?? ""}
-              onChange={(e) => setMeta((p) => ({ ...p, notes: e.target.value }))}
-              placeholder={"Teslim süresi 4 hafta\nNakliye dahildir\n2 yıl garanti"}
-              maxLength={2000}
-            />
+          <CardContent className="space-y-3 p-4" data-edit-only>
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-1.5 text-sm">
+                <StickyNote className="size-4 text-muted-foreground" /> Teklif Notları
+              </Label>
+              <Button variant="outline" size="sm" onClick={() => updateNotes([...noteItems, ""])}>
+                <Plus className="size-3.5" /> Madde Ekle
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Her madde PDF&apos;de ayrı satır (1-2-3) olarak gösterilir.</p>
+            {noteItems.length === 0 ? (
+              <p className="rounded-md border border-dashed p-3 text-center text-xs text-muted-foreground">
+                Örn. &quot;Teslim süresi 4 hafta&quot;, &quot;Nakliye dahildir&quot;, &quot;2 yıl garanti&quot;
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {noteItems.map((line, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground">
+                      {i + 1}
+                    </span>
+                    <Input
+                      className="h-8 flex-1 text-sm"
+                      value={line}
+                      placeholder="Not maddesi…"
+                      onChange={(e) => updateNotes(noteItems.map((x, idx) => (idx === i ? e.target.value : x)))}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => updateNotes(noteItems.filter((_, idx) => idx !== i))}
+                      className="rounded-md p-1 text-destructive/70 hover:bg-destructive-soft"
+                      aria-label="Maddeyi sil"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
