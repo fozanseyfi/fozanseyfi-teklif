@@ -16,6 +16,7 @@ import { isProjectVisible } from "@/lib/project-status";
 import { calc } from "@/lib/ges-engine";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
 import { DeleteProjectButton } from "@/components/project/delete-project-button";
+import { CopyProjectButton } from "@/components/project/copy-project-button";
 import { PIPELINE_STAGE_LABELS, PIPELINE_STAGE_TONE } from "@/lib/pipeline-labels";
 import type { PipelineStage } from "@prisma/client";
 
@@ -293,6 +294,7 @@ export default async function ProjectsPage({ searchParams }: Props) {
                                 Düzenle
                               </Link>
                             </Button>
+                            <CopyProjectButton projectId={project.id} />
                             <DeleteProjectButton projectId={project.id} />
                           </div>
                         </td>

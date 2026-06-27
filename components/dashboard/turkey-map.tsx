@@ -114,10 +114,16 @@ interface Props {
   provinceCounts: Record<string, number>;
 }
 
+// Başlangıç görünümü: Türkiye'yi çerçeveye sığacak şekilde merkezle.
+// Projeksiyon doğrudan Türkiye'ye odaklı (scale yüksek) olduğundan zoom=1
+// haritayı zaten yakın başlatır.
+const INITIAL_CENTER: [number, number] = [35.5, 39.0];
+const INITIAL_ZOOM = 1;
+
 export function TurkeyMap({ provinceCounts }: Props) {
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
-  const [zoom, setZoom] = useState(1.5);
-  const [center, setCenter] = useState<[number, number]>([35.5, 39.0]);
+  const [zoom, setZoom] = useState(INITIAL_ZOOM);
+  const [center, setCenter] = useState<[number, number]>(INITIAL_CENTER);
 
   const maxCount = Math.max(1, ...Object.values(provinceCounts));
 
@@ -128,7 +134,7 @@ export function TurkeyMap({ provinceCounts }: Props) {
     <div className="relative w-full select-none">
       <ComposableMap
         projection="geoMercator"
-        projectionConfig={{ center: [0, 20], scale: 140 }}
+        projectionConfig={{ center: INITIAL_CENTER, scale: 2100 }}
         width={800}
         height={420}
         style={{ width: "100%", height: "auto" }}
@@ -246,9 +252,9 @@ export function TurkeyMap({ provinceCounts }: Props) {
       </ComposableMap>
 
       {/* Reset zoom button */}
-      {zoom > 1 && (
+      {(zoom > INITIAL_ZOOM + 0.01 || zoom < INITIAL_ZOOM - 0.01) && (
         <button
-          onClick={() => { setZoom(1); setCenter([35.5, 39.0]); }}
+          onClick={() => { setZoom(INITIAL_ZOOM); setCenter(INITIAL_CENTER); }}
           className="absolute bottom-3 right-3 rounded-lg border bg-card px-2.5 py-1 text-xs text-muted-foreground shadow-sm transition-colors hover:bg-muted"
         >
           Sıfırla

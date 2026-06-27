@@ -25,6 +25,7 @@ import { isAdmin } from "@/lib/permissions";
 import { getHiddenResourceIds } from "@/lib/permission-server";
 import { isProjectVisible } from "@/lib/project-status";
 import { PIPELINE_STAGE_LABELS, PIPELINE_STAGE_TONE } from "@/lib/pipeline-labels";
+import { CopyProjectButton } from "@/components/project/copy-project-button";
 
 // Sol kenar renk şeridi — pipeline aşamasına göre.
 const PIPELINE_BAR_COLOR: Record<string, string> = {
@@ -328,6 +329,7 @@ export default async function DashboardPage() {
                       <Button variant="outline" size="sm" asChild>
                         <Link href={`/projects/${project.id}/detail`}>Düzenle</Link>
                       </Button>
+                      <CopyProjectButton projectId={project.id} />
                     </div>
                   </div>
                 );
