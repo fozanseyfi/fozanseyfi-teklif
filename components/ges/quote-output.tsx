@@ -182,6 +182,47 @@ export function QuoteOutput({ projectId, quoteTitle, customer, revisions, brand,
               </div>
             </div>
 
+            {/* Ödeme şekli — yalnız işaretli */}
+            {(meta.paymentTerms ?? []).filter((p) => p.show && (p.method.trim() || p.desc.trim() || p.vade.trim() || p.percent > 0)).length > 0 && (
+              <div className="text-sm">
+                <p className="font-semibold">Ödeme Şekli</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-5 text-muted-foreground">
+                  {(meta.paymentTerms ?? [])
+                    .filter((p) => p.show && (p.method.trim() || p.desc.trim() || p.vade.trim() || p.percent > 0))
+                    .map((p) => {
+                      const amount = totals.grandTotal * ((p.percent || 0) / 100);
+                      const bits = [
+                        p.method.trim(),
+                        p.vade.trim(),
+                        p.percent > 0 ? `%${fmt(p.percent)} = ${sym}${fmt(amount)}` : "",
+                        p.desc.trim(),
+                      ].filter(Boolean);
+                      return <li key={p.id}>{bits.join(" · ")}</li>;
+                    })}
+                </ul>
+              </div>
+            )}
+
+            {/* Notlar — numaralı */}
+            {(meta.notes ?? "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean).length > 0 && (
+              <div className="text-sm">
+                <p className="font-semibold">Notlar</p>
+                <ol className="mt-1 list-decimal space-y-0.5 pl-5 text-muted-foreground">
+                  {(meta.notes ?? "")
+                    .split(/\r?\n/)
+                    .map((l) => l.trim())
+                    .filter(Boolean)
+                    .map((l, i) => (
+                      <li key={i}>{l}</li>
+                    ))}
+                </ol>
+              </div>
+            )}
+
+            {meta.validityDays ? (
+              <p className="text-xs text-muted-foreground">Bu teklif {meta.validityDays} gün geçerlidir.</p>
+            ) : null}
+
             <p className="text-xs text-muted-foreground">
               PDF müşteriye satış fiyatı ve KDV gösterir; maliyet/kâr görünmez.
             </p>

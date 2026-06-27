@@ -6,10 +6,16 @@ import { createRevision } from "@/app/actions/quote";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Copy, Plus, Loader2, ArrowUpRight, CheckCircle2 } from "lucide-react";
+import { Plus, Loader2, ArrowUpRight, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { DetailPageHeader } from "@/components/ges/detail-page-header";
-import { type QuoteRevision, computeQuoteTotals } from "@/lib/quote";
+import {
+  type QuoteRevision,
+  type QuoteOutputCurrency,
+  computeQuoteTotals,
+  lineUnitSaleOut,
+  lineTotalSaleOut,
+} from "@/lib/quote";
 
 function fmt(n: number, d = 0) {
   return n.toLocaleString("tr-TR", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -30,6 +36,29 @@ export function RevizelerClient({
   const base = revisions[0];
   const baseTotals = base ? computeQuoteTotals(base.items, base.meta) : null;
   const lastIdx = revisions.length - 1;
+
+  // Kalem × revize karşılaştırması: kod (yoksa ad) anahtarıyla tüm kalemlerin
+  // birliği; her revizede o kaleme verilen birim ve satır fiyatı.
+  const keyOf = (it: { code: string; name: string }) => (it.code || it.name).trim();
+  const itemRows: { key: string; name: string }[] = [];
+  const seenKeys = new Set<string>();
+  for (const rev of revisions) {
+    for (const it of rev.items) {
+      const k = keyOf(it);
+      if (k && !seenKeys.has(k)) {
+        seenKeys.add(k);
+        itemRows.push({ key: k, name: it.name || it.code });
+      }
+    }
+  }
+  const revMaps = revisions.map((r) => {
+    const m = new Map<string, QuoteRevision["items"][number]>();
+    for (const it of r.items) m.set(keyOf(it), it);
+    return m;
+  });
+  const revOut: QuoteOutputCurrency[] = revisions.map((r) => r.meta.outputCurrency || "TRY");
+  const revRates = revisions.map((r) => ({ usd: r.meta.usd, eur: r.meta.eur }));
+  const revTotals = revisions.map((r) => computeQuoteTotals(r.items, r.meta));
 
   async function handleCreate() {
     setCreating(true);
@@ -56,18 +85,6 @@ export function RevizelerClient({
           </Button>
         }
       />
-
-      <Card>
-        <CardContent className="p-4 text-sm text-muted-foreground">
-          <p className="flex items-center gap-2">
-            <Copy className="size-4 text-primary" />
-            Yeni revize, mevcut son teklifin kopyasıdır. Kopya oluşturulduktan sonra{" "}
-            <strong className="text-foreground">Kalemler</strong> ve <strong className="text-foreground">Analiz</strong>{" "}
-            sekmelerinde kalem ekleyip çıkarabilir, fiyat/indirim ayarlayabilirsiniz. Dashboard ve listeler{" "}
-            <strong className="text-foreground">son revizeyi</strong> gösterir; PDF&apos;de istediğiniz revizeyi seçebilirsiniz.
-          </p>
-        </CardContent>
-      </Card>
 
       <Card className="overflow-hidden">
         <CardContent className="p-0">
@@ -133,6 +150,67 @@ export function RevizelerClient({
           </table>
         </CardContent>
       </Card>
+
+      {/* Kalem × revize fiyat karşılaştırması */}
+      {itemRows.length > 0 && (
+        <Card className="overflow-hidden">
+          <div className="border-b px-4 py-2.5 text-sm font-semibold">Kalem Bazında Fiyat Karşılaştırması</div>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b bg-muted/50 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <th className="sticky left-0 z-10 min-w-[160px] bg-muted/50 px-3 py-2 text-left">Kalem</th>
+                    {revisions.map((r, ri) => (
+                      <th key={r.id} className={cn("min-w-[120px] px-3 py-2 text-right", ri === lastIdx && "text-primary")}>
+                        {r.label}
+                        <span className="block text-[9px] font-normal normal-case text-muted-foreground">birim / toplam</span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {itemRows.map((row) => (
+                    <tr key={row.key} className="hover:bg-muted/30">
+                      <td className="sticky left-0 z-10 bg-card px-3 py-2 font-medium">{row.name}</td>
+                      {revisions.map((r, ri) => {
+                        const it = revMaps[ri].get(row.key);
+                        if (!it) {
+                          return (
+                            <td key={r.id} className="px-3 py-2 text-right text-muted-foreground/50">
+                              —
+                            </td>
+                          );
+                        }
+                        const sym = revTotals[ri].symbol;
+                        return (
+                          <td key={r.id} className="px-3 py-2 text-right tabular-nums">
+                            <span className="block text-[11px] text-muted-foreground">
+                              {sym}{fmt(lineUnitSaleOut(it, revOut[ri], revRates[ri]), 2)}
+                            </span>
+                            <span className="block font-semibold">
+                              {sym}{fmt(lineTotalSaleOut(it, revOut[ri], revRates[ri]))}
+                            </span>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                  {/* Genel toplam (KDV dahil) */}
+                  <tr className="border-t-2 bg-primary-soft/30 font-semibold">
+                    <td className="sticky left-0 z-10 bg-primary-soft/30 px-3 py-2">Genel Toplam (KDV dahil)</td>
+                    {revisions.map((r, ri) => (
+                      <td key={r.id} className="px-3 py-2 text-right tabular-nums text-primary">
+                        {revTotals[ri].symbol}{fmt(revTotals[ri].grandTotal)}
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
