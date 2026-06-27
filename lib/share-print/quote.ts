@@ -95,10 +95,23 @@ export function buildQuotePrintHtml({
 
   const contactLine = [customer.email, customer.phone].filter(Boolean).join(" · ");
 
-  // Ödeme şekli — yalnız işaretli (show) satırlar.
-  const pts = (meta.paymentTerms ?? []).filter((p) => p.show && p.text.trim());
+  // Ödeme şekli — yalnız işaretli (show) satırlar. Yüzde → KDV dahil tutar.
+  const pts = (meta.paymentTerms ?? []).filter(
+    (p) => p.show && (p.method.trim() || p.desc.trim() || p.vade.trim() || p.percent > 0),
+  );
   const paymentTermsHtml = pts.length
-    ? `<div class="block"><div class="blk-ttl">Ödeme Şekli</div><ul>${pts.map((p) => `<li>${esc(p.text)}</li>`).join("")}</ul></div>`
+    ? `<div class="block"><div class="blk-ttl">Ödeme Şekli</div><ul>${pts
+        .map((p) => {
+          const amount = totals.grandTotal * ((p.percent || 0) / 100);
+          const bits = [
+            p.method.trim() ? `<strong>${esc(p.method)}</strong>` : "",
+            p.vade.trim() ? esc(p.vade) : "",
+            p.percent > 0 ? `%${fmt(p.percent)} = ${sym}${fmt(amount)}` : "",
+            p.desc.trim() ? esc(p.desc) : "",
+          ].filter(Boolean);
+          return `<li>${bits.join(" · ")}</li>`;
+        })
+        .join("")}</ul></div>`
     : "";
 
   // Teklif notları — her satır ayrı madde.

@@ -5,10 +5,16 @@ export type QuoteCurrency = "USD" | "EUR" | "TRY";
 export type QuoteOutputCurrency = "TRY" | "USD" | "EUR";
 export type QuoteItemKindT = "MALZEME" | "HIZMET";
 
-/** Ödeme şekli satırı — birden çok tanımlanır, PDF'de yalnız `show` olanlar çıkar. */
+/**
+ * Ödeme şekli satırı — birden çok tanımlanır, PDF'de yalnız `show` olanlar çıkar.
+ * percent: genel toplamın (KDV dahil) yüzdesi; tutar buradan hesaplanır.
+ */
 export interface PaymentTerm {
   id: string;
-  text: string;
+  percent: number; // %
+  method: string; // ödeme şekli (peşin, havale, kredi kartı…)
+  vade: string; // vade (örn. "60 gün", "teslimde")
+  desc: string; // açıklama
   show: boolean;
 }
 
@@ -212,7 +218,11 @@ export function parsePaymentTerms(raw: unknown): PaymentTerm[] {
     .filter((r): r is Record<string, unknown> => typeof r === "object" && r !== null)
     .map((r, i) => ({
       id: typeof r.id === "string" ? r.id : `pt-${i}`,
-      text: typeof r.text === "string" ? r.text : "",
+      percent: typeof r.percent === "number" ? r.percent : 0,
+      // Geri-uyum: eski {text} kayıtlarını ödeme şekli alanına taşı.
+      method: typeof r.method === "string" ? r.method : typeof r.text === "string" ? r.text : "",
+      vade: typeof r.vade === "string" ? r.vade : "",
+      desc: typeof r.desc === "string" ? r.desc : "",
       show: r.show !== false,
     }));
 }

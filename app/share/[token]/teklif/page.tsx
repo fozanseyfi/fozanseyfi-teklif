@@ -144,15 +144,22 @@ export default async function ShareTeklifPage({ params }: Props) {
           </div>
 
           {/* Ödeme şekli — yalnız işaretli olanlar */}
-          {(meta.paymentTerms ?? []).filter((p) => p.show && p.text.trim()).length > 0 && (
+          {(meta.paymentTerms ?? []).filter((p) => p.show && (p.method.trim() || p.desc.trim() || p.vade.trim() || p.percent > 0)).length > 0 && (
             <div className="text-[12px]">
               <p className="font-semibold text-slate-700">Ödeme Şekli</p>
               <ul className="mt-1 list-disc space-y-0.5 pl-5 text-slate-600">
                 {(meta.paymentTerms ?? [])
-                  .filter((p) => p.show && p.text.trim())
-                  .map((p) => (
-                    <li key={p.id}>{p.text}</li>
-                  ))}
+                  .filter((p) => p.show && (p.method.trim() || p.desc.trim() || p.vade.trim() || p.percent > 0))
+                  .map((p) => {
+                    const amount = totals.grandTotal * ((p.percent || 0) / 100);
+                    const bits = [
+                      p.method.trim(),
+                      p.vade.trim(),
+                      p.percent > 0 ? `%${fmt(p.percent)} = ${sym}${fmt(amount)}` : "",
+                      p.desc.trim(),
+                    ].filter(Boolean);
+                    return <li key={p.id}>{bits.join(" · ")}</li>;
+                  })}
               </ul>
             </div>
           )}

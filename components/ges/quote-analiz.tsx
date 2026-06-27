@@ -81,13 +81,19 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
     setMeta((p) => ({ ...p, paymentTerms: next }));
   }
   function addPT() {
-    setPT([...paymentTerms, { id: crypto.randomUUID(), text: "", show: true }]);
+    setPT([...paymentTerms, { id: crypto.randomUUID(), percent: 0, method: "", vade: "", desc: "", show: true }]);
+  }
+  function patchPT(id: string, patch: Partial<(typeof paymentTerms)[number]>) {
+    setPT(paymentTerms.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   }
 
   async function handleSave(goNext: boolean) {
     setSaving(true);
     try {
-      const cleanMeta = { ...meta, paymentTerms: paymentTerms.filter((p) => p.text.trim()) };
+      const cleanMeta = {
+        ...meta,
+        paymentTerms: paymentTerms.filter((p) => p.method.trim() || p.desc.trim() || p.vade.trim() || p.percent > 0),
+      };
       await saveQuote(projectId, items, cleanMeta, 3);
       baseline.current = JSON.stringify({ items, meta: cleanMeta });
       toast.success("Analiz kaydedildi");
@@ -274,39 +280,83 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
               </Button>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Birden çok seçenek girip PDF&apos;de yalnızca işaretlediklerini göster.
+              Her ödeme için ayrı satır: yüzde girince KDV dahil tutar otomatik hesaplanır. PDF&apos;de yalnız işaretliler çıkar.
             </p>
             {paymentTerms.length === 0 ? (
               <p className="rounded-md border border-dashed p-3 text-center text-xs text-muted-foreground">
-                Örn. &quot;%50 peşin, %50 teslimde&quot;, &quot;Kredi kartı 6 taksit&quot;, &quot;60 gün vade&quot;
+                Örn. %50 peşin · havale · teslimde · &quot;sözleşme imzasında&quot;
               </p>
             ) : (
               <div className="space-y-2">
-                {paymentTerms.map((pt) => (
-                  <div key={pt.id} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={pt.show}
-                      onChange={(e) => setPT(paymentTerms.map((x) => (x.id === pt.id ? { ...x, show: e.target.checked } : x)))}
-                      className="size-4 accent-primary"
-                      title="PDF'de göster"
-                    />
-                    <Input
-                      className="h-8 flex-1 text-sm"
-                      value={pt.text}
-                      placeholder="örn. %50 peşin, kalan teslimde"
-                      onChange={(e) => setPT(paymentTerms.map((x) => (x.id === pt.id ? { ...x, text: e.target.value } : x)))}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setPT(paymentTerms.filter((x) => x.id !== pt.id))}
-                      className="rounded-md p-1 text-destructive/70 hover:bg-destructive-soft"
-                      aria-label="Sil"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </div>
-                ))}
+                {paymentTerms.map((pt) => {
+                  const amount = totals.grandTotal * ((pt.percent || 0) / 100);
+                  return (
+                    <div key={pt.id} className="rounded-md border p-2">
+                      <div className="flex items-start gap-2">
+                        <input
+                          type="checkbox"
+                          checked={pt.show}
+                          onChange={(e) => patchPT(pt.id, { show: e.target.checked })}
+                          className="mt-2 size-4 shrink-0 accent-primary"
+                          title="PDF'de göster"
+                        />
+                        <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-4">
+                          <div className="space-y-0.5">
+                            <span className="text-[9.5px] uppercase tracking-wide text-muted-foreground">Yüzde %</span>
+                            <Input
+                              type="number"
+                              step="1"
+                              className="h-8 text-sm"
+                              value={pt.percent || ""}
+                              onChange={(e) => patchPT(pt.id, { percent: parseFloat(e.target.value) || 0 })}
+                            />
+                          </div>
+                          <div className="space-y-0.5">
+                            <span className="text-[9.5px] uppercase tracking-wide text-muted-foreground">Tutar (KDV dahil)</span>
+                            <div className="flex h-8 items-center rounded-md bg-muted px-2 text-sm font-semibold tabular-nums">
+                              {sym}{fmt(amount)}
+                            </div>
+                          </div>
+                          <div className="space-y-0.5">
+                            <span className="text-[9.5px] uppercase tracking-wide text-muted-foreground">Ödeme Şekli</span>
+                            <Input
+                              className="h-8 text-sm"
+                              value={pt.method}
+                              placeholder="peşin / havale…"
+                              onChange={(e) => patchPT(pt.id, { method: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-0.5">
+                            <span className="text-[9.5px] uppercase tracking-wide text-muted-foreground">Vade</span>
+                            <Input
+                              className="h-8 text-sm"
+                              value={pt.vade}
+                              placeholder="örn. 60 gün"
+                              onChange={(e) => patchPT(pt.id, { vade: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-0.5 sm:col-span-4">
+                            <span className="text-[9.5px] uppercase tracking-wide text-muted-foreground">Açıklama</span>
+                            <Input
+                              className="h-8 text-sm"
+                              value={pt.desc}
+                              placeholder="opsiyonel açıklama"
+                              onChange={(e) => patchPT(pt.id, { desc: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setPT(paymentTerms.filter((x) => x.id !== pt.id))}
+                          className="mt-1 rounded-md p-1 text-destructive/70 hover:bg-destructive-soft"
+                          aria-label="Sil"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
