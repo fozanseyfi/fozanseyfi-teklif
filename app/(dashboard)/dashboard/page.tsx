@@ -110,10 +110,19 @@ export default async function DashboardPage() {
   }
 
   const totalCount = allVisibleProjects.length;
-  const inProgressCount = projects.filter(
-    (p) => p.status === "IN_PROGRESS" || p.status === "DRAFT",
+  // KPI'lar pipeline aşamasına göre (proje status'ünden bağımsız). Tüm
+  // görünür projeler üzerinden — sadece son 10 değil.
+  const wonCount = allVisibleProjects.filter((p) => p.pipelineStage === "WON").length;
+  const lostCount = allVisibleProjects.filter((p) => p.pipelineStage === "LOST").length;
+  // "Devam Eden": closed won veya lost OLMAYAN her şey (pipeline'a hiç
+  // girmemiş null'lar dahil).
+  const ongoingCount = allVisibleProjects.filter(
+    (p) => p.pipelineStage !== "WON" && p.pipelineStage !== "LOST",
   ).length;
-  const closeWinCount = projects.filter((p) => p.status === "CLOSE_WIN").length;
+  const ongoingPct = totalCount > 0 ? Math.round((ongoingCount / totalCount) * 100) : 0;
+  // Kazanma oranı = won / (won + lost). Henüz kapanan yoksa null.
+  const closedCount = wonCount + lostCount;
+  const winRate = closedCount > 0 ? Math.round((wonCount / closedCount) * 100) : null;
 
   const allWithPrice = allProjects
     .filter((p) => p.totalPowerKw > 0)
@@ -228,14 +237,16 @@ export default async function DashboardPage() {
         <MetricCard
           icon={TrendingUp}
           label="Devam Eden"
-          value={String(inProgressCount)}
+          value={String(ongoingCount)}
           sublabel="taslak / süreçte"
+          pill={totalCount > 0 ? `tüm projelerin %${ongoingPct}'i` : undefined}
         />
         <MetricCard
           icon={CheckCircle}
-          label="Closed Win"
-          value={String(closeWinCount)}
+          label="Closed Won"
+          value={String(wonCount)}
           sublabel="kazanılan proje"
+          pill={winRate !== null ? `kazanma oranı %${winRate}` : undefined}
           accent
         />
       </div>
@@ -373,6 +384,7 @@ function MetricCard({
   value,
   unit,
   sublabel,
+  pill,
   accent = false,
   muted = false,
 }: {
@@ -381,6 +393,7 @@ function MetricCard({
   value: string;
   unit?: string;
   sublabel: string;
+  pill?: string;
   accent?: boolean;
   muted?: boolean;
 }) {
@@ -421,6 +434,16 @@ function MetricCard({
               </span>
             )}
           </p>
+          {pill && (
+            <span
+              className={cn(
+                "inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums",
+                accent ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600",
+              )}
+            >
+              {pill}
+            </span>
+          )}
           <p className="text-[11px] text-slate-500">{sublabel}</p>
         </div>
         <div

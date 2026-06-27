@@ -70,12 +70,21 @@ interface Props {
   activities: ActivityRow[];
 }
 
+// Pipeline sayfasına özel etiketler: WON/LOST burada bilinçli olarak
+// "Closed Won / Closed Lost" gösterilir. Paylaşılan PIPELINE_STAGE_LABELS
+// (projeler tab'i + dashboard) kasıtlı olarak değiştirilmedi.
+const STAGE_LABELS: Record<PipelineStage, string> = {
+  ...PIPELINE_STAGE_LABELS,
+  WON: "Closed Won",
+  LOST: "Closed Lost",
+};
+
 const STAGE_OPTIONS: { value: PipelineStage; label: string }[] = [
-  { value: "SENT", label: "Gönderildi" },
-  { value: "UNDER_REVIEW", label: "İnceleniyor" },
-  { value: "REVISED", label: "Revizyon İstendi" },
-  { value: "WON", label: "Kazanıldı" },
-  { value: "LOST", label: "Kaybedildi" },
+  { value: "SENT", label: STAGE_LABELS.SENT },
+  { value: "UNDER_REVIEW", label: STAGE_LABELS.UNDER_REVIEW },
+  { value: "REVISED", label: STAGE_LABELS.REVISED },
+  { value: "WON", label: STAGE_LABELS.WON },
+  { value: "LOST", label: STAGE_LABELS.LOST },
 ];
 
 const LOST_REASON_OPTIONS: { value: LostReason; label: string }[] = [
@@ -209,7 +218,7 @@ export function PipelineClient({ project, activities }: Props) {
                     PIPELINE_STAGE_TONE[project.pipelineStage],
                   )}
                 >
-                  {PIPELINE_STAGE_LABELS[project.pipelineStage]}
+                  {STAGE_LABELS[project.pipelineStage]}
                 </Badge>
               )}
             </div>
@@ -410,13 +419,13 @@ export function PipelineClient({ project, activities }: Props) {
                         <p className="mt-2 text-[11px] text-muted-foreground">
                           <strong>
                             {a.details.from
-                              ? PIPELINE_STAGE_LABELS[a.details.from as PipelineStage]
+                              ? STAGE_LABELS[a.details.from as PipelineStage]
                               : "—"}
                           </strong>{" "}
                           →{" "}
                           <strong>
                             {a.details.to
-                              ? PIPELINE_STAGE_LABELS[a.details.to as PipelineStage]
+                              ? STAGE_LABELS[a.details.to as PipelineStage]
                               : "—"}
                           </strong>
                           {typeof a.details.reason === "string" && a.details.reason
