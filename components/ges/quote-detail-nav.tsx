@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { User, Package, BarChart3, FileDown, GitBranch, Lock } from "lucide-react";
+import { User, Package, BarChart3, FileDown, GitBranch, Lock, Copy } from "lucide-react";
 
 interface TabDef {
   label: string;
@@ -17,6 +17,7 @@ const TABS: TabDef[] = [
   { label: "Müşteri", href: "", icon: User, minStep: 0 },
   { label: "Kalemler", href: "/items", icon: Package, minStep: 1, lockHint: "Önce müşteri bilgilerini kaydedin" },
   { label: "Analiz", href: "/quote-analiz", icon: BarChart3, minStep: 2, lockHint: "Önce kalemleri kaydedin" },
+  { label: "Revizeler", href: "/revizeler", icon: Copy, minStep: 2, lockHint: "Önce kalemleri kaydedin" },
   { label: "Teklif PDF", href: "/quote-pdf", icon: FileDown, minStep: 2, lockHint: "Önce kalemleri kaydedin" },
   { label: "Pipeline", href: "/pipeline", icon: GitBranch, minStep: 0 },
 ];

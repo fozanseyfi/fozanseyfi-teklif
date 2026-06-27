@@ -2,8 +2,24 @@
 // Client + server her yerden kullanılabilsin diye saf veri (server-only yok).
 
 export type QuoteCurrency = "USD" | "EUR" | "TRY";
-export type QuoteOutputCurrency = "TRY" | "USD";
+export type QuoteOutputCurrency = "TRY" | "USD" | "EUR";
 export type QuoteItemKindT = "MALZEME" | "HIZMET";
+
+/** Ödeme şekli satırı — birden çok tanımlanır, PDF'de yalnız `show` olanlar çıkar. */
+export interface PaymentTerm {
+  id: string;
+  text: string;
+  show: boolean;
+}
+
+/** Teklif revizyonu — her biri bağımsız düzenlenebilir kopya. */
+export interface QuoteRevision {
+  id: string;
+  label: string;
+  createdAt: string; // ISO
+  items: QuoteItem[];
+  meta: QuoteMeta;
+}
 
 export interface QuoteItem {
   id: string;
@@ -28,6 +44,7 @@ export interface QuoteMeta {
   quoteDate?: string; // ISO yyyy-mm-dd
   validityDays?: number;
   notes?: string; // teklif notları (PDF'de gösterilir)
+  paymentTerms?: PaymentTerm[]; // ödeme şekli seçenekleri
 }
 
 export const QUOTE_ITEM_KIND_LABELS: Record<QuoteItemKindT, string> = {
@@ -62,6 +79,7 @@ export function toTRY(amount: number, currency: QuoteCurrency, rates: { usd: num
 export function fromTRY(amountTRY: number, out: QuoteOutputCurrency, rates: { usd: number; eur: number }): number {
   if (out === "TRY") return amountTRY;
   if (out === "USD") return rates.usd ? amountTRY / rates.usd : 0;
+  if (out === "EUR") return rates.eur ? amountTRY / rates.eur : 0;
   return amountTRY;
 }
 
@@ -106,6 +124,9 @@ export interface QuoteTotals {
   // İç özet — her zaman TRY:
   totalCostTRY: number;
   profitTRY: number;
+  saleExKdvTRY: number; // satış (KDV hariç) = maliyet + kâr, TRY
+  malzemeCostTRY: number;
+  hizmetCostTRY: number;
 }
 
 export function computeQuoteTotals(items: QuoteItem[], meta: QuoteMeta): QuoteTotals {
@@ -116,12 +137,20 @@ export function computeQuoteTotals(items: QuoteItem[], meta: QuoteMeta): QuoteTo
   let hizmetSubtotal = 0;
   let totalCostTRY = 0;
   let totalSaleTRY = 0;
+  let malzemeCostTRY = 0;
+  let hizmetCostTRY = 0;
   for (const it of items) {
     const sale = lineTotalSaleOut(it, out, rates);
+    const costTRY = lineTotalCostTRY(it, rates);
     subtotal += sale;
-    if (it.kind === "HIZMET") hizmetSubtotal += sale;
-    else malzemeSubtotal += sale;
-    totalCostTRY += lineTotalCostTRY(it, rates);
+    if (it.kind === "HIZMET") {
+      hizmetSubtotal += sale;
+      hizmetCostTRY += costTRY;
+    } else {
+      malzemeSubtotal += sale;
+      malzemeCostTRY += costTRY;
+    }
+    totalCostTRY += costTRY;
     totalSaleTRY += lineTotalSaleTRY(it, rates);
   }
   const kdv = subtotal * ((meta.kdvRate || 0) / 100);
@@ -135,6 +164,9 @@ export function computeQuoteTotals(items: QuoteItem[], meta: QuoteMeta): QuoteTo
     hizmetSubtotal,
     totalCostTRY,
     profitTRY: totalSaleTRY - totalCostTRY,
+    saleExKdvTRY: totalSaleTRY,
+    malzemeCostTRY,
+    hizmetCostTRY,
   };
 }
 
@@ -170,5 +202,40 @@ export function parseQuoteMeta(raw: unknown): QuoteMeta {
     quoteDate: typeof r.quoteDate === "string" ? r.quoteDate : undefined,
     validityDays: typeof r.validityDays === "number" ? r.validityDays : 30,
     notes: typeof r.notes === "string" ? r.notes : undefined,
+    paymentTerms: parsePaymentTerms(r.paymentTerms),
   };
+}
+
+export function parsePaymentTerms(raw: unknown): PaymentTerm[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((r): r is Record<string, unknown> => typeof r === "object" && r !== null)
+    .map((r, i) => ({
+      id: typeof r.id === "string" ? r.id : `pt-${i}`,
+      text: typeof r.text === "string" ? r.text : "",
+      show: r.show !== false,
+    }));
+}
+
+/**
+ * Revizyonları parse eder. Boşsa, eski/mevcut quoteItems+settings'ten tek bir
+ * "Orijinal" revizyon üretir (geriye-uyumluluk).
+ */
+export function parseQuoteRevisions(
+  raw: unknown,
+  fallbackItems: QuoteItem[],
+  fallbackMeta: QuoteMeta,
+): QuoteRevision[] {
+  if (Array.isArray(raw) && raw.length > 0) {
+    return raw
+      .filter((r): r is Record<string, unknown> => typeof r === "object" && r !== null)
+      .map((r, i) => ({
+        id: typeof r.id === "string" ? r.id : `rev-${i}`,
+        label: typeof r.label === "string" ? r.label : i === 0 ? "Orijinal" : `Revize ${i}`,
+        createdAt: typeof r.createdAt === "string" ? r.createdAt : "",
+        items: parseQuoteItems(r.items),
+        meta: parseQuoteMeta(r.meta),
+      }));
+  }
+  return [{ id: "orig", label: "Orijinal", createdAt: "", items: fallbackItems, meta: fallbackMeta }];
 }

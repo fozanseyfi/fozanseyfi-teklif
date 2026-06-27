@@ -41,7 +41,16 @@ export default async function ProjeDetailPage({ params }: Props) {
 
   // Malzeme & Hizmet teklifi: sade müşteri formu (teknik/keşif yok).
   if (project.quoteKind === "MATERIAL_SERVICE") {
-    return <QuoteCustomerForm project={project} customers={customers} />;
+    const msDetail = await getOrCreateProjectDetail(id);
+    const msSettings = (msDetail.settings as Record<string, unknown> | null) ?? {};
+    return (
+      <QuoteCustomerForm
+        project={project}
+        customers={customers}
+        il={typeof msSettings.il === "string" ? msSettings.il : ""}
+        ilce={typeof msSettings.ilce === "string" ? msSettings.ilce : ""}
+      />
+    );
   }
 
   const detail = await getOrCreateProjectDetail(id);

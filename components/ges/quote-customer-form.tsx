@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Save, ArrowRight, User } from "lucide-react";
 import { toast } from "sonner";
 import { DetailPageHeader } from "@/components/ges/detail-page-header";
+import { CustomerSelect, type Customer } from "@/components/ges/customer-select";
 
 interface Project {
   id: string;
@@ -18,22 +19,18 @@ interface Project {
   customerEmail: string | null;
   customerPhone: string | null;
   customerAddress: string | null;
-  projectLocation: string;
-}
-
-interface CustomerOption {
-  name: string;
-  email: string | null;
-  phone: string | null;
-  address: string | null;
 }
 
 export function QuoteCustomerForm({
   project,
   customers,
+  il,
+  ilce,
 }: {
   project: Project;
-  customers: CustomerOption[];
+  customers: Customer[];
+  il: string;
+  ilce: string;
 }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -43,23 +40,12 @@ export function QuoteCustomerForm({
     customerEmail: project.customerEmail ?? "",
     customerPhone: project.customerPhone ?? "",
     customerAddress: project.customerAddress ?? "",
-    projectLocation: project.projectLocation ?? "",
+    il: il ?? "",
+    ilce: ilce ?? "",
   });
 
   function set(key: keyof typeof form, value: string) {
     setForm((p) => ({ ...p, [key]: value }));
-  }
-
-  // Müşteri adı seçilince diğer alanları otomatik doldur (varsa)
-  function applyCustomer(name: string) {
-    const c = customers.find((x) => x.name === name);
-    setForm((p) => ({
-      ...p,
-      customerName: name,
-      customerEmail: c?.email ?? p.customerEmail,
-      customerPhone: c?.phone ?? p.customerPhone,
-      customerAddress: c?.address ?? p.customerAddress,
-    }));
   }
 
   async function handleSave(goNext: boolean) {
@@ -112,61 +98,46 @@ export function QuoteCustomerForm({
         <CardContent className="grid gap-5 p-6 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
             <Label>Teklif Başlığı</Label>
-            <Input
-              value={form.name}
-              onChange={(e) => set("name", e.target.value)}
-              placeholder="örn. Çatı GES Malzeme Teklifi"
-            />
+            <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="örn. Çatı GES Malzeme Teklifi" />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 sm:col-span-2">
             <Label>
               Müşteri Adı <span className="text-destructive">*</span>
             </Label>
-            <Input
-              list="quote-customers"
+            <CustomerSelect
+              customers={customers}
               value={form.customerName}
-              onChange={(e) => applyCustomer(e.target.value)}
-              placeholder="Firma / kişi adı"
-              required
+              onChange={(v) => set("customerName", v)}
+              onContactFill={(c) =>
+                setForm((p) => ({
+                  ...p,
+                  customerName: c.name,
+                  customerEmail: c.email ?? p.customerEmail,
+                  customerPhone: c.phone ?? p.customerPhone,
+                  customerAddress: c.address ?? p.customerAddress,
+                }))
+              }
             />
-            <datalist id="quote-customers">
-              {customers.map((c) => (
-                <option key={c.name} value={c.name} />
-              ))}
-            </datalist>
           </div>
           <div className="space-y-2">
-            <Label>Lokasyon</Label>
-            <Input
-              value={form.projectLocation}
-              onChange={(e) => set("projectLocation", e.target.value)}
-              placeholder="İl / ilçe (opsiyonel)"
-            />
+            <Label>İl</Label>
+            <Input value={form.il} onChange={(e) => set("il", e.target.value)} placeholder="örn. Ankara" />
+          </div>
+          <div className="space-y-2">
+            <Label>İlçe</Label>
+            <Input value={form.ilce} onChange={(e) => set("ilce", e.target.value)} placeholder="örn. Çankaya" />
           </div>
           <div className="space-y-2">
             <Label>E-posta</Label>
-            <Input
-              type="email"
-              value={form.customerEmail}
-              onChange={(e) => set("customerEmail", e.target.value)}
-              placeholder="ornek@firma.com"
-            />
+            <Input type="email" value={form.customerEmail} onChange={(e) => set("customerEmail", e.target.value)} placeholder="ornek@firma.com" />
           </div>
           <div className="space-y-2">
             <Label>Telefon</Label>
-            <Input
-              value={form.customerPhone}
-              onChange={(e) => set("customerPhone", e.target.value)}
-              placeholder="05xx xxx xx xx"
-            />
+            <Input value={form.customerPhone} onChange={(e) => set("customerPhone", e.target.value)} placeholder="05xx xxx xx xx" />
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label>Adres</Label>
-            <Input
-              value={form.customerAddress}
-              onChange={(e) => set("customerAddress", e.target.value)}
-              placeholder="Açık adres (opsiyonel)"
-            />
+            <Input value={form.customerAddress} onChange={(e) => set("customerAddress", e.target.value)} placeholder="Açık adres (opsiyonel)" />
           </div>
         </CardContent>
       </Card>

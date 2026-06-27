@@ -1,15 +1,14 @@
 import { notFound, redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { QuoteOutput } from "@/components/ges/quote-output";
+import { RevizelerClient } from "@/components/ges/revizeler-client";
 import { parseQuoteItems, parseQuoteMeta, parseQuoteRevisions } from "@/lib/quote";
-import { parseBrandSettings } from "@/lib/pdf-brand";
 
 interface Props {
   params: Promise<{ id: string }>;
 }
 
-export default async function QuotePdfPage({ params }: Props) {
+export default async function RevizelerPage({ params }: Props) {
   const { id } = await params;
   const user = await requireAuth();
 
@@ -22,11 +21,6 @@ export default async function QuotePdfPage({ params }: Props) {
     redirect(`/projects/${id}/detail`);
   }
 
-  const org = await prisma.organization.findUnique({
-    where: { id: user.organizationId },
-    select: { name: true, brandSettings: true },
-  });
-
   const revisions = parseQuoteRevisions(
     project.projectDetail?.quoteRevisions,
     parseQuoteItems(project.projectDetail?.quoteItems),
@@ -34,20 +28,6 @@ export default async function QuotePdfPage({ params }: Props) {
   );
 
   return (
-    <QuoteOutput
-      projectId={id}
-      quoteTitle={project.name || "Teklif"}
-      customer={{
-        name: project.customerName,
-        email: project.customerEmail,
-        phone: project.customerPhone,
-        address: project.customerAddress,
-        location: project.projectLocation,
-      }}
-      revisions={revisions}
-      brand={parseBrandSettings(org?.brandSettings)}
-      firmName={org?.name ?? "Firma"}
-      userEmail={user.email ?? ""}
-    />
+    <RevizelerClient projectId={id} projectName={project.name || "Teklif"} revisions={revisions} />
   );
 }

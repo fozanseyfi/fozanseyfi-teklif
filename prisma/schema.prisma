@@ -305,8 +305,11 @@ model ProjectDetail {
   dor       Json     @default("[]")
   settings  Json     @default("{}")
   // Malzeme & Hizmet teklifi kalemleri (MATERIAL_SERVICE projelerinde kullanılır).
-  // Her kalem: { id, kind, code, name, unit, qty, currency, unitCost, marginPct, notes }
+  // Her kalem: { id, kind, code, name, desc, unit, qty, currency, unitCost, marginPct }
+  // quoteItems + settings = SON revizyonun aynası (geriye-uyumlu okuma için).
   quoteItems Json    @default("[]") @map("quote_items")
+  // Teklif revizyonları: [{ id, label, createdAt, items, meta }]. Son eleman aktif.
+  quoteRevisions Json @default("[]") @map("quote_revisions")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

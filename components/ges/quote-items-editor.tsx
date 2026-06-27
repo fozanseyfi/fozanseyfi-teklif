@@ -13,13 +13,12 @@ import { toast } from "sonner";
 import { DetailPageHeader } from "@/components/ges/detail-page-header";
 import { CatalogCombobox } from "@/components/ges/catalog-combobox";
 import type { CatalogItemDTO } from "@/app/actions/materials";
+import { Textarea } from "@/components/ui/textarea";
 import {
   type QuoteItem,
   type QuoteMeta,
   type QuoteCurrency,
-  type QuoteOutputCurrency,
   convert,
-  currencySymbol,
   QUOTE_ITEM_KIND_LABELS,
 } from "@/lib/quote";
 
@@ -47,9 +46,9 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
   const isDirty = JSON.stringify({ items, meta }) !== baseline.current;
   useDirtyTracker(isDirty);
 
-  const out: QuoteOutputCurrency = meta.outputCurrency || "TRY";
+  // Kalemler sayfasında tutarlar her zaman ₺ (maliyet bazı) gösterilir;
+  // teklif para birimi/satış fiyatı Analiz sekmesinde belirlenir.
   const rates = { usd: meta.usd, eur: meta.eur };
-  const sym = currencySymbol(out);
 
   async function refreshFx(silent = false) {
     setFxLoading(true);
@@ -100,8 +99,8 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
     setItems((p) => p.filter((it) => it.id !== id));
   }
 
-  const totalCostOut = items.reduce(
-    (s, it) => s + convert(it.unitCost, it.currency, out, rates) * (it.qty || 0),
+  const totalCostTRY = items.reduce(
+    (s, it) => s + convert(it.unitCost, it.currency, "TRY", rates) * (it.qty || 0),
     0,
   );
 
@@ -177,17 +176,9 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
             <RefreshCw className={cn("size-3", fxLoading && "animate-spin")} />
             Güncel kuru çek
           </button>
-          <div className="ml-auto flex items-center gap-2">
-            <span className="text-xs font-semibold text-foreground">Teklif Para Birimi</span>
-            <select
-              className="h-8 rounded-md border bg-card px-2 text-sm font-semibold"
-              value={out}
-              onChange={(e) => setMeta((p) => ({ ...p, outputCurrency: e.target.value as QuoteOutputCurrency }))}
-            >
-              <option value="TRY">₺ TL</option>
-              <option value="USD">$ USD</option>
-            </select>
-          </div>
+          <p className="ml-auto text-[11px] text-muted-foreground">
+            Teklif para birimi ve kâr oranları <strong className="text-foreground">Analiz</strong> sekmesinde.
+          </p>
         </CardContent>
       </Card>
 
@@ -224,7 +215,7 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
                     <th className="w-20 px-2 py-2 text-right">Miktar</th>
                     <th className="w-16 px-2 py-2 text-center">Para</th>
                     <th className="w-28 px-2 py-2 text-right">Birim Maliyet</th>
-                    <th className="w-28 px-2 py-2 text-right">Tutar ({sym})</th>
+                    <th className="w-28 px-2 py-2 text-right">Tutar (₺)</th>
                     <th className="w-8 px-2 py-2" data-edit-only />
                   </tr>
                 </thead>
@@ -246,10 +237,11 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
                         </span>
                       </td>
                       <td className="px-2 py-1.5 align-top">
-                        <Input
-                          className={inputCls}
+                        <Textarea
+                          rows={1}
+                          className="min-h-8 resize-y py-1 text-sm [field-sizing:content]"
                           value={it.desc ?? ""}
-                          placeholder="Açıklama (opsiyonel)"
+                          placeholder="Açıklama — satır atlayabilirsin"
                           onChange={(e) => update(it.id, { desc: e.target.value })}
                         />
                       </td>
@@ -283,8 +275,7 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
                         />
                       </td>
                       <td className="px-2 py-1.5 text-right align-top font-semibold tabular-nums">
-                        {sym}
-                        {fmt(convert(it.unitCost, it.currency, out, rates) * (it.qty || 0))}
+                        ₺{fmt(convert(it.unitCost, it.currency, "TRY", rates) * (it.qty || 0))}
                       </td>
                       <td className="px-2 py-1.5 text-center align-top" data-edit-only>
                         <button
@@ -306,7 +297,7 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
             <p className="text-sm">
               Toplam Maliyet:{" "}
               <span className="font-semibold tabular-nums">
-                {sym}{fmt(totalCostOut)}
+                ₺{fmt(totalCostTRY)}
               </span>
               {fxLoading && <Loader2 className="ml-2 inline size-3 animate-spin text-muted-foreground" />}
             </p>

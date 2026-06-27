@@ -95,6 +95,18 @@ export function buildQuotePrintHtml({
 
   const contactLine = [customer.email, customer.phone].filter(Boolean).join(" · ");
 
+  // Ödeme şekli — yalnız işaretli (show) satırlar.
+  const pts = (meta.paymentTerms ?? []).filter((p) => p.show && p.text.trim());
+  const paymentTermsHtml = pts.length
+    ? `<div class="block"><div class="blk-ttl">Ödeme Şekli</div><ul>${pts.map((p) => `<li>${esc(p.text)}</li>`).join("")}</ul></div>`
+    : "";
+
+  // Teklif notları — her satır ayrı madde.
+  const noteLines = (meta.notes ?? "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const notesHtml = noteLines.length
+    ? `<div class="block"><div class="blk-ttl">Notlar</div><ul>${noteLines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>`
+    : "";
+
   return `<!DOCTYPE html>
 <html lang="tr"><head><meta charset="utf-8"/>
 <title>${esc(quoteTitle)}</title>
@@ -126,6 +138,10 @@ export function buildQuotePrintHtml({
   .totals .row { display:flex; justify-content:space-between; padding:4px 9px; font-size:12px; }
   .totals .grand { background:${accentLight}; color:${accent}; font-weight:800; font-size:14px; border-radius:6px; margin-top:4px; }
   .note { margin-top:14px; font-size:10px; color:#64748b; }
+  .block { margin-top:14px; page-break-inside:avoid; break-inside:avoid; }
+  .blk-ttl { font-size:11px; font-weight:700; color:#334155; margin-bottom:4px; }
+  .block ul { margin:0; padding-left:18px; }
+  .block li { font-size:11px; color:#475569; margin:2px 0; white-space:pre-line; }
   .approve { margin-top:26px; border:1.5px dashed #cbd5e1; border-radius:8px; padding:14px 16px; page-break-inside:avoid; break-inside:avoid; }
   .approve .ttl { font-size:11px; font-weight:700; color:#334155; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
   .approve .box { width:14px; height:14px; border:1.5px solid #475569; border-radius:3px; display:inline-block; }
@@ -140,7 +156,7 @@ export function buildQuotePrintHtml({
     <div>
       ${brandRowHtml(brand, firmName)}
       <h1>${esc(quoteTitle)}</h1>
-      <div class="sub">${dateStr} · ${items.length} kalem · Teklif para birimi: ${out === "USD" ? "USD" : "TL"}</div>
+      <div class="sub">${dateStr} · ${items.length} kalem · Teklif para birimi: ${out === "TRY" ? "TL" : out}</div>
     </div>
     <div class="total-badge">
       <div class="label">Genel Toplam</div>
@@ -183,8 +199,8 @@ export function buildQuotePrintHtml({
       <div class="row grand"><span>GENEL TOPLAM</span><span>${sym}${fmt(totals.grandTotal)}</span></div>
     </div>
 
-    ${meta.notes ? `<div class="note"><strong>Notlar:</strong> ${esc(meta.notes)}</div>` : ""}
-    <div class="note">Tutarlar ${out === "USD" ? "ABD Doları ($)" : "Türk Lirası (₺)"} cinsindendir. ${meta.kdvRate > 0 ? "KDV ayrı satırda gösterilmiştir." : "KDV uygulanmamıştır."}</div>
+    ${paymentTermsHtml}
+    ${notesHtml}
 
     <div class="approve">
       <div class="ttl"><span class="box"></span> Bu teklifi okudum, kabul ediyorum.</div>
@@ -197,5 +213,9 @@ export function buildQuotePrintHtml({
   </div>
 
   ${brandFooterHtml(brand, firmName, userEmail, docId)}
+  <script>
+    // Logo/görseller yüklendikten sonra yazdır (logo eksik çıkmasın).
+    window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 200); });
+  </script>
 </body></html>`;
 }

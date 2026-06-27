@@ -26,6 +26,7 @@ export default async function ShareLinksPage() {
         name: true,
         customerName: true,
         status: true,
+        quoteKind: true,
         projectDetail: { select: { settings: true } },
       },
     }),

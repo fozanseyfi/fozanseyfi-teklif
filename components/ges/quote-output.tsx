@@ -1,18 +1,19 @@
 "use client";
 
-import { Fragment, useMemo } from "react";
+import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { FileDown, Share2 } from "lucide-react";
 import { DetailPageHeader } from "@/components/ges/detail-page-header";
 import { resolveBrand, type BrandSettings } from "@/lib/pdf-brand";
 import { buildQuotePrintHtml } from "@/lib/share-print/quote";
 import {
-  type QuoteItem,
-  type QuoteMeta,
+  type QuoteRevision,
   type QuoteOutputCurrency,
   type QuoteItemKindT,
+  type QuoteItem,
   computeQuoteTotals,
   lineUnitSaleOut,
   lineTotalSaleOut,
@@ -29,8 +30,7 @@ interface Props {
     address: string | null;
     location: string | null;
   };
-  items: QuoteItem[];
-  meta: QuoteMeta;
+  revisions: QuoteRevision[];
   brand: BrandSettings;
   firmName: string;
   userEmail: string;
@@ -40,20 +40,26 @@ function fmt(n: number, d = 0) {
   return n.toLocaleString("tr-TR", { minimumFractionDigits: d, maximumFractionDigits: d });
 }
 
-export function QuoteOutput({ projectId, quoteTitle, customer, items, meta, brand, firmName, userEmail }: Props) {
+export function QuoteOutput({ projectId, quoteTitle, customer, revisions, brand, firmName, userEmail }: Props) {
   const brandCtx = useMemo(() => resolveBrand(brand), [brand]);
-  const totals = computeQuoteTotals(items, meta);
-  const out: QuoteOutputCurrency = meta.outputCurrency || "TRY";
-  const rates = { usd: meta.usd, eur: meta.eur };
-  const sym = totals.symbol;
+  const [selId, setSelId] = useState(revisions[revisions.length - 1]?.id ?? "");
+  const selected = revisions.find((r) => r.id === selId) ?? revisions[revisions.length - 1];
+
+  const items = selected?.items ?? [];
+  const meta = selected?.meta;
+  const totals = meta ? computeQuoteTotals(items, meta) : null;
+  const out: QuoteOutputCurrency = meta?.outputCurrency || "TRY";
+  const rates = { usd: meta?.usd ?? 0, eur: meta?.eur ?? 0 };
+  const sym = totals?.symbol ?? "₺";
 
   function downloadPdf() {
+    if (!meta) return;
     const html = buildQuotePrintHtml({ quoteTitle, customer, items, meta, brand: brandCtx, firmName, userEmail });
     const w = window.open("", "_blank");
     if (!w) return;
     w.document.write(html);
     w.document.close();
-    setTimeout(() => w.print(), 300);
+    // Yazdırma HTML içindeki window.onload script'i ile (görseller yüklenince) tetiklenir.
   }
 
   const empty = items.length === 0;
@@ -64,6 +70,7 @@ export function QuoteOutput({ projectId, quoteTitle, customer, items, meta, bran
     ] as { kind: QuoteItemKindT; rows: QuoteItem[] }[]
   ).filter((g) => g.rows.length > 0);
   const showGroups = groups.length > 1;
+  const hasRevisions = revisions.length > 1;
 
   return (
     <div className="space-y-4">
@@ -85,7 +92,27 @@ export function QuoteOutput({ projectId, quoteTitle, customer, items, meta, bran
         }
       />
 
-      {empty ? (
+      {hasRevisions && (
+        <Card>
+          <CardContent className="flex flex-wrap items-center gap-3 p-4">
+            <Label className="text-sm font-medium">Hangi revizenin çıktısı?</Label>
+            <select
+              className="h-9 rounded-md border bg-card px-2 text-sm font-semibold"
+              value={selId}
+              onChange={(e) => setSelId(e.target.value)}
+            >
+              {revisions.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs text-muted-foreground">PDF ve önizleme seçilen revizeyi gösterir.</span>
+          </CardContent>
+        </Card>
+      )}
+
+      {empty || !totals ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
             Henüz kalem yok. Önce <strong>Kalemler</strong> sekmesinden kalem ekleyin.
@@ -101,7 +128,6 @@ export function QuoteOutput({ projectId, quoteTitle, customer, items, meta, bran
               </p>
             </div>
 
-            {/* Kalem listesi */}
             <div className="overflow-x-auto rounded-lg border">
               <table className="w-full text-xs">
                 <thead>
@@ -126,17 +152,13 @@ export function QuoteOutput({ projectId, quoteTitle, customer, items, meta, bran
                         <tr key={it.id}>
                           <td className="px-3 py-2">
                             <span className="font-medium">{it.name || it.code}</span>
-                            {it.desc && <span className="block text-[11px] text-muted-foreground">{it.desc}</span>}
+                            {it.desc && <span className="block whitespace-pre-line text-[11px] text-muted-foreground">{it.desc}</span>}
                           </td>
                           <td className="whitespace-nowrap px-3 py-2 text-right text-muted-foreground">
                             {fmt(it.qty, it.qty % 1 === 0 ? 0 : 2)} {it.unit}
                           </td>
-                          <td className="whitespace-nowrap px-3 py-2 text-right">
-                            {sym}{fmt(lineUnitSaleOut(it, out, rates), 2)}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-2 text-right font-semibold">
-                            {sym}{fmt(lineTotalSaleOut(it, out, rates))}
-                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 text-right">{sym}{fmt(lineUnitSaleOut(it, out, rates), 2)}</td>
+                          <td className="whitespace-nowrap px-3 py-2 text-right font-semibold">{sym}{fmt(lineTotalSaleOut(it, out, rates))}</td>
                         </tr>
                       ))}
                     </Fragment>
@@ -161,8 +183,7 @@ export function QuoteOutput({ projectId, quoteTitle, customer, items, meta, bran
             </div>
 
             <p className="text-xs text-muted-foreground">
-              PDF müşteriye satış fiyatı ve KDV gösterir; maliyet/kâr görünmez. Paylaşım linki için{" "}
-              <strong>Paylaşım Linki</strong> sayfasından bu teklifi seçip &quot;Teklif&quot; sekmesini işaretleyin.
+              PDF müşteriye satış fiyatı ve KDV gösterir; maliyet/kâr görünmez.
             </p>
           </CardContent>
         </Card>

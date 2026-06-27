@@ -3,9 +3,37 @@
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import { getProjectAccess } from "@/lib/project-access";
-import { parseQuoteItems, parseQuoteMeta, type QuoteItem } from "@/lib/quote";
+import {
+  parseQuoteItems,
+  parseQuoteMeta,
+  parseQuoteRevisions,
+  type QuoteItem,
+  type QuoteMeta,
+} from "@/lib/quote";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { randomBytes } from "crypto";
+
+// meta alanlarını settings JSON'una yansıtır (mirror = son revizyon).
+function metaToSettings(
+  base: Record<string, unknown>,
+  meta: QuoteMeta,
+  quoteStep: number,
+): Record<string, unknown> {
+  return {
+    ...base,
+    usd: meta.usd,
+    eur: meta.eur,
+    kdvRate: meta.kdvRate,
+    outputCurrency: meta.outputCurrency,
+    quoteNo: meta.quoteNo,
+    quoteDate: meta.quoteDate,
+    validityDays: meta.validityDays,
+    notes: meta.notes,
+    paymentTerms: meta.paymentTerms ?? [],
+    quoteStep,
+  };
+}
 
 /**
  * Yeni bir Malzeme & Hizmet teklifi oluşturur ve müşteri sayfasına yönlendirir.
@@ -54,7 +82,10 @@ export async function saveQuoteCustomer(projectId: string, formData: FormData) {
   const customerEmail = ((formData.get("customerEmail") as string) ?? "").trim();
   const customerPhone = ((formData.get("customerPhone") as string) ?? "").trim();
   const customerAddress = ((formData.get("customerAddress") as string) ?? "").trim();
-  const projectLocation = ((formData.get("projectLocation") as string) ?? "").trim();
+  const il = ((formData.get("il") as string) ?? "").trim();
+  const ilce = ((formData.get("ilce") as string) ?? "").trim();
+  // Lokasyon = il + ilçe birleşimi (projeler sayfası/harita projectLocation kullanır).
+  const projectLocation = [il, ilce].filter(Boolean).join(" / ");
 
   const detail = await prisma.projectDetail.findUnique({
     where: { projectId },
@@ -62,6 +93,7 @@ export async function saveQuoteCustomer(projectId: string, formData: FormData) {
   });
   const settings = (detail?.settings as Record<string, unknown> | null) ?? {};
   const nextStep = Math.max(1, Number(settings.quoteStep) || 0);
+  const nextSettings = { ...settings, il, ilce, quoteStep: nextStep };
 
   await prisma.project.update({
     where: { id: projectId },
@@ -76,10 +108,10 @@ export async function saveQuoteCustomer(projectId: string, formData: FormData) {
         upsert: {
           create: {
             quoteItems: [] as never,
-            settings: { ...settings, quoteStep: nextStep } as never,
+            settings: nextSettings as never,
           },
           update: {
-            settings: { ...settings, quoteStep: nextStep } as never,
+            settings: nextSettings as never,
           },
         },
       },
@@ -110,34 +142,32 @@ export async function saveQuote(
 
   const detail = await prisma.projectDetail.findUnique({
     where: { projectId },
-    select: { settings: true },
+    select: { settings: true, quoteItems: true, quoteRevisions: true },
   });
   const settings = (detail?.settings as Record<string, unknown> | null) ?? {};
   const nextStep = Math.max(Number(settings.quoteStep) || 0, reachStep);
 
-  // settings = mevcut + meta alanları + quoteStep
-  const nextSettings = {
-    ...settings,
-    usd: meta.usd,
-    eur: meta.eur,
-    kdvRate: meta.kdvRate,
-    outputCurrency: meta.outputCurrency,
-    quoteNo: meta.quoteNo,
-    quoteDate: meta.quoteDate,
-    validityDays: meta.validityDays,
-    notes: meta.notes,
-    quoteStep: nextStep,
-  };
+  // Düzenleme her zaman SON revizyona yazılır; quoteItems+settings = son revizyon aynası.
+  const revisions = parseQuoteRevisions(
+    detail?.quoteRevisions,
+    parseQuoteItems(detail?.quoteItems),
+    parseQuoteMeta(detail?.settings),
+  );
+  revisions[revisions.length - 1] = { ...revisions[revisions.length - 1], items, meta };
+
+  const nextSettings = metaToSettings(settings, meta, nextStep);
 
   await prisma.projectDetail.upsert({
     where: { projectId },
     create: {
       projectId,
       quoteItems: items as never,
+      quoteRevisions: revisions as never,
       settings: nextSettings as never,
     },
     update: {
       quoteItems: items as never,
+      quoteRevisions: revisions as never,
       settings: nextSettings as never,
     },
   });
@@ -148,6 +178,54 @@ export async function saveQuote(
   revalidatePath(`/projects/${projectId}/detail`);
   revalidatePath("/projects");
   revalidatePath("/dashboard");
+}
+
+/**
+ * Mevcut son revizyonun kopyasını yeni bir revizyon olarak ekler. Yeni revizyon
+ * aktif (düzenlenebilir) olur; quoteItems+settings ona aynalanır. Kullanıcı
+ * Kalemler/Analiz'de bu yeni revizyonu serbestçe düzenler (kalem ekle/çıkar).
+ */
+export async function createRevision(projectId: string): Promise<{ id: string }> {
+  const isoNow = new Date().toISOString();
+  await assertQuoteEditable(projectId);
+
+  const detail = await prisma.projectDetail.findUnique({
+    where: { projectId },
+    select: { settings: true, quoteItems: true, quoteRevisions: true },
+  });
+  const settings = (detail?.settings as Record<string, unknown> | null) ?? {};
+  const revisions = parseQuoteRevisions(
+    detail?.quoteRevisions,
+    parseQuoteItems(detail?.quoteItems),
+    parseQuoteMeta(detail?.settings),
+  );
+  const last = revisions[revisions.length - 1];
+  const newId = randomBytes(8).toString("base64url");
+  const newRev = {
+    id: newId,
+    label: `Revize ${revisions.length}`,
+    createdAt: isoNow,
+    items: last.items.map((it) => ({ ...it })),
+    meta: { ...last.meta },
+  };
+  revisions.push(newRev);
+
+  const nextStep = Math.max(Number(settings.quoteStep) || 0, 2);
+  const nextSettings = metaToSettings(settings, newRev.meta, nextStep);
+
+  await prisma.projectDetail.update({
+    where: { projectId },
+    data: {
+      quoteItems: newRev.items as never,
+      quoteRevisions: revisions as never,
+      settings: nextSettings as never,
+    },
+  });
+
+  revalidatePath(`/projects/${projectId}/detail`);
+  revalidatePath("/projects");
+  revalidatePath("/dashboard");
+  return { id: newId };
 }
 
 // Teklifte kullanılan kodları kataloğa (fiyatsız) garanti et — inline "yeni
