@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateProjectDetail } from "@/app/actions/ges";
 import { ProjeBilgileriForm } from "@/components/ges/proje-bilgileri-form";
+import { QuoteCustomerForm } from "@/components/ges/quote-customer-form";
 import type { GesSettings } from "@/lib/ges-defaults";
 
 interface Props {
@@ -17,9 +18,6 @@ export default async function ProjeDetailPage({ params }: Props) {
     where: { id, organizationId: user.organizationId },
   });
   if (!project) notFound();
-
-  const detail = await getOrCreateProjectDetail(id);
-  const settings = detail.settings as unknown as GesSettings;
 
   // Derive unique customers from all projects of this firm
   const projectsWithCustomers = await prisma.project.findMany({
@@ -40,6 +38,14 @@ export default async function ProjeDetailPage({ params }: Props) {
     }
   }
   const customers = Array.from(customerMap.values());
+
+  // Malzeme & Hizmet teklifi: sade müşteri formu (teknik/keşif yok).
+  if (project.quoteKind === "MATERIAL_SERVICE") {
+    return <QuoteCustomerForm project={project} customers={customers} />;
+  }
+
+  const detail = await getOrCreateProjectDetail(id);
+  const settings = detail.settings as unknown as GesSettings;
 
   return (
     <ProjeBilgileriForm

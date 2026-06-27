@@ -5,6 +5,7 @@ export type ShareTab =
   | "firma"
   | "referanslar"
   | "belgeler"
+  | "teklif"
   | "kesif-a"
   | "kesif-b"
   | "boq-unpriced"
@@ -26,6 +27,7 @@ export const SHARE_TABS: ShareTabInfo[] = [
   { id: "firma", label: "Firma Tanıtımı" },
   { id: "referanslar", label: "Referanslar" },
   { id: "belgeler", label: "Belgeler" },
+  { id: "teklif", label: "Teklif (Malzeme & Hizmet)" },
   { id: "kesif-a", label: "Keşif-A", sensitive: true },
   { id: "kesif-b", label: "Keşif-B", sensitive: true },
   { id: "boq-unpriced", label: "Fiyatsız BoQ" },

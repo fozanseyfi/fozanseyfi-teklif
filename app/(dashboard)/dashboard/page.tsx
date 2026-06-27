@@ -219,9 +219,9 @@ export default async function DashboardPage() {
         )}
         <MetricCard
           icon={FolderOpen}
-          label="Tüm Projeler"
+          label="Toplam Teklif"
           value={String(totalCount)}
-          sublabel="toplam proje"
+          sublabel="proje + malzeme/hizmet"
         />
         <MetricCard
           icon={TrendingUp}

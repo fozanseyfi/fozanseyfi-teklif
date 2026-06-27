@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateProjectDetail } from "@/app/actions/ges";
@@ -14,6 +14,10 @@ export default async function TeklifPage({ params }: Props) {
   const user = await requireAuth();
   const project = await prisma.project.findFirst({ where: { id, organizationId: user.organizationId } });
   if (!project) notFound();
+  // Malzeme & Hizmet teklifi bu turnkey teklif editörünü kullanmaz.
+  if (project.quoteKind === "MATERIAL_SERVICE") {
+    redirect(`/projects/${id}/detail/quote-pdf`);
+  }
   const detail = await getOrCreateProjectDetail(id);
   return (
     <TeklifEditor

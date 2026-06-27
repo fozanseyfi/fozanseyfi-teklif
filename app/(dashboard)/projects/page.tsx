@@ -234,7 +234,9 @@ export default async function ProjectsPage({ searchParams }: Props) {
                             <div>
                               <p className="font-medium text-foreground">{project.name}</p>
                               <p className="mt-0.5 text-xs text-muted-foreground">
-                                {INSTALLATION_TYPE_LABELS[project.installationType]}
+                                {project.quoteKind === "MATERIAL_SERVICE"
+                                  ? "Malzeme & Hizmet"
+                                  : INSTALLATION_TYPE_LABELS[project.installationType]}
                               </p>
                             </div>
                           </div>

@@ -188,6 +188,10 @@ model Project {
   status      ProjectStatus @default(DRAFT)
   currentStep Int           @default(1)
 
+  // Teklif tipi: TURNKEY = anahtar teslim GES projesi (teknik+keşif+timeline
+  // akışı), MATERIAL_SERVICE = malzeme & hizmet teklifi (sade kalem listesi).
+  quoteKind   ProjectKind   @default(TURNKEY) @map("quote_kind")
+
   // Satış pipeline'ı — Project.status'tan AYRI bir eksen. status proje yaşam
   // döngüsü (taslak/devam/tamamlandı), pipelineStage satış sürecidir
   // (gönderildi → inceleniyor → revizyon → kazanıldı/kaybedildi).
@@ -300,6 +304,9 @@ model ProjectDetail {
   timeline  Json     @default("{}")
   dor       Json     @default("[]")
   settings  Json     @default("{}")
+  // Malzeme & Hizmet teklifi kalemleri (MATERIAL_SERVICE projelerinde kullanılır).
+  // Her kalem: { id, kind, code, name, unit, qty, currency, unitCost, marginPct, notes }
+  quoteItems Json    @default("[]") @map("quote_items")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -338,6 +345,43 @@ enum ProjectStatus {
   CLOSE_LOST
   CANCELLED
 
+  @@schema("solar")
+}
+
+/// Teklif tipi — anahtar teslim GES projesi mi yoksa malzeme/hizmet teklifi mi.
+enum ProjectKind {
+  TURNKEY           // Anahtar teslim GES projesi (tam akış)
+  MATERIAL_SERVICE  // Malzeme & hizmet teklifi (sade kalem listesi)
+
+  @@schema("solar")
+}
+
+/// Malzeme/hizmet kalemi türü.
+enum QuoteItemKind {
+  MALZEME
+  HIZMET
+
+  @@schema("solar")
+}
+
+/// Firma geneli malzeme/hizmet kataloğu — kalem kodu anahtardır. Kullanıcı
+/// teklif kalemi girdikçe buraya upsert edilir; kod tekrar girildiğinde
+/// ad/birim/son fiyat otomatik gelir.
+model MaterialCatalogItem {
+  id             String        @id @default(cuid())
+  organizationId String        @map("organization_id") @db.Uuid
+  code           String
+  name           String
+  unit           String        @default("adet")
+  kind           QuoteItemKind @default(MALZEME)
+  lastUnitCost   Float         @default(0) @map("last_unit_cost")
+  currency       String        @default("USD")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@map("material_catalog_items")
   @@schema("solar")
 }
 

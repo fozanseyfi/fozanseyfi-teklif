@@ -3,8 +3,9 @@ import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getProjectAccess } from "@/lib/project-access";
 import { GesDetailNav } from "@/components/ges/ges-detail-nav";
+import { QuoteDetailNav } from "@/components/ges/quote-detail-nav";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, User, Zap, Sparkles, LayoutTemplate, Lock, Unlock, GitBranch } from "lucide-react";
+import { MapPin, User, Zap, Sparkles, LayoutTemplate, Lock, Unlock, GitBranch, Package } from "lucide-react";
 import { PIPELINE_STAGE_LABELS, PIPELINE_STAGE_TONE } from "@/lib/pipeline-labels";
 import type { GesSettings, KesifGroup } from "@/lib/ges-defaults";
 import { useTemplate, setTemplateLock } from "@/app/actions/templates";
@@ -69,6 +70,10 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
   const settingsRecord = (project.projectDetail?.settings as Record<string, unknown> | undefined) ?? {};
   const gesStep = isTemplate ? 5 : Math.max(0, Number(settingsRecord.gesStep) || 0);
 
+  // Malzeme & Hizmet teklifi: ayrı (sade) akış. quoteStep: 1=müşteri, 2=kalemler, 3=analiz.
+  const isMaterialService = project.quoteKind === "MATERIAL_SERVICE";
+  const quoteStep = Math.max(0, Number(settingsRecord.quoteStep) || 0);
+
   // Progress gates — gesStep'e gore. Sablon haricinde, sadece ileri-advance
   // ile sekmeler acilir (hem yeni proje hem sablon klonu).
   const progress = {
@@ -88,7 +93,7 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
     project.status === "COMPLETED" ||
     project.status === "CLOSE_WIN" ||
     project.status === "CLOSE_LOST" ||
-    gesStep >= 5;
+    (isMaterialService ? quoteStep >= 3 : gesStep >= 5);
   const statusLabel = isCompleted ? "Tamamlandı" : project.status === "CANCELLED" ? "İptal" : "Taslak";
   const statusVariant: "success" | "secondary" | "destructive" =
     isCompleted ? "success" : project.status === "CANCELLED" ? "destructive" : "secondary";
@@ -125,7 +130,7 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
           sekmelerini Kaydet & İlerle ile gecmeden detail'den ayrilirsa
           projeyi DB'den sessizce siler. Sablonlar etkilenmez (gesStep=5
           set edilir). */}
-      {!isTemplate && gesStep < 2 && (
+      {!isTemplate && !isMaterialService && gesStep < 2 && (
         <UnstartedProjectCleanup projectId={id} initialGesStep={gesStep} />
       )}
       {/* Tek bir kompakt kart — emerald-soft tonlu, header + nav birleşik;
@@ -146,7 +151,9 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
           )}>
             {isTemplate
               ? <LayoutTemplate className="size-3.5" strokeWidth={2.5} />
-              : <Zap className="size-3.5" strokeWidth={2.5} />}
+              : isMaterialService
+                ? <Package className="size-3.5" strokeWidth={2.5} />
+                : <Zap className="size-3.5" strokeWidth={2.5} />}
           </div>
           <h1 className="min-w-0 max-w-[280px] truncate text-[13px] font-bold leading-tight tracking-tight text-foreground">
             {project.name || "İsimsiz Proje"}
@@ -254,7 +261,11 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
 
         {/* Alt: nav stages — emerald-soft tone, ferah padding */}
         <div className="px-4 py-3">
-          <GesDetailNav projectId={id} progress={progress} />
+          {isMaterialService ? (
+            <QuoteDetailNav projectId={id} step={quoteStep} />
+          ) : (
+            <GesDetailNav projectId={id} progress={progress} />
+          )}
         </div>
       </div>
 

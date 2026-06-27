@@ -27,6 +27,7 @@ export interface ShareContext {
     settings: unknown;
     timeline: unknown;
     dor: unknown;
+    quoteItems: unknown;
   };
   firmName: string;
   brand: BrandSettings;
@@ -139,6 +140,7 @@ export const loadShareContext = cache(async (token: string): Promise<ShareContex
       settings: detail?.settings ?? {},
       timeline: detail?.timeline ?? {},
       dor: detail?.dor ?? [],
+      quoteItems: detail?.quoteItems ?? [],
     },
     firmName: link.organization.name,
     brand,

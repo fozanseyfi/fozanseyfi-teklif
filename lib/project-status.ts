@@ -28,9 +28,14 @@ export function isCompletionStatus(status: string): boolean {
  */
 export function isProjectVisible(p: {
   status: string;
+  quoteKind?: string | null;
   projectDetail?: { settings?: unknown } | null;
 }): boolean {
   const settings = (p.projectDetail?.settings as Record<string, unknown> | undefined) ?? {};
+  // Malzeme & Hizmet teklifi: müşteri + kalemler kaydedilince (quoteStep>=2) görünür.
+  if (p.quoteKind === "MATERIAL_SERVICE") {
+    return (Number(settings.quoteStep) || 0) >= 2;
+  }
   const gesStep = Number(settings.gesStep) || 0;
   if (gesStep >= 2) return true;
   // Eski projeler icin fallback: gesStep yokken bile status COMPLETED ise
