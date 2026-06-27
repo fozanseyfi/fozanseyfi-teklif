@@ -4,19 +4,21 @@
 import type { ActivityType, PipelineStage } from "@prisma/client";
 
 export const PIPELINE_STAGE_LABELS: Record<PipelineStage, string> = {
-  SENT: "Gönderildi",
-  UNDER_REVIEW: "İnceleniyor",
+  DRAFT: "Taslak",
+  SENT: "Müşteriye Gönderildi",
   REVISED: "Revizyon İstendi",
-  WON: "Kazanıldı",
-  LOST: "Kaybedildi",
+  WON: "Closed Won",
+  LOST: "Closed Lost",
+  CANCELLED: "Proje İptal",
 };
 
 export const PIPELINE_STAGE_TONE: Record<PipelineStage, string> = {
+  DRAFT: "border-slate-200 bg-slate-50 text-slate-600",
   SENT: "border-sky-200 bg-sky-50 text-sky-700",
-  UNDER_REVIEW: "border-amber-200 bg-amber-50 text-amber-700",
   REVISED: "border-violet-200 bg-violet-50 text-violet-700",
   WON: "border-emerald-200 bg-emerald-50 text-emerald-700",
   LOST: "border-rose-200 bg-rose-50 text-rose-700",
+  CANCELLED: "border-slate-200 bg-slate-100 text-slate-500",
 };
 
 export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {

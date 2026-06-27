@@ -344,11 +344,12 @@ enum ProjectStatus {
 /// Satış pipeline aşamaları — proje yaşam döngüsünden (Project.status) ayrı.
 /// Yöneticinin satış sürecini izlemesi için.
 enum PipelineStage {
+  DRAFT         // Taslak (henüz müşteriye gönderilmemiş)
   SENT          // Müşteriye gönderildi (paylaşım linki üretilince otomatik)
-  UNDER_REVIEW  // Müşteri görüntüledi (ilk view'da otomatik)
   REVISED       // Müşteri revizyon istedi
-  WON           // Kazanıldı (müşteri kabul etti veya manuel)
-  LOST          // Kaybedildi (manuel; lostReason zorunlu)
+  WON           // Closed Won (müşteri kabul etti veya manuel)
+  LOST          // Closed Lost (manuel; lostReason zorunlu)
+  CANCELLED     // Proje iptal edildi
 
   @@schema("solar")
 }

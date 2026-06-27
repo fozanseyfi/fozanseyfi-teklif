@@ -4,47 +4,37 @@ import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/permissions";
 import { getHiddenResourceIds } from "@/lib/permission-server";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   formatCurrency,
   formatDate,
-  PROJECT_STATUS_LABELS,
   INSTALLATION_TYPE_LABELS,
 } from "@/lib/utils";
 import { Plus, FolderOpen, Eye, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ProjectStatusChanger } from "@/components/ges/project-status-changer";
-import {
-  COMPLETION_TRANSITION_VALUES,
-  isCompletionStatus,
-  isProjectVisible,
-} from "@/lib/project-status";
+import { isProjectVisible } from "@/lib/project-status";
 import { calc } from "@/lib/ges-engine";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
 import { DeleteProjectButton } from "@/components/project/delete-project-button";
 import { PIPELINE_STAGE_LABELS, PIPELINE_STAGE_TONE } from "@/lib/pipeline-labels";
+import type { PipelineStage } from "@prisma/client";
 
-const STATUS_VARIANT: Record<string, "default" | "secondary" | "success" | "warning" | "destructive" | "info"> = {
-  DRAFT: "secondary",
-  IN_PROGRESS: "warning",
-  COMPLETED: "success",
-  SENT: "info",
-};
-
-const STATUS_BAR_COLOR: Record<string, string> = {
+// Sol kenar renk şeridi — pipeline aşamasına göre.
+const PIPELINE_BAR_COLOR: Record<string, string> = {
   DRAFT: "bg-muted-foreground/40",
-  IN_PROGRESS: "bg-warning",
-  COMPLETED: "bg-success",
   SENT: "bg-info",
+  REVISED: "bg-violet-500",
+  WON: "bg-success",
+  LOST: "bg-rose-500",
+  CANCELLED: "bg-muted-foreground/40",
 };
 
 interface Props {
-  searchParams: Promise<{ q?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; stage?: string }>;
 }
 
 export default async function ProjectsPage({ searchParams }: Props) {
-  const { q, status } = await searchParams;
+  const { q, stage } = await searchParams;
   const user = await requireAuth();
 
   // Admin disindaki kullanicilar icin gizli proje + gizli musteri ID'lerini al.
@@ -72,7 +62,13 @@ export default async function ProjectsPage({ searchParams }: Props) {
             ],
           }
         : {}),
-      ...(status ? { status: status as any } : {}),
+      // Pipeline aşaması filtresi. "DRAFT" hem yeni enum DRAFT'ı hem de
+      // henüz pipeline'a girmemiş eski projeleri (null) kapsar.
+      ...(stage
+        ? stage === "DRAFT"
+          ? { AND: [{ OR: [{ pipelineStage: "DRAFT" as const }, { pipelineStage: null }] }] }
+          : { pipelineStage: stage as PipelineStage }
+        : {}),
     },
     include: {
       pricingSnapshot: true,
@@ -105,10 +101,12 @@ export default async function ProjectsPage({ searchParams }: Props) {
 
   const filters = [
     { value: undefined, label: "Tümü" },
-    { value: "DRAFT", label: PROJECT_STATUS_LABELS.DRAFT },
-    { value: "IN_PROGRESS", label: PROJECT_STATUS_LABELS.IN_PROGRESS },
-    { value: "COMPLETED", label: PROJECT_STATUS_LABELS.COMPLETED },
-    { value: "SENT", label: PROJECT_STATUS_LABELS.SENT },
+    { value: "DRAFT", label: PIPELINE_STAGE_LABELS.DRAFT },
+    { value: "SENT", label: PIPELINE_STAGE_LABELS.SENT },
+    { value: "REVISED", label: PIPELINE_STAGE_LABELS.REVISED },
+    { value: "WON", label: PIPELINE_STAGE_LABELS.WON },
+    { value: "LOST", label: PIPELINE_STAGE_LABELS.LOST },
+    { value: "CANCELLED", label: PIPELINE_STAGE_LABELS.CANCELLED },
   ];
 
   return (
@@ -151,11 +149,11 @@ export default async function ProjectsPage({ searchParams }: Props) {
       {/* Filtreler */}
       <div className="flex flex-wrap gap-2">
         {filters.map((f) => {
-          const isActive = status === f.value || (!status && !f.value);
+          const isActive = stage === f.value || (!stage && !f.value);
           return (
             <Link
               key={f.value ?? "all"}
-              href={f.value ? `/projects?status=${f.value}` : "/projects"}
+              href={f.value ? `/projects?stage=${f.value}` : "/projects"}
               className={cn(
                 "rounded-full px-4 py-1.5 text-xs font-medium transition-colors",
                 isActive
@@ -207,7 +205,7 @@ export default async function ProjectsPage({ searchParams }: Props) {
                       Fiyat
                     </th>
                     <th className="px-6 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Durum
+                      Aşama
                     </th>
                     <th className="hidden px-6 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:table-cell">
                       Tarih
@@ -228,7 +226,8 @@ export default async function ProjectsPage({ searchParams }: Props) {
                             <div
                               className={cn(
                                 "h-8 w-1 shrink-0 rounded-full",
-                                STATUS_BAR_COLOR[project.status] ?? "bg-muted-foreground/40"
+                                PIPELINE_BAR_COLOR[project.pipelineStage ?? "DRAFT"] ??
+                                  "bg-muted-foreground/40"
                               )}
                             />
                             <div>
@@ -268,30 +267,15 @@ export default async function ProjectsPage({ searchParams }: Props) {
                           )}
                         </td>
                         <td className="px-6 py-4 text-center">
-                          <div className="flex flex-col items-center gap-1">
-                            {isCompletionStatus(project.status) ? (
-                              <ProjectStatusChanger
-                                projectId={project.id}
-                                currentStatus={project.status}
-                                allowedTransitions={[...COMPLETION_TRANSITION_VALUES]}
-                              />
-                            ) : (
-                              <Badge variant={STATUS_VARIANT[project.status]}>
-                                {PROJECT_STATUS_LABELS[project.status]}
-                              </Badge>
+                          <span
+                            className={cn(
+                              "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold",
+                              PIPELINE_STAGE_TONE[project.pipelineStage ?? "DRAFT"],
                             )}
-                            {project.pipelineStage && (
-                              <span
-                                className={cn(
-                                  "inline-flex items-center rounded-full border px-1.5 py-0 text-[9.5px] font-semibold uppercase tracking-wider",
-                                  PIPELINE_STAGE_TONE[project.pipelineStage],
-                                )}
-                                title="Pipeline aşaması"
-                              >
-                                {PIPELINE_STAGE_LABELS[project.pipelineStage]}
-                              </span>
-                            )}
-                          </div>
+                            title="Pipeline aşaması — projenin satış sürecindeki yeri"
+                          >
+                            {PIPELINE_STAGE_LABELS[project.pipelineStage ?? "DRAFT"]}
+                          </span>
                         </td>
                         <td className="hidden px-6 py-4 text-right text-xs text-muted-foreground sm:table-cell">
                           {formatDate(project.updatedAt)}

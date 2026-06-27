@@ -3,8 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatDate, PROJECT_STATUS_LABELS, cn } from "@/lib/utils";
+import { formatCurrency, formatDate, cn } from "@/lib/utils";
 import {
   FolderOpen,
   Plus,
@@ -22,33 +21,19 @@ import { calc } from "@/lib/ges-engine";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
 import { DisclaimerButton } from "@/components/shared/legal-disclaimer";
 import { TurkeyMapLazy as TurkeyMap } from "@/components/dashboard/turkey-map-lazy";
-import { ProjectStatusChanger } from "@/components/ges/project-status-changer";
 import { isAdmin } from "@/lib/permissions";
 import { getHiddenResourceIds } from "@/lib/permission-server";
-import {
-  COMPLETION_TRANSITION_VALUES,
-  isCompletionStatus,
-  isProjectVisible,
-} from "@/lib/project-status";
+import { isProjectVisible } from "@/lib/project-status";
+import { PIPELINE_STAGE_LABELS, PIPELINE_STAGE_TONE } from "@/lib/pipeline-labels";
 
-const STATUS_BAR_COLOR: Record<string, string> = {
+// Sol kenar renk şeridi — pipeline aşamasına göre.
+const PIPELINE_BAR_COLOR: Record<string, string> = {
   DRAFT: "bg-muted-foreground/40",
-  IN_PROGRESS: "bg-warning",
-  COMPLETED: "bg-success",
   SENT: "bg-info",
-  CLOSE_WIN: "bg-success",
-  CLOSE_LOST: "bg-muted-foreground/40",
+  REVISED: "bg-violet-500",
+  WON: "bg-success",
+  LOST: "bg-rose-500",
   CANCELLED: "bg-muted-foreground/40",
-};
-
-const STATUS_VARIANT: Record<string, "default" | "secondary" | "success" | "warning" | "info"> = {
-  DRAFT: "secondary",
-  IN_PROGRESS: "warning",
-  COMPLETED: "success",
-  SENT: "info",
-  CLOSE_WIN: "success",
-  CLOSE_LOST: "secondary",
-  CANCELLED: "secondary",
 };
 
 export default async function DashboardPage() {
@@ -114,10 +99,13 @@ export default async function DashboardPage() {
   // görünür projeler üzerinden — sadece son 10 değil.
   const wonCount = allVisibleProjects.filter((p) => p.pipelineStage === "WON").length;
   const lostCount = allVisibleProjects.filter((p) => p.pipelineStage === "LOST").length;
-  // "Devam Eden": closed won veya lost OLMAYAN her şey (pipeline'a hiç
-  // girmemiş null'lar dahil).
+  // "Devam Eden": kapanmamış her şey — closed won/lost veya iptal OLMAYAN
+  // (pipeline'a hiç girmemiş null/taslak'lar dahil).
   const ongoingCount = allVisibleProjects.filter(
-    (p) => p.pipelineStage !== "WON" && p.pipelineStage !== "LOST",
+    (p) =>
+      p.pipelineStage !== "WON" &&
+      p.pipelineStage !== "LOST" &&
+      p.pipelineStage !== "CANCELLED",
   ).length;
   const ongoingPct = totalCount > 0 ? Math.round((ongoingCount / totalCount) * 100) : 0;
   // Kazanma oranı = won / (won + lost). Henüz kapanan yoksa null.
@@ -290,7 +278,8 @@ export default async function DashboardPage() {
                     <div
                       className={cn(
                         "mr-4 h-10 w-1 shrink-0 rounded-full",
-                        STATUS_BAR_COLOR[project.status] ?? "bg-muted-foreground/40",
+                        PIPELINE_BAR_COLOR[project.pipelineStage ?? "DRAFT"] ??
+                          "bg-muted-foreground/40",
                       )}
                     />
                     <div className="min-w-0 flex-1">
@@ -321,17 +310,15 @@ export default async function DashboardPage() {
                           {formatCurrency(project.pricingSnapshot.finalSalePrice)}
                         </p>
                       ) : null}
-                      {isCompletionStatus(project.status) ? (
-                        <ProjectStatusChanger
-                          projectId={project.id}
-                          currentStatus={project.status}
-                          allowedTransitions={[...COMPLETION_TRANSITION_VALUES]}
-                        />
-                      ) : (
-                        <Badge variant={STATUS_VARIANT[project.status] ?? "secondary"}>
-                          {PROJECT_STATUS_LABELS[project.status]}
-                        </Badge>
-                      )}
+                      <span
+                        className={cn(
+                          "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold",
+                          PIPELINE_STAGE_TONE[project.pipelineStage ?? "DRAFT"],
+                        )}
+                        title="Pipeline aşaması — sadece proje Pipeline sekmesinden değiştirilir"
+                      >
+                        {PIPELINE_STAGE_LABELS[project.pipelineStage ?? "DRAFT"]}
+                      </span>
                       <Button variant="outline" size="sm" asChild title="Salt-okunur olarak görüntüle">
                         <Link href={`/projects/${project.id}/detail?view=1`}>
                           <Eye className="size-3.5" />

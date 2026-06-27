@@ -75,8 +75,8 @@ export async function getKpiSnapshot(organizationId: string): Promise<KpiSnapsho
   const winRate30d =
     closedRecent.length === 0 ? null : Math.round((wonRecent / closedRecent.length) * 100);
 
-  // Pipeline ciro (bekleyen): SENT, UNDER_REVIEW, REVISED
-  const pendingStages = new Set(["SENT", "UNDER_REVIEW", "REVISED"]);
+  // Pipeline ciro (bekleyen): SENT, REVISED
+  const pendingStages = new Set(["SENT", "REVISED"]);
   const pendingRevenueUsd = visible
     .filter((p) => p.pipelineStage && pendingStages.has(p.pipelineStage))
     .reduce((sum, p) => sum + (p.pricingSnapshot?.finalSalePrice ?? 0), 0);
@@ -306,13 +306,13 @@ export async function getRiskFlags(organizationId: string): Promise<RiskFlag[]> 
   const sevenDaysAgo = new Date(now.getTime() - 7 * MS_PER_DAY);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * MS_PER_DAY);
 
-  // 1) 90+ gün önce SENT/UNDER_REVIEW kalmış teklifler (kaybedildi mi?)
+  // 1) 90+ gün önce SENT/REVISED kalmış teklifler (kaybedildi mi?)
   const staleOffers = await prisma.project.findMany({
     where: {
       organizationId,
       isTemplate: false,
       name: { not: "" },
-      pipelineStage: { in: ["SENT", "UNDER_REVIEW", "REVISED"] },
+      pipelineStage: { in: ["SENT", "REVISED"] },
       updatedAt: { lt: ninetyDaysAgo },
     },
     select: { id: true, name: true, updatedAt: true },
@@ -464,7 +464,7 @@ export async function getYearlyReport(
       ? null
       : Math.round((wonCount / (wonCount + lostCount)) * 100);
 
-  const pendingStages = new Set(["SENT", "UNDER_REVIEW", "REVISED"]);
+  const pendingStages = new Set(["SENT", "REVISED"]);
   const pendingProjects = visible.filter(
     (p) => p.pipelineStage && pendingStages.has(p.pipelineStage),
   );

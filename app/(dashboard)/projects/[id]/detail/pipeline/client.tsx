@@ -70,21 +70,13 @@ interface Props {
   activities: ActivityRow[];
 }
 
-// Pipeline sayfasına özel etiketler: WON/LOST burada bilinçli olarak
-// "Closed Won / Closed Lost" gösterilir. Paylaşılan PIPELINE_STAGE_LABELS
-// (projeler tab'i + dashboard) kasıtlı olarak değiştirilmedi.
-const STAGE_LABELS: Record<PipelineStage, string> = {
-  ...PIPELINE_STAGE_LABELS,
-  WON: "Closed Won",
-  LOST: "Closed Lost",
-};
-
 const STAGE_OPTIONS: { value: PipelineStage; label: string }[] = [
-  { value: "SENT", label: STAGE_LABELS.SENT },
-  { value: "UNDER_REVIEW", label: STAGE_LABELS.UNDER_REVIEW },
-  { value: "REVISED", label: STAGE_LABELS.REVISED },
-  { value: "WON", label: STAGE_LABELS.WON },
-  { value: "LOST", label: STAGE_LABELS.LOST },
+  { value: "DRAFT", label: PIPELINE_STAGE_LABELS.DRAFT },
+  { value: "SENT", label: PIPELINE_STAGE_LABELS.SENT },
+  { value: "REVISED", label: PIPELINE_STAGE_LABELS.REVISED },
+  { value: "WON", label: PIPELINE_STAGE_LABELS.WON },
+  { value: "LOST", label: PIPELINE_STAGE_LABELS.LOST },
+  { value: "CANCELLED", label: PIPELINE_STAGE_LABELS.CANCELLED },
 ];
 
 const LOST_REASON_OPTIONS: { value: LostReason; label: string }[] = [
@@ -129,7 +121,7 @@ function formatDateTime(iso: string): string {
 }
 
 export function PipelineClient({ project, activities }: Props) {
-  const [stage, setStage] = useState<PipelineStage | "__none__">(project.pipelineStage ?? "__none__");
+  const [stage, setStage] = useState<PipelineStage>(project.pipelineStage ?? "DRAFT");
   const [lostReason, setLostReason] = useState<LostReason | "__none__">(project.lostReason ?? "__none__");
   const [competitorName, setCompetitorName] = useState(project.competitorName ?? "");
   const [pending, startTransition] = useTransition();
@@ -142,10 +134,6 @@ export function PipelineClient({ project, activities }: Props) {
   const showLostFields = isLost;
 
   function handleStageSave() {
-    if (stage === "__none__") {
-      toast.error("Aşama seçmelisiniz");
-      return;
-    }
     if (isLost && lostReason === "__none__") {
       toast.error("Kayıp sebebi seçmelisiniz");
       return;
@@ -154,7 +142,7 @@ export function PipelineClient({ project, activities }: Props) {
     startTransition(async () => {
       const result = await updatePipelineStageAction({
         projectId: project.id,
-        newStage: stage as PipelineStage,
+        newStage: stage,
         lostReason: isLost ? (lostReason as string) : null,
         competitorName: isLost ? competitorName.trim() : null,
       });
@@ -218,7 +206,7 @@ export function PipelineClient({ project, activities }: Props) {
                     PIPELINE_STAGE_TONE[project.pipelineStage],
                   )}
                 >
-                  {STAGE_LABELS[project.pipelineStage]}
+                  {PIPELINE_STAGE_LABELS[project.pipelineStage]}
                 </Badge>
               )}
             </div>
@@ -239,13 +227,12 @@ export function PipelineClient({ project, activities }: Props) {
               <Label htmlFor="stage">Aşama</Label>
               <Select
                 value={stage}
-                onValueChange={(v) => setStage(v as PipelineStage | "__none__")}
+                onValueChange={(v) => setStage(v as PipelineStage)}
               >
                 <SelectTrigger id="stage" className="w-full">
                   <SelectValue placeholder="Aşama seç..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">— Henüz pipeline'a girmemiş</SelectItem>
                   {STAGE_OPTIONS.map((o) => (
                     <SelectItem key={o.value} value={o.value}>
                       {o.label}
@@ -258,7 +245,7 @@ export function PipelineClient({ project, activities }: Props) {
               <Button
                 type="button"
                 onClick={handleStageSave}
-                disabled={pending || stage === "__none__"}
+                disabled={pending}
                 className="w-full sm:w-auto"
               >
                 {pending && <Loader2 className="size-4 animate-spin" />}
@@ -419,13 +406,15 @@ export function PipelineClient({ project, activities }: Props) {
                         <p className="mt-2 text-[11px] text-muted-foreground">
                           <strong>
                             {a.details.from
-                              ? STAGE_LABELS[a.details.from as PipelineStage]
+                              ? PIPELINE_STAGE_LABELS[a.details.from as PipelineStage] ??
+                                (a.details.from as string)
                               : "—"}
                           </strong>{" "}
                           →{" "}
                           <strong>
                             {a.details.to
-                              ? STAGE_LABELS[a.details.to as PipelineStage]
+                              ? PIPELINE_STAGE_LABELS[a.details.to as PipelineStage] ??
+                                (a.details.to as string)
                               : "—"}
                           </strong>
                           {typeof a.details.reason === "string" && a.details.reason

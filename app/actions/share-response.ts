@@ -18,7 +18,7 @@ const KIND_TO_ACTIVITY: Record<CustomerResponseKind, ActivityType> = {
 const KIND_TO_STAGE: Record<CustomerResponseKind, PipelineStage | null> = {
   accept: "WON",
   revision: "REVISED",
-  question: null, // soru sorma stage'i değiştirmez (zaten UNDER_REVIEW'da olur)
+  question: null, // soru sorma pipeline aşamasını değiştirmez
 };
 
 const KIND_TO_AUDIT_ACTION: Record<CustomerResponseKind, string> = {

@@ -3,7 +3,7 @@ import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { parseBrandSettings, type BrandSettings } from "@/lib/pdf-brand";
 import { normalizeTabId, isDocTabId, extractDocId } from "@/lib/share-tabs";
-import { recordActivity, setPipelineStage } from "@/lib/project-activity";
+import { recordActivity } from "@/lib/project-activity";
 import type { Project } from "@prisma/client";
 import type { CustomerResponseKind } from "@/lib/email";
 
@@ -151,10 +151,7 @@ export const loadShareContext = cache(async (token: string): Promise<ShareContex
  * her sayfa yüklenmesinde counter artar). Hata yutsun ki public sayfa
  * görünmesin diye logu fail edip dönmesin.
  *
- * İlk view'da (viewCount=0 iken) ek olarak:
- *   - CUSTOMER_VIEWED activity yazılır
- *   - Project.pipelineStage SENT iken UNDER_REVIEW'a otomatik yükselir
- *   (manuel STAGE_CHANGE activity'si setPipelineStage tarafından eklenir)
+ * İlk view'da (viewCount=0 iken) ek olarak CUSTOMER_VIEWED activity yazılır.
  */
 export async function recordShareView(linkId: string): Promise<void> {
   try {
@@ -164,7 +161,7 @@ export async function recordShareView(linkId: string): Promise<void> {
       select: {
         viewCount: true,
         projectId: true,
-        project: { select: { organizationId: true, pipelineStage: true } },
+        project: { select: { organizationId: true } },
       },
     });
     if (!before) return;
@@ -178,7 +175,9 @@ export async function recordShareView(linkId: string): Promise<void> {
       },
     });
 
-    // İlk view ise yan etkileri tetikle (activity + otomatik stage geçişi).
+    // İlk view ise CUSTOMER_VIEWED activity'si yaz. (Pipeline aşaması müşteri
+    // görüntülemesiyle otomatik ilerlemez — aşama değişimi yöneticinin manuel
+    // kararı.)
     if (before.viewCount === 0) {
       await recordActivity({
         projectId: before.projectId,
@@ -186,18 +185,6 @@ export async function recordShareView(linkId: string): Promise<void> {
         type: "CUSTOMER_VIEWED",
         shareLinkId: linkId,
       });
-
-      // SENT iken otomatik UNDER_REVIEW'a yükselt. Daha ileri stage'de
-      // (REVISED, WON, LOST) ise dokunma — yöneticinin manuel kararı saklı.
-      if (before.project.pipelineStage === "SENT") {
-        await setPipelineStage({
-          projectId: before.projectId,
-          organizationId: before.project.organizationId,
-          newStage: "UNDER_REVIEW",
-          shareLinkId: linkId,
-          reason: "Müşteri ilk kez görüntüledi",
-        });
-      }
     }
   } catch (err) {
     console.warn("[share-loader] view increment failed:", err);

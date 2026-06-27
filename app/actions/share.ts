@@ -100,9 +100,9 @@ export async function createShareLink(fd: FormData): Promise<{
     },
   });
 
-  // Pipeline aşaması: henüz pipeline'a girmemişse SENT'e at. Daha ileri
-  // bir aşamadaysa (UNDER_REVIEW, REVISED, WON, LOST) dokunma.
-  if (project.pipelineStage === null) {
+  // Pipeline aşaması: henüz gönderilmemişse (taslak / null) SENT'e at. Daha
+  // ileri bir aşamadaysa (REVISED, WON, LOST, CANCELLED) dokunma.
+  if (project.pipelineStage === null || project.pipelineStage === "DRAFT") {
     await setPipelineStage({
       projectId: project.id,
       organizationId: user.organizationId,
