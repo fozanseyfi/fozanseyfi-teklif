@@ -30,6 +30,14 @@ import {
 import { toast } from "sonner";
 import { DetailPageHeader, prevHref } from "@/components/ges/detail-page-header";
 import { useReadOnly } from "@/lib/readonly-context";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 function fmt(n: number, d = 0) {
   return n.toLocaleString("tr-TR", {
@@ -99,6 +107,10 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
     Object.fromEntries(data.map((g) => [g.code, true])),
   );
   const [search, setSearch] = useState("");
+  // Silme onayı — popup'ta "emin misiniz, geri alınamaz" gösterilir.
+  const [pendingDelete, setPendingDelete] = useState<
+    { gi: number; ii: number; tanim: string } | null
+  >(null);
 
   // Unsaved-changes: groups her degistiginde baseline ile farki kirli sayar.
   const baselineRef = useRef<string>(JSON.stringify(data));
@@ -418,7 +430,11 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
                               {item.code}
                             </td>
                             <td className="px-2 py-2 align-top sm:py-1.5">
-                              {isReadOnly ? (
+                              {/* Kritik malzemelerde (A.1.1/A.2.1/A.3.1) sadece
+                                  Tanım düzenlenebilir; diğer alanlar Analiz'den
+                                  otomatik gelir. Finans (B.6) satırı tümüyle
+                                  kilitli. */}
+                              {isFinancing ? (
                                 <span className="px-1 text-xs">{item.tanim}</span>
                               ) : (
                                 <Input
@@ -579,7 +595,13 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
                                 <button
                                   data-edit-only
                                   type="button"
-                                  onClick={() => removeItem(realGi, realIi)}
+                                  onClick={() =>
+                                    setPendingDelete({
+                                      gi: realGi,
+                                      ii: realIi,
+                                      tanim: item.tanim,
+                                    })
+                                  }
                                   className="rounded-md p-1 text-destructive/70 transition-colors hover:bg-destructive-soft hover:text-destructive-soft-foreground"
                                   aria-label="Kalemi sil"
                                 >
@@ -637,6 +659,47 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
           </div>
         </div>
       </div>
+
+      {/* Silme onayı — geri alınamaz uyarısı */}
+      <Dialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Kalemi sil?</DialogTitle>
+            <DialogDescription>
+              {pendingDelete?.tanim ? (
+                <>
+                  <strong className="text-slate-700">
+                    {pendingDelete.tanim}
+                  </strong>{" "}
+                  kalemini silmek üzeresiniz. Bu işlem geri alınamaz.
+                </>
+              ) : (
+                "Bu kalemi silmek üzeresiniz. Bu işlem geri alınamaz."
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingDelete(null)}>
+              Vazgeç
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (pendingDelete) removeItem(pendingDelete.gi, pendingDelete.ii);
+                setPendingDelete(null);
+              }}
+            >
+              <Trash2 className="size-3.5" />
+              Evet, Sil
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

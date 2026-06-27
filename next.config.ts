@@ -67,6 +67,12 @@ const nextConfig: NextConfig = {
       dynamic: 300,
       static: 600,
     },
+    // Server Action FormData gövde limiti — varsayılan 1 MB. Firma tanıtım /
+    // referans / ek belge PDF'leri 10 MB'a kadar yüklenebildiği için limiti
+    // yükseltiyoruz (yoksa büyük PDF yüklemeleri "Body exceeded 1 MB" ile patlar).
+    serverActions: {
+      bodySizeLimit: "12mb",
+    },
   },
   async headers() {
     return [

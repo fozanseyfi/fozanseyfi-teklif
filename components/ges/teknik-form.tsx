@@ -15,9 +15,6 @@ import {
   RefreshCw,
   Zap,
   DollarSign,
-  Layers,
-  Plus,
-  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DetailPageHeader, prevHref } from "@/components/ges/detail-page-header";
@@ -143,6 +140,20 @@ export function TeknikForm({ projectId, projectName, settings }: Props) {
       ? Math.round((s.dcGuc * 1_000_000) / s.panelGuc)
       : 0;
 
+  // DC/AC gücü kW cinsinden girilir/gösterilir ama depoda MW olarak saklanır
+  // (GES motoru ve şablonlar MW bekler). Sadece bu input katmanı kW çalışır.
+  function fKw(key: "dcGuc" | "acGuc") {
+    const kw = (s[key] as number) > 0 ? (s[key] as number) * 1000 : 0;
+    return {
+      value: kw === 0 ? "" : kw,
+      placeholder: "0",
+      onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+        const kwVal = e.target.value === "" ? 0 : parseFloat(e.target.value) || 0;
+        setS((p) => ({ ...p, [key]: kwVal / 1000 }));
+      },
+    };
+  }
+
   function f(key: keyof GesSettings, isNum = true) {
     const raw = s[key];
     // Sayisal 0 input'ta "0" yazmaz; bos gosterir, kullanici yazinca degisir.
@@ -245,9 +256,7 @@ export function TeknikForm({ projectId, projectName, settings }: Props) {
         </div>
       )}
 
-      {/* ── Two-column layout ── */}
-      <div className="grid items-start gap-5 lg:grid-cols-[1.5fr_1fr]">
-        {/* Left column */}
+      <div className="space-y-5">
         <div className="space-y-5">
           {/* Power & system */}
           <Card className="overflow-hidden">
@@ -260,16 +269,18 @@ export function TeknikForm({ projectId, projectName, settings }: Props) {
             <CardContent className="grid grid-cols-2 gap-5 p-6">
               <div className="space-y-2">
                 <Label>
-                  DC Güç (MW) <span className="text-destructive">*</span>
+                  DC Güç (kW) <span className="text-destructive">*</span>
                 </Label>
-                <Input type="number" step="0.1" required {...f("dcGuc")} />
-                <p className="text-xs font-medium text-info-soft-foreground">
-                  {(s.dcGuc * 1000).toFixed(0)} kWp
-                </p>
+                <Input type="number" step="1" required {...fKw("dcGuc")} />
+                {s.dcGuc > 0 && (
+                  <p className="text-xs font-medium text-info-soft-foreground">
+                    {s.dcGuc.toFixed(2)} MWp
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
-                <Label>AC Güç (MW)</Label>
-                <Input type="number" step="0.1" {...f("acGuc")} />
+                <Label>AC Güç (kW)</Label>
+                <Input type="number" step="1" {...fKw("acGuc")} />
                 {s.dcGuc > 0 && s.acGuc > 0 && (
                   <p className="text-xs font-medium text-success-soft-foreground">
                     Oran: {(s.dcGuc / s.acGuc).toFixed(2)}
@@ -387,141 +398,6 @@ export function TeknikForm({ projectId, projectName, settings }: Props) {
             </CardContent>
           </Card>
 
-        </div>
-
-        {/* Right column — material alternatives */}
-        <div>
-          <Card className="overflow-hidden">
-            <SectionHeader
-              icon={Layers}
-              title="Kritik Malzeme Alternatifleri"
-              subtitle="Panel, konstrüksiyon ve inverter seçenekleri"
-              tone="primary"
-            />
-            <CardContent className="space-y-6 p-5">
-              {[
-                {
-                  label: "Panel Alternatifleri",
-                  key: "panelAlts" as const,
-                  sel: "selPanel" as const,
-                  placeholder: "USD/Wp",
-                },
-                {
-                  label: "Konstrüksiyon Alternatifleri",
-                  key: "konstrAlts" as const,
-                  sel: "selKonstr" as const,
-                  placeholder: "USD/MW",
-                },
-                {
-                  label: "İnverter Alternatifleri",
-                  key: "invAlts" as const,
-                  sel: "selInv" as const,
-                  placeholder: "USD/adet",
-                },
-              ].map(({ label, key, sel, placeholder }) => (
-                <div key={key}>
-                  <div className="mb-3 flex items-center justify-between">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      {label}
-                    </p>
-                    <Button
-                      data-edit-only
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setS((p) => {
-                          const a = [...(p[key] as { name: string; price: number }[])];
-                          a.push({ name: "Yeni", price: 0 });
-                          return { ...p, [key]: a } as typeof p;
-                        })
-                      }
-                    >
-                      <Plus className="size-3" /> Ekle
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    {s[key].map((alt, i) => (
-                      <div
-                        key={i}
-                        className="grid grid-cols-[1fr_100px_70px_36px] items-center gap-2"
-                      >
-                        <Input
-                          className="h-9 text-sm"
-                          value={alt.name}
-                          onChange={(e) =>
-                            setS((p) => {
-                              const a = [...p[key]] as typeof s[typeof key];
-                              (a[i] as typeof a[0]) = {
-                                ...a[i],
-                                name: e.target.value,
-                              };
-                              return { ...p, [key]: a };
-                            })
-                          }
-                        />
-                        <Input
-                          type="number"
-                          step="0.001"
-                          className="h-9 text-sm"
-                          value={alt.price}
-                          placeholder={placeholder}
-                          onChange={(e) =>
-                            setS((p) => {
-                              const a = [...p[key]] as typeof s[typeof key];
-                              (a[i] as typeof a[0]) = {
-                                ...a[i],
-                                price: parseFloat(e.target.value) || 0,
-                              };
-                              return { ...p, [key]: a };
-                            })
-                          }
-                        />
-                        <label
-                          className={cn(
-                            "flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs transition-colors",
-                            s[sel] === i
-                              ? "border-primary bg-primary-soft font-semibold text-primary-soft-foreground"
-                              : "border-border text-muted-foreground hover:bg-muted",
-                          )}
-                        >
-                          <input
-                            type="radio"
-                            name={`sel_${key}`}
-                            checked={s[sel] === i}
-                            onChange={() => setS((p) => ({ ...p, [sel]: i }))}
-                            className="accent-primary"
-                          />
-                          {s[sel] === i ? "✓" : "Seç"}
-                        </label>
-                        <button
-                          data-edit-only
-                          type="button"
-                          onClick={() =>
-                            setS((p) => {
-                              const a = [...(p[key] as { name: string; price: number }[])];
-                              if (a.length <= 1) return p;
-                              a.splice(i, 1);
-                              const newSelIdx = Math.max(
-                                0,
-                                Math.min((p[sel] as number) ?? 0, a.length - 1),
-                              );
-                              return { ...p, [key]: a, [sel]: newSelIdx } as typeof p;
-                            })
-                          }
-                          disabled={s[key].length <= 1}
-                          title={s[key].length <= 1 ? "En az bir alternatif olmalı" : "Sil"}
-                          className="flex size-9 items-center justify-center rounded-md border border-border text-destructive/70 transition-colors hover:bg-destructive-soft hover:text-destructive-soft-foreground disabled:cursor-not-allowed disabled:opacity-30"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
