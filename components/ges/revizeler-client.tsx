@@ -15,6 +15,8 @@ import {
   computeQuoteTotals,
   lineUnitSaleOut,
   lineTotalSaleOut,
+  lineTotalSaleTRY,
+  currencySymbol,
 } from "@/lib/quote";
 
 function fmt(n: number, d = 0) {
@@ -32,6 +34,8 @@ export function RevizelerClient({
 }) {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
+  // Karşılaştırma para birimi — tüm revizeleri aynı kurda görmek için.
+  const [cmpCur, setCmpCur] = useState<QuoteOutputCurrency>("TRY");
 
   const base = revisions[0];
   const baseTotals = base ? computeQuoteTotals(base.items, base.meta) : null;
@@ -56,9 +60,26 @@ export function RevizelerClient({
     for (const it of r.items) m.set(keyOf(it), it);
     return m;
   });
-  const revOut: QuoteOutputCurrency[] = revisions.map((r) => r.meta.outputCurrency || "TRY");
   const revRates = revisions.map((r) => ({ usd: r.meta.usd, eur: r.meta.eur }));
   const revTotals = revisions.map((r) => computeQuoteTotals(r.items, r.meta));
+
+  // Değişim oranları para biriminden bağımsız olsun diye TRY satış (KDV hariç)
+  // bazında, Orijinal'e (revize 0) göre hesaplanır.
+  const baseSaleTRY = new Map<string, number>();
+  for (const it of revisions[0]?.items ?? []) baseSaleTRY.set(keyOf(it), lineTotalSaleTRY(it, revRates[0]));
+  const baseTotalTRY = revTotals[0]?.saleExKdvTRY ?? 0;
+
+  function deltaBadge(pct: number | null, isNew = false) {
+    if (isNew) return <span className="block text-[9.5px] font-semibold text-sky-600">yeni</span>;
+    if (pct === null) return null;
+    if (Math.abs(pct) < 0.05) return <span className="block text-[9.5px] text-muted-foreground">±0%</span>;
+    return (
+      <span className={cn("block text-[9.5px] font-semibold", pct < 0 ? "text-rose-600" : "text-emerald-600")}>
+        {pct > 0 ? "+" : ""}
+        {fmt(pct, 1)}%
+      </span>
+    );
+  }
 
   async function handleCreate() {
     setCreating(true);
@@ -154,7 +175,21 @@ export function RevizelerClient({
       {/* Kalem × revize fiyat karşılaştırması */}
       {itemRows.length > 0 && (
         <Card className="overflow-hidden">
-          <div className="border-b px-4 py-2.5 text-sm font-semibold">Kalem Bazında Fiyat Karşılaştırması</div>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2.5">
+            <span className="text-sm font-semibold">Kalem Bazında Fiyat Karşılaştırması</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Karşılaştırma para birimi</span>
+              <select
+                className="h-8 rounded-md border bg-card px-2 text-sm font-semibold"
+                value={cmpCur}
+                onChange={(e) => setCmpCur(e.target.value as QuoteOutputCurrency)}
+              >
+                <option value="TRY">₺ TL</option>
+                <option value="USD">$ USD</option>
+                <option value="EUR">€ EUR</option>
+              </select>
+            </div>
+          </div>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
@@ -164,7 +199,7 @@ export function RevizelerClient({
                     {revisions.map((r, ri) => (
                       <th key={r.id} className={cn("min-w-[120px] px-3 py-2 text-right", ri === lastIdx && "text-primary")}>
                         {r.label}
-                        <span className="block text-[9px] font-normal normal-case text-muted-foreground">birim / toplam</span>
+                        <span className="block text-[9px] font-normal normal-case text-muted-foreground">birim / toplam / değişim</span>
                       </th>
                     ))}
                   </tr>
@@ -182,15 +217,20 @@ export function RevizelerClient({
                             </td>
                           );
                         }
-                        const sym = revTotals[ri].symbol;
+                        const sym = currencySymbol(cmpCur);
+                        const baseSale = baseSaleTRY.get(row.key);
+                        const saleTRY = lineTotalSaleTRY(it, revRates[ri]);
+                        const pct = ri > 0 && baseSale && baseSale > 0 ? ((saleTRY - baseSale) / baseSale) * 100 : null;
+                        const isNew = ri > 0 && (baseSale === undefined);
                         return (
                           <td key={r.id} className="px-3 py-2 text-right tabular-nums">
                             <span className="block text-[11px] text-muted-foreground">
-                              {sym}{fmt(lineUnitSaleOut(it, revOut[ri], revRates[ri]), 2)}
+                              {sym}{fmt(lineUnitSaleOut(it, cmpCur, revRates[ri]), 2)}
                             </span>
                             <span className="block font-semibold">
-                              {sym}{fmt(lineTotalSaleOut(it, revOut[ri], revRates[ri]))}
+                              {sym}{fmt(lineTotalSaleOut(it, cmpCur, revRates[ri]))}
                             </span>
+                            {deltaBadge(pct, isNew)}
                           </td>
                         );
                       })}
@@ -199,11 +239,23 @@ export function RevizelerClient({
                   {/* Genel toplam (KDV dahil) */}
                   <tr className="border-t-2 bg-primary-soft/30 font-semibold">
                     <td className="sticky left-0 z-10 bg-primary-soft/30 px-3 py-2">Genel Toplam (KDV dahil)</td>
-                    {revisions.map((r, ri) => (
-                      <td key={r.id} className="px-3 py-2 text-right tabular-nums text-primary">
-                        {revTotals[ri].symbol}{fmt(revTotals[ri].grandTotal)}
-                      </td>
-                    ))}
+                    {revisions.map((r, ri) => {
+                      const pct =
+                        ri > 0 && baseTotalTRY > 0
+                          ? ((revTotals[ri].saleExKdvTRY - baseTotalTRY) / baseTotalTRY) * 100
+                          : null;
+                      const subtotalCmp = r.items.reduce(
+                        (s, it) => s + lineTotalSaleOut(it, cmpCur, revRates[ri]),
+                        0,
+                      );
+                      const grandCmp = subtotalCmp * (1 + (r.meta.kdvRate || 0) / 100);
+                      return (
+                        <td key={r.id} className="px-3 py-2 text-right tabular-nums text-primary">
+                          {currencySymbol(cmpCur)}{fmt(grandCmp)}
+                          {deltaBadge(pct)}
+                        </td>
+                      );
+                    })}
                   </tr>
                 </tbody>
               </table>
