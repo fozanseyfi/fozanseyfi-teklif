@@ -277,6 +277,36 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
         </CardContent>
       </Card>
 
+      {/* İç özet — 3 para biriminde aynı anda (müşteriye gösterilmez) */}
+      <Card className="border-dashed">
+        <CardContent className="p-5">
+          <p className="mb-3 text-sm font-semibold text-muted-foreground">İç Özet — 3 para birimi (müşteriye gösterilmez)</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <th className="py-1.5 text-left font-semibold"> </th>
+                  <th className="py-1.5 text-right font-semibold">₺ TL</th>
+                  <th className="py-1.5 text-right font-semibold">$ USD</th>
+                  <th className="py-1.5 text-right font-semibold">€ EUR</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                <TriRow label="Toplam Maliyet" v={tri(totals.totalCostTRY)} />
+                <TriRow label="Toplam Kâr" v={tri(totals.profitTRY)} accent />
+                <TriRow label="Satış Fiyatı (KDV hariç)" v={tri(totals.saleExKdvTRY)} strong />
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Ortalama Kâr Oranı:{" "}
+            <strong className="text-foreground">
+              {totals.totalCostTRY > 0 ? `%${fmt((totals.profitTRY / totals.totalCostTRY) * 100, 1)}` : "—"}
+            </strong>
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Müşteri toplamı + pasta grafik */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
@@ -318,36 +348,6 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
           </CardContent>
         </Card>
       </div>
-
-      {/* İç özet — 3 para biriminde aynı anda (müşteriye gösterilmez) */}
-      <Card className="border-dashed">
-        <CardContent className="p-5">
-          <p className="mb-3 text-sm font-semibold text-muted-foreground">İç Özet — 3 para birimi (müşteriye gösterilmez)</p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-[11px] uppercase tracking-wider text-muted-foreground">
-                  <th className="py-1.5 text-left font-semibold"> </th>
-                  <th className="py-1.5 text-right font-semibold">₺ TL</th>
-                  <th className="py-1.5 text-right font-semibold">$ USD</th>
-                  <th className="py-1.5 text-right font-semibold">€ EUR</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                <TriRow label="Toplam Maliyet" v={tri(totals.totalCostTRY)} />
-                <TriRow label="Toplam Kâr" v={tri(totals.profitTRY)} accent />
-                <TriRow label="Satış Fiyatı (KDV hariç)" v={tri(totals.saleExKdvTRY)} strong />
-              </tbody>
-            </table>
-          </div>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Ortalama Kâr Oranı:{" "}
-            <strong className="text-foreground">
-              {totals.totalCostTRY > 0 ? `%${fmt((totals.profitTRY / totals.totalCostTRY) * 100, 1)}` : "—"}
-            </strong>
-          </p>
-        </CardContent>
-      </Card>
 
       {/* Ödeme şekli + Teklif notları — en altta */}
       <div className="grid gap-4 lg:grid-cols-2">
