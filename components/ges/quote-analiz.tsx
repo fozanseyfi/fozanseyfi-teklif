@@ -95,9 +95,10 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
       return;
     }
     const exTarget = t / (1 + (meta.kdvRate || 0) / 100);
-    const m = (exTarget / totalCostOut - 1) * 100;
-    setItems((prev) => prev.map((it) => ({ ...it, marginPct: Math.round(m * 100) / 100 })));
-    toast.success(`Kâr oranı %${fmt(m, 1)} olarak tüm kalemlere dağıtıldı`);
+    // Yuvarlama yapma — hedefe tam ulaşsın (kuruşuna kadar). 6 ondalık yeterli hassasiyet.
+    const m = Math.round(((exTarget / totalCostOut - 1) * 100) * 1e6) / 1e6;
+    setItems((prev) => prev.map((it) => ({ ...it, marginPct: m })));
+    toast.success(`Kâr oranı %${fmt(m, 2)} olarak tüm kalemlere dağıtıldı`);
   }
 
   function setPT(next: typeof paymentTerms) {
