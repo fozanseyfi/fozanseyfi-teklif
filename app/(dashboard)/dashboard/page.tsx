@@ -284,22 +284,24 @@ export default async function DashboardPage() {
                 return (
                   <div
                     key={project.id}
-                    className="group flex items-center px-6 py-4 transition-colors hover:bg-muted/40"
+                    className="group flex flex-col gap-3 px-4 py-4 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:px-6"
                   >
-                    <div
-                      className={cn(
-                        "mr-4 h-10 w-1 shrink-0 rounded-full",
-                        PIPELINE_BAR_COLOR[project.pipelineStage ?? "DRAFT"] ??
-                          "bg-muted-foreground/40",
-                      )}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{project.name}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {project.customerName} · {formatDate(project.createdAt)}
-                      </p>
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <div
+                        className={cn(
+                          "h-10 w-1 shrink-0 rounded-full",
+                          PIPELINE_BAR_COLOR[project.pipelineStage ?? "DRAFT"] ??
+                            "bg-muted-foreground/40",
+                        )}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{project.name}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {project.customerName} · {formatDate(project.createdAt)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="ml-4 flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2 sm:ml-4 sm:flex-nowrap sm:gap-3">
                       {project.totalPowerKw > 0 && (
                         <p className="hidden text-sm font-medium text-muted-foreground sm:block">
                           {project.totalPowerKw >= 1000
