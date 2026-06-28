@@ -22,8 +22,12 @@ import {
   updateCatalogItem,
   deleteCatalogItem,
   renumberCatalogCodes,
+  getCatalogItemUsage,
   type CatalogItemDTO,
+  type CatalogUsageRow,
 } from "@/app/actions/materials";
+import { currencySymbol, type QuoteCurrency } from "@/lib/quote";
+import Link from "next/link";
 
 type Draft = { code: string; name: string; unit: string; kind: "MALZEME" | "HIZMET" };
 
@@ -39,6 +43,21 @@ export function MaterialsClient({ initialItems }: { initialItems: CatalogItemDTO
   const [renumbering, setRenumbering] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<CatalogItemDTO | null>(null);
   const router = useRouter();
+
+  // Kullanım (hangi tekliflerde) dialog'u
+  const [usageItem, setUsageItem] = useState<CatalogItemDTO | null>(null);
+  const [usageRows, setUsageRows] = useState<CatalogUsageRow[] | null>(null);
+
+  async function openUsage(item: CatalogItemDTO) {
+    setUsageItem(item);
+    setUsageRows(null);
+    const rows = await getCatalogItemUsage(item.code);
+    setUsageRows(rows);
+  }
+
+  function fmt(n: number, d = 0) {
+    return n.toLocaleString("tr-TR", { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
 
   async function handleRenumber() {
     setRenumbering(true);
@@ -171,7 +190,16 @@ export function MaterialsClient({ initialItems }: { initialItems: CatalogItemDTO
                 {filtered.map((it) => (
                   <tr key={it.id} className="hover:bg-muted/30">
                     <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{it.code}</td>
-                    <td className="px-4 py-2.5 font-medium">{it.name}</td>
+                    <td className="px-4 py-2.5">
+                      <button
+                        type="button"
+                        onClick={() => openUsage(it)}
+                        className="font-medium text-foreground hover:text-primary hover:underline"
+                        title="Hangi tekliflerde, hangi fiyatla kullanılmış?"
+                      >
+                        {it.name}
+                      </button>
+                    </td>
                     <td className="px-4 py-2.5">
                       <span
                         className={cn(
@@ -293,6 +321,78 @@ export function MaterialsClient({ initialItems }: { initialItems: CatalogItemDTO
               <Trash2 className="size-3.5" /> Evet, Sil
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Kullanım: hangi tekliflerde, hangi fiyatla */}
+      <Dialog open={usageItem !== null} onOpenChange={(o) => !o && setUsageItem(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{usageItem?.name}</DialogTitle>
+            <DialogDescription>
+              <span className="font-mono">{usageItem?.code}</span> — bu kalem hangi tekliflerde, hangi fiyatla verilmiş?
+            </DialogDescription>
+          </DialogHeader>
+          {usageRows === null ? (
+            <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" /> Yükleniyor…
+            </div>
+          ) : usageRows.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Bu kalem henüz hiçbir teklifte kullanılmamış.
+            </p>
+          ) : (
+            <div className="max-h-[60vh] overflow-auto rounded-lg border">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-muted/80 backdrop-blur">
+                  <tr className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <th className="px-3 py-2 text-left">Müşteri / Teklif</th>
+                    <th className="px-3 py-2 text-right">Adet</th>
+                    <th className="px-3 py-2 text-right">Birim Maliyet</th>
+                    <th className="px-3 py-2 text-right">Kâr %</th>
+                    <th className="px-3 py-2 text-right">Birim Satış</th>
+                    <th className="px-3 py-2" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {usageRows.map((r, i) => {
+                    const sym = currencySymbol(r.currency as QuoteCurrency);
+                    const sale = r.unitCost * (1 + (r.marginPct || 0) / 100);
+                    return (
+                      <tr key={`${r.projectId}-${i}`} className="hover:bg-muted/30">
+                        <td className="px-3 py-2">
+                          <span className="font-medium">{r.customerName || "—"}</span>
+                          <span className="block text-[11px] text-muted-foreground">
+                            {r.projectName}
+                            {r.isOption && (
+                              <span className="ml-1 rounded-full bg-violet-100 px-1 py-0.5 text-[9px] font-bold uppercase text-violet-700">
+                                opsiyon
+                              </span>
+                            )}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {fmt(r.qty, r.qty % 1 === 0 ? 0 : 2)} {r.unit}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">{sym}{fmt(r.unitCost, 2)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">%{fmt(r.marginPct, r.marginPct % 1 === 0 ? 0 : 1)}</td>
+                        <td className="px-3 py-2 text-right font-semibold tabular-nums">{sym}{fmt(sale, 2)}</td>
+                        <td className="px-3 py-2 text-right">
+                          <Link
+                            href={`/projects/${r.projectId}/detail/items`}
+                            className="text-primary hover:underline"
+                            title="Teklifi aç"
+                          >
+                            Aç
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { parseQuoteItems } from "@/lib/quote";
 
 export interface CatalogItemDTO {
   id: string;
@@ -96,7 +97,7 @@ export async function renumberCatalogCodes(): Promise<{ error?: string; success?
   for (const kind of ["MALZEME", "HIZMET"] as Kind[]) {
     const rows = await prisma.materialCatalogItem.findMany({
       where: { organizationId: user.organizationId, kind },
-      orderBy: { code: "asc" },
+      orderBy: { createdAt: "asc" },
       select: { id: true },
     });
     for (const r of rows) {
@@ -137,6 +138,54 @@ export async function updateCatalogItem(
 
   revalidatePath("/materials");
   return { success: true };
+}
+
+export interface CatalogUsageRow {
+  projectId: string;
+  projectName: string;
+  customerName: string;
+  qty: number;
+  unit: string;
+  currency: string; // USD/EUR/TRY (girilen)
+  unitCost: number; // birim maliyet (girilen para biriminde)
+  marginPct: number; // kâr %
+  isOption: boolean;
+}
+
+/**
+ * Bir katalog kaleminin (koda göre) hangi tekliflerde kullanıldığını döner:
+ * kaç adet, birim maliyet, kâr % — kullanıcı "kime ne fiyatla" görsün.
+ */
+export async function getCatalogItemUsage(code: string): Promise<CatalogUsageRow[]> {
+  const user = await requireAuth();
+  const wanted = (code || "").trim().toLowerCase();
+  if (!wanted) return [];
+
+  const projects = await prisma.project.findMany({
+    where: { organizationId: user.organizationId, isTemplate: false, quoteKind: "MATERIAL_SERVICE" },
+    orderBy: { updatedAt: "desc" },
+    select: { id: true, name: true, customerName: true, projectDetail: { select: { quoteItems: true } } },
+  });
+
+  const rows: CatalogUsageRow[] = [];
+  for (const p of projects) {
+    const items = parseQuoteItems(p.projectDetail?.quoteItems);
+    for (const it of items) {
+      if ((it.code || "").trim().toLowerCase() !== wanted) continue;
+      rows.push({
+        projectId: p.id,
+        projectName: p.name || "İsimsiz Teklif",
+        customerName: p.customerName,
+        qty: it.qty,
+        unit: it.unit,
+        currency: it.currency,
+        unitCost: it.unitCost,
+        marginPct: it.marginPct,
+        isOption: !!it.isOption,
+      });
+    }
+  }
+  return rows;
 }
 
 /** Katalog kalemini siler. */
