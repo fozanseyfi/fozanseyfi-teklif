@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,14 +18,18 @@ import { Share2, Copy, Trash2, Link as LinkIcon, ExternalLink, Eye, Clock, Mail,
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { createShareLink, revokeShareLink, resendShareLinkEmail } from "@/app/actions/share";
-import { SHARE_TABS, buildDocTabId, type SharePreset } from "@/lib/share-tabs";
+import { SHARE_TABS, buildDocTabId, customerTabLabel, type SharePreset } from "@/lib/share-tabs";
 import { ShareQrModal } from "@/components/shared/share-qr-modal";
 
 interface ProjectOption {
   id: string;
   name: string;
   customerName: string;
+  quoteKind: string;
 }
+
+// Malzeme & Hizmet teklifinde yalnız bu sekmeler seçilebilir.
+const MATERIAL_SERVICE_ALLOWED = new Set(["firma", "referanslar", "teklif"]);
 
 interface LinkRow {
   id: string;
@@ -65,7 +69,8 @@ const PRESET_OPTIONS: { value: SharePreset; label: string }[] = [
   { value: "infinite", label: "Süresiz" },
 ];
 
-const TAB_LABEL_MAP = Object.fromEntries(SHARE_TABS.map((t) => [t.id, t.label]));
+// Linkler tablosunda müşteri-yönlü ad gösterilir.
+const TAB_LABEL_MAP = Object.fromEntries(SHARE_TABS.map((t) => [t.id, customerTabLabel(t.id)]));
 
 function formatDateTime(iso: string | null): string {
   if (!iso) return "—";
@@ -105,15 +110,29 @@ export function ShareLinksClient({ projects, links, organizationName, customDocu
   const [customerLabel, setCustomerLabel] = useState("");
   const [recipientEmail, setRecipientEmail] = useState("");
   const [preset, setPreset] = useState<SharePreset>("7d");
-  // Varsayilan secim: musteriye guvenle gidebilecek tab'ler isaretli, hassas
-  // (Fiyatli BoQ + Analiz) bos. "belgeler" sentinel'i otomatik turetilir,
-  // selectedTabs'a manuel eklemeye gerek yok. Yonetici isteyerek isaretler.
-  const [selectedTabs, setSelectedTabs] = useState<Set<string>>(
-    new Set(SHARE_TABS.filter((t) => !t.sensitive && t.id !== "belgeler").map((t) => t.id)),
-  );
+  // Varsayılan: hiçbir sekme seçili değil — yönetici bilinçli işaretler.
+  const [selectedTabs, setSelectedTabs] = useState<Set<string>>(new Set());
   // Ek belgeler: her custom doc icin ayri secim. Bos baslar — admin elle ekler.
   const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
+
+  // Seçili projenin tipi → hangi sekmeler seçilebilir?
+  const selectedKind = projects.find((p) => p.id === selectedProject)?.quoteKind;
+  const isMaterialService = selectedKind === "MATERIAL_SERVICE";
+  function tabAllowed(id: string): boolean {
+    if (isMaterialService) return MATERIAL_SERVICE_ALLOWED.has(id);
+    // Anahtar teslim proje (veya henüz seçilmemiş): "teklif" yalnız malzeme/hizmete özel.
+    return id !== "teklif";
+  }
+
+  // Proje değişince, artık izin verilmeyen seçili sekmeleri temizle.
+  useEffect(() => {
+    setSelectedTabs((prev) => {
+      const next = new Set([...prev].filter((id) => tabAllowed(id)));
+      return next.size === prev.size ? prev : next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProject]);
 
   const anySensitiveSelected = SHARE_TABS.some(
     (t) => t.sensitive && selectedTabs.has(t.id),
@@ -312,17 +331,26 @@ export function ShareLinksClient({ projects, links, organizationName, customDocu
               </p>
               <div className="grid gap-2 rounded-lg border border-emerald-200/60 bg-emerald-50/30 p-3 sm:grid-cols-2 lg:grid-cols-3">
                 {SHARE_TABS.filter((t) => !t.sensitive && t.id !== "belgeler").map((t) => {
-                  const isChecked = selectedTabs.has(t.id);
+                  const allowed = tabAllowed(t.id);
+                  const isChecked = allowed && selectedTabs.has(t.id);
                   return (
                     <label
                       key={t.id}
-                      className="flex cursor-pointer items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm transition-colors hover:bg-muted/40"
+                      className={cn(
+                        "flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm transition-colors",
+                        allowed ? "cursor-pointer hover:bg-muted/40" : "cursor-not-allowed opacity-40",
+                      )}
+                      title={allowed ? undefined : "Bu teklif tipi için kullanılamaz"}
                     >
                       <Checkbox
                         checked={isChecked}
-                        onCheckedChange={() => toggleTab(t.id)}
+                        disabled={!allowed}
+                        onCheckedChange={() => allowed && toggleTab(t.id)}
                       />
-                      <span className="flex-1 font-medium text-foreground">{t.label}</span>
+                      <span className="flex-1">
+                        <span className="font-medium text-foreground">{customerTabLabel(t.id)}</span>
+                        <span className="ml-1 text-[10.5px] font-normal text-muted-foreground">({t.label})</span>
+                      </span>
                     </label>
                   );
                 })}
@@ -378,20 +406,27 @@ export function ShareLinksClient({ projects, links, organizationName, customDocu
               </p>
               <div className="grid gap-2 rounded-lg border border-warning/40 bg-warning-soft/30 p-3 sm:grid-cols-2 lg:grid-cols-3">
                 {SHARE_TABS.filter((t) => t.sensitive).map((t) => {
-                  const isChecked = selectedTabs.has(t.id);
+                  const allowed = tabAllowed(t.id);
+                  const isChecked = allowed && selectedTabs.has(t.id);
                   return (
                     <label
                       key={t.id}
                       className={cn(
-                        "flex cursor-pointer items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm transition-colors hover:bg-muted/40",
+                        "flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm transition-colors",
+                        allowed ? "cursor-pointer hover:bg-muted/40" : "cursor-not-allowed opacity-40",
                         isChecked && "border-warning/60 bg-warning-soft/60",
                       )}
+                      title={allowed ? undefined : "Bu teklif tipi için kullanılamaz"}
                     >
                       <Checkbox
                         checked={isChecked}
-                        onCheckedChange={() => toggleTab(t.id)}
+                        disabled={!allowed}
+                        onCheckedChange={() => allowed && toggleTab(t.id)}
                       />
-                      <span className="flex-1 font-medium text-foreground">{t.label}</span>
+                      <span className="flex-1">
+                        <span className="font-medium text-foreground">{customerTabLabel(t.id)}</span>
+                        <span className="ml-1 text-[10.5px] font-normal text-muted-foreground">({t.label})</span>
+                      </span>
                       <AlertTriangle
                         className="size-3.5 text-warning-soft-foreground"
                         aria-label="Maliyet/kâr bilgisi içerir"

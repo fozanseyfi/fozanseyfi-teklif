@@ -54,6 +54,7 @@ export default async function ShareLinksPage() {
     id: p.id,
     name: p.name,
     customerName: p.customerName,
+    quoteKind: p.quoteKind,
   }));
 
   const linkRows = links.map((l) => ({
