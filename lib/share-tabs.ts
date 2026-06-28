@@ -40,6 +40,44 @@ export const SHARE_TABS: ShareTabInfo[] = [
 
 export const VALID_TAB_IDS = new Set<string>(SHARE_TABS.map((t) => t.id));
 
+/**
+ * Müşteri-yönlü (public paylaşım) başlık + açıklama. Yönetici tarafındaki
+ * teknik adlar (SHARE_TABS.label) aynı kalır; müşteri bu sade adları görür.
+ * Genel Bakış kartları, üst sekme navigasyonu ve bölüm başlıklarında kullanılır.
+ */
+export interface CustomerTabInfo {
+  label: string;
+  desc: string;
+}
+
+export const CUSTOMER_TAB_INFO: Record<ShareTab, CustomerTabInfo> = {
+  firma: { label: "Firma Tanıtımı", desc: "Bizi tanıyın — faaliyet alanlarımız ve uzmanlığımız" },
+  referanslar: { label: "Referanslarımız", desc: "Tamamladığımız projeler ve müşterilerimiz" },
+  belgeler: { label: "Belgeler", desc: "Sertifikalar ve ek belgeler" },
+  teklif: { label: "Fiyat Teklifi", desc: "Teklifimize dahil kalemler ve toplam tutar" },
+  "boq-unpriced": {
+    label: "Malzeme Listesi",
+    desc: "Teklifimize dahil tüm malzeme ve işler (fiyatsız kapsam listesi)",
+  },
+  "boq-priced": {
+    label: "Fiyatlı Malzeme Listesi",
+    desc: "Malzeme ve işler, kalem bazlı fiyatlarıyla",
+  },
+  "priced-boq-summary": { label: "Özet Fiyat Teklifi", desc: "Ana kalemler ve genel toplam" },
+  "priced-boq-detailed": { label: "Detaylı Fiyat Teklifi", desc: "Kalem kalem fiyatlandırma" },
+  "kesif-a": { label: "Malzeme Keşfi", desc: "Doğrudan malzeme ve işçilik kalemleri" },
+  "kesif-b": { label: "Dolaylı Maliyetler", desc: "Genel gider kalemleri" },
+  analiz: { label: "Finansal Özet", desc: "Yatırım getirisi ve finansal analiz" },
+  dor: {
+    label: "Sorumluluk Kapsam Tablosu",
+    desc: "Hangi işten hangi taraf sorumlu — tedarik, montaj ve devreye alma",
+  },
+};
+
+export function customerTabLabel(id: string): string {
+  return (CUSTOMER_TAB_INFO as Record<string, CustomerTabInfo>)[id]?.label ?? id;
+}
+
 // Backward compat: eski tab id'leri yeni id'lere yonlendirir. Mevcut DB'deki
 // kayitlar bozulmasin diye share-loader bu map ile parse eder.
 export const TAB_ID_MIGRATION: Record<string, ShareTab> = {

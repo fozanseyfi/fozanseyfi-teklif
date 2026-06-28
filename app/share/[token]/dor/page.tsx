@@ -2,6 +2,7 @@ import { requireShareTab } from "../_components/share-guard";
 import { ShareDocFrame } from "@/components/shared/share-doc-frame";
 import { buildDorPrintHtml } from "@/lib/share-print/dor";
 import { resolveBrand } from "@/lib/pdf-brand";
+import { CUSTOMER_TAB_INFO } from "@/lib/share-tabs";
 import type { DorGroup } from "@/lib/ges-defaults";
 
 interface Props {
@@ -18,5 +19,11 @@ export default async function ShareDorPage({ params }: Props) {
     firmName: ctx.firmName,
     userEmail: "",
   });
-  return <ShareDocFrame html={html} title="DoR — Sorumluluk Dağılımı" />;
+  return (
+    <ShareDocFrame
+      html={html}
+      title={CUSTOMER_TAB_INFO["dor"].label}
+      desc={CUSTOMER_TAB_INFO["dor"].desc}
+    />
+  );
 }

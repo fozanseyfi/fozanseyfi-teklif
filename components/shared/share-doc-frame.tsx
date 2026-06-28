@@ -9,7 +9,7 @@ import { FileDown, Maximize2 } from "lucide-react";
  * çıktının birebir önizlemesini görür; "PDF / Yazdır" ile çıktı/kaydet yapar.
  * Mobilde HTML tablo yerine sayfa görünümü açıldığı için düzgün okunur.
  */
-export function ShareDocFrame({ html, title }: { html: string; title: string }) {
+export function ShareDocFrame({ html, title, desc }: { html: string; title: string; desc?: string }) {
   function openInNew(print: boolean) {
     const w = window.open("", "_blank");
     if (!w) return;
@@ -20,6 +20,10 @@ export function ShareDocFrame({ html, title }: { html: string; title: string }) 
 
   return (
     <div className="space-y-3">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">{title}</h1>
+        {desc && <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-500">{desc}</p>}
+      </div>
       <div className="flex flex-wrap items-center justify-end gap-2">
         <Button variant="outline" size="sm" onClick={() => openInNew(false)}>
           <Maximize2 className="size-3.5" /> Tam Ekran

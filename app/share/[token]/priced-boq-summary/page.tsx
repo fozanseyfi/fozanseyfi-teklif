@@ -2,6 +2,7 @@ import { requireShareTab } from "../_components/share-guard";
 import { ShareDocFrame } from "@/components/shared/share-doc-frame";
 import { buildPricedBoqSummaryHtml } from "@/lib/share-print/priced-boq";
 import { resolveBrand } from "@/lib/pdf-brand";
+import { CUSTOMER_TAB_INFO } from "@/lib/share-tabs";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
 
 interface Props {
@@ -21,5 +22,11 @@ export default async function SharePricedBoqSummaryPage({ params }: Props) {
     firmName: ctx.firmName,
     userEmail: "",
   });
-  return <ShareDocFrame html={html} title="Özet Teklif (P-BoQ)" />;
+  return (
+    <ShareDocFrame
+      html={html}
+      title={CUSTOMER_TAB_INFO["priced-boq-summary"].label}
+      desc={CUSTOMER_TAB_INFO["priced-boq-summary"].desc}
+    />
+  );
 }

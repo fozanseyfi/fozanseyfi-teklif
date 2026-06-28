@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Sun, User, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BrandSettings } from "@/lib/pdf-brand";
+import { customerTabLabel } from "@/lib/share-tabs";
 
 interface TabItem {
   id: string;
@@ -75,33 +76,29 @@ export function ShareHeader({
         </div>
       </div>
 
-      {/* Alt: tab navigasyonu */}
-      {tabs.length > 0 && (
-        <nav className="mx-auto max-w-[1440px] overflow-x-auto px-4 sm:px-6 lg:px-8">
-          <ul className="flex min-w-max gap-1 pb-2">
-            {tabs.map((t) => {
-              const href = `/share/${token}/${t.id}`;
-              const active = pathname === href;
-              return (
-                <li key={t.id}>
-                  <Link
-                    href={href}
-                    className={cn(
-                      "inline-flex items-center rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
-                      active
-                        ? "text-white shadow-sm"
-                        : "text-slate-700 hover:bg-slate-100",
-                    )}
-                    style={active ? { backgroundColor: accent } : undefined}
-                  >
-                    {t.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-      )}
+      {/* Alt: tab navigasyonu — başta "Genel Bakış" (karşılama) */}
+      <nav className="mx-auto max-w-[1440px] overflow-x-auto px-4 sm:px-6 lg:px-8">
+        <ul className="flex min-w-max gap-1 pb-2">
+          {[{ id: "", label: "Genel Bakış" }, ...tabs].map((t) => {
+            const href = t.id ? `/share/${token}/${t.id}` : `/share/${token}`;
+            const active = pathname === href;
+            return (
+              <li key={t.id || "overview"}>
+                <Link
+                  href={href}
+                  className={cn(
+                    "inline-flex items-center rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
+                    active ? "text-white shadow-sm" : "text-slate-700 hover:bg-slate-100",
+                  )}
+                  style={active ? { backgroundColor: accent } : undefined}
+                >
+                  {t.id ? customerTabLabel(t.id) : t.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
     </header>
   );
 }

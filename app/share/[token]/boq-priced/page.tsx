@@ -2,6 +2,7 @@ import { requireShareTab } from "../_components/share-guard";
 import { ShareDocFrame } from "@/components/shared/share-doc-frame";
 import { buildBoqPrintHtml } from "@/lib/share-print/boq";
 import { resolveBrand } from "@/lib/pdf-brand";
+import { CUSTOMER_TAB_INFO } from "@/lib/share-tabs";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
 
 interface Props {
@@ -22,5 +23,11 @@ export default async function ShareBoqPricedPage({ params }: Props) {
     userEmail: "",
     showPrices: true,
   });
-  return <ShareDocFrame html={html} title="Fiyatlı BoQ" />;
+  return (
+    <ShareDocFrame
+      html={html}
+      title={CUSTOMER_TAB_INFO["boq-priced"].label}
+      desc={CUSTOMER_TAB_INFO["boq-priced"].desc}
+    />
+  );
 }

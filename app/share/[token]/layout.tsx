@@ -5,6 +5,7 @@ import { loadShareContext, recordShareView } from "@/lib/share-loader";
 import { ShareHeader } from "./_components/share-header";
 import { ShareExpiryStrip } from "./_components/share-expiry-strip";
 import { ShareResponseBar } from "./_components/response-bar";
+import { ShareSectionChrome } from "@/components/shared/share-section-chrome";
 import { SHARE_TABS, normalizeTabId } from "@/lib/share-tabs";
 
 interface Props {
@@ -52,7 +53,13 @@ export default async function ShareLayout({ children, params }: Props) {
       <ReadOnlyProvider value={true}>
         <main className="mx-auto max-w-[1440px] p-4 sm:p-6 lg:p-8">
           <div className="template-readonly" data-readonly-reason="share">
-            {children}
+            <ShareSectionChrome
+              token={ctx.link.token}
+              tabIds={tabs.map((t) => t.id)}
+              accent={ctx.brand.colorEnabled && ctx.brand.color ? ctx.brand.color : "#059669"}
+            >
+              {children}
+            </ShareSectionChrome>
           </div>
         </main>
       </ReadOnlyProvider>

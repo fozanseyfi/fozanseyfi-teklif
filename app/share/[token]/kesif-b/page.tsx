@@ -3,6 +3,7 @@ import { ShareDocFrame } from "@/components/shared/share-doc-frame";
 import { buildKesifPrintHtml } from "@/lib/share-print/kesif";
 import { getGrpTot } from "@/lib/ges-engine";
 import { resolveBrand } from "@/lib/pdf-brand";
+import { CUSTOMER_TAB_INFO } from "@/lib/share-tabs";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
 
 interface Props {
@@ -24,5 +25,11 @@ export default async function ShareKesifBPage({ params }: Props) {
     firmName: ctx.firmName,
     userEmail: "",
   });
-  return <ShareDocFrame html={html} title="Keşif-B" />;
+  return (
+    <ShareDocFrame
+      html={html}
+      title={CUSTOMER_TAB_INFO["kesif-b"].label}
+      desc={CUSTOMER_TAB_INFO["kesif-b"].desc}
+    />
+  );
 }
