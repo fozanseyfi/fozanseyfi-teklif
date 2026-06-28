@@ -12,7 +12,6 @@ import {
   type QuoteOutputCurrency,
   lineUnitSaleOut,
   lineTotalSaleOut,
-  lineTotalSaleInclKdvOut,
   computeQuoteTotals,
   QUOTE_ITEM_KIND_LABELS,
 } from "@/lib/quote";
@@ -70,7 +69,7 @@ export function buildQuotePrintHtml({
     ] as { kind: QuoteItemKindT; rows: QuoteItem[] }[]
   ).filter((g) => g.rows.length > 0);
 
-  // Opsiyonlar — ana toplama dahil değil; yalnız KDV dahil satış fiyatıyla.
+  // Opsiyonlar — ana toplama dahil değil; KDV hariç satış fiyatıyla.
   const optionItems = items.filter((i) => i.isOption);
   const optionsHtml = optionItems.length
     ? `<div class="block"><div class="blk-ttl">Opsiyonlar (ana teklife dahil değildir)</div>
@@ -78,7 +77,7 @@ export function buildQuotePrintHtml({
           .map(
             (it) => `<tr>
               <td>${esc(it.name || it.code)}${it.desc ? `<span class="desc"> — ${esc(it.desc)}</span>` : ""}</td>
-              <td class="num strong">${sym}${fmt(lineTotalSaleInclKdvOut(it, out, rates, meta.kdvRate))} <span class="dim" style="font-weight:400">KDV dahil</span></td>
+              <td class="num strong">${sym}${fmt(lineTotalSaleOut(it, out, rates))} <span class="dim" style="font-weight:400">KDV hariç</span></td>
             </tr>`,
           )
           .join("")}</tbody></table>

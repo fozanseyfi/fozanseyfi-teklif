@@ -23,7 +23,6 @@ import {
   lineTotalCostTRY,
   lineUnitSaleOut,
   lineTotalSaleOut,
-  lineTotalSaleInclKdvOut,
   computeQuoteTotals,
 } from "@/lib/quote";
 
@@ -392,7 +391,7 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
         </Card>
       </div>
 
-      {/* Opsiyonlar — ana toplama dahil değil, KDV dahil satış fiyatıyla */}
+      {/* Opsiyonlar — ana toplama dahil değil, KDV hariç satış fiyatıyla */}
       {items.some((it) => it.isOption) && (
         <Card className="border-violet-200">
           <CardContent className="space-y-2 p-5">
@@ -410,8 +409,8 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
                       </span>
                     </span>
                     <span className="shrink-0 font-semibold tabular-nums">
-                      {sym}{fmt(lineTotalSaleInclKdvOut(it, out, rates, meta.kdvRate))}
-                      <span className="ml-1 text-[10px] font-normal text-muted-foreground">KDV dahil</span>
+                      {sym}{fmt(lineTotalSaleOut(it, out, rates))}
+                      <span className="ml-1 text-[10px] font-normal text-muted-foreground">KDV hariç</span>
                     </span>
                   </div>
                 ))}

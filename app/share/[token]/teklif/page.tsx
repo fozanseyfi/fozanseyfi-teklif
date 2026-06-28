@@ -7,7 +7,6 @@ import {
   computeQuoteTotals,
   lineUnitSaleOut,
   lineTotalSaleOut,
-  lineTotalSaleInclKdvOut,
   QUOTE_ITEM_KIND_LABELS,
   type QuoteItemKindT,
   type QuoteOutputCurrency,
@@ -145,7 +144,7 @@ export default async function ShareTeklifPage({ params }: Props) {
             </div>
           </div>
 
-          {/* Opsiyonlar — ana toplama dahil değil, KDV dahil */}
+          {/* Opsiyonlar — ana toplama dahil değil, KDV hariç */}
           {optionItems.length > 0 && (
             <div className="rounded-lg border border-violet-200 bg-violet-50/40 p-4 text-[12.5px]">
               <p className="mb-2 font-semibold text-violet-700">Opsiyonlar (ana teklife dahil değildir)</p>
@@ -157,8 +156,8 @@ export default async function ShareTeklifPage({ params }: Props) {
                       {it.desc && <span className="text-slate-500"> — {it.desc}</span>}
                     </span>
                     <span className="shrink-0 font-semibold tabular-nums text-slate-800">
-                      {sym}{fmt(lineTotalSaleInclKdvOut(it, out, rates, meta.kdvRate))}
-                      <span className="ml-1 text-[10px] font-normal text-slate-500">KDV dahil</span>
+                      {sym}{fmt(lineTotalSaleOut(it, out, rates))}
+                      <span className="ml-1 text-[10px] font-normal text-slate-500">KDV hariç</span>
                     </span>
                   </div>
                 ))}

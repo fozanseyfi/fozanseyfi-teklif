@@ -17,7 +17,6 @@ import {
   computeQuoteTotals,
   lineUnitSaleOut,
   lineTotalSaleOut,
-  lineTotalSaleInclKdvOut,
   QUOTE_ITEM_KIND_LABELS,
 } from "@/lib/quote";
 
@@ -184,7 +183,7 @@ export function QuoteOutput({ projectId, quoteTitle, customer, revisions, brand,
               </div>
             </div>
 
-            {/* Opsiyonlar — ana toplama dahil değil, KDV dahil */}
+            {/* Opsiyonlar — ana toplama dahil değil, KDV hariç */}
             {optionItems.length > 0 && (
               <div className="rounded-lg border border-violet-200 bg-violet-50/30 p-4 text-sm">
                 <p className="mb-2 font-semibold text-violet-700">Opsiyonlar (ana teklife dahil değildir)</p>
@@ -196,8 +195,8 @@ export function QuoteOutput({ projectId, quoteTitle, customer, revisions, brand,
                         {it.desc && <span className="text-muted-foreground"> — {it.desc}</span>}
                       </span>
                       <span className="shrink-0 font-semibold tabular-nums">
-                        {sym}{fmt(lineTotalSaleInclKdvOut(it, out, rates, meta.kdvRate))}
-                        <span className="ml-1 text-[10px] font-normal text-muted-foreground">KDV dahil</span>
+                        {sym}{fmt(lineTotalSaleOut(it, out, rates))}
+                        <span className="ml-1 text-[10px] font-normal text-muted-foreground">KDV hariç</span>
                       </span>
                     </div>
                   ))}
