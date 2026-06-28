@@ -266,7 +266,7 @@ export function TeknikForm({ projectId, projectName, settings }: Props) {
               subtitle="DC/AC güç, panel ve inverter bilgileri"
               tone="info"
             />
-            <CardContent className="grid grid-cols-2 gap-5 p-6">
+            <CardContent className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:gap-5 sm:p-6">
               <div className="space-y-2">
                 <Label>
                   DC Güç (kW) <span className="text-destructive">*</span>
@@ -357,7 +357,7 @@ export function TeknikForm({ projectId, projectName, settings }: Props) {
               subtitle="Kur bilgileri ve inşaat süresi"
               tone="success"
             />
-            <CardContent className="grid grid-cols-2 gap-5 p-6">
+            <CardContent className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:gap-5 sm:p-6">
               <div className="col-span-2 -mb-2 flex items-center justify-end">
                 <button
                   data-edit-only

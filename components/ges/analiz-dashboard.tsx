@@ -491,7 +491,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                     {s[key].map((alt, i) => (
                       <div
                         key={i}
-                        className="grid grid-cols-[1fr_110px_70px_36px] items-center gap-2"
+                        className="grid grid-cols-[minmax(0,1fr)_84px_52px_30px] items-center gap-1.5 sm:grid-cols-[1fr_110px_70px_36px] sm:gap-2"
                       >
                         <Input
                           className="h-9 text-sm"

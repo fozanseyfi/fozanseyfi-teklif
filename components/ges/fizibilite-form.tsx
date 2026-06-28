@@ -158,7 +158,7 @@ export function FizibiliteForm({ projectId, settings, totalPowerKw }: Props) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                 {MONTHS.map((m, i) => (
                   <div key={m} className="space-y-1.5">
                     <Label className="text-xs font-semibold text-muted-foreground">{m}</Label>
@@ -191,7 +191,7 @@ export function FizibiliteForm({ projectId, settings, totalPowerKw }: Props) {
               subtitle="Tarife, fiyat ve proje ömrü"
               tone="warning"
             />
-            <CardContent className="grid grid-cols-2 gap-5 p-6">
+            <CardContent className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:gap-5 sm:p-6">
               <div className="space-y-2">
                 <Label>Tarife Tipi</Label>
                 <Select

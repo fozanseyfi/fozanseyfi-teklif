@@ -20,7 +20,7 @@ interface DataPoint {
 
 export function KpiTrendChart({ data }: { data: DataPoint[] }) {
   return (
-    <div className="h-72 w-full">
+    <div className="h-64 w-full sm:h-72">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />

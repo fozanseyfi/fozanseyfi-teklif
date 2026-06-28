@@ -446,7 +446,7 @@ function MetricCard({
           {pill && (
             <span
               className={cn(
-                "inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums",
+                "flex w-fit max-w-full items-center rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight",
                 accent ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600",
               )}
             >

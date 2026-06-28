@@ -169,14 +169,14 @@ export function MaterialsClient({ initialItems }: { initialItems: CatalogItemDTO
       </div>
 
       <Card className="overflow-hidden">
-        <CardContent className="p-0">
+        <CardContent className="overflow-x-auto p-0">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-16 text-center text-sm text-muted-foreground">
               <Package className="size-8 opacity-40" />
               {items.length === 0 ? "Henüz katalog kalemi yok. \"Yeni Kalem\" ile ekleyin." : "Eşleşen kalem yok."}
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[560px] text-sm">
               <thead>
                 <tr className="border-b bg-muted/50 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   <th className="px-4 py-2.5 text-left">Kod</th>
