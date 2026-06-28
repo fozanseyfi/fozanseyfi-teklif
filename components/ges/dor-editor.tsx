@@ -294,9 +294,9 @@ export function DorEditor({ projectId, projectName, data, firmName, brand, userE
                 <Input
                   value={group.name}
                   onChange={(e) => updateGroupName(realGi, e.target.value)}
-                  className="h-7 max-w-md border-transparent bg-transparent px-2 text-sm font-semibold hover:border-border focus:border-primary"
+                  className="h-7 min-w-0 flex-1 border-transparent bg-transparent px-2 text-sm font-semibold hover:border-border focus:border-primary"
                 />
-                <Badge variant="outline" className="ml-auto text-xs">
+                <Badge variant="outline" className="ml-auto shrink-0 whitespace-nowrap text-xs">
                   {group.items.length} madde
                 </Badge>
                 <button

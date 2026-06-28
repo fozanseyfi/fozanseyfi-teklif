@@ -298,17 +298,17 @@ export function BoQView({
                   setCollapsed((p) => ({ ...p, [group.code]: !p[group.code] }))
                 }
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
                     {isCollapsed ? (
-                      <ChevronRight className="size-4 text-muted-foreground" />
+                      <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
                     ) : (
-                      <ChevronDown className="size-4 text-muted-foreground" />
+                      <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
                     )}
                     <Badge
                       variant="outline"
                       className={cn(
-                        "font-mono text-xs",
+                        "shrink-0 font-mono text-xs",
                         isA
                           ? "border-primary/30 bg-primary-soft text-primary-soft-foreground"
                           : "border-info/30 bg-info-soft text-info-soft-foreground",
@@ -316,15 +316,15 @@ export function BoQView({
                     >
                       {group.displayGroupCode}
                     </Badge>
-                    <CardTitle className="text-sm font-semibold text-foreground">
+                    <CardTitle className="min-w-0 truncate text-sm font-semibold text-foreground">
                       {group.name}
                     </CardTitle>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="shrink-0 text-xs text-muted-foreground">
                       ({group.items.length} kalem)
                     </span>
                   </div>
                   {showPrices && (
-                    <span className="text-sm font-bold tabular-nums text-primary-soft-foreground">
+                    <span className="shrink-0 text-sm font-bold tabular-nums text-primary-soft-foreground">
                       ${fmt(grpTotal)}
                     </span>
                   )}

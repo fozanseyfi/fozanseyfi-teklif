@@ -306,38 +306,38 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
                 setCollapsed((p) => ({ ...p, [group.code]: !p[group.code] }))
               }
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-2">
                   {isCollapsed ? (
-                    <ChevronRight className="size-4 text-muted-foreground" />
+                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
                   ) : (
-                    <ChevronDown className="size-4 text-muted-foreground" />
+                    <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
                   )}
-                  <Badge variant="outline" className="font-mono text-xs">
+                  <Badge variant="outline" className="shrink-0 font-mono text-xs">
                     {group.code}
                   </Badge>
-                  <CardTitle className="text-sm font-semibold">
+                  <CardTitle className="min-w-0 truncate text-sm font-semibold">
                     {group.name}
                   </CardTitle>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="shrink-0 text-xs text-muted-foreground">
                     ({group.items.length} kalem)
                   </span>
                   {isAutoGroup && (
-                    <span className="rounded-full bg-info-soft px-2 py-0.5 text-[10px] font-semibold text-info-soft-foreground">
+                    <span className="shrink-0 rounded-full bg-info-soft px-2 py-0.5 text-[10px] font-semibold text-info-soft-foreground">
                       Cash Flow Otomatik
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex shrink-0 items-center gap-3 pl-6 sm:pl-0">
                   <div className="text-right">
                     <span className="text-sm font-semibold text-primary">
                       ${fmt(grpTotal)}
                     </span>
-                    <span className="ml-1.5 text-xs text-muted-foreground">
+                    <span className="ml-1.5 hidden text-xs text-muted-foreground sm:inline">
                       ₺{fmt(grpTotal * settings.usd)}
                     </span>
                     {dcWp > 0 && (
-                      <span className="ml-1.5 text-xs text-info-soft-foreground">
+                      <span className="ml-1.5 hidden text-xs text-info-soft-foreground sm:inline">
                         ${(grpTotal / dcWp).toFixed(4)}/Wp
                       </span>
                     )}

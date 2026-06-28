@@ -728,17 +728,17 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                 className="cursor-pointer select-none py-2.5 transition-colors hover:bg-muted/40"
                 onClick={() => setCollapsed((p) => ({ ...p, [group.code]: !p[group.code] }))}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-2">
                     {isCollapsed ? (
-                      <ChevronRight className="size-4 text-muted-foreground" />
+                      <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
                     ) : (
-                      <ChevronDown className="size-4 text-muted-foreground" />
+                      <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
                     )}
                     <Badge
                       variant="outline"
                       className={cn(
-                        "font-mono text-xs",
+                        "shrink-0 font-mono text-xs",
                         isA
                           ? "border-primary/30 bg-primary-soft text-primary-soft-foreground"
                           : "border-info/30 bg-info-soft text-info-soft-foreground",
@@ -746,16 +746,16 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                     >
                       {dispGroupCode}
                     </Badge>
-                    <CardTitle className="text-sm font-semibold text-foreground">
+                    <CardTitle className="min-w-0 text-sm font-semibold text-foreground">
                       {group.name}
                     </CardTitle>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="shrink-0 text-xs text-muted-foreground">
                       ({renderedItems.length} kalem)
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex shrink-0 items-center gap-2 pl-6 sm:pl-0">
                     <span className="text-sm font-semibold text-primary">${fmt(grpTotal)}</span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="hidden text-xs text-muted-foreground sm:inline">
                       ₺{fmt(grpTotal * settings.usd)}
                     </span>
                     {salePrice > 0 && (
