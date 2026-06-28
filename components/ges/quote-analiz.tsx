@@ -49,6 +49,7 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
   const [meta, setMeta] = useState<QuoteMeta>(defMeta);
   const [saving, setSaving] = useState(false);
   const [bulkMargin, setBulkMargin] = useState("");
+  const [targetTotal, setTargetTotal] = useState("");
   const [noteItems, setNoteItems] = useState<string[]>(() =>
     (initialMeta.notes ?? "").split(/\r?\n/).filter((l) => l.trim().length > 0),
   );
@@ -78,6 +79,25 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
       return;
     }
     setItems((prev) => prev.map((it) => ({ ...it, marginPct: v })));
+  }
+
+  // Hedef genel toplam (KDV dahil, seçilen para biriminde) girilince, o toplama
+  // ulaşacak tek kâr oranını tüm kalemlere dağıt.
+  function applyTarget() {
+    const t = parseFloat(targetTotal);
+    if (!Number.isFinite(t) || t <= 0) {
+      toast.error("Geçerli bir hedef fiyat girin");
+      return;
+    }
+    const totalCostOut = items.reduce((s, it) => s + convert(it.unitCost, it.currency, out, rates) * (it.qty || 0), 0);
+    if (totalCostOut <= 0) {
+      toast.error("Önce kalem maliyetlerini girin");
+      return;
+    }
+    const exTarget = t / (1 + (meta.kdvRate || 0) / 100);
+    const m = (exTarget / totalCostOut - 1) * 100;
+    setItems((prev) => prev.map((it) => ({ ...it, marginPct: Math.round(m * 100) / 100 })));
+    toast.success(`Kâr oranı %${fmt(m, 1)} olarak tüm kalemlere dağıtıldı`);
   }
 
   function setPT(next: typeof paymentTerms) {
@@ -200,21 +220,37 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
         </CardContent>
       </Card>
 
-      {/* Toplu marj */}
+      {/* Toplu marj + hedef fiyat */}
       <Card>
-        <CardContent className="flex flex-wrap items-center gap-3 p-4" data-edit-only>
-          <span className="text-xs font-medium text-muted-foreground">Tümüne kâr % uygula</span>
-          <Input
-            type="number"
-            step="0.5"
-            className="h-8 w-24 text-sm"
-            value={bulkMargin}
-            onChange={(e) => setBulkMargin(e.target.value)}
-            placeholder="%"
-          />
-          <Button variant="outline" size="sm" onClick={applyBulk}>
-            Uygula
-          </Button>
+        <CardContent className="flex flex-wrap items-center gap-x-6 gap-y-3 p-4" data-edit-only>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Tümüne kâr % uygula</span>
+            <Input
+              type="number"
+              step="0.5"
+              className="h-8 w-24 text-sm"
+              value={bulkMargin}
+              onChange={(e) => setBulkMargin(e.target.value)}
+              placeholder="%"
+            />
+            <Button variant="outline" size="sm" onClick={applyBulk}>
+              Uygula
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Toplam Hedef Fiyat ({sym}, KDV dahil)</span>
+            <Input
+              type="number"
+              step="any"
+              className="h-8 w-32 text-sm"
+              value={targetTotal}
+              onChange={(e) => setTargetTotal(e.target.value)}
+              placeholder={sym}
+            />
+            <Button variant="outline" size="sm" onClick={applyTarget}>
+              Dağıt
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
