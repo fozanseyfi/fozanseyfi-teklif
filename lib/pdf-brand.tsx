@@ -198,19 +198,20 @@ export function generateDocId(): string {
  *  Logo arka plansız (transparent) render edilir; cover gradient'inin üzerine
  *  doğrudan oturur. PNG/SVG transparency korunur. */
 export function brandRowHtml(brand: BrandContext, firmName: string): string {
-  if (!brand.showLogo && !brand.showSlogan) return "";
-  const logo = brand.showLogo
-    ? `<img src="${escapeHtml(brand.logoUrl!)}" alt="" style="max-height:42px;max-width:140px;object-fit:contain;flex-shrink:0"/>`
-    : "";
   const slogan = brand.showSlogan
     ? `<div style="font-size:9.5px;color:rgba(255,255,255,0.85);font-style:italic;margin-top:2px">${escapeHtml(brand.slogan!)}</div>`
     : "";
-  return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
-    ${logo}
-    <div style="min-width:0">
-      <div style="font-size:13px;font-weight:800;color:#fff;letter-spacing:-0.01em;line-height:1.1">${escapeHtml(firmName)}</div>
+  // Logo varsa firma adını yazma — yalnızca logo (+ varsa slogan).
+  if (brand.showLogo) {
+    return `<div style="display:flex;flex-direction:column;gap:1px;margin-bottom:10px">
+      <img src="${escapeHtml(brand.logoUrl!)}" alt="" style="max-height:48px;max-width:200px;object-fit:contain"/>
       ${slogan}
-    </div>
+    </div>`;
+  }
+  // Logo yoksa firma adını yaz.
+  return `<div style="margin-bottom:10px">
+    <div style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-0.01em;line-height:1.1">${escapeHtml(firmName)}</div>
+    ${slogan}
   </div>`;
 }
 
