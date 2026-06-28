@@ -12,6 +12,7 @@ import { Save, ArrowRight, Trash2, RefreshCw, Loader2, Package, ChevronUp, Chevr
 import { toast } from "sonner";
 import { DetailPageHeader } from "@/components/ges/detail-page-header";
 import { CatalogCombobox } from "@/components/ges/catalog-combobox";
+import { useReadOnly } from "@/lib/readonly-context";
 import type { CatalogItemDTO } from "@/app/actions/materials";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -36,6 +37,7 @@ function fmt(n: number, d = 0) {
 
 export function QuoteItemsEditor({ projectId, projectName, initialItems, initialMeta, catalog: initialCatalog }: Props) {
   const router = useRouter();
+  const readOnly = useReadOnly();
   const [items, setItems] = useState<QuoteItem[]>(initialItems);
   const [meta, setMeta] = useState<QuoteMeta>(initialMeta);
   const [catalog, setCatalog] = useState<CatalogItemDTO[]>(initialCatalog);
@@ -137,7 +139,7 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
   const inputCls = "h-8 text-sm";
 
   return (
-    <div className="space-y-4">
+    <fieldset disabled={readOnly} className="m-0 min-w-0 space-y-4 border-0 p-0">
       <DetailPageHeader
         kicker="Malzeme & Hizmet Kalemleri"
         title={projectName}
@@ -363,6 +365,6 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
           </div>
         </CardContent>
       </Card>
-    </div>
+    </fieldset>
   );
 }

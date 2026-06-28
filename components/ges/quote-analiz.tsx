@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { Save, ArrowRight, BarChart3, StickyNote, CreditCard, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DetailPageHeader } from "@/components/ges/detail-page-header";
+import { useReadOnly } from "@/lib/readonly-context";
 import {
   type QuoteItem,
   type QuoteMeta,
@@ -41,6 +42,7 @@ const PIE_COLORS = { malzeme: "#0ea5e9", hizmet: "#8b5cf6", kar: "#10b981" };
 
 export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta }: Props) {
   const router = useRouter();
+  const readOnly = useReadOnly();
   // Teklif tarihi varsayılan = sistem günü (boşsa).
   const todayISO = new Date().toISOString().slice(0, 10);
   const defMeta: QuoteMeta = { ...initialMeta, quoteDate: initialMeta.quoteDate || todayISO };
@@ -156,7 +158,7 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
   });
 
   return (
-    <div className="space-y-4">
+    <fieldset disabled={readOnly} className="m-0 min-w-0 space-y-4 border-0 p-0">
       <DetailPageHeader
         kicker="Analiz — Kâr & KDV"
         title={projectName}
@@ -542,7 +544,7 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
           </CardContent>
         </Card>
       </div>
-    </div>
+    </fieldset>
   );
 }
 

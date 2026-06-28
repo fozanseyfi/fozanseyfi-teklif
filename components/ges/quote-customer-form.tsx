@@ -11,6 +11,7 @@ import { Save, ArrowRight, User } from "lucide-react";
 import { toast } from "sonner";
 import { DetailPageHeader } from "@/components/ges/detail-page-header";
 import { CustomerSelect, type Customer } from "@/components/ges/customer-select";
+import { useReadOnly } from "@/lib/readonly-context";
 
 interface Project {
   id: string;
@@ -33,6 +34,7 @@ export function QuoteCustomerForm({
   ilce: string;
 }) {
   const router = useRouter();
+  const readOnly = useReadOnly();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: project.name ?? "",
@@ -68,7 +70,7 @@ export function QuoteCustomerForm({
   }
 
   return (
-    <div className="space-y-5">
+    <fieldset disabled={readOnly} className="m-0 min-w-0 space-y-5 border-0 p-0">
       <DetailPageHeader
         kicker="Malzeme & Hizmet Teklifi"
         title={project.name || "Yeni Teklif"}
@@ -141,6 +143,6 @@ export function QuoteCustomerForm({
           </div>
         </CardContent>
       </Card>
-    </div>
+    </fieldset>
   );
 }
