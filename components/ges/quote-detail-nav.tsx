@@ -1,7 +1,8 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { User, Package, BarChart3, FileDown, GitBranch, Lock, Copy } from "lucide-react";
 
@@ -22,7 +23,15 @@ const TABS: TabDef[] = [
   { label: "Pipeline", href: "/pipeline", icon: GitBranch, minStep: 0 },
 ];
 
-export function QuoteDetailNav({ projectId, step }: { projectId: string; step: number }) {
+function QuoteDetailNavView({
+  projectId,
+  step,
+  viewSuffix,
+}: {
+  projectId: string;
+  step: number;
+  viewSuffix: string;
+}) {
   const pathname = usePathname();
   const base = `/projects/${projectId}/detail`;
 
@@ -50,7 +59,7 @@ export function QuoteDetailNav({ projectId, step }: { projectId: string; step: n
         return (
           <Link
             key={t.label}
-            href={full}
+            href={`${full}${viewSuffix}`}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] font-medium transition-colors",
               isActive
@@ -64,5 +73,22 @@ export function QuoteDetailNav({ projectId, step }: { projectId: string; step: n
         );
       })}
     </div>
+  );
+}
+
+function QuoteDetailNavInner(props: { projectId: string; step: number }) {
+  // Görüntüleme modu (?view=1) sekme gezintisinde de korunmalı — aksi halde
+  // başka sekmeye geçince salt-okunur kaybolup düzenlenebilir hale geliyordu.
+  const searchParams = useSearchParams();
+  const viewSuffix = searchParams.get("view") === "1" ? "?view=1" : "";
+  return <QuoteDetailNavView {...props} viewSuffix={viewSuffix} />;
+}
+
+export function QuoteDetailNav(props: { projectId: string; step: number }) {
+  // useSearchParams Next.js build static prerender icin Suspense ister.
+  return (
+    <Suspense fallback={<QuoteDetailNavView {...props} viewSuffix="" />}>
+      <QuoteDetailNavInner {...props} />
+    </Suspense>
   );
 }
