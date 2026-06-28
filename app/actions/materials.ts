@@ -12,6 +12,24 @@ export interface CatalogItemDTO {
   kind: "MALZEME" | "HIZMET";
 }
 
+type Kind = "MALZEME" | "HIZMET";
+// Malzeme → MLZ####, Hizmet → HZM####
+function codePrefix(kind: Kind): string {
+  return kind === "HIZMET" ? "HZM" : "MLZ";
+}
+function formatCode(kind: Kind, n: number): string {
+  return `${codePrefix(kind)}${String(n).padStart(4, "0")}`;
+}
+function maxNumberForKind(codes: string[], kind: Kind): number {
+  const re = new RegExp(`^${codePrefix(kind)}(\\d+)$`);
+  let max = 0;
+  for (const c of codes) {
+    const m = re.exec((c || "").trim());
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  }
+  return max;
+}
+
 /** Firma kataloğunu listeler (fiyatsız — malzeme/hizmet tanımları). */
 export async function listCatalogItems(): Promise<CatalogItemDTO[]> {
   const user = await requireAuth();
@@ -23,9 +41,12 @@ export async function listCatalogItems(): Promise<CatalogItemDTO[]> {
   return rows;
 }
 
-/** Yeni katalog kalemi ekler (fiyatsız). Kod firma içinde benzersizdir. */
+/**
+ * Yeni katalog kalemi ekler (fiyatsız). Kod verilmezse otomatik ANK-#### üretilir
+ * (son numaradan devam eder). Kod elle verilirse benzersizlik kontrol edilir.
+ */
 export async function createCatalogItem(input: {
-  code: string;
+  code?: string;
   name: string;
   unit?: string;
   kind?: "MALZEME" | "HIZMET";
@@ -33,18 +54,26 @@ export async function createCatalogItem(input: {
   const user = await requireAuth();
   if (user.platformRole === "viewer") return { error: "Görüntüleyici kullanıcılar ekleyemez" };
 
-  const code = input.code.trim();
   const name = input.name.trim();
-  if (!code) return { error: "Kod zorunludur" };
   if (!name) return { error: "Ad zorunludur" };
   const unit = (input.unit || "adet").trim() || "adet";
   const kind = input.kind === "HIZMET" ? "HIZMET" : "MALZEME";
 
-  const existing = await prisma.materialCatalogItem.findUnique({
-    where: { organizationId_code: { organizationId: user.organizationId, code } },
-    select: { id: true },
-  });
-  if (existing) return { error: `"${code}" kodu zaten kayıtlı` };
+  let code = (input.code ?? "").trim();
+  if (!code) {
+    // Otomatik kod: aynı türün (MLZ/HZM) son numarasından devam et.
+    const sameKind = await prisma.materialCatalogItem.findMany({
+      where: { organizationId: user.organizationId, kind },
+      select: { code: true },
+    });
+    code = formatCode(kind, maxNumberForKind(sameKind.map((r) => r.code), kind) + 1);
+  } else {
+    const existing = await prisma.materialCatalogItem.findUnique({
+      where: { organizationId_code: { organizationId: user.organizationId, code } },
+      select: { id: true },
+    });
+    if (existing) return { error: `"${code}" kodu zaten kayıtlı` };
+  }
 
   const row = await prisma.materialCatalogItem.create({
     data: { organizationId: user.organizationId, code, name, unit, kind },
@@ -53,6 +82,33 @@ export async function createCatalogItem(input: {
 
   revalidatePath("/materials");
   return { item: row };
+}
+
+/**
+ * Katalog kodlarını yeniden numaralandırır: malzemeler MLZ0001…, hizmetler
+ * HZM0001… (mevcut sıraya göre). İki aşamalı: önce geçici kod, sonra final —
+ * unique çakışması olmasın diye.
+ */
+export async function renumberCatalogCodes(): Promise<{ error?: string; success?: boolean }> {
+  const user = await requireAuth();
+  if (user.platformRole === "viewer") return { error: "Yetkiniz yok" };
+
+  for (const kind of ["MALZEME", "HIZMET"] as Kind[]) {
+    const rows = await prisma.materialCatalogItem.findMany({
+      where: { organizationId: user.organizationId, kind },
+      orderBy: { code: "asc" },
+      select: { id: true },
+    });
+    for (const r of rows) {
+      await prisma.materialCatalogItem.update({ where: { id: r.id }, data: { code: `__tmp_${r.id}` } });
+    }
+    for (let i = 0; i < rows.length; i++) {
+      await prisma.materialCatalogItem.update({ where: { id: rows[i].id }, data: { code: formatCode(kind, i + 1) } });
+    }
+  }
+
+  revalidatePath("/materials");
+  return { success: true };
 }
 
 /** Katalog kalemini günceller. */

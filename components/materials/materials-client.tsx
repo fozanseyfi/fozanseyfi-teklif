@@ -14,12 +14,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { Package, Plus, Search, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Package, Plus, Search, Pencil, Trash2, Loader2, ArrowDownUp } from "lucide-react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import {
   createCatalogItem,
   updateCatalogItem,
   deleteCatalogItem,
+  renumberCatalogCodes,
   type CatalogItemDTO,
 } from "@/app/actions/materials";
 
@@ -34,7 +36,23 @@ export function MaterialsClient({ initialItems }: { initialItems: CatalogItemDTO
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [saving, setSaving] = useState(false);
+  const [renumbering, setRenumbering] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<CatalogItemDTO | null>(null);
+  const router = useRouter();
+
+  async function handleRenumber() {
+    setRenumbering(true);
+    try {
+      const res = await renumberCatalogCodes();
+      if (res.error) toast.error(res.error);
+      else {
+        toast.success("Kodlar yeniden sıralandı (MLZ0001… / HZM0001…)");
+        router.refresh();
+      }
+    } finally {
+      setRenumbering(false);
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -110,9 +128,15 @@ export function MaterialsClient({ initialItems }: { initialItems: CatalogItemDTO
             </p>
           </div>
         </div>
-        <Button onClick={openAdd}>
-          <Plus className="size-4" /> Yeni Kalem
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleRenumber} disabled={renumbering} title="Kodları yeniden sırala — malzeme MLZ0001…, hizmet HZM0001…">
+            {renumbering ? <Loader2 className="size-4 animate-spin" /> : <ArrowDownUp className="size-4" />}
+            Kodları Sırala
+          </Button>
+          <Button onClick={openAdd}>
+            <Plus className="size-4" /> Yeni Kalem
+          </Button>
+        </div>
       </div>
 
       <div className="relative max-w-sm">
@@ -198,10 +222,19 @@ export function MaterialsClient({ initialItems }: { initialItems: CatalogItemDTO
             <DialogDescription>Fiyatsız tanım — fiyat tekliflerde girilir.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Kod *</Label>
-              <Input value={draft.code} onChange={(e) => setDraft((p) => ({ ...p, code: e.target.value }))} placeholder="örn. PNL-550" />
-            </div>
+            {editing ? (
+              <div className="space-y-1.5">
+                <Label>Kod</Label>
+                <Input value={draft.code} onChange={(e) => setDraft((p) => ({ ...p, code: e.target.value }))} placeholder="ANK-0001" />
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <Label>Kod</Label>
+                <div className="flex h-9 items-center rounded-md border border-dashed bg-muted px-2 text-sm text-muted-foreground">
+                  Otomatik ({draft.kind === "HIZMET" ? "HZM" : "MLZ"}####)
+                </div>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Tür</Label>
               <select
@@ -234,7 +267,7 @@ export function MaterialsClient({ initialItems }: { initialItems: CatalogItemDTO
             </Button>
             <Button
               onClick={editing ? handleEdit : handleAdd}
-              disabled={saving || !draft.code.trim() || !draft.name.trim()}
+              disabled={saving || !draft.name.trim() || (editing !== null && !draft.code.trim())}
             >
               {saving ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
               {editing ? "Kaydet" : "Ekle"}

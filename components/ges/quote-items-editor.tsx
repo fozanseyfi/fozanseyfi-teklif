@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Save, ArrowRight, Trash2, RefreshCw, Loader2, Package } from "lucide-react";
+import { Save, ArrowRight, Trash2, RefreshCw, Loader2, Package, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { DetailPageHeader } from "@/components/ges/detail-page-header";
 import { CatalogCombobox } from "@/components/ges/catalog-combobox";
@@ -97,6 +97,18 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
 
   function removeRow(id: string) {
     setItems((p) => p.filter((it) => it.id !== id));
+  }
+
+  // Kalemi yukarı/aşağı taşı (komşuyla yer değiştir).
+  function moveItem(id: string, dir: -1 | 1) {
+    setItems((prev) => {
+      const idx = prev.findIndex((it) => it.id === id);
+      const target = idx + dir;
+      if (idx < 0 || target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[idx], next[target]] = [next[target], next[idx]];
+      return next;
+    });
   }
 
   const totalCostTRY = items
@@ -217,11 +229,11 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
                     <th className="w-28 px-2 py-2 text-right">Birim Maliyet</th>
                     <th className="w-28 px-2 py-2 text-right">Tutar (₺)</th>
                     <th className="w-16 px-2 py-2 text-center" data-edit-only>Opsiyon</th>
-                    <th className="w-8 px-2 py-2" data-edit-only />
+                    <th className="w-20 px-2 py-2 text-center" data-edit-only>Sıra</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {items.map((it) => (
+                  {items.map((it, idx) => (
                     <tr key={it.id} className={cn("hover:bg-muted/30", it.isOption && "bg-violet-50/50")}>
                       <td className="px-2 py-1.5 align-top">
                         <span className="font-mono text-[11px] text-muted-foreground">{it.code}</span>
@@ -292,15 +304,38 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
                           title="Opsiyon olarak işaretle — ana toplama girmez, PDF'de Opsiyonlar altında çıkar"
                         />
                       </td>
-                      <td className="px-2 py-1.5 text-center align-top" data-edit-only>
-                        <button
-                          type="button"
-                          onClick={() => removeRow(it.id)}
-                          className="rounded-md p-1 text-destructive/70 transition-colors hover:bg-destructive-soft hover:text-destructive-soft-foreground"
-                          aria-label="Kalemi sil"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
+                      <td className="px-2 py-1.5 align-top" data-edit-only>
+                        <div className="flex items-center justify-center gap-0.5">
+                          <button
+                            type="button"
+                            onClick={() => moveItem(it.id, -1)}
+                            disabled={idx === 0}
+                            className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-25"
+                            aria-label="Yukarı taşı"
+                            title="Yukarı taşı"
+                          >
+                            <ChevronUp className="size-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveItem(it.id, 1)}
+                            disabled={idx === items.length - 1}
+                            className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-25"
+                            aria-label="Aşağı taşı"
+                            title="Aşağı taşı"
+                          >
+                            <ChevronDown className="size-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeRow(it.id)}
+                            className="rounded p-1 text-destructive/70 transition-colors hover:bg-destructive-soft hover:text-destructive-soft-foreground"
+                            aria-label="Kalemi sil"
+                            title="Sil"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

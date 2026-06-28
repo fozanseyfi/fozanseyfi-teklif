@@ -141,8 +141,10 @@ export function CatalogCombobox({ catalog, onPick, onCreated }: Props) {
           </DialogHeader>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label>Kod *</Label>
-              <Input value={form.code} onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))} placeholder="örn. PNL-550" />
+              <Label>Kod</Label>
+              <div className="flex h-9 items-center rounded-md border border-dashed bg-muted px-2 text-sm text-muted-foreground">
+                Otomatik ({form.kind === "HIZMET" ? "HZM" : "MLZ"}####)
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label>Tür</Label>
@@ -166,7 +168,7 @@ export function CatalogCombobox({ catalog, onPick, onCreated }: Props) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Vazgeç</Button>
-            <Button onClick={handleCreate} disabled={saving || !form.code.trim() || !form.name.trim()}>
+            <Button onClick={handleCreate} disabled={saving || !form.name.trim()}>
               {saving ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
               Kaydet & Ekle
             </Button>
