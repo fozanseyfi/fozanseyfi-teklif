@@ -17,8 +17,9 @@ import {
   type QuoteItem,
   type QuoteMeta,
   type QuoteOutputCurrency,
-  type PaymentTerm,
   QUOTE_ITEM_KIND_LABELS,
+  convert,
+  fromTRY,
   lineTotalCostTRY,
   lineUnitSaleOut,
   lineTotalSaleOut,
@@ -40,22 +41,24 @@ const PIE_COLORS = { malzeme: "#0ea5e9", hizmet: "#8b5cf6", kar: "#10b981" };
 
 export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta }: Props) {
   const router = useRouter();
+  // Teklif tarihi varsayılan = sistem günü (boşsa).
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const defMeta: QuoteMeta = { ...initialMeta, quoteDate: initialMeta.quoteDate || todayISO };
+
   const [items, setItems] = useState<QuoteItem[]>(initialItems);
-  const [meta, setMeta] = useState<QuoteMeta>(initialMeta);
+  const [meta, setMeta] = useState<QuoteMeta>(defMeta);
   const [saving, setSaving] = useState(false);
   const [bulkMargin, setBulkMargin] = useState("");
-  // Teklif notları madde madde (1-2-3). meta.notes = satırların "\n" ile birleşimi.
-  const [noteItems, setNoteItems] = useState<string[]>(() => {
-    const arr = (initialMeta.notes ?? "").split(/\r?\n/).filter((l) => l.trim().length > 0);
-    return arr;
-  });
+  const [noteItems, setNoteItems] = useState<string[]>(() =>
+    (initialMeta.notes ?? "").split(/\r?\n/).filter((l) => l.trim().length > 0),
+  );
 
   function updateNotes(next: string[]) {
     setNoteItems(next);
     setMeta((p) => ({ ...p, notes: next.join("\n") }));
   }
 
-  const baseline = useRef(JSON.stringify({ items: initialItems, meta: initialMeta }));
+  const baseline = useRef(JSON.stringify({ items: initialItems, meta: defMeta }));
   const isDirty = JSON.stringify({ items, meta }) !== baseline.current;
   useDirtyTracker(isDirty);
 
@@ -77,7 +80,7 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
     setItems((prev) => prev.map((it) => ({ ...it, marginPct: v })));
   }
 
-  function setPT(next: PaymentTerm[]) {
+  function setPT(next: typeof paymentTerms) {
     setMeta((p) => ({ ...p, paymentTerms: next }));
   }
   function addPT() {
@@ -123,6 +126,13 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
     { name: "Hizmet", value: totals.hizmetCostTRY, color: PIE_COLORS.hizmet },
     { name: "Kâr", value: Math.max(0, totals.profitTRY), color: PIE_COLORS.kar },
   ].filter((d) => d.value > 0);
+
+  // TRY tutarını 3 para biriminde döndür.
+  const tri = (amountTRY: number) => ({
+    try: amountTRY,
+    usd: fromTRY(amountTRY, "USD", rates),
+    eur: fromTRY(amountTRY, "EUR", rates),
+  });
 
   return (
     <div className="space-y-4">
@@ -218,7 +228,7 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
                   <th className="px-2 py-2 text-left">Tür</th>
                   <th className="min-w-[180px] px-2 py-2 text-left">Açıklama</th>
                   <th className="w-16 px-2 py-2 text-right">Miktar</th>
-                  <th className="w-28 px-2 py-2 text-right">Birim Maliyet (₺)</th>
+                  <th className="w-28 px-2 py-2 text-right">Birim Maliyet ({sym})</th>
                   <th className="w-20 px-2 py-2 text-right">Kâr %</th>
                   <th className="w-28 px-2 py-2 text-right">Birim Satış ({sym})</th>
                   <th className="w-28 px-2 py-2 text-right">Satır Toplam ({sym})</th>
@@ -226,7 +236,7 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
               </thead>
               <tbody className="divide-y">
                 {items.map((it) => {
-                  const unitCostTRY = lineTotalCostTRY(it, rates) / (it.qty || 1);
+                  const unitCostOut = convert(it.unitCost, it.currency, out, rates);
                   return (
                     <tr key={it.id} className="hover:bg-muted/30">
                       <td className="px-2 py-1.5">
@@ -246,7 +256,7 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
                       <td className="px-2 py-1.5 text-right tabular-nums">
                         {fmt(it.qty, it.qty % 1 === 0 ? 0 : 2)} {it.unit}
                       </td>
-                      <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">₺{fmt(unitCostTRY, 2)}</td>
+                      <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">{sym}{fmt(unitCostOut, 2)}</td>
                       <td className="px-2 py-1.5">
                         <Input
                           type="number"
@@ -267,7 +277,79 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
         </CardContent>
       </Card>
 
-      {/* Ödeme şekli + Teklif notları */}
+      {/* Müşteri toplamı + pasta grafik */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardContent className="space-y-2 p-5">
+            <p className="flex items-center gap-2 text-sm font-semibold">
+              <BarChart3 className="size-4 text-primary" /> Müşteri Toplamı ({sym})
+            </p>
+            <div className="space-y-1 text-sm">
+              <Row label="Ara Toplam (KDV hariç)" value={`${sym}${fmt(totals.subtotal)}`} />
+              <Row label={`KDV (%${fmt(meta.kdvRate)})`} value={`${sym}${fmt(totals.kdv)}`} />
+              <div className="mt-1 flex items-center justify-between border-t pt-2 text-base font-bold text-primary">
+                <span>Genel Toplam</span>
+                <span className="tabular-nums">{sym}{fmt(totals.grandTotal)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-3">
+            <p className="mb-1 text-center text-xs font-semibold text-muted-foreground">Maliyet / Kâr Dağılımı (₺)</p>
+            {pieData.length === 0 ? (
+              <p className="py-10 text-center text-xs text-muted-foreground">Veri yok</p>
+            ) : (
+              <div className="h-52">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={38}>
+                      {pieData.map((d) => (
+                        <Cell key={d.name} fill={d.color} />
+                      ))}
+                    </Pie>
+                    <RTooltip formatter={(v) => `₺${fmt(Number(v) || 0)}`} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* İç özet — 3 para biriminde aynı anda (müşteriye gösterilmez) */}
+      <Card className="border-dashed">
+        <CardContent className="p-5">
+          <p className="mb-3 text-sm font-semibold text-muted-foreground">İç Özet — 3 para birimi (müşteriye gösterilmez)</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <th className="py-1.5 text-left font-semibold"> </th>
+                  <th className="py-1.5 text-right font-semibold">₺ TL</th>
+                  <th className="py-1.5 text-right font-semibold">$ USD</th>
+                  <th className="py-1.5 text-right font-semibold">€ EUR</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                <TriRow label="Toplam Maliyet" v={tri(totals.totalCostTRY)} />
+                <TriRow label="Toplam Kâr" v={tri(totals.profitTRY)} accent />
+                <TriRow label="Satış Fiyatı (KDV hariç)" v={tri(totals.saleExKdvTRY)} strong />
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Ortalama Kâr Oranı:{" "}
+            <strong className="text-foreground">
+              {totals.totalCostTRY > 0 ? `%${fmt((totals.profitTRY / totals.totalCostTRY) * 100, 1)}` : "—"}
+            </strong>
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Ödeme şekli + Teklif notları — en altta */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardContent className="space-y-3 p-4" data-edit-only>
@@ -280,11 +362,11 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
               </Button>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Her ödeme için ayrı satır: yüzde girince KDV dahil tutar otomatik hesaplanır. PDF&apos;de yalnız işaretliler çıkar.
+              Yüzde girince KDV dahil tutar otomatik hesaplanır. PDF&apos;de yalnız işaretliler çıkar.
             </p>
             {paymentTerms.length === 0 ? (
               <p className="rounded-md border border-dashed p-3 text-center text-xs text-muted-foreground">
-                Örn. %50 peşin · havale · teslimde · &quot;sözleşme imzasında&quot;
+                Örn. %50 peşin · havale · teslimde
               </p>
             ) : (
               <div className="space-y-2">
@@ -319,30 +401,15 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
                           </div>
                           <div className="space-y-0.5">
                             <span className="text-[9.5px] uppercase tracking-wide text-muted-foreground">Ödeme Şekli</span>
-                            <Input
-                              className="h-8 text-sm"
-                              value={pt.method}
-                              placeholder="peşin / havale…"
-                              onChange={(e) => patchPT(pt.id, { method: e.target.value })}
-                            />
+                            <Input className="h-8 text-sm" value={pt.method} placeholder="peşin / havale…" onChange={(e) => patchPT(pt.id, { method: e.target.value })} />
                           </div>
                           <div className="space-y-0.5">
                             <span className="text-[9.5px] uppercase tracking-wide text-muted-foreground">Vade</span>
-                            <Input
-                              className="h-8 text-sm"
-                              value={pt.vade}
-                              placeholder="örn. 60 gün"
-                              onChange={(e) => patchPT(pt.id, { vade: e.target.value })}
-                            />
+                            <Input className="h-8 text-sm" value={pt.vade} placeholder="örn. 60 gün" onChange={(e) => patchPT(pt.id, { vade: e.target.value })} />
                           </div>
                           <div className="space-y-0.5 sm:col-span-4">
                             <span className="text-[9.5px] uppercase tracking-wide text-muted-foreground">Açıklama</span>
-                            <Input
-                              className="h-8 text-sm"
-                              value={pt.desc}
-                              placeholder="opsiyonel açıklama"
-                              onChange={(e) => patchPT(pt.id, { desc: e.target.value })}
-                            />
+                            <Input className="h-8 text-sm" value={pt.desc} placeholder="opsiyonel açıklama" onChange={(e) => patchPT(pt.id, { desc: e.target.value })} />
                           </div>
                         </div>
                         <button
@@ -405,78 +472,36 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
           </CardContent>
         </Card>
       </div>
-
-      {/* Toplamlar + grafik */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card>
-          <CardContent className="space-y-2 p-5">
-            <p className="flex items-center gap-2 text-sm font-semibold">
-              <BarChart3 className="size-4 text-primary" /> Müşteri Toplamı ({sym})
-            </p>
-            <div className="space-y-1 text-sm">
-              <Row label="Ara Toplam (KDV hariç)" value={`${sym}${fmt(totals.subtotal)}`} />
-              <Row label={`KDV (%${fmt(meta.kdvRate)})`} value={`${sym}${fmt(totals.kdv)}`} />
-              <div className="mt-1 flex items-center justify-between border-t pt-2 text-base font-bold text-primary">
-                <span>Genel Toplam</span>
-                <span className="tabular-nums">{sym}{fmt(totals.grandTotal)}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* İç özet — her zaman ₺ */}
-        <Card className="border-dashed">
-          <CardContent className="space-y-2 p-5">
-            <p className="text-sm font-semibold text-muted-foreground">İç Özet (₺ — müşteriye gösterilmez)</p>
-            <div className="space-y-1 text-sm text-muted-foreground">
-              <Row label="Toplam Maliyet" value={`₺${fmt(totals.totalCostTRY)}`} muted />
-              <Row label="Toplam Kâr" value={`₺${fmt(totals.profitTRY)}`} muted />
-              <Row
-                label="Kâr Yüzdesi"
-                value={totals.totalCostTRY > 0 ? `%${fmt((totals.profitTRY / totals.totalCostTRY) * 100, 1)}` : "—"}
-                muted
-              />
-              <div className="mt-1 flex items-center justify-between border-t pt-2 font-semibold text-foreground">
-                <span>Satış Fiyatı (KDV hariç)</span>
-                <span className="tabular-nums">₺{fmt(totals.saleExKdvTRY)}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Pasta grafik */}
-        <Card>
-          <CardContent className="p-3">
-            <p className="mb-1 text-center text-xs font-semibold text-muted-foreground">Maliyet / Kâr Dağılımı (₺)</p>
-            {pieData.length === 0 ? (
-              <p className="py-10 text-center text-xs text-muted-foreground">Veri yok</p>
-            ) : (
-              <div className="h-52">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={38}>
-                      {pieData.map((d) => (
-                        <Cell key={d.name} fill={d.color} />
-                      ))}
-                    </Pie>
-                    <RTooltip formatter={(v) => `₺${fmt(Number(v) || 0)}`} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
 
-function Row({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
+function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className={cn("flex items-center justify-between", muted && "text-muted-foreground")}>
+    <div className="flex items-center justify-between text-muted-foreground">
       <span>{label}</span>
       <span className="tabular-nums">{value}</span>
     </div>
+  );
+}
+
+function TriRow({
+  label,
+  v,
+  accent,
+  strong,
+}: {
+  label: string;
+  v: { try: number; usd: number; eur: number };
+  accent?: boolean;
+  strong?: boolean;
+}) {
+  return (
+    <tr className={cn(strong && "font-semibold text-foreground", accent && "text-emerald-700")}>
+      <td className="py-2 text-left">{label}</td>
+      <td className="py-2 text-right tabular-nums">₺{fmt(v.try)}</td>
+      <td className="py-2 text-right tabular-nums">${fmt(v.usd)}</td>
+      <td className="py-2 text-right tabular-nums">€{fmt(v.eur)}</td>
+    </tr>
   );
 }

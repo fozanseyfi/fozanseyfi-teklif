@@ -56,7 +56,12 @@ export async function createMaterialServiceProject() {
       projectDetail: {
         create: {
           quoteItems: [] as never,
-          settings: { quoteStep: 0, kdvRate: 20, validityDays: 30 } as never,
+          settings: {
+            quoteStep: 0,
+            kdvRate: 20,
+            validityDays: 30,
+            quoteDate: new Date().toISOString().slice(0, 10),
+          } as never,
         },
       },
     },
