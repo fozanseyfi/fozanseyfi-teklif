@@ -24,6 +24,7 @@ import { TurkeyMapLazy as TurkeyMap } from "@/components/dashboard/turkey-map-la
 import { isAdmin } from "@/lib/permissions";
 import { getHiddenResourceIds } from "@/lib/permission-server";
 import { isProjectVisible } from "@/lib/project-status";
+import { parseQuoteItems, parseQuoteMeta, computeQuoteTotals } from "@/lib/quote";
 import { PIPELINE_STAGE_LABELS, PIPELINE_STAGE_TONE } from "@/lib/pipeline-labels";
 import { CopyProjectButton } from "@/components/project/copy-project-button";
 
@@ -67,7 +68,7 @@ export default async function DashboardPage() {
     orderBy: { updatedAt: "desc" },
     include: {
       pricingSnapshot: true,
-      projectDetail: { select: { kesifA: true, kesifB: true, settings: true } },
+      projectDetail: { select: { kesifA: true, kesifB: true, settings: true, quoteItems: true } },
     },
   });
   const allVisibleProjects = allRawProjects.filter(isProjectVisible);
@@ -95,11 +96,18 @@ export default async function DashboardPage() {
     }
   }
 
+  // Malzeme & Hizmet teklifi: KDV hariç toplam (seçilen para biriminde).
+  function getQuoteExVat(p: { projectDetail?: { quoteItems?: unknown; settings?: unknown } | null }) {
+    const items = parseQuoteItems(p.projectDetail?.quoteItems);
+    if (!items.length) return null;
+    const t = computeQuoteTotals(items, parseQuoteMeta(p.projectDetail?.settings));
+    return { value: t.subtotal, symbol: t.symbol };
+  }
+
   const totalCount = allVisibleProjects.length;
   // KPI'lar pipeline aşamasına göre (proje status'ünden bağımsız). Tüm
   // görünür projeler üzerinden — sadece son 10 değil.
   const wonCount = allVisibleProjects.filter((p) => p.pipelineStage === "WON").length;
-  const lostCount = allVisibleProjects.filter((p) => p.pipelineStage === "LOST").length;
   // "Devam Eden": kapanmamış her şey — closed won/lost veya iptal OLMAYAN
   // (pipeline'a hiç girmemiş null/taslak'lar dahil).
   const ongoingCount = allVisibleProjects.filter(
@@ -109,9 +117,9 @@ export default async function DashboardPage() {
       p.pipelineStage !== "CANCELLED",
   ).length;
   const ongoingPct = totalCount > 0 ? Math.round((ongoingCount / totalCount) * 100) : 0;
-  // Kazanma oranı = won / (won + lost). Henüz kapanan yoksa null.
-  const closedCount = wonCount + lostCount;
-  const winRate = closedCount > 0 ? Math.round((wonCount / closedCount) * 100) : null;
+  // Kazanma oranı = closed won / TÜM teklifler (proje + malzeme/hizmet). Sadece
+  // kapanmışlara değil, toplam teklif sayısına oranlanır.
+  const winRate = totalCount > 0 ? Math.round((wonCount / totalCount) * 100) : null;
 
   const allWithPrice = allProjects
     .filter((p) => p.totalPowerKw > 0)
@@ -270,7 +278,9 @@ export default async function DashboardPage() {
           ) : (
             <div className="divide-y">
               {projects.map((project) => {
-                const epc = getEpcPrice(project);
+                const isMs = project.quoteKind === "MATERIAL_SERVICE";
+                const epc = isMs ? null : getEpcPrice(project);
+                const msPrice = isMs ? getQuoteExVat(project) : null;
                 return (
                   <div
                     key={project.id}
@@ -297,7 +307,17 @@ export default async function DashboardPage() {
                             : `${project.totalPowerKw.toFixed(1)} kWp`}
                         </p>
                       )}
-                      {epc ? (
+                      {isMs ? (
+                        msPrice ? (
+                          <div className="hidden text-right md:block">
+                            <p className="text-sm font-semibold text-foreground">
+                              {msPrice.symbol}
+                              {msPrice.value.toLocaleString("tr-TR", { maximumFractionDigits: 0 })}
+                            </p>
+                            <p className="text-xs text-muted-foreground">KDV hariç</p>
+                          </div>
+                        ) : null
+                      ) : epc ? (
                         <div className="hidden text-right md:block">
                           <p className="text-sm font-semibold text-foreground">
                             ${epc.salePriceUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}

@@ -84,19 +84,13 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
     timeline: gesStep >= 5,
   };
 
-  // Status etiketi — gesStep ve project.status birlikte:
-  // - CANCELLED  → İptal
-  // - CLOSE_WIN/CLOSE_LOST → ilgili
-  // - COMPLETED veya gesStep == 5 → Tamamlandı
-  // - aksi halde → Taslak
+  // isCompleted yalnızca dirty-guard'ı kapatmak için kullanılır (tamamlanmış/kapanmış
+  // projede sayfadan ayrılırken uyarı verme). Başlıkta durum = pipeline aşaması.
   const isCompleted =
     project.status === "COMPLETED" ||
     project.status === "CLOSE_WIN" ||
     project.status === "CLOSE_LOST" ||
     (isMaterialService ? quoteStep >= 3 : gesStep >= 5);
-  const statusLabel = isCompleted ? "Tamamlandı" : project.status === "CANCELLED" ? "İptal" : "Taslak";
-  const statusVariant: "success" | "secondary" | "destructive" =
-    isCompleted ? "success" : project.status === "CANCELLED" ? "destructive" : "secondary";
 
   function fmtPower(mw: number, suffix: "MWp" | "MWe"): string | null {
     if (mw <= 0) return null;
@@ -175,24 +169,20 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
               <Lock className="mr-0.5 size-2.5" />
               Salt Okunur
             </Badge>
-          ) : (
-            <Badge className="h-5 px-1.5 text-[9.5px]" variant={statusVariant}>
-              {statusLabel}
-            </Badge>
-          )}
+          ) : null}
 
-          {/* Pipeline aşaması — durum badge'in yaninda, sablonlar disinda gozukur.
-              Detayli yonetim Pipeline sekmesinde. */}
-          {!isTemplate && project.pipelineStage && (
+          {/* Durum = yalnızca pipeline aşaması (proje status'ü gösterilmez).
+              Detaylı yönetim Pipeline sekmesinde. */}
+          {!isTemplate && (
             <span
               className={cn(
                 "inline-flex h-5 items-center gap-0.5 rounded-full border px-1.5 text-[9.5px] font-semibold uppercase tracking-wider",
-                PIPELINE_STAGE_TONE[project.pipelineStage],
+                PIPELINE_STAGE_TONE[project.pipelineStage ?? "DRAFT"],
               )}
               title="Pipeline aşaması — Pipeline sekmesinden yönetin"
             >
               <GitBranch className="mr-0.5 size-2.5" />
-              {PIPELINE_STAGE_LABELS[project.pipelineStage]}
+              {PIPELINE_STAGE_LABELS[project.pipelineStage ?? "DRAFT"]}
             </span>
           )}
 

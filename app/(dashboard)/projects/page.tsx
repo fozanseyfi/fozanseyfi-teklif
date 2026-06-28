@@ -13,6 +13,7 @@ import {
 import { Plus, FolderOpen, Eye, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isProjectVisible } from "@/lib/project-status";
+import { parseQuoteItems, parseQuoteMeta, computeQuoteTotals } from "@/lib/quote";
 import { calc } from "@/lib/ges-engine";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
 import { DeleteProjectButton } from "@/components/project/delete-project-button";
@@ -73,7 +74,7 @@ export default async function ProjectsPage({ searchParams }: Props) {
     },
     include: {
       pricingSnapshot: true,
-      projectDetail: { select: { kesifA: true, kesifB: true, settings: true } },
+      projectDetail: { select: { kesifA: true, kesifB: true, settings: true, quoteItems: true } },
     },
     orderBy: { updatedAt: "desc" },
   });
@@ -98,6 +99,14 @@ export default async function ProjectsPage({ searchParams }: Props) {
     } catch {
       return null;
     }
+  }
+
+  // Malzeme & Hizmet teklifi: KDV hariç toplam (seçilen para biriminde).
+  function getQuoteExVat(p: (typeof projects)[number]) {
+    const items = parseQuoteItems(p.projectDetail?.quoteItems);
+    if (!items.length) return null;
+    const t = computeQuoteTotals(items, parseQuoteMeta(p.projectDetail?.settings));
+    return { value: t.subtotal, symbol: t.symbol };
   }
 
   const filters = [
@@ -216,7 +225,9 @@ export default async function ProjectsPage({ searchParams }: Props) {
                 </thead>
                 <tbody className="divide-y">
                   {projects.map((project) => {
-                    const epc = getEpcPrice(project);
+                    const isMs = project.quoteKind === "MATERIAL_SERVICE";
+                    const epc = isMs ? null : getEpcPrice(project);
+                    const msPrice = isMs ? getQuoteExVat(project) : null;
                     return (
                       <tr
                         key={project.id}
@@ -252,7 +263,19 @@ export default async function ProjectsPage({ searchParams }: Props) {
                             : "—"}
                         </td>
                         <td className="hidden px-6 py-4 text-right lg:table-cell">
-                          {epc ? (
+                          {isMs ? (
+                            msPrice ? (
+                              <div>
+                                <p className="font-semibold text-foreground">
+                                  {msPrice.symbol}
+                                  {msPrice.value.toLocaleString("tr-TR", { maximumFractionDigits: 0 })}
+                                </p>
+                                <p className="text-[11px] text-muted-foreground">KDV hariç</p>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )
+                          ) : epc ? (
                             <div>
                               <p className="font-semibold text-foreground">
                                 ${epc.salePriceUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}
