@@ -229,7 +229,7 @@ export function buildQuotePrintHtml({
         <div class="onay-body">${
           brand.showStamp
             ? `<img src="${esc(brand.stampUrl!)}" alt="" />`
-            : `<span class="onay-firm">${esc(firmName)}${brand.contact ? `<br/>${esc(brand.contact)}` : ""}</span>`
+            : `<span class="onay-ph">Kaşe / İmza</span>`
         }</div>
         <div class="onay-date">Tarih : <strong>${dateStr}</strong></div>
       </div>
