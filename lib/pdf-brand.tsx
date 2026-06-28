@@ -43,6 +43,10 @@ export interface BrandSettings {
   watermarkEnabled?: boolean;
   taxNumber?: string;
   contact?: string;
+  // Kaşe / imza görseli (PNG/JPG) — teklif PDF'inde "Teklif Veren Onayı" kutusunda gösterilir.
+  stampUrl?: string;
+  stampFileName?: string;
+  stampEnabled?: boolean;
   // Firma tanıtım PDF'i (Supabase Storage public URL).
   brochureUrl?: string;
   brochureFileName?: string;
@@ -87,6 +91,9 @@ export function parseBrandSettings(raw: unknown): BrandSettings {
     watermarkEnabled: pickBool("watermarkEnabled"),
     taxNumber: pickStr("taxNumber"),
     contact: pickStr("contact"),
+    stampUrl: pickStr("stampUrl"),
+    stampFileName: pickStr("stampFileName"),
+    stampEnabled: pickBool("stampEnabled"),
     brochureUrl: pickStr("brochureUrl"),
     brochureFileName: pickStr("brochureFileName"),
     referencesBrochureUrl: pickStr("referencesBrochureUrl"),
@@ -139,6 +146,9 @@ export interface BrandContext {
   // Logo (logoEnabled && logoUrl varsa)
   logoUrl?: string;
   showLogo: boolean;
+  // Kaşe / imza görseli
+  stampUrl?: string;
+  showStamp: boolean;
   // Slogan (sloganEnabled && slogan varsa)
   slogan?: string;
   showSlogan: boolean;
@@ -166,6 +176,8 @@ export function resolveBrand(brand: BrandSettings | null | undefined): BrandCont
     accentGradient,
     logoUrl: b.logoUrl,
     showLogo: b.logoEnabled === true && !!b.logoUrl,
+    stampUrl: b.stampUrl,
+    showStamp: b.stampEnabled === true && !!b.stampUrl,
     slogan: b.slogan,
     showSlogan: b.sloganEnabled === true && !!b.slogan?.trim(),
     showWatermark: b.watermarkEnabled === true,

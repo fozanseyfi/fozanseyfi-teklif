@@ -148,6 +148,82 @@ export async function removeBrandLogo() {
   return { success: "Logo kaldırıldı" };
 }
 
+// ─── Kaşe / İmza görseli ──────────────────────────────────────────────
+
+export async function uploadBrandStamp(formData: FormData) {
+  const user = await requireAuth();
+  if (!isAdmin(user)) return { error: "Sadece yöneticiler kaşe yükleyebilir" };
+
+  const file = formData.get("stamp") as File | null;
+  if (!file || file.size === 0) return { error: "Dosya seçilmedi" };
+  if (file.size > 3 * 1024 * 1024) return { error: "Kaşe 3 MB'tan büyük olamaz" };
+  if (!/^image\/(png|jpeg|webp)$/.test(file.type)) {
+    return { error: "Sadece PNG, JPG veya WebP yükleyebilirsiniz" };
+  }
+
+  const admin = createSupabaseAdmin();
+  const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+  const path = `org-${user.organizationId}/stamp-${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await admin.storage
+    .from("brand-logos")
+    .upload(path, file, { contentType: file.type, upsert: true });
+  if (uploadError) return { error: `Kaşe yüklenemedi: ${uploadError.message}` };
+
+  const { data: pub } = admin.storage.from("brand-logos").getPublicUrl(path);
+  if (!pub?.publicUrl) return { error: "Kaşe URL'si alınamadı" };
+
+  const org = await prisma.organization.findUnique({ where: { id: user.organizationId } });
+  const current = parseBrandSettings(org?.brandSettings);
+
+  await prisma.organization.update({
+    where: { id: user.organizationId },
+    data: {
+      brandSettings: {
+        ...current,
+        stampUrl: pub.publicUrl,
+        stampFileName: file.name,
+        stampEnabled: true,
+      } as never,
+    },
+  });
+
+  revalidatePath("/firm-settings");
+  return { success: "Kaşe yüklendi", url: pub.publicUrl };
+}
+
+export async function removeBrandStamp() {
+  const user = await requireAuth();
+  if (!isAdmin(user)) return { error: "Sadece yöneticiler kaldırabilir" };
+
+  const org = await prisma.organization.findUnique({ where: { id: user.organizationId } });
+  const current = parseBrandSettings(org?.brandSettings);
+
+  if (current.stampUrl) {
+    try {
+      const admin = createSupabaseAdmin();
+      const url = new URL(current.stampUrl);
+      const idx = url.pathname.indexOf("/brand-logos/");
+      if (idx >= 0) {
+        const path = url.pathname.slice(idx + "/brand-logos/".length);
+        await admin.storage.from("brand-logos").remove([path]);
+      }
+    } catch {
+      // sessiz yut
+    }
+  }
+
+  await prisma.organization.update({
+    where: { id: user.organizationId },
+    data: {
+      brandSettings: { ...current, stampUrl: undefined, stampFileName: undefined, stampEnabled: false } as never,
+    },
+  });
+
+  revalidatePath("/firm-settings");
+  return { success: "Kaşe kaldırıldı" };
+}
+
 // ─── Firma Tanıtım PDF'i ──────────────────────────────────────────────
 
 export async function uploadBrandBrochure(formData: FormData) {

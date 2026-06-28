@@ -11,6 +11,8 @@ import {
   updateBrandSettings,
   uploadBrandLogo,
   removeBrandLogo,
+  uploadBrandStamp,
+  removeBrandStamp,
 } from "@/app/actions/firm";
 import type { BrandSettings } from "@/lib/pdf-brand";
 import { Button } from "@/components/ui/button";
@@ -28,6 +30,7 @@ import {
   CheckCircle2,
   Quote,
   Type,
+  Stamp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -63,6 +66,7 @@ export function BrandSettingsCard({ firmName, initialBrand }: Props) {
   const [watermarkEnabled, setWatermarkEnabled] = useState(initialBrand.watermarkEnabled ?? false);
   const [taxNumber, setTaxNumber] = useState(initialBrand.taxNumber ?? "");
   const [contact, setContact] = useState(initialBrand.contact ?? "");
+  const [stampUrl, setStampUrl] = useState<string | undefined>(initialBrand.stampUrl);
 
   // ─── Logo upload ─────────────────────────────────────────────────────
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -105,6 +109,36 @@ export function BrandSettingsCard({ firmName, initialBrand }: Props) {
     });
   }
 
+  // ─── Kaşe / imza upload ──────────────────────────────────────────────
+  const stampInputRef = useRef<HTMLInputElement>(null);
+  const [stampBusy, startStamp] = useTransition();
+  function onStampChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("stamp", file);
+    startStamp(async () => {
+      const r = await uploadBrandStamp(fd);
+      if (r?.error) toast.error(r.error);
+      else if (r?.success) {
+        toast.success(r.success);
+        if (r.url) setStampUrl(r.url);
+      }
+      e.target.value = "";
+    });
+  }
+  function onRemoveStamp() {
+    if (!stampUrl) return;
+    startStamp(async () => {
+      const r = await removeBrandStamp();
+      if (r?.error) toast.error(r.error);
+      else if (r?.success) {
+        toast.success(r.success);
+        setStampUrl(undefined);
+      }
+    });
+  }
+
   // ─── Save (server action) ────────────────────────────────────────────
   const [state, formAction, pending] = useActionState(
     async (_: unknown, fd: FormData) => updateBrandSettings(fd),
@@ -125,6 +159,8 @@ export function BrandSettingsCard({ firmName, initialBrand }: Props) {
     watermarkEnabled,
     taxNumber: taxNumber || undefined,
     contact: contact || undefined,
+    stampUrl,
+    stampEnabled: !!stampUrl,
   };
 
   // Toast feedback
@@ -211,6 +247,43 @@ export function BrandSettingsCard({ firmName, initialBrand }: Props) {
                 label="Logoyu PDF'lerde göster"
                 hint={!logoUrl ? "Önce logo yüklemelisin" : undefined}
               />
+            </FieldRow>
+
+            {/* ─── KAŞE / İMZA ─────────────────────────────────────────── */}
+            <FieldRow icon={Stamp} label="Kaşe / İmza">
+              <div className="flex flex-wrap items-center gap-3">
+                {stampUrl ? (
+                  <div className="flex items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={stampUrl} alt="Kaşe" className="h-14 w-auto max-w-[160px] object-contain" />
+                    <button
+                      type="button"
+                      onClick={onRemoveStamp}
+                      disabled={stampBusy}
+                      title="Kaşeyi kaldır"
+                      className="ml-auto rounded-md p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-xs text-slate-500">Henüz kaşe yok.</span>
+                )}
+                <Button type="button" variant="outline" size="sm" onClick={() => stampInputRef.current?.click()} disabled={stampBusy}>
+                  {stampBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+                  {stampUrl ? "Değiştir" : "Yükle"}
+                </Button>
+                <input
+                  ref={stampInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={onStampChange}
+                  className="hidden"
+                />
+              </div>
+              <p className="text-[11px] text-slate-500">
+                Teklif PDF&apos;inde &quot;Teklif Veren Onayı&quot; kutusunda gösterilir. PNG/JPG (şeffaf PNG önerilir), en fazla 3 MB.
+              </p>
             </FieldRow>
 
             {/* ─── RENK ────────────────────────────────────────────────── */}

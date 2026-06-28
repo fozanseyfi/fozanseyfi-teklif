@@ -155,12 +155,15 @@ export function buildQuotePrintHtml({
   .blk-ttl { font-size:11px; font-weight:700; color:#334155; margin-bottom:4px; }
   .block ul, .block ol { margin:0; padding-left:20px; }
   .block li { font-size:11px; color:#475569; margin:2px 0; white-space:pre-line; }
-  .approve { margin-top:26px; border:1.5px dashed #cbd5e1; border-radius:8px; padding:14px 16px; page-break-inside:avoid; break-inside:avoid; }
-  .approve .ttl { font-size:11px; font-weight:700; color:#334155; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
-  .approve .box { width:14px; height:14px; border:1.5px solid #475569; border-radius:3px; display:inline-block; }
-  .approve .lines { display:flex; gap:24px; margin-top:14px; font-size:10px; color:#64748b; }
-  .approve .lines > div { flex:1; }
-  .approve .sig { margin-top:22px; border-top:1px solid #94a3b8; padding-top:3px; }
+  .onay-grid { display:flex; gap:16px; margin-top:26px; page-break-inside:avoid; break-inside:avoid; }
+  .onay-box { flex:1; border:1px solid #e2e8f0; border-radius:10px; padding:14px 18px 12px; min-height:160px; display:flex; flex-direction:column; }
+  .onay-ttl { font-size:13px; font-weight:800; letter-spacing:0.04em; color:#1e293b; border-bottom:1px solid #e2e8f0; padding-bottom:8px; }
+  .onay-body { flex:1; display:flex; align-items:center; justify-content:center; padding:8px 0; }
+  .onay-ph { color:#94a3b8; font-size:12px; }
+  .onay-firm { color:#475569; font-size:10.5px; text-align:center; line-height:1.4; }
+  .onay-body img { max-height:120px; max-width:92%; object-fit:contain; }
+  .onay-date { font-size:12px; color:#64748b; display:flex; align-items:flex-end; gap:6px; }
+  .onay-line { flex:1; border-bottom:1px dotted #94a3b8; height:14px; }
   @media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
 </style></head>
 <body>
@@ -215,12 +218,20 @@ export function buildQuotePrintHtml({
     ${paymentTermsHtml}
     ${notesHtml}
 
-    <div class="approve">
-      <div class="ttl"><span class="box"></span> Bu teklifi okudum, kabul ediyorum.</div>
-      <div class="lines">
-        <div>Ad Soyad / Unvan<div class="sig">&nbsp;</div></div>
-        <div>Tarih<div class="sig">&nbsp;</div></div>
-        <div>İmza / Kaşe<div class="sig">&nbsp;</div></div>
+    <div class="onay-grid">
+      <div class="onay-box">
+        <div class="onay-ttl">MÜŞTERİ ONAY</div>
+        <div class="onay-body"><span class="onay-ph">Kaşe / İmza</span></div>
+        <div class="onay-date">Tarih : <span class="onay-line"></span></div>
+      </div>
+      <div class="onay-box">
+        <div class="onay-ttl">TEKLİF VEREN ONAYI</div>
+        <div class="onay-body">${
+          brand.showStamp
+            ? `<img src="${esc(brand.stampUrl!)}" alt="" />`
+            : `<span class="onay-firm">${esc(firmName)}${brand.contact ? `<br/>${esc(brand.contact)}` : ""}</span>`
+        }</div>
+        <div class="onay-date">Tarih : <strong>${dateStr}</strong></div>
       </div>
     </div>
   </div>
