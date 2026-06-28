@@ -1,5 +1,7 @@
-import { DorEditor } from "@/components/ges/dor-editor";
 import { requireShareTab } from "../_components/share-guard";
+import { ShareDocFrame } from "@/components/shared/share-doc-frame";
+import { buildDorPrintHtml } from "@/lib/share-print/dor";
+import { resolveBrand } from "@/lib/pdf-brand";
 import type { DorGroup } from "@/lib/ges-defaults";
 
 interface Props {
@@ -9,15 +11,12 @@ interface Props {
 export default async function ShareDorPage({ params }: Props) {
   const { token } = await params;
   const ctx = await requireShareTab(token, "dor");
-
-  return (
-    <DorEditor
-      projectId={ctx.project.id}
-      projectName={ctx.project.name || "İsimsiz Proje"}
-      data={ctx.detail.dor as unknown as DorGroup[]}
-      firmName={ctx.firmName}
-      brand={ctx.brand}
-      userEmail=""
-    />
-  );
+  const html = buildDorPrintHtml({
+    projectName: ctx.project.name || "İsimsiz Proje",
+    groups: ctx.detail.dor as unknown as DorGroup[],
+    brand: resolveBrand(ctx.brand),
+    firmName: ctx.firmName,
+    userEmail: "",
+  });
+  return <ShareDocFrame html={html} title="DoR — Sorumluluk Dağılımı" />;
 }
