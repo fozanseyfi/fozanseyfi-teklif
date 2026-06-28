@@ -198,8 +198,8 @@ function NavLink({
           onMouseEnter={handleEnter}
           onMouseLeave={handleLeave}
           className={cn(
-            "group flex w-full cursor-not-allowed items-center rounded-lg text-left text-sm font-medium transition-colors",
-            "gap-3 px-3 py-2.5",
+            "group flex w-full cursor-not-allowed items-center rounded-lg text-left text-[13px] font-medium transition-colors",
+            "gap-2.5 px-3 py-2",
             collapsed && "lg:justify-center lg:gap-0 lg:px-2 lg:py-2",
             "text-sidebar-muted/70 hover:bg-sidebar-border/30",
           )}
@@ -236,8 +236,8 @@ function NavLink({
         onMouseEnter={handleEnter}
         onMouseLeave={handleLeave}
         className={cn(
-          "group flex items-center rounded-lg text-sm font-medium transition-colors",
-          "gap-3 px-3 py-2.5",
+          "group flex items-center rounded-lg text-[13px] font-medium transition-colors",
+          "gap-2.5 px-3 py-2",
           collapsed && "lg:justify-center lg:gap-0 lg:px-2 lg:py-2",
           active
             ? "bg-sidebar-accent/20 text-sidebar-accent-foreground"
@@ -496,7 +496,7 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
               <Sun className="size-4" />
             </div>
             <p className="shimmer-text truncate text-sm font-semibold text-foreground">
-              Solar Teklif Platformu
+              Teklif Platformu
             </p>
           </div>
         </div>
@@ -587,7 +587,7 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
           </div>
           <div className={cn("min-w-0 flex-1", showCollapsed ? "lg:hidden" : "")}>
             <p className="truncate text-sm font-semibold tracking-tight text-white">
-              Solar Teklif Platformu
+              Teklif Platformu
             </p>
           </div>
           {/* Collapse chevron — desktop only */}
@@ -623,7 +623,7 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
             <div key={group.label} className={gi > 0 ? "mt-5" : ""}>
               <p
                 className={cn(
-                  "mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted",
+                  "mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-muted/80",
                   showCollapsed ? "lg:hidden" : "",
                 )}
               >
