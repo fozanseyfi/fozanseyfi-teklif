@@ -99,10 +99,10 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
     setItems((p) => p.filter((it) => it.id !== id));
   }
 
-  const totalCostTRY = items.reduce(
-    (s, it) => s + convert(it.unitCost, it.currency, "TRY", rates) * (it.qty || 0),
-    0,
-  );
+  const totalCostTRY = items
+    .filter((it) => !it.isOption)
+    .reduce((s, it) => s + convert(it.unitCost, it.currency, "TRY", rates) * (it.qty || 0), 0);
+  const optionCount = items.filter((it) => it.isOption).length;
 
   async function handleSave(goNext: boolean) {
     if (items.length === 0) {
@@ -216,14 +216,20 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
                     <th className="w-16 px-2 py-2 text-center">Para</th>
                     <th className="w-28 px-2 py-2 text-right">Birim Maliyet</th>
                     <th className="w-28 px-2 py-2 text-right">Tutar (₺)</th>
+                    <th className="w-16 px-2 py-2 text-center" data-edit-only>Opsiyon</th>
                     <th className="w-8 px-2 py-2" data-edit-only />
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {items.map((it) => (
-                    <tr key={it.id} className="hover:bg-muted/30">
+                    <tr key={it.id} className={cn("hover:bg-muted/30", it.isOption && "bg-violet-50/50")}>
                       <td className="px-2 py-1.5 align-top">
                         <span className="font-mono text-[11px] text-muted-foreground">{it.code}</span>
+                        {it.isOption && (
+                          <span className="mt-0.5 block rounded-full bg-violet-100 px-1 py-0.5 text-center text-[8.5px] font-bold uppercase text-violet-700">
+                            Opsiyon
+                          </span>
+                        )}
                       </td>
                       <td className="px-2 py-1.5 align-top">
                         <span className="font-medium">{it.name}</span>
@@ -278,6 +284,15 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
                         ₺{fmt(convert(it.unitCost, it.currency, "TRY", rates) * (it.qty || 0))}
                       </td>
                       <td className="px-2 py-1.5 text-center align-top" data-edit-only>
+                        <input
+                          type="checkbox"
+                          checked={!!it.isOption}
+                          onChange={(e) => update(it.id, { isOption: e.target.checked })}
+                          className="size-4 accent-violet-600"
+                          title="Opsiyon olarak işaretle — ana toplama girmez, PDF'de Opsiyonlar altında çıkar"
+                        />
+                      </td>
+                      <td className="px-2 py-1.5 text-center align-top" data-edit-only>
                         <button
                           type="button"
                           onClick={() => removeRow(it.id)}
@@ -294,7 +309,9 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
             </div>
           )}
           <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 border-t bg-muted/30 px-4 py-2.5">
-            <span className="text-xs font-medium text-muted-foreground">Toplam Maliyet:</span>
+            <span className="text-xs font-medium text-muted-foreground">
+              Toplam Maliyet{optionCount > 0 ? " (opsiyon hariç)" : ""}:
+            </span>
             <span className="text-sm font-semibold tabular-nums">₺{fmt(totalCostTRY)}</span>
             <span className="text-sm tabular-nums text-muted-foreground">
               ${fmt(rates.usd ? totalCostTRY / rates.usd : 0)}
@@ -302,6 +319,11 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
             <span className="text-sm tabular-nums text-muted-foreground">
               €{fmt(rates.eur ? totalCostTRY / rates.eur : 0)}
             </span>
+            {optionCount > 0 && (
+              <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-700">
+                {optionCount} opsiyon
+              </span>
+            )}
             {fxLoading && <Loader2 className="inline size-3 animate-spin text-muted-foreground" />}
           </div>
         </CardContent>

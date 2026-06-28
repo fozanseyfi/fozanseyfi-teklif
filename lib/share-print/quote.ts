@@ -12,6 +12,7 @@ import {
   type QuoteOutputCurrency,
   lineUnitSaleOut,
   lineTotalSaleOut,
+  lineTotalSaleInclKdvOut,
   computeQuoteTotals,
   QUOTE_ITEM_KIND_LABELS,
 } from "@/lib/quote";
@@ -64,10 +65,25 @@ export function buildQuotePrintHtml({
 
   const groups: { kind: QuoteItemKindT; rows: QuoteItem[] }[] = (
     [
-      { kind: "MALZEME", rows: items.filter((i) => i.kind === "MALZEME") },
-      { kind: "HIZMET", rows: items.filter((i) => i.kind === "HIZMET") },
+      { kind: "MALZEME", rows: items.filter((i) => i.kind === "MALZEME" && !i.isOption) },
+      { kind: "HIZMET", rows: items.filter((i) => i.kind === "HIZMET" && !i.isOption) },
     ] as { kind: QuoteItemKindT; rows: QuoteItem[] }[]
   ).filter((g) => g.rows.length > 0);
+
+  // Opsiyonlar — ana toplama dahil değil; yalnız KDV dahil satış fiyatıyla.
+  const optionItems = items.filter((i) => i.isOption);
+  const optionsHtml = optionItems.length
+    ? `<div class="block"><div class="blk-ttl">Opsiyonlar (ana teklife dahil değildir)</div>
+        <table class="opt"><tbody>${optionItems
+          .map(
+            (it) => `<tr>
+              <td>${esc(it.name || it.code)}${it.desc ? `<span class="desc"> — ${esc(it.desc)}</span>` : ""}</td>
+              <td class="num strong">${sym}${fmt(lineTotalSaleInclKdvOut(it, out, rates, meta.kdvRate))} <span class="dim" style="font-weight:400">KDV dahil</span></td>
+            </tr>`,
+          )
+          .join("")}</tbody></table>
+      </div>`
+    : "";
   const showGroupHeaders = groups.length > 1;
   let rowNo = 0;
 
@@ -155,6 +171,10 @@ export function buildQuotePrintHtml({
   .blk-ttl { font-size:11px; font-weight:700; color:#334155; margin-bottom:4px; }
   .block ul, .block ol { margin:0; padding-left:20px; }
   .block li { font-size:11px; color:#475569; margin:2px 0; white-space:pre-line; }
+  table.opt { width:100%; border-collapse:collapse; }
+  table.opt td { padding:6px 9px; border-bottom:1px solid #eef2f7; font-size:11.5px; }
+  table.opt td.num { text-align:right; white-space:nowrap; }
+  table.opt td.strong { font-weight:700; }
   .onay-grid { display:flex; gap:16px; margin-top:26px; page-break-inside:avoid; break-inside:avoid; }
   .onay-box { flex:1; border:1px solid #e2e8f0; border-radius:10px; padding:14px 18px 12px; min-height:160px; display:flex; flex-direction:column; }
   .onay-ttl { font-size:13px; font-weight:800; letter-spacing:0.04em; color:#1e293b; border-bottom:1px solid #e2e8f0; padding-bottom:8px; }
@@ -215,6 +235,7 @@ export function buildQuotePrintHtml({
       <div class="row grand"><span>GENEL TOPLAM</span><span>${sym}${fmt(totals.grandTotal)}</span></div>
     </div>
 
+    ${optionsHtml}
     ${paymentTermsHtml}
     ${notesHtml}
 

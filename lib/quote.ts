@@ -39,6 +39,9 @@ export interface QuoteItem {
   unitCost: number; // girilen para biriminde, maliyet (KDV/kâr hariç)
   marginPct: number; // kalem bazlı kâr yüzdesi (maliyet üzerine)
   notes?: string;
+  // Opsiyon kalemi: ana teklif toplamına girmez; PDF'de "Opsiyonlar" altında
+  // yalnızca KDV dahil satış fiyatıyla ayrı gösterilir.
+  isOption?: boolean;
 }
 
 export interface QuoteMeta {
@@ -119,6 +122,16 @@ export function lineTotalSaleTRY(item: QuoteItem, rates: { usd: number; eur: num
   return lineTotalCostTRY(item, rates) * (1 + (item.marginPct || 0) / 100);
 }
 
+/** Kalemin sunum para biriminde KDV DAHİL satır toplamı (opsiyonlar için). */
+export function lineTotalSaleInclKdvOut(
+  item: QuoteItem,
+  out: QuoteOutputCurrency,
+  rates: { usd: number; eur: number },
+  kdvRate: number,
+): number {
+  return lineTotalSaleOut(item, out, rates) * (1 + (kdvRate || 0) / 100);
+}
+
 export interface QuoteTotals {
   out: QuoteOutputCurrency;
   symbol: string;
@@ -146,6 +159,7 @@ export function computeQuoteTotals(items: QuoteItem[], meta: QuoteMeta): QuoteTo
   let malzemeCostTRY = 0;
   let hizmetCostTRY = 0;
   for (const it of items) {
+    if (it.isOption) continue; // opsiyonlar ana toplama girmez
     const sale = lineTotalSaleOut(it, out, rates);
     const costTRY = lineTotalCostTRY(it, rates);
     subtotal += sale;
@@ -193,6 +207,7 @@ export function parseQuoteItems(raw: unknown): QuoteItem[] {
       unitCost: typeof r.unitCost === "number" ? r.unitCost : 0,
       marginPct: typeof r.marginPct === "number" ? r.marginPct : 0,
       notes: typeof r.notes === "string" ? r.notes : undefined,
+      isOption: r.isOption === true,
     }));
 }
 

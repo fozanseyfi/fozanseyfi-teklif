@@ -23,6 +23,7 @@ import {
   lineTotalCostTRY,
   lineUnitSaleOut,
   lineTotalSaleOut,
+  lineTotalSaleInclKdvOut,
   computeQuoteTotals,
 } from "@/lib/quote";
 
@@ -288,6 +289,11 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
                       </td>
                       <td className="px-2 py-1.5">
                         <span className="font-medium">{it.name || it.code || "—"}</span>
+                        {it.isOption && (
+                          <span className="ml-1 rounded-full bg-violet-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-violet-700">
+                            Opsiyon
+                          </span>
+                        )}
                         {it.desc && <span className="block whitespace-pre-line text-[11px] text-muted-foreground">{it.desc}</span>}
                       </td>
                       <td className="px-2 py-1.5 text-right tabular-nums">
@@ -385,6 +391,34 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
           </CardContent>
         </Card>
       </div>
+
+      {/* Opsiyonlar — ana toplama dahil değil, KDV dahil satış fiyatıyla */}
+      {items.some((it) => it.isOption) && (
+        <Card className="border-violet-200">
+          <CardContent className="space-y-2 p-5">
+            <p className="text-sm font-semibold text-violet-700">Opsiyonlar (ana toplama dahil değildir)</p>
+            <div className="divide-y">
+              {items
+                .filter((it) => it.isOption)
+                .map((it) => (
+                  <div key={it.id} className="flex items-center justify-between gap-3 py-1.5 text-sm">
+                    <span className="min-w-0">
+                      <span className="font-medium">{it.name || it.code}</span>
+                      {it.desc && <span className="text-muted-foreground"> — {it.desc}</span>}
+                      <span className="ml-1 text-[11px] text-muted-foreground">
+                        ({fmt(it.qty, it.qty % 1 === 0 ? 0 : 2)} {it.unit}, kâr %{fmt(it.marginPct)})
+                      </span>
+                    </span>
+                    <span className="shrink-0 font-semibold tabular-nums">
+                      {sym}{fmt(lineTotalSaleInclKdvOut(it, out, rates, meta.kdvRate))}
+                      <span className="ml-1 text-[10px] font-normal text-muted-foreground">KDV dahil</span>
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Ödeme şekli + Teklif notları — en altta */}
       <div className="grid gap-4 lg:grid-cols-2">

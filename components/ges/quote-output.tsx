@@ -17,6 +17,7 @@ import {
   computeQuoteTotals,
   lineUnitSaleOut,
   lineTotalSaleOut,
+  lineTotalSaleInclKdvOut,
   QUOTE_ITEM_KIND_LABELS,
 } from "@/lib/quote";
 
@@ -65,11 +66,12 @@ export function QuoteOutput({ projectId, quoteTitle, customer, revisions, brand,
   const empty = items.length === 0;
   const groups: { kind: QuoteItemKindT; rows: QuoteItem[] }[] = (
     [
-      { kind: "MALZEME", rows: items.filter((i) => i.kind === "MALZEME") },
-      { kind: "HIZMET", rows: items.filter((i) => i.kind === "HIZMET") },
+      { kind: "MALZEME", rows: items.filter((i) => i.kind === "MALZEME" && !i.isOption) },
+      { kind: "HIZMET", rows: items.filter((i) => i.kind === "HIZMET" && !i.isOption) },
     ] as { kind: QuoteItemKindT; rows: QuoteItem[] }[]
   ).filter((g) => g.rows.length > 0);
   const showGroups = groups.length > 1;
+  const optionItems = items.filter((i) => i.isOption);
   const hasRevisions = revisions.length > 1;
 
   return (
@@ -181,6 +183,27 @@ export function QuoteOutput({ projectId, quoteTitle, customer, revisions, brand,
                 <span className="tabular-nums">{sym}{fmt(totals.grandTotal)}</span>
               </div>
             </div>
+
+            {/* Opsiyonlar — ana toplama dahil değil, KDV dahil */}
+            {optionItems.length > 0 && (
+              <div className="rounded-lg border border-violet-200 bg-violet-50/30 p-4 text-sm">
+                <p className="mb-2 font-semibold text-violet-700">Opsiyonlar (ana teklife dahil değildir)</p>
+                <div className="divide-y divide-violet-100">
+                  {optionItems.map((it) => (
+                    <div key={it.id} className="flex items-center justify-between gap-3 py-1.5">
+                      <span className="min-w-0">
+                        {it.name || it.code}
+                        {it.desc && <span className="text-muted-foreground"> — {it.desc}</span>}
+                      </span>
+                      <span className="shrink-0 font-semibold tabular-nums">
+                        {sym}{fmt(lineTotalSaleInclKdvOut(it, out, rates, meta.kdvRate))}
+                        <span className="ml-1 text-[10px] font-normal text-muted-foreground">KDV dahil</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Ödeme şekli — yalnız işaretli */}
             {(meta.paymentTerms ?? []).filter((p) => p.show && (p.method.trim() || p.desc.trim() || p.vade.trim() || p.percent > 0)).length > 0 && (
