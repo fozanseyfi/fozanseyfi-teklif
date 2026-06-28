@@ -7,13 +7,7 @@ import { getHiddenResourceIds } from "@/lib/permission-server";
 import { isProjectVisible } from "@/lib/project-status";
 import { toUSD, calc } from "@/lib/ges-engine";
 import type { KesifGroup, GesSettings, KesifItem } from "@/lib/ges-defaults";
-import {
-  parseQuoteItems,
-  parseQuoteMeta,
-  lineUnitSaleOut,
-  lineTotalSaleOut,
-  currencySymbol,
-} from "@/lib/quote";
+import { parseQuoteItems, currencySymbol } from "@/lib/quote";
 
 export type SearchKind = "project" | "customer" | "item";
 
@@ -236,22 +230,19 @@ export async function globalSearch(rawQuery: string): Promise<SearchResult[]> {
       if (!p.projectDetail) continue;
 
       // Malzeme & Hizmet teklifi: quote kalemlerinde ara (kime hangi fiyatla?).
+      // Birim maliyet, GİRİLDİĞİ para biriminde gösterilir (TL'ye çevrilmez).
       if (p.quoteKind === "MATERIAL_SERVICE") {
         const items = parseQuoteItems(p.projectDetail.quoteItems);
-        const meta = parseQuoteMeta(p.projectDetail.settings);
-        const out = meta.outputCurrency || "TRY";
-        const rates = { usd: meta.usd, eur: meta.eur };
-        const sym = currencySymbol(out);
         for (const it of items) {
           const hay = [it.name, it.code, it.desc].filter(Boolean).join(" ").toLowerCase();
           if (!hay.includes(qLower)) continue;
-          const unitSale = lineUnitSaleOut(it, out, rates);
-          const lineTotal = lineTotalSaleOut(it, out, rates);
+          const sym = currencySymbol(it.currency);
+          const lineTotal = (it.unitCost || 0) * (it.qty || 0);
           const sub: string[] = [];
           if (p.customerName) sub.push(p.customerName);
           sub.push(p.name);
           if (it.qty > 0) sub.push(`${it.qty.toLocaleString("tr-TR", { maximumFractionDigits: 2 })} ${it.unit}`);
-          sub.push(`${sym}${unitSale.toLocaleString("tr-TR", { maximumFractionDigits: 2 })}/${it.unit}`);
+          sub.push(`${sym}${it.unitCost.toLocaleString("tr-TR", { maximumFractionDigits: 2 })}/${it.unit}`);
           if (lineTotal > 0) sub.push(`Σ ${sym}${lineTotal.toLocaleString("tr-TR", { maximumFractionDigits: 0 })}`);
           itemResults.push({
             kind: "item",
