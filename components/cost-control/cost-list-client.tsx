@@ -102,14 +102,14 @@ export function CostListClient({
                   Proje Maliyet Takibi
                 </h1>
                 <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                  Satış, gerçekleşen maliyet, kâr, tahsilat ve satıcı ödemelerini tek yerde izle.
+                  Satış, gerçekleşen maliyet, kâr, tahsilat ve tedarikçi ödemelerini tek yerde izle.
                 </p>
               </div>
             </div>
             <div className="flex shrink-0 flex-wrap gap-2">
               <Button variant="outline" asChild>
-                <Link href="/cost-control/vendors">
-                  <Users2 className="size-4" /> Satıcılar
+                <Link href="/suppliers">
+                  <Users2 className="size-4" /> Tedarikçiler
                 </Link>
               </Button>
               <Button variant="outline" onClick={() => setImportOpen(true)} disabled={importable.length === 0}>
@@ -132,7 +132,7 @@ export function CostListClient({
             value={`₺${fmt(totals.profit)}`}
             tone={totals.profit >= 0 ? "emerald" : "rose"}
           />
-          <MiniKpi label="Satıcılara Kalan Ödeme" value={`₺${fmt(totals.pay)}`} tone="amber" />
+          <MiniKpi label="Tedarikçilere Kalan Ödeme" value={`₺${fmt(totals.pay)}`} tone="amber" />
         </div>
       )}
 

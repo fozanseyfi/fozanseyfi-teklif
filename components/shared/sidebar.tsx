@@ -29,6 +29,7 @@ import {
   Upload,
   Package,
   Wallet,
+  Truck,
 } from "lucide-react";
 import { logout, switchOrganization } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
@@ -73,6 +74,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/templates", icon: LayoutTemplate, label: "Şablonlar" },
       { href: "/materials", icon: Package, label: "Malzemeler" },
       { href: "/customers", icon: Users, label: "Müşteriler" },
+      { href: "/suppliers", icon: Truck, label: "Tedarikçiler" },
       { href: "/cost-control", icon: Wallet, label: "Maliyet Kontrol" },
     ],
   },
@@ -200,8 +202,8 @@ function NavLink({
           onMouseEnter={handleEnter}
           onMouseLeave={handleLeave}
           className={cn(
-            "group flex w-full cursor-not-allowed items-center rounded-lg text-left text-[13px] font-medium transition-colors",
-            "gap-2.5 px-3 py-2",
+            "group flex w-full cursor-not-allowed items-center rounded-lg text-left text-[12px] font-medium transition-colors",
+            "gap-2 px-2.5 py-1.5",
             collapsed && "lg:justify-center lg:gap-0 lg:px-2 lg:py-2",
             "text-sidebar-muted/70 hover:bg-sidebar-border/30",
           )}
@@ -238,8 +240,8 @@ function NavLink({
         onMouseEnter={handleEnter}
         onMouseLeave={handleLeave}
         className={cn(
-          "group flex items-center rounded-lg text-[13px] font-medium transition-colors",
-          "gap-2.5 px-3 py-2",
+          "group flex items-center rounded-lg text-[12px] font-medium transition-colors",
+          "gap-2 px-2.5 py-1.5",
           collapsed && "lg:justify-center lg:gap-0 lg:px-2 lg:py-2",
           active
             ? "bg-sidebar-accent/20 text-sidebar-accent-foreground"
@@ -445,7 +447,7 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
     const saved = localStorage.getItem(STORAGE_KEY);
     const initial = saved === "1";
     setCollapsed(initial);
-    document.documentElement.style.setProperty("--sidebar-w", initial ? "4rem" : "16rem");
+    document.documentElement.style.setProperty("--sidebar-w", initial ? "4rem" : "14rem");
   }, []);
 
   useEffect(() => {
@@ -465,7 +467,7 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
     setCollapsed((prev) => {
       const next = !prev;
       localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
-      document.documentElement.style.setProperty("--sidebar-w", next ? "4rem" : "16rem");
+      document.documentElement.style.setProperty("--sidebar-w", next ? "4rem" : "14rem");
       return next;
     });
   }
@@ -506,7 +508,7 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
         {/* Desktop: Panel switcher (dropdown) */}
         <div
           className="hidden min-w-0 items-center gap-2 lg:flex"
-          style={{ marginLeft: "var(--sidebar-w, 16rem)", transition: "margin-left 200ms" }}
+          style={{ marginLeft: "var(--sidebar-w, 14rem)", transition: "margin-left 200ms" }}
         >
           <PanelSwitcher firmName={firmName} organizations={organizations ?? []} />
         </div>
@@ -563,7 +565,7 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
           "transition-[transform,width] duration-200",
           "w-64",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
-          "lg:translate-x-0 lg:[width:var(--sidebar-w,16rem)]",
+          "lg:translate-x-0 lg:[width:var(--sidebar-w,14rem)]",
         )}
       >
         {/* Mobile close button */}

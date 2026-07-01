@@ -84,6 +84,7 @@ export default async function CostProjectPage({ params }: { params: Promise<{ id
       vendorName: l.vendor?.name ?? "",
       payAccountNameOverride: l.payAccountNameOverride ?? "",
       payIbanOverride: l.payIbanOverride ?? "",
+      link: l.link ?? "",
       plannedAmount: l.plannedAmount,
       payments: l.payments.map((p) => ({
         id: p.id,
@@ -97,6 +98,7 @@ export default async function CostProjectPage({ params }: { params: Promise<{ id
       id: c.id,
       amount: c.amount,
       collectedDate: c.collectedDate.toISOString().slice(0, 10),
+      isPlanned: c.isPlanned,
       note: c.note ?? "",
     })),
     partners: project.partners.map((p) => ({ id: p.id, name: p.name, sharePercent: p.sharePercent })),

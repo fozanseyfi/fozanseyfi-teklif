@@ -24,8 +24,6 @@ import {
   Users2,
   Search,
   Loader2,
-  Landmark,
-  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatNumber } from "@/lib/utils";
@@ -71,18 +69,13 @@ export function VendorsClient({ vendors, canEdit }: { vendors: VendorRow[]; canE
   }, [q, vendors]);
 
   function del(v: VendorRow) {
-    if (!confirm(`"${v.name}" silinsin mi? Kalemlerdeki satıcı bağlantısı boşalır (kalemler silinmez).`)) return;
+    if (!confirm(`"${v.name}" silinsin mi? Kalemlerdeki tedarikçi bağlantısı boşalır (kalemler silinmez).`)) return;
     start(async () => {
       const r = await deleteVendor(v.id);
       if (r.error) { toast.error(r.error); return; }
-      toast.success("Satıcı silindi");
+      toast.success("Tedarikçi silindi");
       router.refresh();
     });
-  }
-
-  function copy(text: string) {
-    navigator.clipboard.writeText(text);
-    toast.success("Kopyalandı");
   }
 
   return (
@@ -98,13 +91,13 @@ export function VendorsClient({ vendors, canEdit }: { vendors: VendorRow[]; canE
             <Users2 className="size-5" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Satıcılar</h1>
-            <p className="text-sm text-muted-foreground">Ödeme hesapları ve geçmiş — {vendors.length} satıcı</p>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">Tedarikçiler</h1>
+            <p className="text-sm text-muted-foreground">Ödeme hesapları ve geçmiş — {vendors.length} tedarikçi</p>
           </div>
         </div>
         {canEdit && (
           <Button onClick={() => setDialog({ open: true, vendor: null })}>
-            <Plus className="size-4" /> Yeni Satıcı
+            <Plus className="size-4" /> Yeni Tedarikçi
           </Button>
         )}
       </div>
@@ -117,7 +110,7 @@ export function VendorsClient({ vendors, canEdit }: { vendors: VendorRow[]; canE
       {filtered.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center text-sm text-muted-foreground">
-            {vendors.length === 0 ? "Henüz satıcı yok." : "Eşleşen satıcı yok."}
+            {vendors.length === 0 ? "Henüz tedarikçi yok." : "Eşleşen tedarikçi yok."}
           </CardContent>
         </Card>
       ) : (
@@ -137,18 +130,8 @@ export function VendorsClient({ vendors, canEdit }: { vendors: VendorRow[]; canE
                   </Badge>
                 </div>
 
-                {(v.payAccountName || v.payIban) && (
-                  <div className="rounded-lg border bg-muted/30 p-2.5 text-xs">
-                    <p className="flex items-center gap-1.5 font-medium text-slate-700">
-                      <Landmark className="size-3.5" /> Ödeme Hesabı
-                    </p>
-                    {v.payAccountName && <p className="mt-1 text-slate-600">{v.payAccountName}</p>}
-                    {v.payIban && (
-                      <button onClick={() => copy(v.payIban)} className="mt-0.5 flex items-center gap-1 font-mono text-[11px] text-slate-500 hover:text-emerald-700">
-                        {v.payIban} <Copy className="size-3" />
-                      </button>
-                    )}
-                  </div>
+                {v.taxNo && (
+                  <p className="text-xs text-muted-foreground">Vergi No: {v.taxNo}</p>
                 )}
 
                 <div className="grid grid-cols-3 gap-2 text-center text-xs">
@@ -208,11 +191,11 @@ function VendorDialog({ vendor, onClose, onSaved }: { vendor: VendorRow | null; 
   });
 
   function save() {
-    if (!f.name?.trim()) return toast.error("Satıcı adı zorunludur");
+    if (!f.name?.trim()) return toast.error("Tedarikçi adı zorunludur");
     start(async () => {
       const r = vendor ? await updateVendor(vendor.id, f) : await createVendor(f);
       if (r.error) { toast.error(r.error); return; }
-      toast.success(vendor ? "Güncellendi" : "Satıcı eklendi");
+      toast.success(vendor ? "Güncellendi" : "Tedarikçi eklendi");
       onClose();
       onSaved();
     });
@@ -222,7 +205,7 @@ function VendorDialog({ vendor, onClose, onSaved }: { vendor: VendorRow | null; 
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{vendor ? "Satıcıyı Düzenle" : "Yeni Satıcı"}</DialogTitle>
+          <DialogTitle>{vendor ? "Tedarikçiyi Düzenle" : "Yeni Tedarikçi"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
@@ -249,27 +232,10 @@ function VendorDialog({ vendor, onClose, onSaved }: { vendor: VendorRow | null; 
               Varsayılan faturalı
             </label>
           </div>
-          <div className="rounded-lg border border-dashed p-3">
-            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-slate-600">
-              <Landmark className="size-3.5" /> Ödeme Hesabı (satıcıdan farklı olabilir)
-            </p>
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label>Hesap Adı</Label>
-                <Input value={f.payAccountName} onChange={(e) => setF({ ...f, payAccountName: e.target.value })} placeholder="Örn. Burak Kıran" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>IBAN</Label>
-                  <Input value={f.payIban} onChange={(e) => setF({ ...f, payIban: e.target.value })} placeholder="TR.." />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Banka</Label>
-                  <Input value={f.bank} onChange={(e) => setF({ ...f, bank: e.target.value })} />
-                </div>
-              </div>
-            </div>
-          </div>
+          <p className="rounded-md bg-muted/50 px-3 py-2 text-[11px] text-muted-foreground">
+            Ödeme sahibi / IBAN bilgisi tedarikçide değil, maliyet kalemi eklenirken sorulur
+            (ödeme başka bir kişiye/hesaba gidebilir).
+          </p>
           <div className="space-y-1.5">
             <Label>Not</Label>
             <Textarea value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} className="min-h-[60px]" />

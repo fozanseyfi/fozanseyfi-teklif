@@ -101,7 +101,7 @@ export async function listCostProjects(): Promise<CostProjectCard[]> {
     orderBy: { updatedAt: "desc" },
     include: {
       lines: { include: { payments: { select: { amount: true } } } },
-      collections: { select: { amount: true } },
+      collections: { select: { amount: true, isPlanned: true } },
       partners: { select: { name: true, sharePercent: true } },
     },
   });
@@ -246,6 +246,7 @@ export interface CostLineInput {
   vendorId?: string | null;
   payAccountNameOverride?: string | null;
   payIbanOverride?: string | null;
+  link?: string | null;
   plannedAmount?: number | null;
 }
 
@@ -268,6 +269,7 @@ function normalizeLine(input: CostLineInput) {
     vendorId: input.vendorId || null,
     payAccountNameOverride: (input.payAccountNameOverride || "").trim() || null,
     payIbanOverride: (input.payIbanOverride || "").trim() || null,
+    link: (input.link || "").trim() || null,
     plannedAmount: input.plannedAmount == null ? null : Number(input.plannedAmount),
   };
 }
@@ -318,7 +320,7 @@ export async function deleteCostLine(lineId: string): Promise<{ error?: string; 
 }
 
 // ————————————————————————————————————————————————————————————————
-// Ödeme (satıcıya) + Tahsilat (müşteriden)
+// Ödeme (tedarikçiye) + Tahsilat (müşteriden)
 // ————————————————————————————————————————————————————————————————
 
 export async function addCostPayment(
@@ -361,7 +363,7 @@ export async function deleteCostPayment(paymentId: string): Promise<{ error?: st
 
 export async function addCostCollection(
   costProjectId: string,
-  input: { amount: number; collectedDate?: string; note?: string },
+  input: { amount: number; collectedDate?: string; note?: string; isPlanned?: boolean },
 ): Promise<{ error?: string; success?: boolean }> {
   const user = await requireAuth();
   if (!canEdit(user)) return { error: "Yetkiniz yok" };
@@ -373,6 +375,7 @@ export async function addCostCollection(
       costProjectId,
       amount,
       collectedDate: toDate(input.collectedDate) ?? new Date(),
+      isPlanned: !!input.isPlanned,
       note: (input.note || "").trim() || null,
     },
   });
@@ -418,7 +421,7 @@ export async function saveCostPartners(
 }
 
 // ————————————————————————————————————————————————————————————————
-// Satıcılar (vendors)
+// Tedarikçiler (vendors)
 // ————————————————————————————————————————————————————————————————
 
 export interface VendorInput {
@@ -437,7 +440,7 @@ export async function createVendor(input: VendorInput): Promise<{ id?: string; e
   const user = await requireAuth();
   if (!canEdit(user)) return { error: "Yetkiniz yok" };
   const name = (input.name || "").trim();
-  if (!name) return { error: "Satıcı adı zorunludur" };
+  if (!name) return { error: "Tedarikçi adı zorunludur" };
   const v = await prisma.costVendor.create({
     data: {
       organizationId: user.organizationId,
@@ -461,7 +464,7 @@ export async function updateVendor(id: string, input: VendorInput): Promise<{ er
   const user = await requireAuth();
   if (!canEdit(user)) return { error: "Yetkiniz yok" };
   const own = await prisma.costVendor.findFirst({ where: { id, organizationId: user.organizationId }, select: { id: true } });
-  if (!own) return { error: "Satıcı bulunamadı" };
+  if (!own) return { error: "Tedarikçi bulunamadı" };
   await prisma.costVendor.update({
     where: { id },
     data: {
@@ -484,7 +487,7 @@ export async function deleteVendor(id: string): Promise<{ error?: string; succes
   const user = await requireAuth();
   if (!canEdit(user)) return { error: "Yetkiniz yok" };
   const own = await prisma.costVendor.findFirst({ where: { id, organizationId: user.organizationId }, select: { id: true } });
-  if (!own) return { error: "Satıcı bulunamadı" };
+  if (!own) return { error: "Tedarikçi bulunamadı" };
   await prisma.costVendor.delete({ where: { id } });
   revalidatePath("/cost-control/vendors");
   return { success: true };

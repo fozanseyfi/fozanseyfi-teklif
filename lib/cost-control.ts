@@ -86,7 +86,7 @@ export interface CostProjectMetricsInput {
   salesPrice: number;
   salesCurrency: string;
   lines: LineLike[];
-  collections: { amount: number }[];
+  collections: { amount: number; isPlanned?: boolean }[];
   partners: { name: string; sharePercent: number }[];
   rates: Rates;
 }
@@ -117,6 +117,7 @@ export interface CostProjectMetrics {
   payableBalanceTL: number;
   // Tahsilat (satış para biriminde)
   collectedTotal: number;
+  plannedCollectedTotal: number;
   remainingReceivable: number;
   collectedTL: number;
   // Kâr (TL, net bazında)
@@ -161,7 +162,9 @@ export function computeCostProjectMetrics(inp: CostProjectMetricsInput): CostPro
   }
 
   const actualGrossTL = actualNetTL + actualVatTL;
-  const collectedTotal = collections.reduce((s, c) => s + (c.amount || 0), 0);
+  // Sadece gerçekten tahsil edilenler "collected"; planlananlar ayrı.
+  const collectedTotal = collections.filter((c) => !c.isPlanned).reduce((s, c) => s + (c.amount || 0), 0);
+  const plannedCollectedTotal = collections.filter((c) => c.isPlanned).reduce((s, c) => s + (c.amount || 0), 0);
   const remainingReceivable = (salesPrice || 0) - collectedTotal;
   const collectedTL = toTRY(collectedTotal, (salesCurrency as QuoteCurrency) || "TRY", rates);
   const profitTL = salesPriceTL - actualNetTL;
@@ -195,6 +198,7 @@ export function computeCostProjectMetrics(inp: CostProjectMetricsInput): CostPro
     paidTL,
     payableBalanceTL: actualNetTL - paidTL,
     collectedTotal,
+    plannedCollectedTotal,
     remainingReceivable,
     collectedTL,
     profitTL,

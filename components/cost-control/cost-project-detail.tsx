@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,10 +39,15 @@ import {
   Receipt,
   Settings2,
   HandCoins,
+  ExternalLink,
+  Landmark,
+  CalendarClock,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatNumber } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { SupplierCombobox, type ComboVendor } from "@/components/cost-control/supplier-combobox";
 import {
   computeCostProjectMetrics,
   lineNetTL,
@@ -101,6 +106,7 @@ interface Line {
   vendorName: string;
   payAccountNameOverride: string;
   payIbanOverride: string;
+  link: string;
   plannedAmount: number | null;
   payments: Payment[];
 }
@@ -108,6 +114,7 @@ interface Collection {
   id: string;
   amount: number;
   collectedDate: string;
+  isPlanned: boolean;
   note: string;
 }
 interface Partner {
@@ -164,6 +171,14 @@ export function CostProjectDetail({
   const [editProject, setEditProject] = useState(false);
   const [lineDialog, setLineDialog] = useState<{ open: boolean; line: Line | null }>({ open: false, line: null });
   const [payDialog, setPayDialog] = useState<{ open: boolean; line: Line | null }>({ open: false, line: null });
+  // Tedarikçi listesi yerel state — combobox'tan yeni tedarikçi eklenince anında
+  // görünsün; sunucu yenilenince prop'tan senkronlanır.
+  const [vendorList, setVendorList] = useState<ComboVendor[]>(
+    vendors.map((v) => ({ id: v.id, name: v.name, defaultInvoiced: v.defaultInvoiced })),
+  );
+  useEffect(() => {
+    setVendorList(vendors.map((v) => ({ id: v.id, name: v.name, defaultInvoiced: v.defaultInvoiced })));
+  }, [vendors]);
 
   const m = useMemo(
     () =>
@@ -285,9 +300,9 @@ export function CostProjectDetail({
             />
           </>
         )}
-        <Kpi label="Satıcılara Ödenen" value={`₺${fmt(m.paidTL)}`} tone="slate" />
+        <Kpi label="Tedarikçilere Ödenen" value={`₺${fmt(m.paidTL)}`} tone="slate" />
         <Kpi
-          label="Satıcılara Kalan"
+          label="Tedarikçilere Kalan"
           value={`₺${fmt(m.payableBalanceTL)}`}
           tone={m.payableBalanceTL > 0.5 ? "amber" : "emerald"}
         />
@@ -325,7 +340,7 @@ export function CostProjectDetail({
                     <th className="px-2 py-2 text-center">KDV</th>
                     <th className="px-2 py-2 text-right">Planlanan</th>
                     <th className="px-2 py-2 text-right">Varyans</th>
-                    <th className="px-2 py-2 text-left">Satıcı</th>
+                    <th className="px-2 py-2 text-left">Tedarikçi</th>
                     <th className="px-2 py-2 text-center">Ödeme</th>
                     <th className="px-2 py-2" />
                   </tr>
@@ -342,6 +357,18 @@ export function CostProjectDetail({
                         <td className="px-2 py-2">
                           <div className="flex items-center gap-1.5">
                             <span className="font-medium text-slate-900">{l.description}</span>
+                            {l.link && (
+                              <a
+                                href={l.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-sky-600 hover:text-sky-800"
+                                title="Fatura / dekont linkini aç"
+                              >
+                                <ExternalLink className="size-3.5" />
+                              </a>
+                            )}
                             {!l.isInvoiced && (
                               <span className="rounded bg-amber-100 px-1 py-0.5 text-[9px] font-bold uppercase text-amber-700">
                                 Faturasız
@@ -455,6 +482,8 @@ export function CostProjectDetail({
 
       <PartnersCard data={data} m={m} canEdit={canEdit} onChange={refresh} />
 
+      <PaymentOwnersCard lines={data.lines} />
+
       {/* Dialoglar */}
       {editProject && (
         <ProjectSettingsDialog data={data} onClose={() => setEditProject(false)} onSaved={refresh} />
@@ -463,7 +492,8 @@ export function CostProjectDetail({
         <LineDialog
           projectId={data.id}
           line={lineDialog.line}
-          vendors={vendors}
+          vendors={vendorList}
+          onVendorCreated={(v) => setVendorList((prev) => (prev.some((x) => x.id === v.id) ? prev : [...prev, v]))}
           categories={categories}
           rates={rates}
           onClose={() => setLineDialog({ open: false, line: null })}
@@ -575,19 +605,23 @@ function CollectionsCard({
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
   const [note, setNote] = useState("");
+  const [planned, setPlanned] = useState(false);
   const [busy, start] = useTransition();
   const sym = m.salesSym;
+
+  const actualColls = data.collections.filter((c) => !c.isPlanned);
+  const plannedColls = data.collections.filter((c) => c.isPlanned);
 
   function add() {
     const a = parseFloat(amount);
     if (!a || a <= 0) return toast.error("Geçerli tutar girin");
     start(async () => {
-      const r = await addCostCollection(data.id, { amount: a, collectedDate: date || undefined, note });
+      const r = await addCostCollection(data.id, { amount: a, collectedDate: date || undefined, note, isPlanned: planned });
       if (r.error) { toast.error(r.error); return; }
       setAmount("");
       setNote("");
       setDate("");
-      toast.success("Tahsilat eklendi");
+      toast.success(planned ? "Planlanan tahsilat eklendi" : "Tahsilat eklendi");
       onChange();
     });
   }
@@ -620,9 +654,9 @@ function CollectionsCard({
           </div>
         </div>
 
-        {data.collections.length > 0 && (
+        {actualColls.length > 0 && (
           <div className="mb-3 divide-y">
-            {data.collections.map((c) => (
+            {actualColls.map((c) => (
               <div key={c.id} className="flex items-center justify-between gap-2 py-1.5 text-sm">
                 <div className="min-w-0">
                   <span className="font-medium tabular-nums">{sym}{fmt(c.amount)}</span>
@@ -639,23 +673,53 @@ function CollectionsCard({
           </div>
         )}
 
+        {plannedColls.length > 0 && (
+          <div className="mb-3 rounded-lg border border-dashed border-sky-200 bg-sky-50/40 p-3">
+            <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-sky-700">
+              <CalendarClock className="size-3.5" /> Planlanan Tahsilatlar (henüz alınmadı)
+            </p>
+            <div className="divide-y divide-sky-100">
+              {plannedColls.map((c) => (
+                <div key={c.id} className="flex items-center justify-between gap-2 py-1.5 text-sm">
+                  <div className="min-w-0">
+                    <span className="font-medium tabular-nums text-sky-800">{sym}{fmt(c.amount)}</span>
+                    <span className="ml-2 text-xs text-sky-600">{c.collectedDate} tarihinde</span>
+                    {c.note && <span className="ml-1 text-xs text-muted-foreground">· {c.note}</span>}
+                  </div>
+                  {canEdit && (
+                    <button onClick={() => del(c.id)} className="rounded p-1 text-destructive/70 hover:bg-destructive-soft" disabled={busy || pending}>
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {canEdit && (
-          <div className="flex flex-wrap items-end gap-2">
-            <div className="flex-1 space-y-1">
-              <Label className="text-[11px]">Tutar ({sym})</Label>
-              <Input type="number" step="any" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="h-9" />
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="flex-1 space-y-1">
+                <Label className="text-[11px]">Tutar ({sym})</Label>
+                <Input type="number" step="any" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="h-9" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px]">{planned ? "Planlanan Tarih" : "Tarih"}</Label>
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9 w-36" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <Label className="text-[11px]">Açıklama</Label>
+                <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Avans / hakediş…" className="h-9" />
+              </div>
+              <Button size="sm" className="h-9" onClick={add} disabled={busy}>
+                <Plus className="size-4" /> Ekle
+              </Button>
             </div>
-            <div className="space-y-1">
-              <Label className="text-[11px]">Tarih</Label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9 w-36" />
-            </div>
-            <div className="flex-1 space-y-1">
-              <Label className="text-[11px]">Açıklama</Label>
-              <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Avans / hakediş…" className="h-9" />
-            </div>
-            <Button size="sm" className="h-9" onClick={add} disabled={busy}>
-              <Plus className="size-4" /> Ekle
-            </Button>
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Checkbox checked={planned} onCheckedChange={(v) => setPlanned(!!v)} />
+              Planlanan (henüz tahsil edilmedi — sadece hangi tarihte ne kadar alacağımı not al)
+            </label>
           </div>
         )}
       </CardContent>
@@ -883,11 +947,107 @@ function ProjectSettingsDialog({ data, onClose, onSaved }: { data: ProjectData; 
   );
 }
 
+// ————————————————————————————————————————— Ödeme yapılacak kişiler (dağıtım)
+function PaymentOwnersCard({ lines }: { lines: Line[] }) {
+  const groups = useMemo(() => {
+    const map = new Map<
+      string,
+      { owner: string; iban: string; total: number; paid: number; remaining: number }
+    >();
+    for (const l of lines) {
+      const total = lineNetTL(l);
+      if (total <= 0) continue;
+      const owner = (l.payAccountNameOverride || l.vendorName || "—").trim() || "—";
+      const iban = l.payIbanOverride || "";
+      const key = `${owner}|${iban}`;
+      const cur = map.get(key) || { owner, iban, total: 0, paid: 0, remaining: 0 };
+      cur.total += total;
+      cur.paid += linePaidTL(l);
+      cur.remaining += Math.max(0, lineBalanceTL(l));
+      map.set(key, cur);
+    }
+    return Array.from(map.values()).sort((a, b) => b.remaining - a.remaining);
+  }, [lines]);
+
+  const totalRemaining = groups.reduce((s, g) => s + g.remaining, 0);
+
+  function copy(t: string) {
+    navigator.clipboard.writeText(t);
+    toast.success("IBAN kopyalandı");
+  }
+
+  if (groups.length === 0) return null;
+
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-0">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-4 py-3">
+          <p className="flex items-center gap-2 text-sm font-semibold">
+            <Landmark className="size-4 text-primary" /> Ödeme Yapılacak Kişiler
+          </p>
+          <span className="text-xs text-muted-foreground">
+            Toplam kalan: <strong className="text-amber-600">₺{fmt(totalRemaining)}</strong>
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-xs">
+            <thead>
+              <tr className="border-b bg-muted/50 text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <th className="px-3 py-2 text-left">Ödeme Sahibi</th>
+                <th className="px-3 py-2 text-left">IBAN</th>
+                <th className="px-3 py-2 text-right">Toplam (net)</th>
+                <th className="px-3 py-2 text-right">Ödenen</th>
+                <th className="px-3 py-2 text-right">Kalan / Durum</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {groups.map((g, i) => {
+                const done = g.remaining <= 0.5;
+                return (
+                  <tr key={i} className="hover:bg-muted/30">
+                    <td className="px-3 py-2 font-medium text-slate-900">{g.owner}</td>
+                    <td className="px-3 py-2">
+                      {g.iban ? (
+                        <button
+                          type="button"
+                          onClick={() => copy(g.iban)}
+                          className="inline-flex items-center gap-1 font-mono text-[11px] text-slate-500 hover:text-emerald-700"
+                          title="Kopyala"
+                        >
+                          {g.iban} <Copy className="size-3" />
+                        </button>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">₺{fmt(g.total)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-emerald-700">₺{fmt(g.paid)}</td>
+                    <td className="px-3 py-2 text-right">
+                      {done ? (
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                          Ödendi
+                        </span>
+                      ) : (
+                        <span className="font-semibold tabular-nums text-amber-600">₺{fmt(g.remaining)}</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ————————————————————————————————————————— Kalem dialog
 function LineDialog({
   projectId,
   line,
   vendors,
+  onVendorCreated,
   categories,
   rates,
   onClose,
@@ -895,7 +1055,8 @@ function LineDialog({
 }: {
   projectId: string;
   line: Line | null;
-  vendors: Vendor[];
+  vendors: ComboVendor[];
+  onVendorCreated: (v: ComboVendor) => void;
   categories: Category[];
   rates: Rates;
   onClose: () => void;
@@ -917,6 +1078,9 @@ function LineDialog({
     vatRate: line ? String(line.vatRate) : "20",
     isInvoiced: line?.isInvoiced ?? true,
     vendorId: line?.vendorId ?? "",
+    payAccountName: line?.payAccountNameOverride ?? "",
+    payIban: line?.payIbanOverride ?? "",
+    link: line?.link ?? "",
     plannedAmount: line?.plannedAmount == null ? "" : String(line.plannedAmount),
   });
 
@@ -948,9 +1112,14 @@ function LineDialog({
     }
   }
 
-  function onVendor(id: string) {
-    const v = vendors.find((x) => x.id === id);
-    setF((p) => ({ ...p, vendorId: id, isInvoiced: v ? v.defaultInvoiced : p.isInvoiced }));
+  function onVendorSelect(v: ComboVendor | null) {
+    setF((p) => ({
+      ...p,
+      vendorId: v?.id ?? "",
+      isInvoiced: v ? v.defaultInvoiced : p.isInvoiced,
+      // Ödeme sahibi boşsa tedarikçi adını varsayılan yap (değiştirilebilir).
+      payAccountName: p.payAccountName.trim() ? p.payAccountName : v?.name ?? p.payAccountName,
+    }));
   }
 
   function save() {
@@ -969,6 +1138,9 @@ function LineDialog({
       vatRate: parseFloat(f.vatRate) || 0,
       isInvoiced: f.isInvoiced,
       vendorId: f.vendorId || null,
+      payAccountNameOverride: f.payAccountName,
+      payIbanOverride: f.payIban,
+      link: f.link,
       plannedAmount: f.plannedAmount === "" ? null : parseFloat(f.plannedAmount) || 0,
     };
     start(async () => {
@@ -1072,27 +1244,44 @@ function LineDialog({
               <Label>Planlanan (₺, ops.)</Label>
               <Input type="number" step="any" value={f.plannedAmount} onChange={(e) => setF({ ...f, plannedAmount: e.target.value })} placeholder="—" />
             </div>
-            <div className="space-y-1.5">
-              <Label>Satıcı</Label>
-              <Select value={f.vendorId || "none"} onValueChange={(v) => onVendor(v === "none" ? "" : v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seç" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— Yok —</SelectItem>
-                  {vendors.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {v.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <label className="flex items-center gap-2 pt-6 text-sm">
+              <Checkbox checked={f.isInvoiced} onCheckedChange={(v) => setF({ ...f, isInvoiced: !!v })} />
+              Faturalı
+            </label>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Tedarikçi</Label>
+            <SupplierCombobox
+              vendors={vendors}
+              value={f.vendorId}
+              onSelect={onVendorSelect}
+              onCreated={onVendorCreated}
+            />
+          </div>
+
+          {/* Ödeme sahibi — tedarikçiden farklı olabilir; ödeme dağıtım listesi
+              bu alanlardan üretilir. */}
+          <div className="rounded-lg border border-dashed p-3">
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-slate-600">
+              <Landmark className="size-3.5" /> Ödeme Sahibi (ödeme kime gidecek — tedarikçiden farklı olabilir)
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Hesap Adı</Label>
+                <Input value={f.payAccountName} onChange={(e) => setF({ ...f, payAccountName: e.target.value })} placeholder="Örn. Burak Kıran" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>IBAN</Label>
+                <Input value={f.payIban} onChange={(e) => setF({ ...f, payIban: e.target.value })} placeholder="TR.." />
+              </div>
             </div>
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={f.isInvoiced} onCheckedChange={(v) => setF({ ...f, isInvoiced: !!v })} />
-            Faturalı
-          </label>
+
+          <div className="space-y-1.5">
+            <Label>Fatura / Dekont Linki (ops.)</Label>
+            <Input value={f.link} onChange={(e) => setF({ ...f, link: e.target.value })} placeholder="https://…" />
+          </div>
 
           <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2 text-sm">
             <span className="text-muted-foreground">TL Toplam (net)</span>
@@ -1166,8 +1355,9 @@ function PaymentDialog({
         <DialogHeader>
           <DialogTitle>Ödeme — {line.description}</DialogTitle>
           <DialogDescription>
-            {line.vendorName ? `Satıcı: ${line.vendorName}` : "Satıcı seçilmemiş"}
-            {payAcc && ` · Hesap: ${payAcc}`}
+            {line.vendorName ? `Tedarikçi: ${line.vendorName}` : "Tedarikçi seçilmemiş"}
+            {payAcc && ` · Ödeme Sahibi: ${payAcc}`}
+            {line.payIbanOverride && ` · ${line.payIbanOverride}`}
           </DialogDescription>
         </DialogHeader>
 

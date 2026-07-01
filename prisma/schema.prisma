@@ -722,8 +722,13 @@ model CostLine {
 
   vendorId    String? @map("vendor_id")
   vendor      CostVendor? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  // Ödeme sahibi (bu kalem için ödeme kime/hangi IBAN'a gidecek — tedarikçiden
+  // farklı olabilir). Ödeme dağıtım listesi bu alanlardan üretilir.
   payAccountNameOverride String? @map("pay_account_name_override")
   payIbanOverride        String? @map("pay_iban_override")
+
+  // Fatura/dekont linki (opsiyonel) — tabloda tıklanınca bu adrese gider.
+  link String?
 
   // Planlanan bütçe (TL, opsiyonel) — varyans = gerçekleşen(TL) − planlanan.
   plannedAmount Float? @map("planned_amount")
@@ -756,12 +761,15 @@ model CostPayment {
 }
 
 /// Müşteriden tahsilat (kısmi/avans). Tutar satış para biriminde varsayılır.
+/// isPlanned=true ise henüz tahsil edilmemiş PLANLANAN tahsilattır (hangi tarihte
+/// ne kadar alacağız); tahsil edilene sayılmaz, ayrı gösterilir.
 model CostCollection {
   id            String   @id @default(cuid())
   costProjectId String   @map("cost_project_id")
   costProject   CostProject @relation(fields: [costProjectId], references: [id], onDelete: Cascade)
   amount        Float
   collectedDate DateTime @map("collected_date")
+  isPlanned     Boolean  @default(false) @map("is_planned")
   note          String?
   createdAt     DateTime @default(now()) @map("created_at")
 
