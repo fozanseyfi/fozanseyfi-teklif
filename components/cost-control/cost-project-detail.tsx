@@ -346,11 +346,11 @@ export function CostProjectDetail({
           tone="sky"
         />
         <Kpi
-          label="Gerçekleşen Maliyet"
+          label="Gerçekleşen Maliyet (KDV hariç)"
           value={`₺${fmt(m.actualNetTL)}`}
           sub={
             m.hasPlanned && costVsPlannedPct != null
-              ? `Öngörülen ₺${fmt(m.plannedTotalTL)} · Öngörülene göre ${costVsPlannedPct >= 0 ? "+" : ""}%${fmt(costVsPlannedPct, 1)}`
+              ? `KDV dahil ₺${fmt(m.actualGrossTL)} · Öngörülen ₺${fmt(m.plannedTotalTL)} (${costVsPlannedPct >= 0 ? "+" : ""}%${fmt(costVsPlannedPct, 1)})`
               : `KDV dahil ₺${fmt(m.actualGrossTL)}`
           }
           tone="slate"
