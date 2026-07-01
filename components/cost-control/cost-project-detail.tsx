@@ -221,8 +221,6 @@ export function CostProjectDetail({
   // Satış KDV'si yalnız faturalı kısımdan; faturasız kısımda KDV yok.
   const salesVat = (data.salesInvoicedAmount || 0) * ((data.salesVatRate || 0) / 100);
   const salesGross = data.salesPrice + salesVat;
-  // Tekliften alındıysa öngörülen (teklif) maliyet/kâr küçük olarak gösterilir.
-  const imported = !!data.sourceProjectId && m.hasPlanned;
 
   function refresh() {
     router.refresh();
@@ -340,8 +338,8 @@ export function CostProjectDetail({
           label="Gerçekleşen Maliyet"
           value={`₺${fmt(m.actualNetTL)}`}
           sub={
-            imported
-              ? `Öngörülen (teklif): ₺${fmt(m.plannedTotalTL)}`
+            m.hasPlanned
+              ? `Öngörülen: ₺${fmt(m.plannedTotalTL)} · KDV dahil ₺${fmt(m.actualGrossTL)}`
               : `KDV dahil ₺${fmt(m.actualGrossTL)}`
           }
           tone="slate"
@@ -349,11 +347,7 @@ export function CostProjectDetail({
         <Kpi
           label="Mevcut Kâr (Tahsilat − Ödeme)"
           value={`₺${fmt(m.currentProfitTL)}`}
-          sub={
-            imported
-              ? `Öngörülen (teklif) kâr: ₺${fmt(m.plannedProfitTL)}`
-              : `Öngörülen: ₺${fmt(m.profitTL)}`
-          }
+          sub={`Öngörülen kâr: ₺${fmt(m.hasPlanned ? m.plannedProfitTL : m.profitTL)}`}
           tone={m.currentProfitTL >= 0 ? "emerald" : "rose"}
           icon={m.currentProfitTL >= 0 ? "up" : "down"}
         />
@@ -1346,66 +1340,50 @@ function PaymentOwnersCard({
             const done = g.remaining <= 0.5;
             const showBreakdown = g.vendors.length > 1 || (g.vendors[0] && g.vendors[0].name !== g.owner);
             return (
-              <div key={i} className="p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
+              <div key={i} className="px-4 py-2">
+                <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-semibold text-slate-900">{g.owner}</p>
-                    {g.iban ? (
+                    <p className="truncate text-[13px] font-medium text-slate-900">{g.owner}</p>
+                    {g.iban && (
                       <button
                         type="button"
                         onClick={() => copy(g.iban)}
-                        className="mt-0.5 inline-flex items-center gap-1 font-mono text-[11px] text-slate-500 hover:text-emerald-700"
+                        className="inline-flex items-center gap-1 font-mono text-[10px] text-muted-foreground hover:text-emerald-700"
                         title="IBAN kopyala"
                       >
-                        {g.iban} <Copy className="size-3" />
+                        {g.iban} <Copy className="size-2.5" />
                       </button>
-                    ) : (
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">IBAN kayıtlı değil</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Ödenecek</p>
-                      <p className="text-sm font-semibold tabular-nums">₺{fmt(g.total)}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Ödenen</p>
-                      <p className="text-sm font-semibold tabular-nums text-emerald-700">₺{fmt(g.paid)}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Kalan</p>
-                      {done ? (
-                        <span className="inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                          Ödendi
-                        </span>
-                      ) : (
-                        <p className="text-sm font-bold tabular-nums text-amber-600">₺{fmt(g.remaining)}</p>
-                      )}
-                    </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {done ? (
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                        Ödendi
+                      </span>
+                    ) : (
+                      <span className="text-right leading-tight">
+                        <span className="block text-sm font-bold tabular-nums text-amber-600">₺{fmt(g.remaining)}</span>
+                        <span className="block text-[9.5px] text-muted-foreground">/ ₺{fmt(g.total)}</span>
+                      </span>
+                    )}
                     {canEdit && (
-                      <Button size="sm" className="h-8 shrink-0" onClick={() => setPayGroup(g)}>
-                        <CreditCard className="size-3.5" /> Ödeme
+                      <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setPayGroup(g)}>
+                        <CreditCard className="size-3" /> Öde
                       </Button>
                     )}
                   </div>
                 </div>
 
                 {showBreakdown && (
-                  <div className="mt-2.5 rounded-lg border bg-muted/20 p-2.5">
-                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      Kimin için ödeniyor
-                    </p>
-                    <div className="space-y-1">
-                      {g.vendors.map((v, vi) => (
-                        <div key={vi} className="flex items-center justify-between gap-3 text-xs">
-                          <span className="min-w-0 truncate text-slate-700">↳ {v.name}</span>
-                          <span className="shrink-0 tabular-nums">
-                            <span className="text-muted-foreground">Toplam ₺{fmt(v.total)}</span>
-                            <span className="ml-3 font-semibold text-amber-600">Kalan ₺{fmt(v.remaining)}</span>
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="mt-1 space-y-0.5 pl-1">
+                    {g.vendors.map((v, vi) => (
+                      <div key={vi} className="flex items-center justify-between gap-3 text-[10.5px] text-muted-foreground">
+                        <span className="min-w-0 truncate">↳ {v.name}</span>
+                        <span className="shrink-0 tabular-nums">
+                          kalan <span className="font-semibold text-amber-600">₺{fmt(v.remaining)}</span> / ₺{fmt(v.total)}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
