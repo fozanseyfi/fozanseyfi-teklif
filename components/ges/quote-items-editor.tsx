@@ -226,7 +226,7 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
                     <th className="w-20 px-2 py-2 text-left">Kod</th>
                     <th className="min-w-[150px] px-2 py-2 text-left">Malzeme/Hizmet</th>
                     <th className="min-w-[160px] px-2 py-2 text-left">Açıklama</th>
-                    <th className="w-20 px-2 py-2 text-right">Miktar</th>
+                    <th className="w-28 px-2 py-2 text-right">Miktar</th>
                     <th className="w-16 px-2 py-2 text-center">Para</th>
                     <th className="w-28 px-2 py-2 text-right">Birim Maliyet</th>
                     <th className="w-28 px-2 py-2 text-right">Tutar (₺)</th>
