@@ -8,7 +8,26 @@ import { ShareLinksClient } from "./client";
 
 export default async function ShareLinksPage() {
   const user = await requireAuth();
-  if (!isAdmin(user)) redirect("/dashboard");
+  // Görüntüleyiciler paylaşım linki üretemez (salt-okunur gözlemci). Admin ve
+  // normal kullanıcılar erişebilir — ancak kullanıcı yalnız YETKİLİ (gizli
+  // olmayan) projelerini görür/paylaşır.
+  if (user.platformRole === "viewer") redirect("/dashboard");
+
+  // Yetkisiz kullanıcı için gizli proje/müşteri kümeleri (admin hepsini görür).
+  const hiddenProjectIds = new Set<string>();
+  const hiddenCustomers = new Set<string>();
+  if (!isAdmin(user)) {
+    const hidden = await prisma.userHiddenResource.findMany({
+      where: { userId: user.id, organizationId: user.organizationId },
+      select: { resourceType: true, resourceId: true },
+    });
+    for (const h of hidden) {
+      if (h.resourceType === "project") hiddenProjectIds.add(h.resourceId);
+      else if (h.resourceType === "customer") hiddenCustomers.add(h.resourceId);
+    }
+  }
+  const isAuthorized = (p: { id: string; customerName: string | null }) =>
+    !hiddenProjectIds.has(p.id) && !(p.customerName && hiddenCustomers.has(p.customerName));
 
   const [projectsRaw, links, org] = await Promise.all([
     // Adı boş olan / yarim kalmis (gesStep < 2) projeler paylaşım dropdown'una
@@ -33,7 +52,7 @@ export default async function ShareLinksPage() {
     prisma.shareLink.findMany({
       where: { organizationId: user.organizationId },
       orderBy: { createdAt: "desc" },
-      include: { project: { select: { id: true, name: true } } },
+      include: { project: { select: { id: true, name: true, customerName: true } } },
       take: 100,
     }),
     prisma.organization.findUnique({
@@ -42,7 +61,7 @@ export default async function ShareLinksPage() {
     }),
   ]);
 
-  const projects = projectsRaw.filter(isProjectVisible);
+  const projects = projectsRaw.filter(isProjectVisible).filter(isAuthorized);
   const brand = parseBrandSettings(org?.brandSettings);
   const customDocuments = (brand.customDocuments ?? []).map((d) => ({
     id: d.id,
@@ -57,7 +76,9 @@ export default async function ShareLinksPage() {
     quoteKind: p.quoteKind,
   }));
 
-  const linkRows = links.map((l) => ({
+  const linkRows = links
+    .filter((l) => isAuthorized({ id: l.projectId, customerName: l.project.customerName }))
+    .map((l) => ({
     id: l.id,
     token: l.token,
     projectId: l.projectId,

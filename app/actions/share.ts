@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
-import { isAdmin } from "@/lib/permissions";
+import { getProjectAccess } from "@/lib/project-access";
 import { logAudit } from "@/lib/audit-log";
 import { sendShareLinkEmail } from "@/lib/email";
 import { setPipelineStage } from "@/lib/project-activity";
@@ -47,7 +47,10 @@ export async function createShareLink(fd: FormData): Promise<{
   emailError?: string;
 }> {
   const user = await requireAuth();
-  if (!isAdmin(user)) return { error: "Yetkin yok" };
+  // Görüntüleyici paylaşamaz. Admin + kullanıcı paylaşabilir, ancak kullanıcı
+  // yalnız YETKİLİ (gizli olmayan) projelerini paylaşabilir — aşağıda proje
+  // erişimi ayrıca doğrulanır.
+  if (user.platformRole === "viewer") return { error: "Yetkin yok" };
 
   const projectId = (fd.get("projectId") as string)?.trim();
   const customerLabel = ((fd.get("customerLabel") as string) ?? "").trim();
@@ -56,6 +59,10 @@ export async function createShareLink(fd: FormData): Promise<{
   const tabsRaw = fd.getAll("tabs") as string[];
 
   if (!projectId) return { error: "Proje seçilmedi" };
+  // Proje erişim kontrolü — kullanıcıya gizlenmiş (yetkisiz) bir projeyi
+  // paylaşamaz. Admin her projeye erişir.
+  const access = await getProjectAccess(user, projectId);
+  if (!access || !access.canView) return { error: "Bu projeye erişim yetkiniz yok" };
   if (!(preset in PRESET_DAYS)) return { error: "Süre geçersiz" };
   if (recipientEmail && !isValidEmail(recipientEmail)) {
     return { error: "E-posta adresi geçersiz" };
@@ -171,13 +178,16 @@ export async function resendShareLinkEmail(
   id: string,
 ): Promise<{ success?: string; error?: string }> {
   const user = await requireAuth();
-  if (!isAdmin(user)) return { error: "Yetkin yok" };
+  if (user.platformRole === "viewer") return { error: "Yetkin yok" };
 
   const link = await prisma.shareLink.findFirst({
     where: { id, organizationId: user.organizationId },
     include: { project: { select: { id: true, name: true } } },
   });
   if (!link) return { error: "Link bulunamadı" };
+  // Kullanıcı yalnız yetkili olduğu projenin linkini yönetebilir.
+  const resendAccess = await getProjectAccess(user, link.projectId);
+  if (!resendAccess || !resendAccess.canView) return { error: "Bu projeye erişim yetkiniz yok" };
   if (link.revokedAt) return { error: "İptal edilmiş linkin maili gönderilemez" };
   if (link.expiresAt && link.expiresAt.getTime() < Date.now()) {
     return { error: "Süresi dolmuş linkin maili gönderilemez" };
@@ -217,13 +227,16 @@ export async function revokeShareLink(
   id: string,
 ): Promise<{ success?: string; error?: string }> {
   const user = await requireAuth();
-  if (!isAdmin(user)) return { error: "Yetkin yok" };
+  if (user.platformRole === "viewer") return { error: "Yetkin yok" };
 
   const link = await prisma.shareLink.findFirst({
     where: { id, organizationId: user.organizationId },
     include: { project: { select: { id: true, name: true } } },
   });
   if (!link) return { error: "Link bulunamadı" };
+  // Kullanıcı yalnız yetkili olduğu projenin linkini yönetebilir.
+  const revokeAccess = await getProjectAccess(user, link.projectId);
+  if (!revokeAccess || !revokeAccess.canView) return { error: "Bu projeye erişim yetkiniz yok" };
   if (link.revokedAt) return { error: "Link zaten iptal edilmiş" };
 
   await prisma.shareLink.update({
