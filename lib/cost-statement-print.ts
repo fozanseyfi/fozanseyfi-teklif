@@ -149,3 +149,96 @@ export function buildStatementPrintHtml(inp: StatementPrintInput): string {
   <script>window.onload=function(){setTimeout(function(){window.print();},250);};</script>
 </body></html>`;
 }
+
+// ————————————————————————————————————————————————————————————————
+// Ödeme yapılacak kişiler (dağıtım) PDF çıktısı
+// ————————————————————————————————————————————————————————————————
+
+export interface PayOwnerVendorRow {
+  name: string;
+  total: number;
+  remaining: number;
+}
+export interface PayOwnerRow {
+  owner: string;
+  iban: string;
+  total: number;
+  paid: number;
+  remaining: number;
+  vendors: PayOwnerVendorRow[];
+}
+
+export function buildPaymentOwnersPrintHtml(inp: {
+  firmName: string;
+  projectName: string;
+  todayISO: string;
+  groups: PayOwnerRow[];
+}): string {
+  const totalRemaining = inp.groups.reduce((s, g) => s + g.remaining, 0);
+  const rows = inp.groups
+    .map((g) => {
+      const done = g.remaining <= 0.5;
+      const sub =
+        g.vendors.length && (g.vendors.length > 1 || (g.vendors[0] && g.vendors[0].name !== g.owner))
+          ? `<tr class="sub"><td colspan="5"><div class="subwrap">${g.vendors
+              .map(
+                (v) =>
+                  `<span class="subitem">↳ ${esc(v.name || "-")}: <b>₺${fmt(v.remaining)}</b> <span class="dim">(₺${fmt(v.total)})</span></span>`,
+              )
+              .join("")}</div></td></tr>`
+          : "";
+      return `<tr>
+        <td class="owner">${esc(g.owner)}</td>
+        <td class="iban">${esc(g.iban || "-")}</td>
+        <td class="num">₺${fmt(g.total)}</td>
+        <td class="num">₺${fmt(g.paid)}</td>
+        <td class="num ${done ? "done" : "rem"}">${done ? "Ödendi" : "₺" + fmt(g.remaining)}</td>
+      </tr>${sub}`;
+    })
+    .join("");
+
+  return `<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"/>
+<title>Ödeme Listesi — ${esc(inp.projectName)}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: #0f172a; margin: 0; padding: 32px 36px; font-size: 12.5px; }
+  .head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #059669; padding-bottom: 12px; margin-bottom: 16px; }
+  .firm { font-size: 17px; font-weight: 800; color: #059669; }
+  .doc { text-align: right; }
+  .doc .t { font-size: 15px; font-weight: 800; letter-spacing: .5px; }
+  .doc .d { color: #64748b; font-size: 11px; margin-top: 2px; }
+  h2 { font-size: 12.5px; color: #334155; margin: 0 0 10px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid #eef2f7; }
+  thead th { background: #f8fafc; font-size: 10.5px; text-transform: uppercase; letter-spacing: .4px; color: #64748b; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.owner { font-weight: 700; }
+  td.iban { font-family: monospace; font-size: 11px; color: #475569; }
+  td.rem { color: #d97706; font-weight: 700; }
+  td.done { color: #059669; font-weight: 700; }
+  tr.sub td { border-bottom: 1px solid #eef2f7; padding-top: 2px; }
+  .subwrap { display: flex; flex-wrap: wrap; gap: 4px 16px; padding-left: 14px; }
+  .subitem { font-size: 11px; color: #475569; }
+  .subitem .dim { color: #94a3b8; }
+  .tot { margin-top: 14px; text-align: right; font-size: 13px; font-weight: 800; }
+  .tot span { color: #d97706; }
+  .foot { margin-top: 22px; border-top: 1px solid #e2e8f0; padding-top: 10px; color: #64748b; font-size: 10.5px; }
+  @media print { body { padding: 12px 16px; } }
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="firm">${esc(inp.firmName)}</div>
+    <div class="doc"><div class="t">ÖDEME LİSTESİ</div><div class="d">${esc(trDate(inp.todayISO))}</div></div>
+  </div>
+  <h2>${esc(inp.projectName)} — Ödeme Yapılacak Kişiler</h2>
+  <table>
+    <thead><tr><th>Ödeme Sahibi</th><th>IBAN</th><th class="num">Ödenecek (KDV dahil)</th><th class="num">Ödenen</th><th class="num">Kalan</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="tot">Toplam Kalan: <span>₺${fmt(totalRemaining)}</span></div>
+  <div class="foot">${esc(inp.firmName)} — ödeme planı. Alt satırlar (↳) ödeme sahibinin hangi tedarikçiler için ödeme yaptığını gösterir.</div>
+  <script>window.onload=function(){setTimeout(function(){window.print();},250);};</script>
+</body></html>`;
+}

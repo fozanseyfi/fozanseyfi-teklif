@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo, useEffect } from "react";
+import { useState, useTransition, useMemo, useEffect, Fragment } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
@@ -68,7 +68,7 @@ import {
   type Rates,
 } from "@/lib/cost-control";
 import { reminderText } from "@/lib/cost-control-statement";
-import { buildStatementPrintHtml } from "@/lib/cost-statement-print";
+import { buildStatementPrintHtml, buildPaymentOwnersPrintHtml } from "@/lib/cost-statement-print";
 import {
   updateCostProject,
   deleteCostProject,
@@ -512,7 +512,7 @@ export function CostProjectDetail({
 
       <PartnersCard data={data} m={m} canEdit={canEdit} onChange={refresh} />
 
-      <PaymentOwnersCard lines={data.lines} />
+      <PaymentOwnersCard lines={data.lines} firmName={firmName} projectName={data.name} />
 
       {/* Dialoglar */}
       {editProject && (
@@ -1161,11 +1161,18 @@ function ProjectSettingsDialog({ data, onClose, onSaved }: { data: ProjectData; 
 }
 
 // ————————————————————————————————————————— Ödeme yapılacak kişiler (dağıtım)
-function PaymentOwnersCard({ lines }: { lines: Line[] }) {
+function PaymentOwnersCard({ lines, firmName, projectName }: { lines: Line[]; firmName: string; projectName: string }) {
   const groups = useMemo(() => {
     const map = new Map<
       string,
-      { owner: string; iban: string; total: number; paid: number; remaining: number }
+      {
+        owner: string;
+        iban: string;
+        total: number;
+        paid: number;
+        remaining: number;
+        vendors: Map<string, { total: number; remaining: number }>;
+      }
     >();
     for (const l of lines) {
       const total = lineGrossTL(l); // tedarikçiye ödenecek KDV dahil tutar
@@ -1174,13 +1181,28 @@ function PaymentOwnersCard({ lines }: { lines: Line[] }) {
       const owner = (l.payAccountNameOverride || l.vendorName || "—").trim() || "—";
       const iban = l.payIbanOverride || l.vendorPayIban || "";
       const key = `${owner}|${iban}`;
-      const cur = map.get(key) || { owner, iban, total: 0, paid: 0, remaining: 0 };
+      const cur = map.get(key) || { owner, iban, total: 0, paid: 0, remaining: 0, vendors: new Map() };
       cur.total += total;
       cur.paid += linePaidTL(l);
       cur.remaining += Math.max(0, lineBalanceTL(l));
+      // Alt kırılım: bu ödeme sahibi hangi tedarikçi(ler) için ödüyor.
+      const vName = (l.vendorName || "Tedarikçi belirtilmemiş").trim() || "Tedarikçi belirtilmemiş";
+      const v = cur.vendors.get(vName) || { total: 0, remaining: 0 };
+      v.total += total;
+      v.remaining += Math.max(0, lineBalanceTL(l));
+      cur.vendors.set(vName, v);
       map.set(key, cur);
     }
-    return Array.from(map.values()).sort((a, b) => b.remaining - a.remaining);
+    return Array.from(map.values())
+      .map((g) => ({
+        owner: g.owner,
+        iban: g.iban,
+        total: g.total,
+        paid: g.paid,
+        remaining: g.remaining,
+        vendors: Array.from(g.vendors.entries()).map(([name, v]) => ({ name, ...v })),
+      }))
+      .sort((a, b) => b.remaining - a.remaining);
   }, [lines]);
 
   const totalRemaining = groups.reduce((s, g) => s + g.remaining, 0);
@@ -1188,6 +1210,21 @@ function PaymentOwnersCard({ lines }: { lines: Line[] }) {
   function copy(t: string) {
     navigator.clipboard.writeText(t);
     toast.success("IBAN kopyalandı");
+  }
+  function downloadPdf() {
+    const html = buildPaymentOwnersPrintHtml({
+      firmName,
+      projectName,
+      todayISO: new Date().toISOString().slice(0, 10),
+      groups,
+    });
+    const w = window.open("", "_blank");
+    if (!w) {
+      toast.error("Açılır pencere engellendi — izin verin");
+      return;
+    }
+    w.document.write(html);
+    w.document.close();
   }
 
   if (groups.length === 0) return null;
@@ -1199,9 +1236,14 @@ function PaymentOwnersCard({ lines }: { lines: Line[] }) {
           <p className="flex items-center gap-2 text-sm font-semibold">
             <Landmark className="size-4 text-primary" /> Ödeme Yapılacak Kişiler
           </p>
-          <span className="text-xs text-muted-foreground">
-            Toplam kalan: <strong className="text-amber-600">₺{fmt(totalRemaining)}</strong>
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground">
+              Toplam kalan: <strong className="text-amber-600">₺{fmt(totalRemaining)}</strong>
+            </span>
+            <Button size="sm" variant="outline" className="h-8" onClick={downloadPdf}>
+              <FileDown className="size-3.5" /> PDF Çıktı
+            </Button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-xs">
@@ -1217,35 +1259,55 @@ function PaymentOwnersCard({ lines }: { lines: Line[] }) {
             <tbody className="divide-y">
               {groups.map((g, i) => {
                 const done = g.remaining <= 0.5;
+                // Alt kırılımı yalnız anlamlıysa göster: birden fazla tedarikçi
+                // veya ödeme sahibi tek tedarikçiden farklıysa.
+                const showBreakdown =
+                  g.vendors.length > 1 || (g.vendors[0] && g.vendors[0].name !== g.owner);
                 return (
-                  <tr key={i} className="hover:bg-muted/30">
-                    <td className="px-3 py-2 font-medium text-slate-900">{g.owner}</td>
-                    <td className="px-3 py-2">
-                      {g.iban ? (
-                        <button
-                          type="button"
-                          onClick={() => copy(g.iban)}
-                          className="inline-flex items-center gap-1 font-mono text-[11px] text-slate-500 hover:text-emerald-700"
-                          title="Kopyala"
-                        >
-                          {g.iban} <Copy className="size-3" />
-                        </button>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-right tabular-nums">₺{fmt(g.total)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-emerald-700">₺{fmt(g.paid)}</td>
-                    <td className="px-3 py-2 text-right">
-                      {done ? (
-                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                          Ödendi
-                        </span>
-                      ) : (
-                        <span className="font-semibold tabular-nums text-amber-600">₺{fmt(g.remaining)}</span>
-                      )}
-                    </td>
-                  </tr>
+                  <Fragment key={i}>
+                    <tr className="hover:bg-muted/30">
+                      <td className="px-3 py-2 font-medium text-slate-900">{g.owner}</td>
+                      <td className="px-3 py-2">
+                        {g.iban ? (
+                          <button
+                            type="button"
+                            onClick={() => copy(g.iban)}
+                            className="inline-flex items-center gap-1 font-mono text-[11px] text-slate-500 hover:text-emerald-700"
+                            title="Kopyala"
+                          >
+                            {g.iban} <Copy className="size-3" />
+                          </button>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">₺{fmt(g.total)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-emerald-700">₺{fmt(g.paid)}</td>
+                      <td className="px-3 py-2 text-right">
+                        {done ? (
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                            Ödendi
+                          </span>
+                        ) : (
+                          <span className="font-semibold tabular-nums text-amber-600">₺{fmt(g.remaining)}</span>
+                        )}
+                      </td>
+                    </tr>
+                    {showBreakdown && (
+                      <tr className="bg-muted/10">
+                        <td colSpan={5} className="px-3 pb-2 pt-0">
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 pl-3">
+                            {g.vendors.map((v, vi) => (
+                              <span key={vi} className="text-[11px] text-muted-foreground">
+                                ↳ {v.name}: <span className="font-semibold text-amber-600">₺{fmt(v.remaining)}</span>{" "}
+                                <span className="text-muted-foreground/70">(₺{fmt(v.total)})</span>
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 );
               })}
             </tbody>
