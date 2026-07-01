@@ -87,6 +87,12 @@ function fmt(n: number, d = 0) {
   return formatNumber(n, d);
 }
 
+// IBAN'ı tek tip göster: boşlukları temizle, 4'lü gruplarla yeniden ayır.
+function fmtIban(s: string): string {
+  const raw = (s || "").replace(/\s+/g, "");
+  return raw ? raw.replace(/(.{4})/g, "$1 ").trim() : "";
+}
+
 // ————————————————————————————————————————— tipler
 interface Payment {
   id: string;
@@ -369,7 +375,7 @@ export function CostProjectDetail({
             />
           </>
         )}
-        <Kpi label="Tedarikçilere Ödenen" value={`₺${fmt(m.paidTL)}`} tone="slate" />
+        <Kpi label="Tedarikçilere Ödenen" value={`₺${fmt(m.paidAppliedTL)}`} tone="slate" />
         <Kpi
           label="Tedarikçilere Kalan"
           value={`₺${fmt(m.payableBalanceTL)}`}
@@ -1359,7 +1365,7 @@ function PaymentOwnersCard({
   const totalRemaining = groups.reduce((s, g) => s + g.remaining, 0);
 
   function copy(t: string) {
-    navigator.clipboard.writeText(t);
+    navigator.clipboard.writeText((t || "").replace(/\s+/g, ""));
     toast.success("IBAN kopyalandı");
   }
   function downloadPdf() {
@@ -1428,7 +1434,7 @@ function PaymentOwnersCard({
                             className="inline-flex items-center gap-1 font-mono text-[10.5px] text-muted-foreground hover:text-emerald-700"
                             title="IBAN kopyala"
                           >
-                            {g.iban} <Copy className="size-2.5" />
+                            {fmtIban(g.iban)} <Copy className="size-2.5" />
                           </button>
                         ) : (
                           <span className="text-muted-foreground">—</span>
@@ -1450,15 +1456,15 @@ function PaymentOwnersCard({
                       g.vendors.map((v, vi) => (
                         <tr key={`${i}-${vi}`} className="text-[10.5px] text-muted-foreground">
                           <td className="px-3 py-0.5 pl-5 truncate">↳ {v.name}</td>
-                          <td className="px-3 py-0.5 font-mono">
+                          <td className="px-3 py-0.5">
                             {v.iban ? (
                               <button
                                 type="button"
                                 onClick={() => copy(v.iban)}
-                                className="inline-flex items-center gap-1 hover:text-emerald-700"
+                                className="inline-flex items-center gap-1 font-mono text-[10.5px] text-muted-foreground hover:text-emerald-700"
                                 title="IBAN kopyala"
                               >
-                                {v.iban} <Copy className="size-2.5" />
+                                {fmtIban(v.iban)} <Copy className="size-2.5" />
                               </button>
                             ) : (
                               "—"

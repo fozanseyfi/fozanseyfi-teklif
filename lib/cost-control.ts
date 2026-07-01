@@ -120,7 +120,8 @@ export interface CostProjectMetrics {
   uninvoicedVatTL: number;
   uninvoicedGrossTL: number;
   // Ödeme
-  paidTL: number;
+  paidTL: number; // fiilen ödenen nakit (aşırı ödeme dahil)
+  paidAppliedTL: number; // borca mahsup edilen ödeme (Ödenen + Kalan = Toplam)
   payableBalanceTL: number;
   // Tahsilat (satış para biriminde)
   collectedTotal: number;
@@ -237,6 +238,8 @@ export function computeCostProjectMetrics(inp: CostProjectMetricsInput): CostPro
     uninvoicedVatTL,
     uninvoicedGrossTL: uninvoicedNetTL + uninvoicedVatTL,
     paidTL,
+    // Borca mahsup edilen ödeme = brüt − kalan (aşırı ödeme şişirmez).
+    paidAppliedTL: Math.max(0, actualGrossTL - payableRemainingTL),
     // Tedarikçilere kalan = satır bazında pozitif kalanların toplamı (aşırı
     // ödeme bir satırı eksiye düşürüp toplamı yanıltmasın).
     payableBalanceTL: payableRemainingTL,
