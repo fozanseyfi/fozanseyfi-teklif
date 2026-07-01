@@ -121,7 +121,8 @@ export interface CostProjectMetrics {
   remainingReceivable: number;
   collectedTL: number;
   // Kâr (TL, net bazında)
-  profitTL: number;
+  profitTL: number; // öngörülen: satış − gerçekleşen maliyet
+  currentProfitTL: number; // mevcut/nakit: tahsil edilen − ödenen (alınmamış para dahil değil)
   profitMarginPct: number; // kâr / satış
   partnerShares: { name: string; sharePercent: number; amountTL: number }[];
   partnerPctTotal: number;
@@ -168,6 +169,8 @@ export function computeCostProjectMetrics(inp: CostProjectMetricsInput): CostPro
   const remainingReceivable = (salesPrice || 0) - collectedTotal;
   const collectedTL = toTRY(collectedTotal, (salesCurrency as QuoteCurrency) || "TRY", rates);
   const profitTL = salesPriceTL - actualNetTL;
+  // Mevcut/nakit kâr: sadece tahsil edilen − fiilen ödenen (alınmamış para hariç).
+  const currentProfitTL = collectedTL - paidTL;
   const profitMarginPct = salesPriceTL > 0 ? (profitTL / salesPriceTL) * 100 : 0;
 
   const partnerPctTotal = partners.reduce((s, p) => s + (p.sharePercent || 0), 0);
@@ -202,24 +205,38 @@ export function computeCostProjectMetrics(inp: CostProjectMetricsInput): CostPro
     remainingReceivable,
     collectedTL,
     profitTL,
+    currentProfitTL,
     profitMarginPct,
     partnerShares,
     partnerPctTotal,
   };
 }
 
-// Öntanımlı kategori seti (GES referanslı) — org'a ilk girişte seed'lenir.
+// Öntanımlı kategori seti — proje oluştururken kullanılan keşif kategorilerinin
+// birebir aynısı (lib/ges-defaults ile uyumlu). Org'a ilk girişte seed'lenir.
 export const DEFAULT_COST_CATEGORIES: { code: string; name: string }[] = [
   { code: "A.1", name: "Panel" },
   { code: "A.2", name: "İnverter Sistemi" },
   { code: "A.3", name: "Taşıyıcı Sistem" },
-  { code: "A.4", name: "Kablo (DC / AG / OG / Topraklama)" },
+  { code: "A.4", name: "Kablo - DC - AG - OG - ZA - Topraklama" },
   { code: "A.5", name: "Bağlantı Elemanları" },
-  { code: "A.6", name: "Boru / Kum / Bims / Şerit" },
-  { code: "A.7", name: "Pano / Kompanzasyon" },
-  { code: "A.8", name: "İnşaat İşleri" },
-  { code: "A.9", name: "İşçilik / Makine / Ekipman" },
-  { code: "A.10", name: "Kurum Harçları ve Projelendirme" },
-  { code: "A.11", name: "Nakliye / Gümrük" },
-  { code: "A.12", name: "Diğer" },
+  { code: "A.6", name: "Boru - Kum - Bims - Şerit" },
+  { code: "A.7", name: "OG Hücre - Trafo - Köşk" },
+  { code: "A.8", name: "Pano - Kompanzasyon" },
+  { code: "A.9", name: "Topraklama - Yıldırımdan Korunma" },
+  { code: "A.10", name: "SCADA" },
+  { code: "A.11", name: "Aydınlatma ve CCTV" },
+  { code: "A.12", name: "İnşaat İşleri" },
+  { code: "A.13", name: "İşçilik - Makine - Ekipman" },
+  { code: "A.14", name: "Kurum Harçları ve Projelendirme Masrafları" },
+  { code: "A.15", name: "Etiketleme - KKT - Sarf" },
+  { code: "A.16", name: "Nakliye - Gümrük" },
+  { code: "A.17", name: "Test Devreye Alma" },
+  { code: "A.18", name: "Yedek Malzeme" },
+  { code: "B.1", name: "Şirket Proje Genel Gider" },
+  { code: "B.2", name: "Garanti Periyodu Masrafları - O&M" },
+  { code: "B.3", name: "Teklif Geçerlilik Süresi Riskleri" },
+  { code: "B.4", name: "Mektup Masrafları & Damga Vergisi" },
+  { code: "B.5", name: "All Risk + Mali Mesuliyet" },
+  { code: "B.6", name: "Proje Finans Maliyeti" },
 ];

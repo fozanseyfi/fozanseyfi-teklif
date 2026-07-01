@@ -13,6 +13,8 @@ export interface ComboVendor {
   id: string;
   name: string;
   defaultInvoiced: boolean;
+  payIban: string;
+  payAccountName: string;
 }
 
 /**
@@ -158,6 +160,8 @@ function VendorCreateModal({
     email: "",
     taxNo: "",
     defaultInvoiced: true,
+    payIban: "",
+    payAccountName: "",
     notes: "",
   });
 
@@ -173,7 +177,13 @@ function VendorCreateModal({
         return;
       }
       toast.success("Tedarikçi kaydedildi");
-      onCreated({ id: r.id, name: f.name.trim(), defaultInvoiced: f.defaultInvoiced });
+      onCreated({
+        id: r.id,
+        name: f.name.trim(),
+        defaultInvoiced: f.defaultInvoiced,
+        payIban: f.payIban.trim(),
+        payAccountName: f.payAccountName.trim(),
+      });
     });
   }
 
@@ -221,8 +231,16 @@ function VendorCreateModal({
               Varsayılan faturalı
             </label>
           </div>
+          <div className="space-y-1.5">
+            <Label>IBAN (ödeme için)</Label>
+            <Input value={f.payIban} onChange={(e) => setF({ ...f, payIban: e.target.value })} placeholder="TR.." />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Ödeme Hesap Adı (boşsa tedarikçi adı)</Label>
+            <Input value={f.payAccountName} onChange={(e) => setF({ ...f, payAccountName: e.target.value })} placeholder={f.name || "Hesap sahibi"} />
+          </div>
           <p className="rounded-md bg-muted/50 px-3 py-2 text-[11px] text-muted-foreground">
-            Ödeme sahibi / IBAN bilgisi tedarikçide değil, kalem eklerken sorulur (ödeme başka birine gidebilir).
+            Ödeme varsayılan olarak bu tedarikçiye/IBAN'a yapılır. Kalemde farklıysa &quot;tedarikçi ile aynı değil&quot; ile değiştirebilirsin.
           </p>
         </div>
         <div className="flex justify-end gap-2 border-t px-6 py-4">

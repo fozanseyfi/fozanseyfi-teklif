@@ -644,6 +644,9 @@ model CostProject {
   status          CostProjectStatus @default(ACTIVE)
   // Kaynak teklif projesi (opsiyonel) — import edildiyse referans/etiket.
   sourceProjectId String?           @map("source_project_id")
+  // Müşteriye açık ödeme ekstresi (public /pay/<token>) için tokenli link.
+  // null = link üretilmemiş. Yeniden üretilince eski link geçersiz olur.
+  statementToken  String?           @unique @map("statement_token")
   notes           String?
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @updatedAt @map("updated_at")

@@ -36,11 +36,14 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatNumber } from "@/lib/utils";
+import { CalendarClock } from "lucide-react";
+import { plannedStatus, trDate } from "@/lib/cost-control-statement";
 import {
   createCostProject,
   createCostProjectFromQuote,
   type CostProjectCard,
   type ImportableQuote,
+  type UpcomingCollection,
 } from "@/app/actions/cost-control";
 
 function fmt(n: number, d = 0) {
@@ -50,11 +53,14 @@ function fmt(n: number, d = 0) {
 export function CostListClient({
   projects,
   importable,
+  upcoming,
 }: {
   projects: CostProjectCard[];
   importable: ImportableQuote[];
+  upcoming: UpcomingCollection[];
 }) {
   const router = useRouter();
+  const todayISO = new Date().toISOString().slice(0, 10);
   const [q, setQ] = useState("");
   const [newOpen, setNewOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -78,7 +84,7 @@ export function CostListClient({
       // Satış farklı para biriminde olabilir; kart özetinde TL yaklaşmak yerine
       // yalnız TL bazlı maliyet/kâr toplarız (satışları toplamıyoruz para karışmasın).
       cost += p.actualNetTL;
-      profit += p.profitTL;
+      profit += p.currentProfitTL;
       pay += p.payableBalanceTL;
     }
     return { sales, cost, profit, recv, pay };
@@ -128,12 +134,67 @@ export function CostListClient({
         <div className="grid gap-3 sm:grid-cols-3">
           <MiniKpi label="Toplam Gerçekleşen Maliyet" value={`₺${fmt(totals.cost)}`} tone="slate" />
           <MiniKpi
-            label="Toplam Kâr (TL)"
+            label="Toplam Mevcut Kâr (Tahsilat − Ödeme)"
             value={`₺${fmt(totals.profit)}`}
             tone={totals.profit >= 0 ? "emerald" : "rose"}
           />
           <MiniKpi label="Tedarikçilere Kalan Ödeme" value={`₺${fmt(totals.pay)}`} tone="amber" />
         </div>
+      )}
+
+      {/* Planlanan tahsilatlar */}
+      {upcoming.length > 0 && (
+        <Card className="overflow-hidden border-sky-200">
+          <CardContent className="p-0">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-sky-50/60 px-4 py-3">
+              <p className="flex items-center gap-2 text-sm font-semibold text-sky-800">
+                <CalendarClock className="size-4" /> Planlanan Tahsilatlar
+                <span className="text-xs font-normal text-sky-600">({upcoming.length})</span>
+              </p>
+              <span className="text-xs text-sky-700">
+                Toplam kalan planlanan:{" "}
+                <strong>
+                  {upcoming[0]?.salesSym ?? "₺"}
+                  {fmt(upcoming.reduce((s, u) => s + u.amount, 0))}
+                </strong>
+              </span>
+            </div>
+            <div className="divide-y">
+              {upcoming.map((u) => {
+                const st = plannedStatus(u.date, todayISO);
+                return (
+                  <Link
+                    key={u.id}
+                    href={`/cost-control/${u.projectId}`}
+                    className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-muted/40"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-slate-900">{u.projectName}</p>
+                      <p className="truncate text-xs text-muted-foreground">{u.customer || "—"}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <span
+                        className={
+                          st.tone === "overdue"
+                            ? "text-xs font-semibold text-rose-600"
+                            : st.tone === "today"
+                              ? "text-xs font-semibold text-amber-600"
+                              : "text-xs text-slate-500"
+                        }
+                      >
+                        {trDate(u.date)} · {st.label}
+                      </span>
+                      <span className="font-semibold tabular-nums text-slate-800">
+                        {u.salesSym}
+                        {fmt(u.amount)}
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Arama */}
@@ -200,7 +261,7 @@ function MiniKpi({ label, value, tone }: { label: string; value: string; tone: "
 }
 
 function CostCard({ p }: { p: CostProjectCard }) {
-  const profitPos = p.profitTL >= 0;
+  const curProfitPos = p.currentProfitTL >= 0;
   return (
     <Link href={`/cost-control/${p.id}`} className="group block">
       <Card className="h-full transition-all hover:border-emerald-300 hover:shadow-md">
@@ -226,10 +287,10 @@ function CostCard({ p }: { p: CostProjectCard }) {
             <Metric label="Satış" value={`${p.salesSym}${fmt(p.salesPrice)}`} />
             <Metric label="Gerçekleşen Maliyet" value={`₺${fmt(p.actualNetTL)}`} />
             <Metric
-              label="Kâr (TL)"
-              value={`₺${fmt(p.profitTL)}`}
-              accent={profitPos ? "emerald" : "rose"}
-              icon={profitPos ? "up" : "down"}
+              label="Mevcut Kâr (TL)"
+              value={`₺${fmt(p.currentProfitTL)}`}
+              accent={curProfitPos ? "emerald" : "rose"}
+              icon={curProfitPos ? "up" : "down"}
             />
             <Metric label="Kalan Alacak" value={`${p.salesSym}${fmt(p.remainingReceivable)}`} accent="amber" />
           </div>

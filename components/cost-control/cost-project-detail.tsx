@@ -43,6 +43,10 @@ import {
   Landmark,
   CalendarClock,
   Copy,
+  Share2,
+  MessageCircle,
+  Mail,
+  Link2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatNumber } from "@/lib/utils";
@@ -61,6 +65,7 @@ import {
   PAYMENT_METHOD_LABELS,
   type Rates,
 } from "@/lib/cost-control";
+import { reminderText } from "@/lib/cost-control-statement";
 import {
   updateCostProject,
   deleteCostProject,
@@ -72,6 +77,7 @@ import {
   addCostCollection,
   deleteCostCollection,
   saveCostPartners,
+  createStatementToken,
   type CostLineInput,
 } from "@/app/actions/cost-control";
 
@@ -104,6 +110,7 @@ interface Line {
   isInvoiced: boolean;
   vendorId: string | null;
   vendorName: string;
+  vendorPayIban: string;
   payAccountNameOverride: string;
   payIbanOverride: string;
   link: string;
@@ -134,6 +141,7 @@ interface ProjectData {
   endDate: string;
   notes: string;
   sourceProjectId: string | null;
+  statementToken: string | null;
   lines: Line[];
   collections: Collection[];
   partners: Partner[];
@@ -158,12 +166,14 @@ export function CostProjectDetail({
   vendors,
   categories,
   rates,
+  firmName,
   canEdit,
 }: {
   data: ProjectData;
   vendors: Vendor[];
   categories: Category[];
   rates: Rates;
+  firmName: string;
   canEdit: boolean;
 }) {
   const router = useRouter();
@@ -173,11 +183,17 @@ export function CostProjectDetail({
   const [payDialog, setPayDialog] = useState<{ open: boolean; line: Line | null }>({ open: false, line: null });
   // Tedarikçi listesi yerel state — combobox'tan yeni tedarikçi eklenince anında
   // görünsün; sunucu yenilenince prop'tan senkronlanır.
-  const [vendorList, setVendorList] = useState<ComboVendor[]>(
-    vendors.map((v) => ({ id: v.id, name: v.name, defaultInvoiced: v.defaultInvoiced })),
-  );
+  const toCombo = (v: Vendor): ComboVendor => ({
+    id: v.id,
+    name: v.name,
+    defaultInvoiced: v.defaultInvoiced,
+    payIban: v.payIban,
+    payAccountName: v.payAccountName,
+  });
+  const [vendorList, setVendorList] = useState<ComboVendor[]>(vendors.map(toCombo));
   useEffect(() => {
-    setVendorList(vendors.map((v) => ({ id: v.id, name: v.name, defaultInvoiced: v.defaultInvoiced })));
+    setVendorList(vendors.map(toCombo));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vendors]);
 
   const m = useMemo(
@@ -277,11 +293,11 @@ export function CostProjectDetail({
           tone="slate"
         />
         <Kpi
-          label="Kâr (TL, net)"
-          value={`₺${fmt(m.profitTL)}`}
-          sub={`Marj %${fmt(m.profitMarginPct, 1)}`}
-          tone={m.profitTL >= 0 ? "emerald" : "rose"}
-          icon={m.profitTL >= 0 ? "up" : "down"}
+          label="Mevcut Kâr (Tahsilat − Ödeme)"
+          value={`₺${fmt(m.currentProfitTL)}`}
+          sub={`Öngörülen: ₺${fmt(m.profitTL)}`}
+          tone={m.currentProfitTL >= 0 ? "emerald" : "rose"}
+          icon={m.currentProfitTL >= 0 ? "up" : "down"}
         />
         <Kpi
           label="Kalan Alacak"
@@ -474,6 +490,7 @@ export function CostProjectDetail({
         <CollectionsCard
           data={data}
           m={m}
+          firmName={firmName}
           canEdit={canEdit}
           pending={pending}
           onChange={refresh}
@@ -592,12 +609,14 @@ function VatRow({ label, net, vat, gross, strong }: { label: string; net: number
 function CollectionsCard({
   data,
   m,
+  firmName,
   canEdit,
   pending,
   onChange,
 }: {
   data: ProjectData;
   m: ReturnType<typeof computeCostProjectMetrics>;
+  firmName: string;
   canEdit: boolean;
   pending: boolean;
   onChange: () => void;
@@ -609,8 +628,15 @@ function CollectionsCard({
   const [busy, start] = useTransition();
   const sym = m.salesSym;
 
-  const actualColls = data.collections.filter((c) => !c.isPlanned);
-  const plannedColls = data.collections.filter((c) => c.isPlanned);
+  const actualColls = data.collections
+    .filter((c) => !c.isPlanned)
+    .slice()
+    .sort((a, b) => b.collectedDate.localeCompare(a.collectedDate));
+  // Planlananlar: girilme sırasına göre değil, tarihe göre (yakın önce).
+  const plannedColls = data.collections
+    .filter((c) => c.isPlanned)
+    .slice()
+    .sort((a, b) => a.collectedDate.localeCompare(b.collectedDate));
 
   function add() {
     const a = parseFloat(amount);
@@ -630,6 +656,53 @@ function CollectionsCard({
       const r = await deleteCostCollection(id);
       if (r.error) { toast.error(r.error); return; }
       onChange();
+    });
+  }
+
+  // ——— Ödeme ekstresi / hatırlatma paylaşımı ———
+  const [token, setToken] = useState(data.statementToken || "");
+  const [linking, startLink] = useTransition();
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const link = token ? `${origin}/pay/${token}` : "";
+  const todayISO = new Date().toISOString().slice(0, 10);
+
+  function buildMsg(withLink: string) {
+    return reminderText({
+      customer: data.customer,
+      firmName,
+      projectName: data.name,
+      sym,
+      total: data.salesPrice,
+      collections: data.collections,
+      todayISO,
+      link: withLink || undefined,
+    });
+  }
+  function ensureLink(cb: (l: string) => void) {
+    if (link) return cb(link);
+    startLink(async () => {
+      const r = await createStatementToken(data.id);
+      if (r.error || !r.token) {
+        toast.error(r.error || "Link oluşturulamadı");
+        return;
+      }
+      setToken(r.token);
+      cb(`${origin}/pay/${r.token}`);
+    });
+  }
+  function copyLink() {
+    ensureLink((l) => {
+      navigator.clipboard.writeText(l);
+      toast.success("Ekstre linki kopyalandı");
+    });
+  }
+  function sendWhatsApp() {
+    ensureLink((l) => window.open(`https://wa.me/?text=${encodeURIComponent(buildMsg(l))}`, "_blank"));
+  }
+  function sendMail() {
+    ensureLink((l) => {
+      const subj = `${data.name} — Ödeme Bilgilendirmesi`;
+      window.location.href = `mailto:?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(buildMsg(l))}`;
     });
   }
 
@@ -653,6 +726,39 @@ function CollectionsCard({
             <p className="font-semibold tabular-nums text-amber-600">{sym}{fmt(m.remainingReceivable)}</p>
           </div>
         </div>
+
+        {/* Ödeme ekstresi / hatırlatma paylaşımı */}
+        {canEdit && (
+          <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50/40 p-3">
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+              <Share2 className="size-3.5" /> Müşteriye Ödeme Ekstresi Gönder
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" className="h-8" onClick={sendWhatsApp} disabled={linking}>
+                <MessageCircle className="size-3.5 text-emerald-600" /> WhatsApp
+              </Button>
+              <Button size="sm" variant="outline" className="h-8" onClick={sendMail} disabled={linking}>
+                <Mail className="size-3.5 text-sky-600" /> E-posta
+              </Button>
+              <Button size="sm" variant="outline" className="h-8" onClick={copyLink} disabled={linking}>
+                {linking ? <Loader2 className="size-3.5 animate-spin" /> : <Link2 className="size-3.5" />} Linki Kopyala
+              </Button>
+              {link && (
+                <a
+                  href={link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs text-emerald-700 hover:underline"
+                >
+                  <ExternalLink className="size-3.5" /> Önizle
+                </a>
+              )}
+            </div>
+            <p className="mt-1.5 text-[10.5px] text-muted-foreground">
+              Toplam borç, ödenenler ve planlanan ödemeler tarih/gün durumuyla (bugün · X gün sonra · gecikmiş) müşteriye iletilir.
+            </p>
+          </div>
+        )}
 
         {actualColls.length > 0 && (
           <div className="mb-3 divide-y">
@@ -957,8 +1063,9 @@ function PaymentOwnersCard({ lines }: { lines: Line[] }) {
     for (const l of lines) {
       const total = lineNetTL(l);
       if (total <= 0) continue;
+      // Ödeme sahibi override yoksa tedarikçi (isim + IBAN) varsayılır.
       const owner = (l.payAccountNameOverride || l.vendorName || "—").trim() || "—";
-      const iban = l.payIbanOverride || "";
+      const iban = l.payIbanOverride || l.vendorPayIban || "";
       const key = `${owner}|${iban}`;
       const cur = map.get(key) || { owner, iban, total: 0, paid: 0, remaining: 0 };
       cur.total += total;
@@ -1064,9 +1171,9 @@ function LineDialog({
 }) {
   const [busy, start] = useTransition();
   const [fxBusy, setFxBusy] = useState(false);
+  const [payDiffers, setPayDiffers] = useState(!!(line?.payAccountNameOverride || line?.payIbanOverride));
   const [f, setF] = useState({
     categoryId: line?.categoryId ?? "",
-    code: line?.code ?? "",
     description: line?.description ?? "",
     model: line?.model ?? "",
     brand: line?.brand ?? "",
@@ -1113,20 +1220,15 @@ function LineDialog({
   }
 
   function onVendorSelect(v: ComboVendor | null) {
-    setF((p) => ({
-      ...p,
-      vendorId: v?.id ?? "",
-      isInvoiced: v ? v.defaultInvoiced : p.isInvoiced,
-      // Ödeme sahibi boşsa tedarikçi adını varsayılan yap (değiştirilebilir).
-      payAccountName: p.payAccountName.trim() ? p.payAccountName : v?.name ?? p.payAccountName,
-    }));
+    // Ödeme sahibi varsayılan olarak tedarikçidir; override yalnız "farklı"
+    // işaretliyken sorulur.
+    setF((p) => ({ ...p, vendorId: v?.id ?? "", isInvoiced: v ? v.defaultInvoiced : p.isInvoiced }));
   }
 
   function save() {
     if (!f.description.trim()) return toast.error("Tanım zorunludur");
     const input: CostLineInput = {
       categoryId: f.categoryId || null,
-      code: f.code,
       description: f.description,
       model: f.model,
       brand: f.brand,
@@ -1138,8 +1240,9 @@ function LineDialog({
       vatRate: parseFloat(f.vatRate) || 0,
       isInvoiced: f.isInvoiced,
       vendorId: f.vendorId || null,
-      payAccountNameOverride: f.payAccountName,
-      payIbanOverride: f.payIban,
+      // Ödeme sahibi tedarikçiyle aynıysa override boş bırakılır (varsayılan = tedarikçi).
+      payAccountNameOverride: payDiffers ? f.payAccountName : "",
+      payIbanOverride: payDiffers ? f.payIban : "",
       link: f.link,
       plannedAmount: f.plannedAmount === "" ? null : parseFloat(f.plannedAmount) || 0,
     };
@@ -1159,15 +1262,10 @@ function LineDialog({
           <DialogTitle>{line ? "Kalemi Düzenle" : "Yeni Kalem"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label>Tanım *</Label>
-              <Input value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} placeholder="Örn. Solar Panel" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Kod</Label>
-              <Input value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} placeholder="A.1.1" />
-            </div>
+          <div className="space-y-1.5">
+            <Label>Tanım *</Label>
+            <Input value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} placeholder="Örn. Solar Panel" />
+            <p className="text-[11px] text-muted-foreground">Kod, seçilen kategoriye göre otomatik verilir (örn. A.4.1).</p>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="space-y-1.5">
@@ -1260,22 +1358,31 @@ function LineDialog({
             />
           </div>
 
-          {/* Ödeme sahibi — tedarikçiden farklı olabilir; ödeme dağıtım listesi
-              bu alanlardan üretilir. */}
+          {/* Ödeme sahibi varsayılan = tedarikçi. Yalnız "farklı" işaretliyse
+              ayrı isim + IBAN sorulur (ödeme başka birine gidiyorsa). */}
           <div className="rounded-lg border border-dashed p-3">
-            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-slate-600">
-              <Landmark className="size-3.5" /> Ödeme Sahibi (ödeme kime gidecek — tedarikçiden farklı olabilir)
-            </p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label>Hesap Adı</Label>
-                <Input value={f.payAccountName} onChange={(e) => setF({ ...f, payAccountName: e.target.value })} placeholder="Örn. Burak Kıran" />
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={payDiffers} onCheckedChange={(v) => setPayDiffers(!!v)} />
+              <span className="flex items-center gap-1.5">
+                <Landmark className="size-3.5 text-muted-foreground" /> Ödeme sahibi tedarikçiden farklı
+              </span>
+            </label>
+            {!payDiffers ? (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Ödeme tedarikçiye (kayıtlı IBAN'ına) yapılacak kabul edilir.
+              </p>
+            ) : (
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>Ödeme Sahibi (Hesap Adı)</Label>
+                  <Input value={f.payAccountName} onChange={(e) => setF({ ...f, payAccountName: e.target.value })} placeholder="Örn. Burak Kıran" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>IBAN</Label>
+                  <Input value={f.payIban} onChange={(e) => setF({ ...f, payIban: e.target.value })} placeholder="TR.." />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>IBAN</Label>
-                <Input value={f.payIban} onChange={(e) => setF({ ...f, payIban: e.target.value })} placeholder="TR.." />
-              </div>
-            </div>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -1347,7 +1454,8 @@ function PaymentDialog({
     });
   }
 
-  const payAcc = line.payAccountNameOverride || "";
+  const payAcc = line.payAccountNameOverride || line.vendorName || "";
+  const payIbanShown = line.payIbanOverride || line.vendorPayIban || "";
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
@@ -1355,9 +1463,8 @@ function PaymentDialog({
         <DialogHeader>
           <DialogTitle>Ödeme — {line.description}</DialogTitle>
           <DialogDescription>
-            {line.vendorName ? `Tedarikçi: ${line.vendorName}` : "Tedarikçi seçilmemiş"}
-            {payAcc && ` · Ödeme Sahibi: ${payAcc}`}
-            {line.payIbanOverride && ` · ${line.payIbanOverride}`}
+            {payAcc ? `Ödeme Sahibi: ${payAcc}` : "Ödeme sahibi belirtilmemiş"}
+            {payIbanShown && ` · ${payIbanShown}`}
           </DialogDescription>
         </DialogHeader>
 

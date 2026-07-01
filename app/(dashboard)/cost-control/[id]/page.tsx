@@ -65,6 +65,7 @@ export default async function CostProjectPage({ params }: { params: Promise<{ id
     endDate: project.endDate?.toISOString().slice(0, 10) ?? "",
     notes: project.notes ?? "",
     sourceProjectId: project.sourceProjectId,
+    statementToken: project.statementToken,
     lines: project.lines.map((l) => ({
       id: l.id,
       categoryId: l.categoryId,
@@ -82,6 +83,7 @@ export default async function CostProjectPage({ params }: { params: Promise<{ id
       isInvoiced: l.isInvoiced,
       vendorId: l.vendorId,
       vendorName: l.vendor?.name ?? "",
+      vendorPayIban: l.vendor?.payIban ?? "",
       payAccountNameOverride: l.payAccountNameOverride ?? "",
       payIbanOverride: l.payIbanOverride ?? "",
       link: l.link ?? "",
@@ -119,6 +121,7 @@ export default async function CostProjectPage({ params }: { params: Promise<{ id
       vendors={vendorList}
       categories={categoryList}
       rates={rates}
+      firmName={user.organization.name}
       canEdit={user.platformRole !== "viewer"}
     />
   );

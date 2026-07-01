@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireAuth, type ProfileWithOrg } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { randomBytes } from "crypto";
 import {
   DEFAULT_COST_CATEGORIES,
   computeCostProjectMetrics,
@@ -39,19 +40,33 @@ async function assertOwnLine(user: ProfileWithOrg, lineId: string): Promise<stri
   return l.costProjectId;
 }
 
-/** Org'un öntanımlı kategorileri yoksa seed'ler. */
+/**
+ * Org'un öntanımlı kategorilerini güncel keşif setine göre sağlar: eksik
+ * kategorileri ekler, öntanımlı olup adı değişmiş olanları düzeltir (eski 12'li
+ * set → yeni A.1..A.18 + B.x). B.6 varsa güncel kabul edip erken çıkar.
+ */
 async function ensureDefaultCategories(organizationId: string) {
-  const count = await prisma.costCategoryDef.count({ where: { organizationId } });
-  if (count > 0) return;
-  await prisma.costCategoryDef.createMany({
-    data: DEFAULT_COST_CATEGORIES.map((c, i) => ({
-      organizationId,
-      code: c.code,
-      name: c.name,
-      isDefault: true,
-      sortOrder: i,
-    })),
+  const marker = await prisma.costCategoryDef.findFirst({
+    where: { organizationId, code: "B.6" },
+    select: { id: true },
   });
+  if (marker) return;
+  const existing = await prisma.costCategoryDef.findMany({
+    where: { organizationId },
+    select: { id: true, code: true, name: true, isDefault: true },
+  });
+  const byCode = new Map(existing.map((c) => [c.code, c] as const));
+  for (let i = 0; i < DEFAULT_COST_CATEGORIES.length; i++) {
+    const d = DEFAULT_COST_CATEGORIES[i];
+    const ex = byCode.get(d.code);
+    if (!ex) {
+      await prisma.costCategoryDef.create({
+        data: { organizationId, code: d.code, name: d.name, isDefault: true, sortOrder: i },
+      });
+    } else if (ex.isDefault && ex.name !== d.name) {
+      await prisma.costCategoryDef.update({ where: { id: ex.id }, data: { name: d.name, sortOrder: i } });
+    }
+  }
 }
 
 // ————————————————————————————————————————————————————————————————
@@ -67,6 +82,7 @@ export interface CostProjectCard {
   salesPrice: number;
   actualNetTL: number;
   profitTL: number;
+  currentProfitTL: number;
   profitMarginPct: number;
   collectedTotal: number;
   remainingReceivable: number;
@@ -124,6 +140,7 @@ export async function listCostProjects(): Promise<CostProjectCard[]> {
       salesPrice: m.salesPrice,
       actualNetTL: m.actualNetTL,
       profitTL: m.profitTL,
+      currentProfitTL: m.currentProfitTL,
       profitMarginPct: m.profitMarginPct,
       collectedTotal: m.collectedTotal,
       remainingReceivable: m.remainingReceivable,
@@ -133,6 +150,35 @@ export async function listCostProjects(): Promise<CostProjectCard[]> {
       updatedAt: p.updatedAt.toISOString(),
     };
   });
+}
+
+export interface UpcomingCollection {
+  id: string;
+  projectId: string;
+  projectName: string;
+  customer: string;
+  salesSym: string;
+  amount: number;
+  date: string; // yyyy-mm-dd
+}
+
+/** Tüm projelerdeki planlanan (henüz alınmamış) tahsilatlar — tarihe göre. */
+export async function listUpcomingCollections(): Promise<UpcomingCollection[]> {
+  const user = await requireAuth();
+  const rows = await prisma.costCollection.findMany({
+    where: { isPlanned: true, costProject: { organizationId: user.organizationId } },
+    orderBy: { collectedDate: "asc" },
+    include: { costProject: { select: { id: true, name: true, customer: true, salesCurrency: true } } },
+  });
+  return rows.map((c) => ({
+    id: c.id,
+    projectId: c.costProject.id,
+    projectName: c.costProject.name || "İsimsiz Proje",
+    customer: c.costProject.customer,
+    salesSym: c.costProject.salesCurrency === "USD" ? "$" : c.costProject.salesCurrency === "EUR" ? "€" : "₺",
+    amount: c.amount,
+    date: c.collectedDate.toISOString().slice(0, 10),
+  }));
 }
 
 // ————————————————————————————————————————————————————————————————
@@ -226,6 +272,26 @@ export async function deleteCostProject(id: string): Promise<{ error?: string; s
   return { success: true };
 }
 
+// Müşteri ödeme ekstresi için public tokenli link üretir (varsa mevcut token'ı
+// döner; regenerate=true ise yeniler → eski link geçersiz olur).
+export async function createStatementToken(
+  costProjectId: string,
+  regenerate = false,
+): Promise<{ token?: string; error?: string }> {
+  const user = await requireAuth();
+  if (!canEdit(user)) return { error: "Yetkiniz yok" };
+  const proj = await prisma.costProject.findFirst({
+    where: { id: costProjectId, organizationId: user.organizationId },
+    select: { id: true, statementToken: true },
+  });
+  if (!proj) return { error: "Proje bulunamadı" };
+  if (proj.statementToken && !regenerate) return { token: proj.statementToken };
+  const token = randomBytes(18).toString("base64url");
+  await prisma.costProject.update({ where: { id: costProjectId }, data: { statementToken: token } });
+  revalidatePath(`/cost-control/${costProjectId}`);
+  return { token };
+}
+
 // ————————————————————————————————————————————————————————————————
 // Kalem (line) CRUD
 // ————————————————————————————————————————————————————————————————
@@ -254,8 +320,8 @@ function normalizeLine(input: CostLineInput) {
   const currency = input.currency || "TRY";
   const exchangeRate = currency === "TRY" ? 1 : Number(input.exchangeRate) || 0;
   return {
+    // Not: kod otomatik atanır (create'te kategori altında sıralı), kullanıcı girmez.
     categoryId: input.categoryId || null,
-    code: (input.code || "").trim(),
     description: (input.description || "").trim(),
     model: (input.model || "").trim() || null,
     brand: (input.brand || "").trim() || null,
@@ -287,10 +353,25 @@ export async function createCostLine(
     where: { costProjectId },
     _max: { sortOrder: true },
   });
+
+  // Otomatik kod: seçilen kategorinin kodu + kategori altındaki sıra (A.4.1…).
+  let code = "";
+  if (input.categoryId) {
+    const cat = await prisma.costCategoryDef.findFirst({
+      where: { id: input.categoryId, organizationId: user.organizationId },
+      select: { code: true },
+    });
+    if (cat) {
+      const n = await prisma.costLine.count({ where: { costProjectId, categoryId: input.categoryId } });
+      code = `${cat.code}.${n + 1}`;
+    }
+  }
+
   await prisma.costLine.create({
     data: {
       costProjectId,
       sortOrder: (max._max.sortOrder ?? 0) + 1,
+      code,
       ...normalizeLine(input),
     },
   });
