@@ -1251,7 +1251,10 @@ function PaymentOwnersCard({
       // Ödeme sahibi override yoksa tedarikçi varsayılır. Aynı İSİM tek satır
       // (IBAN farklı olsa da) — IBAN kırılımda gösterilir.
       const owner = (l.payAccountNameOverride || l.vendorName || "—").trim() || "—";
-      const iban = l.payIbanOverride || l.vendorPayIban || "";
+      // Ödeme sahibi tedarikçiden farklıysa (override), tedarikçinin IBAN'ı DEĞİL
+      // ödeme sahibinin IBAN'ı kullanılır.
+      const hasOverride = !!(l.payAccountNameOverride || l.payIbanOverride);
+      const iban = hasOverride ? l.payIbanOverride || "" : l.vendorPayIban || "";
       const cur =
         map.get(owner) ||
         {
@@ -1355,8 +1358,11 @@ function PaymentOwnersCard({
             </thead>
             <tbody className="divide-y">
               {groups.map((g, i) => {
+                // Kırılımı yalnız anlamlıysa göster: birden çok tedarikçi veya
+                // ödeme sahibi tek tedarikçiden farklı. (Aynı tedarikçi + IBAN
+                // yok durumunda alt kırılım gösterme.)
                 const showBreakdown =
-                  g.vendors.length > 1 || !g.iban || (g.vendors[0] && g.vendors[0].name !== g.owner);
+                  g.vendors.length > 1 || (g.vendors[0] && g.vendors[0].name !== g.owner);
                 return (
                   <Fragment key={i}>
                     <tr className="hover:bg-muted/30">
@@ -1475,6 +1481,7 @@ function LineDialog({
     link: line?.link ?? "",
     plannedAmount: line?.plannedAmount == null ? "" : String(line.plannedAmount),
     paidAmount: "", // yalnız yeni kalemde: şimdiye kadar ödenen
+    paidDate: "",
   });
 
   const qty = parseFloat(f.quantity) || 0;
@@ -1536,6 +1543,7 @@ function LineDialog({
       link: f.link,
       plannedAmount: f.plannedAmount === "" ? null : parseFloat(f.plannedAmount) || 0,
       paidAmount: !line && f.paidAmount ? parseFloat(f.paidAmount) || 0 : undefined,
+      paidDate: !line && f.paidAmount ? f.paidDate || undefined : undefined,
     };
     start(async () => {
       const r = line ? await updateCostLine(line.id, input) : await createCostLine(projectId, input);
@@ -1699,15 +1707,22 @@ function LineDialog({
 
           {!line && (
             <div className="rounded-lg border border-dashed p-3">
-              <Label>Ödenen Tutar (varsa)</Label>
-              <Input
-                type="number"
-                step="any"
-                value={f.paidAmount}
-                onChange={(e) => setF({ ...f, paidAmount: e.target.value })}
-                placeholder="0"
-                className="mt-1.5"
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Ödenen Tutar (varsa)</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    value={f.paidAmount}
+                    onChange={(e) => setF({ ...f, paidAmount: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Ödeme Tarihi</Label>
+                  <Input type="date" value={f.paidDate} onChange={(e) => setF({ ...f, paidDate: e.target.value })} />
+                </div>
+              </div>
               <p className="mt-1.5 text-[11px] text-muted-foreground">
                 Bu kaleme şimdiye kadar ödediğin tutar. Boş/az bırakırsan kalanı &quot;Ödeme Yapılacak Kişiler&quot;den
                 işlersin. Kalan: <strong>₺{fmt(Math.max(0, grossTL - (parseFloat(f.paidAmount) || 0)))}</strong>
@@ -1757,7 +1772,6 @@ function OwnerPayDialog({
   const [busy, start] = useTransition();
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
-  const [method, setMethod] = useState("HAVALE");
   const [note, setNote] = useState("");
 
   function add() {
@@ -1768,7 +1782,6 @@ function OwnerPayDialog({
         lineIds: group.lineIds,
         amount: a,
         paidDate: date || undefined,
-        method,
         note,
       });
       if (r.error) { toast.error(r.error); return; }
@@ -1842,22 +1855,7 @@ function OwnerPayDialog({
               <Label className="text-[11px]">Tarih</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9" />
             </div>
-            <div className="space-y-1">
-              <Label className="text-[11px]">Yöntem</Label>
-              <Select value={method} onValueChange={setMethod}>
-                <SelectTrigger className="h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(PAYMENT_METHOD_LABELS).map(([v, l]) => (
-                    <SelectItem key={v} value={v}>
-                      {l}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
+            <div className="col-span-2 space-y-1">
               <Label className="text-[11px]">Açıklama</Label>
               <Input value={note} onChange={(e) => setNote(e.target.value)} className="h-9" />
             </div>

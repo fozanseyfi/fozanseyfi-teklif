@@ -321,6 +321,7 @@ export interface CostLineInput {
   link?: string | null;
   plannedAmount?: number | null;
   paidAmount?: number; // yalnız create'te: kalem eklenirken şimdiye kadar ödenen
+  paidDate?: string; // ödenen tutarın tarihi
 }
 
 function normalizeLine(input: CostLineInput) {
@@ -388,7 +389,13 @@ export async function createCostLine(
   const paid = Number(input.paidAmount) || 0;
   if (paid > 0) {
     await prisma.costPayment.create({
-      data: { costLineId: created.id, amount: paid, paidDate: new Date(), method: "HAVALE", note: "Kalem eklenirken" },
+      data: {
+        costLineId: created.id,
+        amount: paid,
+        paidDate: toDate(input.paidDate) ?? new Date(),
+        method: "HAVALE",
+        note: "Kalem eklenirken",
+      },
     });
   }
   revalidatePath(`/cost-control/${costProjectId}`);
