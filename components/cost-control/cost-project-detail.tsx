@@ -355,6 +355,12 @@ export function CostProjectDetail({
           }
           tone="slate"
         />
+        <Kpi label="Tedarikçilere Ödenen" value={`₺${fmt(m.paidTL)}`} tone="slate" />
+        <Kpi
+          label="Tedarikçilere Kalan"
+          value={`₺${fmt(m.payableBalanceTL)}`}
+          tone={m.payableBalanceTL > 0.5 ? "amber" : "emerald"}
+        />
         <Kpi
           label="Vergi Öncesi Kâr (VÖK)"
           value={`₺${fmt(m.profitTL)}`}
@@ -371,12 +377,6 @@ export function CostProjectDetail({
           value={`${m.salesSym}${fmt(m.remainingReceivable)}`}
           sub={`Tahsil: ${m.salesSym}${fmt(m.collectedTotal)}`}
           tone="amber"
-        />
-        <Kpi label="Tedarikçilere Ödenen" value={`₺${fmt(m.paidTL)}`} tone="slate" />
-        <Kpi
-          label="Tedarikçilere Kalan"
-          value={`₺${fmt(m.payableBalanceTL)}`}
-          tone={m.payableBalanceTL > 0.5 ? "amber" : "emerald"}
         />
 
         {/* Net Kâr özeti — VÖK − vergiler. Tek kart, alt alta. */}
