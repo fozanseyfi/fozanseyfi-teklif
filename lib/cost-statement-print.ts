@@ -41,8 +41,8 @@ function shell({ brand, firmName, userEmail, docTitle, subtitle, todayISO, bodyH
 <title>${esc(docTitle)} — ${esc(subtitle)}</title>
 <style>
   * { box-sizing: border-box; }
-  body { font-family: 'Inter','Segoe UI',Arial,sans-serif; color:#0f172a; margin:0; font-size:12px; }
-  .header { background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%); color:#fff; padding:16px 20px 14px; display:flex; justify-content:space-between; align-items:flex-end; position:relative; z-index:2; }
+  body { font-family: 'Inter','Segoe UI',Arial,sans-serif; color:#0f172a; margin:0; font-size:12px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .header { background:${brand.coverGradient}; color:#fff; padding:16px 20px 14px; display:flex; justify-content:space-between; align-items:flex-end; position:relative; z-index:2; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   .header .doc { text-align:right; }
   .header .doc .t { font-size:15px; font-weight:800; letter-spacing:.5px; }
   .header .doc .d { font-size:10.5px; color:rgba(255,255,255,.8); margin-top:2px; }
@@ -71,7 +71,7 @@ function shell({ brand, firmName, userEmail, docTitle, subtitle, todayISO, bodyH
   tfoot td { font-weight:800; border-top:2px solid #e2e8f0; }
   .tot { margin-top:14px; text-align:right; font-size:13px; font-weight:800; } .tot span { color:#d97706; }
   .link { color:${esc(brand.primary)}; font-size:10.5px; margin-top:4px; word-break:break-all; }
-  @media print { .content { padding:14px 16px; } }
+  @media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } .content { padding:14px 16px; } }
 </style>
 </head>
 <body>

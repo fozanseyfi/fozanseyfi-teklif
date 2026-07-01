@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo, useEffect } from "react";
+import { useState, useTransition, useMemo, useEffect, Fragment } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,7 +30,6 @@ import {
   Pencil,
   Trash2,
   Wallet,
-  CreditCard,
   Users2,
   Loader2,
   RefreshCw,
@@ -221,6 +220,8 @@ export function CostProjectDetail({
   // Satış KDV'si yalnız faturalı kısımdan; faturasız kısımda KDV yok.
   const salesVat = (data.salesInvoicedAmount || 0) * ((data.salesVatRate || 0) / 100);
   const salesGross = data.salesPrice + salesVat;
+  // Öngörülen (planlanan) maliyete göre gerçekleşme yüzdesi.
+  const costVsPlannedPct = m.plannedTotalTL > 0 ? (m.actualNetTL / m.plannedTotalTL - 1) * 100 : null;
 
   function refresh() {
     router.refresh();
@@ -338,8 +339,8 @@ export function CostProjectDetail({
           label="Gerçekleşen Maliyet"
           value={`₺${fmt(m.actualNetTL)}`}
           sub={
-            m.hasPlanned
-              ? `Öngörülen: ₺${fmt(m.plannedTotalTL)} · KDV dahil ₺${fmt(m.actualGrossTL)}`
+            m.hasPlanned && costVsPlannedPct != null
+              ? `Öngörülen ₺${fmt(m.plannedTotalTL)} · Öngörülene göre ${costVsPlannedPct >= 0 ? "+" : ""}%${fmt(costVsPlannedPct, 1)}`
               : `KDV dahil ₺${fmt(m.actualGrossTL)}`
           }
           tone="slate"
@@ -1335,60 +1336,66 @@ function PaymentOwnersCard({
           </div>
         </div>
 
-        <div className="divide-y">
-          {groups.map((g, i) => {
-            const done = g.remaining <= 0.5;
-            const showBreakdown = g.vendors.length > 1 || (g.vendors[0] && g.vendors[0].name !== g.owner);
-            return (
-              <div key={i} className="px-4 py-2">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-[13px] font-medium text-slate-900">{g.owner}</p>
-                    {g.iban && (
-                      <button
-                        type="button"
-                        onClick={() => copy(g.iban)}
-                        className="inline-flex items-center gap-1 font-mono text-[10px] text-muted-foreground hover:text-emerald-700"
-                        title="IBAN kopyala"
-                      >
-                        {g.iban} <Copy className="size-2.5" />
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {done ? (
-                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                        Ödendi
-                      </span>
-                    ) : (
-                      <span className="text-right leading-tight">
-                        <span className="block text-sm font-bold tabular-nums text-amber-600">₺{fmt(g.remaining)}</span>
-                        <span className="block text-[9.5px] text-muted-foreground">/ ₺{fmt(g.total)}</span>
-                      </span>
-                    )}
-                    {canEdit && (
-                      <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setPayGroup(g)}>
-                        <CreditCard className="size-3" /> Öde
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {showBreakdown && (
-                  <div className="mt-1 space-y-0.5 pl-1">
-                    {g.vendors.map((v, vi) => (
-                      <div key={vi} className="flex items-center justify-between gap-3 text-[10.5px] text-muted-foreground">
-                        <span className="min-w-0 truncate">↳ {v.name}</span>
-                        <span className="shrink-0 tabular-nums">
-                          kalan <span className="font-semibold text-amber-600">₺{fmt(v.remaining)}</span> / ₺{fmt(v.total)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b bg-muted/50 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <th className="px-3 py-1.5 text-left">Ödeme Sahibi</th>
+                <th className="px-3 py-1.5 text-left">IBAN</th>
+                <th className="px-3 py-1.5 text-right">Kalan / Toplam</th>
+                {canEdit && <th className="px-3 py-1.5" />}
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {groups.map((g, i) => {
+                const showBreakdown = g.vendors.length > 1 || (g.vendors[0] && g.vendors[0].name !== g.owner);
+                return (
+                  <Fragment key={i}>
+                    <tr className="hover:bg-muted/30">
+                      <td className="px-3 py-1.5 font-medium text-slate-900">{g.owner}</td>
+                      <td className="px-3 py-1.5">
+                        {g.iban ? (
+                          <button
+                            type="button"
+                            onClick={() => copy(g.iban)}
+                            className="inline-flex items-center gap-1 font-mono text-[10.5px] text-muted-foreground hover:text-emerald-700"
+                            title="IBAN kopyala"
+                          >
+                            {g.iban} <Copy className="size-2.5" />
+                          </button>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-1.5 text-right tabular-nums">
+                        kalan <span className="font-semibold text-amber-600">₺{fmt(g.remaining)}</span>{" "}
+                        <span className="text-muted-foreground">/ ₺{fmt(g.total)}</span>
+                      </td>
+                      {canEdit && (
+                        <td className="px-3 py-1.5 text-right">
+                          <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" onClick={() => setPayGroup(g)}>
+                            Öde
+                          </Button>
+                        </td>
+                      )}
+                    </tr>
+                    {showBreakdown &&
+                      g.vendors.map((v, vi) => (
+                        <tr key={`${i}-${vi}`} className="text-[10.5px] text-muted-foreground">
+                          <td className="px-3 py-0.5" />
+                          <td className="px-3 py-0.5 truncate">↳ {v.name}</td>
+                          <td className="whitespace-nowrap px-3 py-0.5 text-right tabular-nums">
+                            kalan <span className="font-semibold text-amber-600">₺{fmt(v.remaining)}</span>{" "}
+                            <span>/ ₺{fmt(v.total)}</span>
+                          </td>
+                          {canEdit && <td />}
+                        </tr>
+                      ))}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </CardContent>
 
