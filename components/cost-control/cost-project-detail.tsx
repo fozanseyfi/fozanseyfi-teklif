@@ -1280,7 +1280,9 @@ function PaymentOwnersCard({
       const v = cur.vendors.get(vName) || { total: 0, remaining: 0, ibans: new Set<string>() };
       v.total += total;
       v.remaining += Math.max(0, lineBalanceTL(l));
-      if (iban) v.ibans.add(iban);
+      // Alt kırılımda TEDARİKÇİNİN kendi IBAN'ı gösterilir (üst satır ödeme
+      // sahibinin IBAN'ı). Ödeme başkasına gitse de tedarikçinin IBAN'ı görünür.
+      if (l.vendorPayIban) v.ibans.add(l.vendorPayIban);
       cur.vendors.set(vName, v);
       map.set(owner, cur);
     }

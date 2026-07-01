@@ -26,6 +26,10 @@ import {
   Loader2,
   Landmark,
   Copy,
+  Phone,
+  Mail,
+  Hash,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatNumber } from "@/lib/utils";
@@ -56,6 +60,7 @@ export function VendorsClient({ vendors, canEdit }: { vendors: VendorRow[]; canE
   const router = useRouter();
   const [q, setQ] = useState("");
   const [dialog, setDialog] = useState<{ open: boolean; vendor: VendorRow | null }>({ open: false, vendor: null });
+  const [detail, setDetail] = useState<VendorRow | null>(null);
   const [busy, start] = useTransition();
 
   const filtered = useMemo(() => {
@@ -121,64 +126,71 @@ export function VendorsClient({ vendors, canEdit }: { vendors: VendorRow[]; canE
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          {filtered.map((v) => (
-            <Card key={v.id}>
-              <CardContent className="space-y-3 p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-slate-900">{v.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {[v.phone, v.email].filter(Boolean).join(" · ") || "İletişim yok"}
-                    </p>
-                  </div>
-                  <Badge variant="outline" className={v.defaultInvoiced ? "border-sky-300 bg-sky-50 text-sky-700" : "border-amber-300 bg-amber-50 text-amber-700"}>
-                    {v.defaultInvoiced ? "Faturalı" : "Faturasız"}
-                  </Badge>
-                </div>
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <th className="px-4 py-2.5 text-left">Ad / Unvan</th>
+                    <th className="px-4 py-2.5 text-left">Telefon</th>
+                    <th className="px-4 py-2.5 text-left">E-posta</th>
+                    <th className="px-4 py-2.5 text-right">Proje</th>
+                    <th className="px-4 py-2.5 text-right">Toplam (net)</th>
+                    <th className="px-4 py-2.5 text-right">Ödenen</th>
+                    <th className="px-4 py-2.5" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {filtered.map((v) => (
+                    <tr
+                      key={v.id}
+                      onClick={() => setDetail(v)}
+                      className="cursor-pointer transition-colors hover:bg-muted/40"
+                    >
+                      <td className="px-4 py-2.5">
+                        <span className="font-medium text-slate-900">{v.name}</span>
+                        {!v.defaultInvoiced && (
+                          <span className="ml-2 rounded bg-amber-100 px-1 py-0.5 text-[9px] font-bold uppercase text-amber-700">
+                            Faturasız
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{v.phone || "—"}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{v.email || "—"}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums">{v.projectCount}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums">₺{fmt(v.totalNetTL)}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-emerald-700">₺{fmt(v.totalPaidTL)}</td>
+                      <td className="px-4 py-2.5 text-right">
+                        <ChevronRight className="ml-auto size-4 text-muted-foreground" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-                {v.payIban && (
-                  <div className="rounded-lg border bg-muted/30 p-2.5 text-xs">
-                    <p className="flex items-center gap-1.5 font-medium text-slate-700">
-                      <Landmark className="size-3.5" /> Ödeme IBAN
-                    </p>
-                    {v.payAccountName && <p className="mt-1 text-slate-600">{v.payAccountName}</p>}
-                    <button onClick={() => copy(v.payIban)} className="mt-0.5 flex items-center gap-1 font-mono text-[11px] text-slate-500 hover:text-emerald-700">
-                      {v.payIban} <Copy className="size-3" />
-                    </button>
-                  </div>
-                )}
-                {v.taxNo && <p className="text-xs text-muted-foreground">Vergi No: {v.taxNo}</p>}
-
-                <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="rounded-md bg-muted/40 p-2">
-                    <p className="text-[10px] uppercase text-muted-foreground">Proje</p>
-                    <p className="font-semibold">{v.projectCount}</p>
-                  </div>
-                  <div className="rounded-md bg-muted/40 p-2">
-                    <p className="text-[10px] uppercase text-muted-foreground">Toplam (net)</p>
-                    <p className="font-semibold tabular-nums">₺{fmt(v.totalNetTL)}</p>
-                  </div>
-                  <div className="rounded-md bg-muted/40 p-2">
-                    <p className="text-[10px] uppercase text-muted-foreground">Ödenen</p>
-                    <p className="font-semibold tabular-nums text-emerald-700">₺{fmt(v.totalPaidTL)}</p>
-                  </div>
-                </div>
-
-                {canEdit && (
-                  <div className="flex justify-end gap-1 border-t pt-2">
-                    <Button variant="ghost" size="sm" onClick={() => setDialog({ open: true, vendor: v })}>
-                      <Pencil className="size-3.5" /> Düzenle
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => del(v)} className="text-destructive hover:bg-destructive-soft" disabled={busy}>
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      {detail && (
+        <VendorDetailDialog
+          vendor={detail}
+          canEdit={canEdit}
+          onClose={() => setDetail(null)}
+          onEdit={() => {
+            const v = detail;
+            setDetail(null);
+            setDialog({ open: true, vendor: v });
+          }}
+          onDelete={() => {
+            const v = detail;
+            setDetail(null);
+            del(v);
+          }}
+          onCopy={copy}
+          busy={busy}
+        />
       )}
 
       {dialog.open && (
@@ -188,6 +200,108 @@ export function VendorsClient({ vendors, canEdit }: { vendors: VendorRow[]; canE
           onSaved={() => router.refresh()}
         />
       )}
+    </div>
+  );
+}
+
+function VendorDetailDialog({
+  vendor,
+  canEdit,
+  onClose,
+  onEdit,
+  onDelete,
+  onCopy,
+  busy,
+}: {
+  vendor: VendorRow;
+  canEdit: boolean;
+  onClose: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onCopy: (t: string) => void;
+  busy: boolean;
+}) {
+  const v = vendor;
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {v.name}
+            <Badge
+              variant="outline"
+              className={v.defaultInvoiced ? "border-sky-300 bg-sky-50 text-sky-700" : "border-amber-300 bg-amber-50 text-amber-700"}
+            >
+              {v.defaultInvoiced ? "Faturalı" : "Faturasız"}
+            </Badge>
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div className="space-y-1.5 text-sm">
+            <DetailRow icon={<Phone className="size-3.5" />} label="Telefon" value={v.phone} />
+            <DetailRow icon={<Mail className="size-3.5" />} label="E-posta" value={v.email} />
+            <DetailRow icon={<Hash className="size-3.5" />} label="Vergi No" value={v.taxNo} />
+          </div>
+
+          {(v.payIban || v.payAccountName || v.bank) && (
+            <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+              <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-slate-600">
+                <Landmark className="size-3.5" /> Ödeme Bilgisi
+              </p>
+              {v.payAccountName && <p className="text-slate-700">{v.payAccountName}</p>}
+              {v.payIban && (
+                <button
+                  onClick={() => onCopy(v.payIban)}
+                  className="mt-0.5 flex items-center gap-1 font-mono text-[12px] text-slate-500 hover:text-emerald-700"
+                >
+                  {v.payIban} <Copy className="size-3" />
+                </button>
+              )}
+              {v.bank && <p className="mt-0.5 text-xs text-muted-foreground">{v.bank}</p>}
+            </div>
+          )}
+
+          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+            <div className="rounded-md bg-muted/40 p-2">
+              <p className="text-[10px] uppercase text-muted-foreground">Proje</p>
+              <p className="font-semibold">{v.projectCount}</p>
+            </div>
+            <div className="rounded-md bg-muted/40 p-2">
+              <p className="text-[10px] uppercase text-muted-foreground">Toplam (net)</p>
+              <p className="font-semibold tabular-nums">₺{fmt(v.totalNetTL)}</p>
+            </div>
+            <div className="rounded-md bg-muted/40 p-2">
+              <p className="text-[10px] uppercase text-muted-foreground">Ödenen</p>
+              <p className="font-semibold tabular-nums text-emerald-700">₺{fmt(v.totalPaidTL)}</p>
+            </div>
+          </div>
+
+          {v.notes && <p className="rounded-md bg-muted/30 p-2.5 text-xs text-slate-600">{v.notes}</p>}
+
+          {canEdit && (
+            <div className="flex justify-end gap-2 border-t pt-3">
+              <Button variant="outline" size="sm" onClick={onDelete} className="text-destructive hover:bg-destructive-soft" disabled={busy}>
+                <Trash2 className="size-3.5" /> Sil
+              </Button>
+              <Button size="sm" onClick={onEdit}>
+                <Pencil className="size-3.5" /> Düzenle
+              </Button>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="flex w-24 items-center gap-1.5 text-muted-foreground">
+        {icon} {label}
+      </span>
+      <span className="min-w-0 flex-1 truncate text-slate-800">{value || "—"}</span>
     </div>
   );
 }
