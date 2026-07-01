@@ -134,7 +134,7 @@ export function CostListClient({
         <div className="grid gap-3 sm:grid-cols-3">
           <MiniKpi label="Toplam Gerçekleşen Maliyet" value={`₺${fmt(totals.cost)}`} tone="slate" />
           <MiniKpi
-            label="Toplam Mevcut Kâr (Tahsilat − Ödeme)"
+            label="Toplam Vergi Öncesi Kâr (VÖK)"
             value={`₺${fmt(totals.profit)}`}
             tone={totals.profit >= 0 ? "emerald" : "rose"}
           />
@@ -287,7 +287,7 @@ function CostCard({ p }: { p: CostProjectCard }) {
             <Metric label="Satış" value={`${p.salesSym}${fmt(p.salesPrice)}`} />
             <Metric label="Gerçekleşen Maliyet" value={`₺${fmt(p.actualNetTL)}`} />
             <Metric
-              label="Mevcut Kâr (TL)"
+              label="VÖK (TL)"
               value={`₺${fmt(p.currentProfitTL)}`}
               accent={curProfitPos ? "emerald" : "rose"}
               icon={curProfitPos ? "up" : "down"}

@@ -723,6 +723,8 @@ export async function createCostProjectFromQuote(
 
   let salesPrice = 0;
   let salesCurrency = "TRY";
+  let salesInvoicedAmount = 0;
+  let salesVatRate = 20;
   const lineData: {
     code: string; description: string; unit: string; quantity: number;
     unitPrice: number; currency: string; exchangeRate: number; vatRate: number;
@@ -733,8 +735,11 @@ export async function createCostProjectFromQuote(
     const items = parseQuoteItems(src.projectDetail?.quoteItems);
     const meta = parseQuoteMeta(src.projectDetail?.settings);
     const totals = computeQuoteTotals(items, meta);
-    // Satış = müşteri geneli toplam (KDV dahil), seçilen çıktı para biriminde.
-    salesPrice = totals.grandTotal;
+    // Satış = KDV HARİÇ ara toplam (öngörülen kâr = satış − teklif maliyeti doğru
+    // çıksın diye). KDV ayrıca hesaplanır. Teklif faturalı varsayılır.
+    salesPrice = totals.subtotal;
+    salesInvoicedAmount = totals.subtotal;
+    salesVatRate = meta.kdvRate ?? 20;
     salesCurrency = meta.outputCurrency || "TRY";
     const rateOf = (cur: string) => (cur === "USD" ? meta.usd : cur === "EUR" ? meta.eur : 1);
     items
@@ -770,6 +775,8 @@ export async function createCostProjectFromQuote(
       customer: src.customerName || "",
       salesPrice,
       salesCurrency,
+      salesInvoicedAmount,
+      salesVatRate,
       sourceProjectId: src.id,
       lines: lineData.length ? { create: lineData } : undefined,
     },

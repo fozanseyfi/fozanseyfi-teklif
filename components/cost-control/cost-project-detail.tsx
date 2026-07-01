@@ -226,8 +226,10 @@ export function CostProjectDetail({
   // Satış KDV'si yalnız faturalı kısımdan; faturasız kısımda KDV yok.
   const salesVat = (data.salesInvoicedAmount || 0) * ((data.salesVatRate || 0) / 100);
   const salesGross = data.salesPrice + salesVat;
-  // Öngörülen (planlanan) maliyete göre gerçekleşme yüzdesi.
+  // Öngörülen (teklif) maliyet/kâra göre gerçekleşme yüzdeleri.
   const costVsPlannedPct = m.plannedTotalTL > 0 ? (m.actualNetTL / m.plannedTotalTL - 1) * 100 : null;
+  const profitVsPlannedPct =
+    m.hasPlanned && m.plannedProfitTL !== 0 ? (m.profitTL / m.plannedProfitTL - 1) * 100 : null;
 
   function refresh() {
     router.refresh();
@@ -352,9 +354,13 @@ export function CostProjectDetail({
           tone="slate"
         />
         <Kpi
-          label="Mevcut Kâr (Tahsilat − Ödeme)"
+          label="Vergi Öncesi Kâr (VÖK)"
           value={`₺${fmt(m.currentProfitTL)}`}
-          sub={`Öngörülen kâr: ₺${fmt(m.hasPlanned ? m.plannedProfitTL : m.profitTL)}`}
+          sub={
+            m.hasPlanned
+              ? `Öngörülen ₺${fmt(m.plannedProfitTL)} · Gerçekleşen ₺${fmt(m.profitTL)}${profitVsPlannedPct != null ? ` (${profitVsPlannedPct >= 0 ? "+" : ""}%${fmt(profitVsPlannedPct, 1)})` : ""}`
+              : `Öngörülen kâr: ₺${fmt(m.profitTL)}`
+          }
           tone={m.currentProfitTL >= 0 ? "emerald" : "rose"}
           icon={m.currentProfitTL >= 0 ? "up" : "down"}
         />
@@ -375,7 +381,7 @@ export function CostProjectDetail({
             />
           </>
         )}
-        <Kpi label="Tedarikçilere Ödenen" value={`₺${fmt(m.paidAppliedTL)}`} tone="slate" />
+        <Kpi label="Tedarikçilere Ödenen" value={`₺${fmt(m.paidTL)}`} tone="slate" />
         <Kpi
           label="Tedarikçilere Kalan"
           value={`₺${fmt(m.payableBalanceTL)}`}
@@ -667,7 +673,7 @@ function CostBreakdownCard({ lines }: { lines: Line[] }) {
     const map = new Map<string, number>();
     for (const l of lines) {
       const key = l.categoryLabel || "Kategorisiz";
-      map.set(key, (map.get(key) || 0) + lineNetTL(l));
+      map.set(key, (map.get(key) || 0) + lineGrossTL(l));
     }
     const total = Array.from(map.values()).reduce((a, b) => a + b, 0);
     const rows = Array.from(map.entries())
@@ -683,7 +689,7 @@ function CostBreakdownCard({ lines }: { lines: Line[] }) {
       <CardContent className="p-0">
         <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-4 py-3">
           <p className="flex items-center gap-2 text-sm font-semibold">
-            <Receipt className="size-4 text-primary" /> Maliyet Kırılımı (kategori · KDV hariç)
+            <Receipt className="size-4 text-primary" /> Maliyet Kırılımı (kategori · KDV dahil)
           </p>
           <span className="text-xs text-muted-foreground">
             Toplam: <strong className="text-foreground">₺{fmt(total)}</strong>
@@ -1415,7 +1421,7 @@ function PaymentOwnersCard({
                 {canEdit && <th className="px-3 py-1.5" />}
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody>
               {groups.map((g, i) => {
                 // Kırılımı yalnız anlamlıysa göster: birden çok tedarikçi veya
                 // ödeme sahibi tek tedarikçiden farklı. (Aynı tedarikçi + IBAN
@@ -1424,14 +1430,14 @@ function PaymentOwnersCard({
                   g.vendors.length > 1 || (g.vendors[0] && g.vendors[0].name !== g.owner);
                 return (
                   <Fragment key={i}>
-                    <tr className="hover:bg-muted/30">
-                      <td className="px-3 py-1.5 font-medium text-slate-900">{g.owner}</td>
-                      <td className="px-3 py-1.5">
+                    <tr className="border-t-2 border-border bg-white hover:bg-muted/30">
+                      <td className="px-3 py-2 text-[13px] font-semibold text-slate-900">{g.owner}</td>
+                      <td className="px-3 py-2">
                         {g.iban ? (
                           <button
                             type="button"
                             onClick={() => copy(g.iban)}
-                            className="inline-flex items-center gap-1 font-mono text-[10.5px] text-muted-foreground hover:text-emerald-700"
+                            className="inline-flex items-center gap-1 font-mono text-[11px] text-slate-600 hover:text-emerald-700"
                             title="IBAN kopyala"
                           >
                             {fmtIban(g.iban)} <Copy className="size-2.5" />
@@ -1440,13 +1446,14 @@ function PaymentOwnersCard({
                           <span className="text-muted-foreground">—</span>
                         )}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-1.5 text-right tabular-nums">
-                        kalan <span className="font-semibold text-amber-600">₺{fmt(g.remaining)}</span>{" "}
-                        <span className="text-muted-foreground">/ ₺{fmt(g.total)}</span>
+                      <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+                        <span className="text-[11px] text-muted-foreground">kalan </span>
+                        <span className="text-sm font-bold text-amber-600">₺{fmt(g.remaining)}</span>{" "}
+                        <span className="text-[11px] text-muted-foreground">/ ₺{fmt(g.total)}</span>
                       </td>
                       {canEdit && (
-                        <td className="px-3 py-1.5 text-right">
-                          <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" onClick={() => setPayGroup(g)}>
+                        <td className="px-3 py-2 text-right">
+                          <Button size="sm" className="h-7 px-3 text-[11px]" onClick={() => setPayGroup(g)}>
                             Öde
                           </Button>
                         </td>
@@ -1454,8 +1461,8 @@ function PaymentOwnersCard({
                     </tr>
                     {showBreakdown &&
                       g.vendors.map((v, vi) => (
-                        <tr key={`${i}-${vi}`} className="text-[10.5px] text-muted-foreground">
-                          <td className="px-3 py-0.5 pl-5 truncate">↳ {v.name}</td>
+                        <tr key={`${i}-${vi}`} className="bg-slate-50/70 text-[10.5px] text-muted-foreground">
+                          <td className="px-3 py-0.5 pl-6 truncate">↳ {v.name}</td>
                           <td className="px-3 py-0.5">
                             {v.iban ? (
                               <button
