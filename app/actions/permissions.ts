@@ -68,6 +68,9 @@ export async function getUserAccessData(
         templateLabel: true,
         status: true,
         updatedAt: true,
+        // Malzeme & Hizmet projelerinin gating'i quoteStep ile yapilir; quoteKind
+        // olmadan isProjectVisible onlari turnkey sanip gesStep kapisina takiyordu.
+        quoteKind: true,
         // gesStep gating icin gerekli — yarim kalmis projeleri filtreler.
         projectDetail: { select: { settings: true } },
       },

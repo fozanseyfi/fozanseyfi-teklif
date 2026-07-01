@@ -7,10 +7,11 @@ import { saveQuote } from "@/app/actions/quote";
 import { useDirtyTracker } from "@/lib/unsaved-changes";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { Save, ArrowRight, BarChart3, StickyNote, CreditCard, Plus, Trash2 } from "lucide-react";
+import { Save, ArrowRight, BarChart3, StickyNote, CreditCard, Plus, Trash2, Percent, Target, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { DetailPageHeader } from "@/components/ges/detail-page-header";
 import { useReadOnly } from "@/lib/readonly-context";
@@ -21,7 +22,6 @@ import {
   QUOTE_ITEM_KIND_LABELS,
   convert,
   fromTRY,
-  lineTotalCostTRY,
   lineUnitSaleOut,
   lineTotalSaleOut,
   computeQuoteTotals,
@@ -52,14 +52,8 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
   const [saving, setSaving] = useState(false);
   const [bulkMargin, setBulkMargin] = useState("");
   const [targetTotal, setTargetTotal] = useState("");
-  const [noteItems, setNoteItems] = useState<string[]>(() =>
-    (initialMeta.notes ?? "").split(/\r?\n/).filter((l) => l.trim().length > 0),
-  );
-
-  function updateNotes(next: string[]) {
-    setNoteItems(next);
-    setMeta((p) => ({ ...p, notes: next.join("\n") }));
-  }
+  const [bulkMarginOpt, setBulkMarginOpt] = useState("");
+  const [targetTotalOpt, setTargetTotalOpt] = useState("");
 
   const baseline = useRef(JSON.stringify({ items: initialItems, meta: defMeta }));
   const isDirty = JSON.stringify({ items, meta }) !== baseline.current;
@@ -71,27 +65,44 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
   const sym = totals.symbol;
   const paymentTerms = meta.paymentTerms ?? [];
 
+  // Ana kalemler ve opsiyonları ayır. Opsiyonlar ana toplama dahil değildir;
+  // kendi maliyet/kâr/satış özetini ayrı hesaplarız (isOption bayrağını
+  // kaldırıp computeQuoteTotals'a veririz — böylece aynı mantık çalışır).
+  const mainItems = items.filter((it) => !it.isOption);
+  const optionItems = items.filter((it) => it.isOption);
+  const hasOptions = optionItems.length > 0;
+  const optionTotals = hasOptions
+    ? computeQuoteTotals(
+        optionItems.map((it) => ({ ...it, isOption: false })),
+        meta,
+      )
+    : null;
+
   function setMargin(id: string, marginPct: number) {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, marginPct } : it)));
   }
+  // Toplu kâr — yalnız opsiyon HARİCİ kalemlere.
   function applyBulk() {
     const v = parseFloat(bulkMargin);
     if (!Number.isFinite(v)) {
       toast.error("Geçerli bir % girin");
       return;
     }
-    setItems((prev) => prev.map((it) => ({ ...it, marginPct: v })));
+    setItems((prev) => prev.map((it) => (it.isOption ? it : { ...it, marginPct: v })));
+    toast.success(`Opsiyon hariç kalemlere %${fmt(v, 2)} kâr uygulandı`);
   }
 
   // Hedef genel toplam (KDV dahil, seçilen para biriminde) girilince, o toplama
-  // ulaşacak tek kâr oranını tüm kalemlere dağıt.
+  // ulaşacak tek kâr oranını opsiyon HARİCİ kalemlere dağıt.
   function applyTarget() {
     const t = parseFloat(targetTotal);
     if (!Number.isFinite(t) || t <= 0) {
       toast.error("Geçerli bir hedef fiyat girin");
       return;
     }
-    const totalCostOut = items.reduce((s, it) => s + convert(it.unitCost, it.currency, out, rates) * (it.qty || 0), 0);
+    const totalCostOut = items
+      .filter((it) => !it.isOption)
+      .reduce((s, it) => s + convert(it.unitCost, it.currency, out, rates) * (it.qty || 0), 0);
     if (totalCostOut <= 0) {
       toast.error("Önce kalem maliyetlerini girin");
       return;
@@ -99,8 +110,39 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
     const exTarget = t / (1 + (meta.kdvRate || 0) / 100);
     // Yuvarlama yapma — hedefe tam ulaşsın (kuruşuna kadar). 6 ondalık yeterli hassasiyet.
     const m = Math.round(((exTarget / totalCostOut - 1) * 100) * 1e6) / 1e6;
-    setItems((prev) => prev.map((it) => ({ ...it, marginPct: m })));
-    toast.success(`Kâr oranı %${fmt(m, 2)} olarak tüm kalemlere dağıtıldı`);
+    setItems((prev) => prev.map((it) => (it.isOption ? it : { ...it, marginPct: m })));
+    toast.success(`Kâr oranı %${fmt(m, 2)} olarak opsiyon hariç kalemlere dağıtıldı`);
+  }
+
+  // Toplu kâr — yalnız OPSİYON kalemlerine.
+  function applyBulkOpt() {
+    const v = parseFloat(bulkMarginOpt);
+    if (!Number.isFinite(v)) {
+      toast.error("Geçerli bir % girin");
+      return;
+    }
+    setItems((prev) => prev.map((it) => (it.isOption ? { ...it, marginPct: v } : it)));
+    toast.success(`Opsiyonlara %${fmt(v, 2)} kâr uygulandı`);
+  }
+
+  // Opsiyon hedef toplamı (KDV HARİÇ — opsiyonlar KDV hariç sunulur) girilince,
+  // o toplama ulaşacak tek kâr oranını opsiyon kalemlerine dağıt.
+  function applyTargetOpt() {
+    const t = parseFloat(targetTotalOpt);
+    if (!Number.isFinite(t) || t <= 0) {
+      toast.error("Geçerli bir hedef fiyat girin");
+      return;
+    }
+    const totalCostOut = items
+      .filter((it) => it.isOption)
+      .reduce((s, it) => s + convert(it.unitCost, it.currency, out, rates) * (it.qty || 0), 0);
+    if (totalCostOut <= 0) {
+      toast.error("Önce opsiyon maliyetlerini girin");
+      return;
+    }
+    const m = Math.round(((t / totalCostOut - 1) * 100) * 1e6) / 1e6;
+    setItems((prev) => prev.map((it) => (it.isOption ? { ...it, marginPct: m } : it)));
+    toast.success(`Opsiyon kâr oranı %${fmt(m, 2)} olarak dağıtıldı`);
   }
 
   function setPT(next: typeof paymentTerms) {
@@ -223,41 +265,20 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
         </CardContent>
       </Card>
 
-      {/* Toplu marj + hedef fiyat */}
-      <Card>
-        <CardContent className="flex flex-wrap items-center gap-x-6 gap-y-3 p-4" data-edit-only>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground">Tümüne kâr % uygula</span>
-            <Input
-              type="number"
-              step="0.5"
-              className="h-8 w-24 text-sm"
-              value={bulkMargin}
-              onChange={(e) => setBulkMargin(e.target.value)}
-              placeholder="%"
-            />
-            <Button variant="outline" size="sm" onClick={applyBulk}>
-              Uygula
-            </Button>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground">Toplam Hedef Fiyat ({sym}, KDV dahil)</span>
-            <Input
-              type="number"
-              step="any"
-              className="h-8 w-32 text-sm"
-              value={targetTotal}
-              onChange={(e) => setTargetTotal(e.target.value)}
-              placeholder={sym}
-            />
-            <Button variant="outline" size="sm" onClick={applyTarget}>
-              Dağıt
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Toplu fiyatlandırma — yalnız opsiyon HARİCİ kalemler */}
+      <BulkPricingPanel
+        scopeLabel="opsiyon hariç kalemler"
+        kdvNote="KDV dahil"
+        sym={sym}
+        marginVal={bulkMargin}
+        onMarginChange={setBulkMargin}
+        onApplyMargin={applyBulk}
+        targetVal={targetTotal}
+        onTargetChange={setTargetTotal}
+        onApplyTarget={applyTarget}
+      />
 
-      {/* Kalem bazlı kâr tablosu */}
+      {/* Kalem bazlı kâr tablosu — opsiyon hariç */}
       <Card className="overflow-hidden">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -274,7 +295,7 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {items.map((it) => {
+                {mainItems.map((it) => {
                   const unitCostOut = convert(it.unitCost, it.currency, out, rates);
                   return (
                     <tr key={it.id} className="hover:bg-muted/30">
@@ -393,32 +414,122 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
         </Card>
       </div>
 
-      {/* Opsiyonlar — ana toplama dahil değil, KDV hariç satış fiyatıyla */}
-      {items.some((it) => it.isOption) && (
-        <Card className="border-violet-200">
-          <CardContent className="space-y-2 p-5">
-            <p className="text-sm font-semibold text-violet-700">Opsiyonlar (ana toplama dahil değildir)</p>
-            <div className="divide-y">
-              {items
-                .filter((it) => it.isOption)
-                .map((it) => (
-                  <div key={it.id} className="flex items-center justify-between gap-3 py-1.5 text-sm">
-                    <span className="min-w-0">
-                      <span className="font-medium">{it.name || it.code}</span>
-                      {it.desc && <span className="text-muted-foreground"> — {it.desc}</span>}
-                      <span className="ml-1 text-[11px] text-muted-foreground">
-                        ({fmt(it.qty, it.qty % 1 === 0 ? 0 : 2)} {it.unit}, kâr %{fmt(it.marginPct)})
-                      </span>
-                    </span>
-                    <span className="shrink-0 font-semibold tabular-nums">
-                      {sym}{fmt(lineTotalSaleOut(it, out, rates))}
-                      <span className="ml-1 text-[10px] font-normal text-muted-foreground">KDV hariç</span>
-                    </span>
-                  </div>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
+      {/* ═══ OPSİYONLAR — ana kalemlerden tamamen ayrı bölüm ═══
+          Ana toplama dahil DEĞİL. Kendi toplu fiyatlandırması, kalem tablosu
+          ve iç özeti (maliyet/kâr/satış) vardır — ana kalemlerle aynı mantık. */}
+      {hasOptions && optionTotals && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 pt-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-100 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-violet-700">
+              <Layers className="size-3.5" /> Opsiyonlar
+            </span>
+            <span className="text-xs text-muted-foreground">Ana teklife / toplama dahil değildir — ayrıca sunulur.</span>
+            <div className="h-px flex-1 bg-violet-200" />
+          </div>
+
+          {/* Opsiyonlara özel toplu fiyatlandırma (KDV hariç hedef) */}
+          <BulkPricingPanel
+            accent="violet"
+            scopeLabel="yalnız opsiyonlar"
+            kdvNote="KDV hariç"
+            sym={sym}
+            marginVal={bulkMarginOpt}
+            onMarginChange={setBulkMarginOpt}
+            onApplyMargin={applyBulkOpt}
+            targetVal={targetTotalOpt}
+            onTargetChange={setTargetTotalOpt}
+            onApplyTarget={applyTargetOpt}
+          />
+
+          {/* Opsiyon kalem tablosu */}
+          <Card className="overflow-hidden border-violet-200">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b bg-violet-50 text-[11px] font-semibold uppercase tracking-wider text-violet-700">
+                      <th className="px-2 py-2 text-left">Tür</th>
+                      <th className="min-w-[180px] px-2 py-2 text-left">Açıklama</th>
+                      <th className="w-16 px-2 py-2 text-right">Miktar</th>
+                      <th className="w-28 px-2 py-2 text-right">Birim Maliyet ({sym})</th>
+                      <th className="w-20 px-2 py-2 text-right">Kâr %</th>
+                      <th className="w-28 px-2 py-2 text-right">Birim Satış ({sym})</th>
+                      <th className="w-28 px-2 py-2 text-right">Satır Toplam ({sym})</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {optionItems.map((it) => {
+                      const unitCostOut = convert(it.unitCost, it.currency, out, rates);
+                      return (
+                        <tr key={it.id} className="hover:bg-violet-50/40">
+                          <td className="px-2 py-1.5">
+                            <span
+                              className={cn(
+                                "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                                it.kind === "HIZMET" ? "bg-violet-100 text-violet-700" : "bg-sky-100 text-sky-700",
+                              )}
+                            >
+                              {QUOTE_ITEM_KIND_LABELS[it.kind]}
+                            </span>
+                          </td>
+                          <td className="px-2 py-1.5">
+                            <span className="font-medium">{it.name || it.code || "—"}</span>
+                            {it.desc && <span className="block whitespace-pre-line text-[11px] text-muted-foreground">{it.desc}</span>}
+                          </td>
+                          <td className="px-2 py-1.5 text-right tabular-nums">
+                            {fmt(it.qty, it.qty % 1 === 0 ? 0 : 2)} {it.unit}
+                          </td>
+                          <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">{sym}{fmt(unitCostOut, 2)}</td>
+                          <td className="px-2 py-1.5">
+                            <Input
+                              type="number"
+                              step="0.5"
+                              className="h-8 w-full text-right text-sm"
+                              value={it.marginPct}
+                              onChange={(e) => setMargin(it.id, parseFloat(e.target.value) || 0)}
+                            />
+                          </td>
+                          <td className="px-2 py-1.5 text-right tabular-nums font-medium">{sym}{fmt(lineUnitSaleOut(it, out, rates), 2)}</td>
+                          <td className="px-2 py-1.5 text-right tabular-nums font-semibold">{sym}{fmt(lineTotalSaleOut(it, out, rates))}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Opsiyon iç özeti — ana kalemlerle aynı mantık, ayrı (3 para birimi) */}
+          <Card className="border-dashed border-violet-200">
+            <CardContent className="p-5">
+              <p className="mb-3 text-sm font-semibold text-violet-700">Opsiyon İç Özeti — 3 para birimi (müşteriye gösterilmez)</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-[11px] uppercase tracking-wider text-muted-foreground">
+                      <th className="py-1.5 text-left font-semibold"> </th>
+                      <th className="py-1.5 text-right font-semibold">₺ TL</th>
+                      <th className="py-1.5 text-right font-semibold">$ USD</th>
+                      <th className="py-1.5 text-right font-semibold">€ EUR</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    <TriRow label="Opsiyon Maliyet" v={tri(optionTotals.totalCostTRY)} />
+                    <TriRow label="Opsiyon Kâr" v={tri(optionTotals.profitTRY)} accent />
+                    <TriRow label="Opsiyon Satış (KDV hariç)" v={tri(optionTotals.saleExKdvTRY)} strong />
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Opsiyon Ort. Kâr Oranı:{" "}
+                <strong className="text-foreground">
+                  {optionTotals.totalCostTRY > 0 ? `%${fmt((optionTotals.profitTRY / optionTotals.totalCostTRY) * 100, 1)}` : "—"}
+                </strong>
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* Ödeme şekli + Teklif notları — en altta */}
@@ -502,45 +613,19 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
         </Card>
 
         <Card>
-          <CardContent className="space-y-3 p-4" data-edit-only>
-            <div className="flex items-center justify-between">
-              <Label className="flex items-center gap-1.5 text-sm">
-                <StickyNote className="size-4 text-muted-foreground" /> Teklif Notları
-              </Label>
-              <Button variant="outline" size="sm" onClick={() => updateNotes([...noteItems, ""])}>
-                <Plus className="size-3.5" /> Madde Ekle
-              </Button>
-            </div>
-            <p className="text-[11px] text-muted-foreground">Her madde PDF&apos;de ayrı satır (1-2-3) olarak gösterilir.</p>
-            {noteItems.length === 0 ? (
-              <p className="rounded-md border border-dashed p-3 text-center text-xs text-muted-foreground">
-                Örn. &quot;Teslim süresi 4 hafta&quot;, &quot;Nakliye dahildir&quot;, &quot;2 yıl garanti&quot;
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {noteItems.map((line, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground">
-                      {i + 1}
-                    </span>
-                    <Input
-                      className="h-8 flex-1 text-sm"
-                      value={line}
-                      placeholder="Not maddesi…"
-                      onChange={(e) => updateNotes(noteItems.map((x, idx) => (idx === i ? e.target.value : x)))}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => updateNotes(noteItems.filter((_, idx) => idx !== i))}
-                      className="rounded-md p-1 text-destructive/70 hover:bg-destructive-soft"
-                      aria-label="Maddeyi sil"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+          <CardContent className="space-y-2 p-4" data-edit-only>
+            <Label className="flex items-center gap-1.5 text-sm">
+              <StickyNote className="size-4 text-muted-foreground" /> Teklif Notları
+            </Label>
+            <p className="text-[11px] text-muted-foreground">
+              Her satır PDF&apos;de ayrı madde (1-2-3) olarak gösterilir. Yeni madde için Enter&apos;a basın — alan yazdıkça büyür.
+            </p>
+            <Textarea
+              value={meta.notes ?? ""}
+              onChange={(e) => setMeta((p) => ({ ...p, notes: e.target.value }))}
+              placeholder={"Teslim süresi 4 hafta\nNakliye dahildir\n2 yıl garanti"}
+              className="min-h-[92px] w-full resize-y text-sm leading-relaxed [field-sizing:content]"
+            />
           </CardContent>
         </Card>
       </div>
@@ -575,5 +660,112 @@ function TriRow({
       <td className="py-2 text-right tabular-nums">${fmt(v.usd)}</td>
       <td className="py-2 text-right tabular-nums">€{fmt(v.eur)}</td>
     </tr>
+  );
+}
+
+// Toplu fiyatlandırma paneli — hem ana kalemler hem opsiyonlar için kullanılır
+// (accent ile renk farkı). Sol: tüm kalemlere sabit kâr %, sağ: hedef toplama
+// ulaşacak kâr oranını dağıt.
+function BulkPricingPanel({
+  accent = "primary",
+  scopeLabel,
+  kdvNote,
+  sym,
+  marginVal,
+  onMarginChange,
+  onApplyMargin,
+  targetVal,
+  onTargetChange,
+  onApplyTarget,
+}: {
+  accent?: "primary" | "violet";
+  scopeLabel: string;
+  kdvNote: string;
+  sym: string;
+  marginVal: string;
+  onMarginChange: (v: string) => void;
+  onApplyMargin: () => void;
+  targetVal: string;
+  onTargetChange: (v: string) => void;
+  onApplyTarget: () => void;
+}) {
+  const isViolet = accent === "violet";
+  return (
+    <Card data-edit-only className={isViolet ? "border-violet-200 bg-violet-50/30" : undefined}>
+      <CardContent className="p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <div
+            className={cn(
+              "flex size-7 shrink-0 items-center justify-center rounded-lg",
+              isViolet ? "bg-violet-100 text-violet-700" : "bg-primary-soft text-primary-soft-foreground",
+            )}
+          >
+            <Percent className="size-4" />
+          </div>
+          <p className="text-sm font-semibold">
+            Toplu Fiyatlandırma
+            <span className="ml-1 font-normal text-muted-foreground">— {scopeLabel}</span>
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {/* Sabit kâr % */}
+          <div className="rounded-xl border bg-background p-3">
+            <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Percent className="size-3.5" /> Tüm kalemlere kâr oranı
+            </label>
+            <div className="mt-2 flex items-center gap-2">
+              <div className="relative flex-1">
+                <Input
+                  type="number"
+                  step="0.5"
+                  value={marginVal}
+                  onChange={(e) => onMarginChange(e.target.value)}
+                  placeholder="0"
+                  className="h-9 pr-7 text-right text-sm"
+                />
+                <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
+              </div>
+              <Button
+                size="sm"
+                className={cn("h-9 shrink-0", isViolet && "bg-violet-600 text-white hover:bg-violet-700")}
+                onClick={onApplyMargin}
+              >
+                Uygula
+              </Button>
+            </div>
+            <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">Her kaleme aynı kâr yüzdesini yazar.</p>
+          </div>
+
+          {/* Hedef toplam fiyat */}
+          <div className="rounded-xl border bg-background p-3">
+            <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Target className="size-3.5" /> Toplam hedef fiyat ({kdvNote})
+            </label>
+            <div className="mt-2 flex items-center gap-2">
+              <div className="relative flex-1">
+                <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">{sym}</span>
+                <Input
+                  type="number"
+                  step="any"
+                  value={targetVal}
+                  onChange={(e) => onTargetChange(e.target.value)}
+                  placeholder="0"
+                  className="h-9 pl-7 text-right text-sm"
+                />
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className={cn("h-9 shrink-0", isViolet && "border-violet-300 text-violet-700 hover:bg-violet-100")}
+                onClick={onApplyTarget}
+              >
+                Dağıt
+              </Button>
+            </div>
+            <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">Bu toplama ulaşacak tek kâr oranını dağıtır.</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
