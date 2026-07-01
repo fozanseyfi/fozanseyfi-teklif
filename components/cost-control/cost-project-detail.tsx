@@ -357,14 +357,14 @@ export function CostProjectDetail({
         />
         <Kpi
           label="Vergi Öncesi Kâr (VÖK)"
-          value={`₺${fmt(m.currentProfitTL)}`}
+          value={`₺${fmt(m.profitTL)}`}
           sub={
             m.hasPlanned
-              ? `Öngörülen ₺${fmt(m.plannedProfitTL)} · Gerçekleşen ₺${fmt(m.profitTL)}${profitVsPlannedPct != null ? ` (${profitVsPlannedPct >= 0 ? "+" : ""}%${fmt(profitVsPlannedPct, 1)})` : ""}`
-              : `Öngörülen kâr: ₺${fmt(m.profitTL)}`
+              ? `Anlık (nakit) ₺${fmt(m.currentProfitTL)} · Öngörülen ₺${fmt(m.plannedProfitTL)}${profitVsPlannedPct != null ? ` (${profitVsPlannedPct >= 0 ? "+" : ""}%${fmt(profitVsPlannedPct, 1)})` : ""}`
+              : `Anlık (Tahsilat − Ödeme): ₺${fmt(m.currentProfitTL)}`
           }
-          tone={m.currentProfitTL >= 0 ? "emerald" : "rose"}
-          icon={m.currentProfitTL >= 0 ? "up" : "down"}
+          tone={m.profitTL >= 0 ? "emerald" : "rose"}
+          icon={m.profitTL >= 0 ? "up" : "down"}
         />
         <Kpi
           label="Kalan Alacak"
@@ -396,7 +396,7 @@ export function CostProjectDetail({
             <div className="space-y-1 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Vergi Öncesi Kâr (VÖK)</span>
-                <span className="font-semibold tabular-nums">₺{fmt(m.currentProfitTL)}</span>
+                <span className="font-semibold tabular-nums">₺{fmt(m.profitTL)}</span>
               </div>
               <div className="flex items-center justify-between text-muted-foreground">
                 <span>− Ödenecek KDV</span>
@@ -411,10 +411,10 @@ export function CostProjectDetail({
                 <span
                   className={cn(
                     "tabular-nums",
-                    m.currentProfitTL - m.vatPayableTL - m.corporateTaxTL >= 0 ? "text-emerald-700" : "text-rose-600",
+                    m.profitTL - m.vatPayableTL - m.corporateTaxTL >= 0 ? "text-emerald-700" : "text-rose-600",
                   )}
                 >
-                  ₺{fmt(m.currentProfitTL - m.vatPayableTL - m.corporateTaxTL)}
+                  ₺{fmt(m.profitTL - m.vatPayableTL - m.corporateTaxTL)}
                 </span>
               </div>
             </div>
