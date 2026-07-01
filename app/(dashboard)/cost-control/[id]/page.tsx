@@ -60,6 +60,7 @@ export default async function CostProjectPage({ params }: { params: Promise<{ id
     salesPrice: project.salesPrice,
     salesCurrency: project.salesCurrency,
     salesVatRate: project.salesVatRate,
+    salesInvoicedAmount: project.salesInvoicedAmount,
     status: project.status,
     startDate: project.startDate?.toISOString().slice(0, 10) ?? "",
     endDate: project.endDate?.toISOString().slice(0, 10) ?? "",

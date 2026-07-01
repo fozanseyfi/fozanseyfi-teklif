@@ -64,6 +64,7 @@ import {
   lineVariance,
   csym,
   PAYMENT_METHOD_LABELS,
+  CORPORATE_TAX_RATE,
   type Rates,
 } from "@/lib/cost-control";
 import { reminderText } from "@/lib/cost-control-statement";
@@ -138,6 +139,7 @@ interface ProjectData {
   salesPrice: number;
   salesCurrency: string;
   salesVatRate: number;
+  salesInvoicedAmount: number;
   status: "ACTIVE" | "DONE";
   startDate: string;
   endDate: string;
@@ -203,6 +205,8 @@ export function CostProjectDetail({
       computeCostProjectMetrics({
         salesPrice: data.salesPrice,
         salesCurrency: data.salesCurrency,
+        salesVatRate: data.salesVatRate,
+        salesInvoicedAmount: data.salesInvoicedAmount,
         lines: data.lines,
         collections: data.collections,
         partners: data.partners,
@@ -500,6 +504,8 @@ export function CostProjectDetail({
         />
       </div>
 
+      <TaxSummaryCard m={m} />
+
       <PartnersCard data={data} m={m} canEdit={canEdit} onChange={refresh} />
 
       <PaymentOwnersCard lines={data.lines} />
@@ -605,6 +611,69 @@ function VatRow({ label, net, vat, gross, strong }: { label: string; net: number
       <td className="py-2 text-right tabular-nums">₺{fmt(vat)}</td>
       <td className="py-2 text-right tabular-nums">₺{fmt(gross)}</td>
     </tr>
+  );
+}
+
+// ————————————————————————————————————————— Vergi & şirkete net
+function TaxSummaryCard({ m }: { m: ReturnType<typeof computeCostProjectMetrics> }) {
+  const hasInvoiced = m.salesInvoicedNetTL > 0;
+  return (
+    <Card className="border-dashed">
+      <CardContent className="p-5">
+        <p className="mb-1 flex items-center gap-2 text-sm font-semibold">
+          <Receipt className="size-4 text-primary" /> Vergi & Şirkete Net (yalnız faturalı kısım vergilendirilir)
+        </p>
+        <p className="mb-3 text-[11px] text-muted-foreground">
+          Faturalı satış: ₺{fmt(m.salesInvoicedNetTL)} · Faturasız satış: ₺{fmt(m.salesUninvoicedNetTL)}
+        </p>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* KDV */}
+          <div className="rounded-lg border p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">KDV</p>
+            <TaxRow label="Müşteriden alınan KDV" value={m.outputVatTL} />
+            <TaxRow label="Maliyet KDV'si (indirilecek)" value={-m.inputVatTL} />
+            <div className="mt-1 flex items-center justify-between border-t pt-1.5 text-sm font-bold">
+              <span>Devlete Ödenecek KDV</span>
+              <span className={cn("tabular-nums", m.vatPayableTL >= 0 ? "text-rose-600" : "text-emerald-600")}>
+                ₺{fmt(m.vatPayableTL)}
+              </span>
+            </div>
+            {m.vatPayableTL < 0 && (
+              <p className="mt-1 text-[10.5px] text-emerald-600">Negatif = devraan KDV (alacak).</p>
+            )}
+          </div>
+
+          {/* Kâr & vergi */}
+          <div className="rounded-lg border p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Kâr & Vergi</p>
+            <TaxRow label="Faturalı kâr (KDV hariç)" value={m.invoicedProfitNetTL} />
+            <TaxRow label={`Kurumlar vergisi (%${CORPORATE_TAX_RATE})`} value={-m.corporateTaxTL} />
+            <TaxRow label="Faturasız kâr (vergisiz)" value={m.uninvoicedProfitNetTL} muted />
+            <div className="mt-1 flex items-center justify-between border-t pt-1.5 text-sm font-bold">
+              <span>Şirkete Net Kalan</span>
+              <span className={cn("tabular-nums", m.companyNetTL >= 0 ? "text-emerald-700" : "text-rose-600")}>
+                ₺{fmt(m.companyNetTL)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {!hasInvoiced && (
+          <p className="mt-3 rounded-md bg-muted/50 px-3 py-2 text-[11px] text-muted-foreground">
+            Faturalı satış tutarı girilmemiş — vergi hesabı için proje ayarlarından &quot;Faturalı Satış Tutarı&quot;nı belirtin.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+function TaxRow({ label, value, muted }: { label: string; value: number; muted?: boolean }) {
+  return (
+    <div className={cn("flex items-center justify-between py-1 text-sm", muted && "text-muted-foreground")}>
+      <span>{label}</span>
+      <span className="tabular-nums">₺{fmt(value)}</span>
+    </div>
   );
 }
 
@@ -963,6 +1032,7 @@ function ProjectSettingsDialog({ data, onClose, onSaved }: { data: ProjectData; 
     salesPrice: String(data.salesPrice),
     salesCurrency: data.salesCurrency,
     salesVatRate: String(data.salesVatRate),
+    salesInvoicedAmount: String(data.salesInvoicedAmount),
     startDate: data.startDate,
     endDate: data.endDate,
     status: data.status,
@@ -978,6 +1048,7 @@ function ProjectSettingsDialog({ data, onClose, onSaved }: { data: ProjectData; 
         salesPrice: parseFloat(form.salesPrice) || 0,
         salesCurrency: form.salesCurrency,
         salesVatRate: parseFloat(form.salesVatRate) || 0,
+        salesInvoicedAmount: parseFloat(form.salesInvoicedAmount) || 0,
         startDate: form.startDate || null,
         endDate: form.endDate || null,
         status: form.status,
@@ -1029,6 +1100,21 @@ function ProjectSettingsDialog({ data, onClose, onSaved }: { data: ProjectData; 
               <Label>Satış KDV %</Label>
               <Input type="number" step="any" value={form.salesVatRate} onChange={(e) => setForm({ ...form, salesVatRate: e.target.value })} />
             </div>
+          </div>
+          <div className="rounded-lg border border-dashed p-3">
+            <Label>Faturalı Satış Tutarı (KDV hariç)</Label>
+            <Input
+              type="number"
+              step="any"
+              value={form.salesInvoicedAmount}
+              onChange={(e) => setForm({ ...form, salesInvoicedAmount: e.target.value })}
+              className="mt-1.5"
+            />
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Satışın faturalı kısmı. Kalanı ({csym(form.salesCurrency)}
+              {fmt(Math.max(0, (parseFloat(form.salesPrice) || 0) - (parseFloat(form.salesInvoicedAmount) || 0)))}) faturasız kabul edilir.
+              KDV ve kurumlar vergisi yalnız faturalı kısımdan hesaplanır. Tümü faturalıysa satış tutarını yaz; tümü faturasızsa 0 bırak.
+            </p>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">

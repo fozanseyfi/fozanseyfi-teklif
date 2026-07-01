@@ -126,6 +126,8 @@ export async function listCostProjects(): Promise<CostProjectCard[]> {
     const m = computeCostProjectMetrics({
       salesPrice: p.salesPrice,
       salesCurrency: p.salesCurrency,
+      salesVatRate: p.salesVatRate,
+      salesInvoicedAmount: p.salesInvoicedAmount,
       lines: p.lines,
       collections: p.collections,
       partners: p.partners,
@@ -197,6 +199,7 @@ export async function createCostProject(input: {
   salesPrice?: number;
   salesCurrency?: string;
   salesVatRate?: number;
+  salesInvoicedAmount?: number;
   startDate?: string;
   endDate?: string;
   notes?: string;
@@ -216,6 +219,7 @@ export async function createCostProject(input: {
       salesPrice: Number(input.salesPrice) || 0,
       salesCurrency: input.salesCurrency || "TRY",
       salesVatRate: input.salesVatRate ?? 20,
+      salesInvoicedAmount: Number(input.salesInvoicedAmount) || 0,
       startDate: toDate(input.startDate),
       endDate: toDate(input.endDate),
       notes: (input.notes || "").trim() || null,
@@ -234,6 +238,7 @@ export async function updateCostProject(
     salesPrice?: number;
     salesCurrency?: string;
     salesVatRate?: number;
+    salesInvoicedAmount?: number;
     startDate?: string | null;
     endDate?: string | null;
     status?: "ACTIVE" | "DONE";
@@ -252,6 +257,7 @@ export async function updateCostProject(
       ...(patch.salesPrice !== undefined ? { salesPrice: Number(patch.salesPrice) || 0 } : {}),
       ...(patch.salesCurrency !== undefined ? { salesCurrency: patch.salesCurrency } : {}),
       ...(patch.salesVatRate !== undefined ? { salesVatRate: Number(patch.salesVatRate) || 0 } : {}),
+      ...(patch.salesInvoicedAmount !== undefined ? { salesInvoicedAmount: Number(patch.salesInvoicedAmount) || 0 } : {}),
       ...(patch.startDate !== undefined ? { startDate: toDate(patch.startDate) } : {}),
       ...(patch.endDate !== undefined ? { endDate: toDate(patch.endDate) } : {}),
       ...(patch.status !== undefined ? { status: patch.status } : {}),

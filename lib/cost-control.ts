@@ -85,9 +85,13 @@ export function lineVariance(l: LineLike): number | null {
 // Proje özeti
 // ————————————————————————————————————————————————————————————————
 
+export const CORPORATE_TAX_RATE = 25; // %
+
 export interface CostProjectMetricsInput {
   salesPrice: number;
   salesCurrency: string;
+  salesVatRate?: number;
+  salesInvoicedAmount?: number; // satışın faturalı (KDV hariç) kısmı, satış para biriminde
   lines: LineLike[];
   collections: { amount: number; isPlanned?: boolean }[];
   partners: { name: string; sharePercent: number }[];
@@ -127,6 +131,16 @@ export interface CostProjectMetrics {
   profitTL: number; // öngörülen: satış − gerçekleşen maliyet
   currentProfitTL: number; // mevcut/nakit: tahsil edilen − ödenen (alınmamış para dahil değil)
   profitMarginPct: number; // kâr / satış
+  // Vergi & şirkete net (yalnız faturalı kısım vergilendirilir)
+  salesInvoicedNetTL: number;
+  salesUninvoicedNetTL: number;
+  outputVatTL: number; // müşteriden alınan KDV (faturalı satış × satış KDV)
+  inputVatTL: number; // faturalı maliyet KDV'si (indirilecek)
+  vatPayableTL: number; // devlete ödenecek KDV = alınan − indirilecek
+  invoicedProfitNetTL: number; // faturalı kâr (KDV hariç) = faturalı satış − faturalı maliyet
+  corporateTaxTL: number; // faturalı kârın %25'i
+  uninvoicedProfitNetTL: number; // faturasız kâr (vergisiz)
+  companyNetTL: number; // şirkete net kalan
   partnerShares: { name: string; sharePercent: number; amountTL: number }[];
   partnerPctTotal: number;
 }
@@ -176,6 +190,21 @@ export function computeCostProjectMetrics(inp: CostProjectMetricsInput): CostPro
   const currentProfitTL = collectedTL - paidTL;
   const profitMarginPct = salesPriceTL > 0 ? (profitTL / salesPriceTL) * 100 : 0;
 
+  // ——— Vergi & şirkete net (yalnız faturalı kısım) ———
+  const salesVatRate = inp.salesVatRate ?? 20;
+  const salesCur = (salesCurrency as QuoteCurrency) || "TRY";
+  const salesInvoicedNetTL = toTRY(inp.salesInvoicedAmount ?? 0, salesCur, rates);
+  const salesUninvoicedNetTL = Math.max(0, salesPriceTL - salesInvoicedNetTL);
+  const outputVatTL = salesInvoicedNetTL * (salesVatRate / 100);
+  const inputVatTL = invoicedVatTL; // faturalı maliyet KDV'si
+  const vatPayableTL = outputVatTL - inputVatTL;
+  // Faturalı kâr: faturalı satış − faturalı (belgeli) maliyet (indirilebilir gider).
+  const invoicedProfitNetTL = salesInvoicedNetTL - invoicedNetTL;
+  const corporateTaxTL = Math.max(0, invoicedProfitNetTL) * (CORPORATE_TAX_RATE / 100);
+  // Faturasız kâr: faturasız satış − faturasız maliyet (vergisiz).
+  const uninvoicedProfitNetTL = salesUninvoicedNetTL - uninvoicedNetTL;
+  const companyNetTL = invoicedProfitNetTL - corporateTaxTL + uninvoicedProfitNetTL;
+
   const partnerPctTotal = partners.reduce((s, p) => s + (p.sharePercent || 0), 0);
   const partnerShares = partners.map((p) => ({
     name: p.name,
@@ -211,6 +240,15 @@ export function computeCostProjectMetrics(inp: CostProjectMetricsInput): CostPro
     profitTL,
     currentProfitTL,
     profitMarginPct,
+    salesInvoicedNetTL,
+    salesUninvoicedNetTL,
+    outputVatTL,
+    inputVatTL,
+    vatPayableTL,
+    invoicedProfitNetTL,
+    corporateTaxTL,
+    uninvoicedProfitNetTL,
+    companyNetTL,
     partnerShares,
     partnerPctTotal,
   };

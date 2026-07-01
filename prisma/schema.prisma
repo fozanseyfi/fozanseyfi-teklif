@@ -639,6 +639,9 @@ model CostProject {
   salesPrice      Float             @default(0) @map("sales_price")
   salesCurrency   String            @default("TRY") @map("sales_currency")
   salesVatRate    Float             @default(20) @map("sales_vat_rate")
+  // Satışın faturalı (KDV hariç) kısmı. Kalanı faturasız kabul edilir. Vergi
+  // (KDV + kurumlar vergisi) hesabı yalnız faturalı kısım üzerinden yapılır.
+  salesInvoicedAmount Float          @default(0) @map("sales_invoiced_amount")
   startDate       DateTime?         @map("start_date")
   endDate         DateTime?         @map("end_date")
   status          CostProjectStatus @default(ACTIVE)
