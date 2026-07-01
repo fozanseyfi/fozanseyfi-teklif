@@ -92,6 +92,7 @@ export interface CostProjectMetricsInput {
   salesCurrency: string;
   salesVatRate?: number;
   salesInvoicedAmount?: number; // satışın faturalı (KDV hariç) kısmı, satış para biriminde
+  plannedCostTotal?: number; // öngörülen TOPLAM maliyet (proje snapshot, TL), kalemlerden bağımsız
   lines: LineLike[];
   collections: { amount: number; isPlanned?: boolean }[];
   partners: { name: string; sharePercent: number }[];
@@ -152,8 +153,9 @@ export function computeCostProjectMetrics(inp: CostProjectMetricsInput): CostPro
   const salesSym = csym(salesCurrency);
   const salesPriceTL = toTRY(salesPrice || 0, (salesCurrency as QuoteCurrency) || "TRY", rates);
 
-  let plannedTotalTL = 0;
-  let hasPlanned = false;
+  // Öngörülen (teklif) toplam maliyet — proje snapshot'ı; kalemlerden bağımsız.
+  const plannedTotalTL = inp.plannedCostTotal ?? 0;
+  const hasPlanned = plannedTotalTL > 0.001;
   let actualNetTL = 0;
   let actualVatTL = 0;
   let invoicedNetTL = 0;
@@ -171,10 +173,6 @@ export function computeCostProjectMetrics(inp: CostProjectMetricsInput): CostPro
     actualVatTL += vat;
     paidTL += paidLine;
     payableRemainingTL += Math.max(0, net + vat - paidLine);
-    if (l.plannedAmount != null) {
-      plannedTotalTL += l.plannedAmount;
-      hasPlanned = true;
-    }
     if (l.isInvoiced) {
       invoicedNetTL += net;
       invoicedVatTL += vat;

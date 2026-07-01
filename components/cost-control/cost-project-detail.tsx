@@ -145,6 +145,7 @@ interface ProjectData {
   salesCurrency: string;
   salesVatRate: number;
   salesInvoicedAmount: number;
+  plannedCostTotal: number;
   status: "ACTIVE" | "DONE";
   startDate: string;
   endDate: string;
@@ -215,6 +216,7 @@ export function CostProjectDetail({
         salesCurrency: data.salesCurrency,
         salesVatRate: data.salesVatRate,
         salesInvoicedAmount: data.salesInvoicedAmount,
+        plannedCostTotal: data.plannedCostTotal,
         lines: data.lines,
         collections: data.collections,
         partners: data.partners,
@@ -1141,6 +1143,7 @@ function ProjectSettingsDialog({ data, onClose, onSaved }: { data: ProjectData; 
     salesCurrency: data.salesCurrency,
     salesVatRate: String(data.salesVatRate),
     salesInvoicedAmount: String(data.salesInvoicedAmount),
+    plannedCostTotal: String(data.plannedCostTotal),
     startDate: data.startDate,
     endDate: data.endDate,
     status: data.status,
@@ -1157,6 +1160,7 @@ function ProjectSettingsDialog({ data, onClose, onSaved }: { data: ProjectData; 
         salesCurrency: form.salesCurrency,
         salesVatRate: parseFloat(form.salesVatRate) || 0,
         salesInvoicedAmount: parseFloat(form.salesInvoicedAmount) || 0,
+        plannedCostTotal: parseFloat(form.plannedCostTotal) || 0,
         startDate: form.startDate || null,
         endDate: form.endDate || null,
         status: form.status,
@@ -1222,6 +1226,20 @@ function ProjectSettingsDialog({ data, onClose, onSaved }: { data: ProjectData; 
               Satışın faturalı kısmı. Kalanı ({csym(form.salesCurrency)}
               {fmt(Math.max(0, (parseFloat(form.salesPrice) || 0) - (parseFloat(form.salesInvoicedAmount) || 0)))}) faturasız kabul edilir.
               KDV ve kurumlar vergisi yalnız faturalı kısımdan hesaplanır. Tümü faturalıysa satış tutarını yaz; tümü faturasızsa 0 bırak.
+            </p>
+          </div>
+          <div className="rounded-lg border border-dashed p-3">
+            <Label>Öngörülen Toplam Maliyet (KDV hariç)</Label>
+            <Input
+              type="number"
+              step="any"
+              value={form.plannedCostTotal}
+              onChange={(e) => setForm({ ...form, plannedCostTotal: e.target.value })}
+              className="mt-1.5"
+            />
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Teklifteki toplam maliyet (proje geneli sabit). Öngörülen kâr = satış − bu tutar.
+              Kalem ekleyip silmek bu değeri <strong>değiştirmez</strong>; öngörü/gerçekleşen karşılaştırması hep toplam üzerinden yapılır.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -1698,14 +1716,10 @@ function LineDialog({
               </Button>
             </div>
           )}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>KDV %</Label>
               <Input type="number" step="any" value={f.vatRate} onChange={(e) => setF({ ...f, vatRate: e.target.value })} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Planlanan (₺, ops.)</Label>
-              <Input type="number" step="any" value={f.plannedAmount} onChange={(e) => setF({ ...f, plannedAmount: e.target.value })} placeholder="—" />
             </div>
             <label className="flex items-center gap-2 pt-6 text-sm">
               <Checkbox checked={f.isInvoiced} onCheckedChange={(v) => setF({ ...f, isInvoiced: !!v })} />

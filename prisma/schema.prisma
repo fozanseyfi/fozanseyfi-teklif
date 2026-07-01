@@ -642,6 +642,9 @@ model CostProject {
   // Satışın faturalı (KDV hariç) kısmı. Kalanı faturasız kabul edilir. Vergi
   // (KDV + kurumlar vergisi) hesabı yalnız faturalı kısım üzerinden yapılır.
   salesInvoicedAmount Float          @default(0) @map("sales_invoiced_amount")
+  // Öngörülen (teklif) TOPLAM maliyet — proje düzeyinde snapshot (KDV hariç, TL).
+  // Kalem ekleme/silmeden ETKİLENMEZ; öngörülen kâr = satış − bu tutar.
+  plannedCostTotal    Float          @default(0) @map("planned_cost_total")
   startDate       DateTime?         @map("start_date")
   endDate         DateTime?         @map("end_date")
   status          CostProjectStatus @default(ACTIVE)

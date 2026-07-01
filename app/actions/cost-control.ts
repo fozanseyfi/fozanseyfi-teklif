@@ -129,6 +129,7 @@ export async function listCostProjects(): Promise<CostProjectCard[]> {
       salesCurrency: p.salesCurrency,
       salesVatRate: p.salesVatRate,
       salesInvoicedAmount: p.salesInvoicedAmount,
+      plannedCostTotal: p.plannedCostTotal,
       lines: p.lines,
       collections: p.collections,
       partners: p.partners,
@@ -202,6 +203,7 @@ export async function createCostProject(input: {
   salesCurrency?: string;
   salesVatRate?: number;
   salesInvoicedAmount?: number;
+  plannedCostTotal?: number;
   startDate?: string;
   endDate?: string;
   notes?: string;
@@ -222,6 +224,7 @@ export async function createCostProject(input: {
       salesCurrency: input.salesCurrency || "TRY",
       salesVatRate: input.salesVatRate ?? 20,
       salesInvoicedAmount: Number(input.salesInvoicedAmount) || 0,
+      plannedCostTotal: Number(input.plannedCostTotal) || 0,
       startDate: toDate(input.startDate),
       endDate: toDate(input.endDate),
       notes: (input.notes || "").trim() || null,
@@ -241,6 +244,7 @@ export async function updateCostProject(
     salesCurrency?: string;
     salesVatRate?: number;
     salesInvoicedAmount?: number;
+    plannedCostTotal?: number;
     startDate?: string | null;
     endDate?: string | null;
     status?: "ACTIVE" | "DONE";
@@ -260,6 +264,7 @@ export async function updateCostProject(
       ...(patch.salesCurrency !== undefined ? { salesCurrency: patch.salesCurrency } : {}),
       ...(patch.salesVatRate !== undefined ? { salesVatRate: Number(patch.salesVatRate) || 0 } : {}),
       ...(patch.salesInvoicedAmount !== undefined ? { salesInvoicedAmount: Number(patch.salesInvoicedAmount) || 0 } : {}),
+      ...(patch.plannedCostTotal !== undefined ? { plannedCostTotal: Number(patch.plannedCostTotal) || 0 } : {}),
       ...(patch.startDate !== undefined ? { startDate: toDate(patch.startDate) } : {}),
       ...(patch.endDate !== undefined ? { endDate: toDate(patch.endDate) } : {}),
       ...(patch.status !== undefined ? { status: patch.status } : {}),
@@ -727,6 +732,7 @@ export async function createCostProjectFromQuote(
   let salesCurrency = "TRY";
   let salesInvoicedAmount = 0;
   let salesVatRate = 20;
+  let plannedCostTotal = 0;
   const lineData: {
     code: string; description: string; unit: string; quantity: number;
     unitPrice: number; currency: string; exchangeRate: number; vatRate: number;
@@ -743,6 +749,8 @@ export async function createCostProjectFromQuote(
     salesInvoicedAmount = totals.subtotal;
     salesVatRate = meta.kdvRate ?? 20;
     salesCurrency = meta.outputCurrency || "TRY";
+    // Öngörülen toplam maliyet = teklifteki toplam maliyet (TL), proje snapshot'ı.
+    plannedCostTotal = totals.totalCostTRY;
     const rateOf = (cur: string) => (cur === "USD" ? meta.usd : cur === "EUR" ? meta.eur : 1);
     items
       .filter((it) => !it.isOption)
@@ -767,6 +775,7 @@ export async function createCostProjectFromQuote(
     // eklenir (BOQ import v2'de). En azından satış + başlık hazır gelir.
     salesPrice = src.pricingSnapshot?.finalSalePrice ?? 0;
     salesCurrency = "TRY";
+    plannedCostTotal = src.pricingSnapshot?.finalTotalCost ?? 0;
   }
 
   const created = await prisma.costProject.create({
@@ -779,6 +788,7 @@ export async function createCostProjectFromQuote(
       salesCurrency,
       salesInvoicedAmount,
       salesVatRate,
+      plannedCostTotal,
       sourceProjectId: src.id,
       lines: lineData.length ? { create: lineData } : undefined,
     },
