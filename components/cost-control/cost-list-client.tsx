@@ -83,7 +83,7 @@ export function CostListClient({
     for (const p of projects) {
       // Satış farklı para biriminde olabilir; kart özetinde TL yaklaşmak yerine
       // yalnız TL bazlı maliyet/kâr toplarız (satışları toplamıyoruz para karışmasın).
-      cost += p.actualNetTL;
+      cost += p.actualGrossTL;
       profit += p.currentProfitTL;
       pay += p.payableBalanceTL;
     }
@@ -132,7 +132,7 @@ export function CostListClient({
       {/* Portföy KPI */}
       {projects.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-3">
-          <MiniKpi label="Toplam Gerçekleşen Maliyet" value={`₺${fmt(totals.cost)}`} tone="slate" />
+          <MiniKpi label="Toplam Gerçekleşen Maliyet (KDV dahil)" value={`₺${fmt(totals.cost)}`} tone="slate" />
           <MiniKpi
             label="Toplam Vergi Öncesi Kâr (VÖK)"
             value={`₺${fmt(totals.profit)}`}
@@ -285,7 +285,7 @@ function CostCard({ p }: { p: CostProjectCard }) {
 
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <Metric label="Satış" value={`${p.salesSym}${fmt(p.salesPrice)}`} />
-            <Metric label="Gerçekleşen Maliyet" value={`₺${fmt(p.actualNetTL)}`} />
+            <Metric label="Maliyet (KDV dahil)" value={`₺${fmt(p.actualGrossTL)}`} />
             <Metric
               label="VÖK (TL)"
               value={`₺${fmt(p.currentProfitTL)}`}

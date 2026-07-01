@@ -81,6 +81,7 @@ export interface CostProjectCard {
   salesSym: string;
   salesPrice: number;
   actualNetTL: number;
+  actualGrossTL: number;
   profitTL: number;
   currentProfitTL: number;
   profitMarginPct: number;
@@ -141,6 +142,7 @@ export async function listCostProjects(): Promise<CostProjectCard[]> {
       salesSym: m.salesSym,
       salesPrice: m.salesPrice,
       actualNetTL: m.actualNetTL,
+      actualGrossTL: m.actualGrossTL,
       profitTL: m.profitTL,
       currentProfitTL: m.currentProfitTL,
       profitMarginPct: m.profitMarginPct,
