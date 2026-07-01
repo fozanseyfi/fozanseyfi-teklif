@@ -557,6 +557,8 @@ export function CostProjectDetail({
 
       <PartnersCard data={data} m={m} canEdit={canEdit} onChange={refresh} />
 
+      <CostBreakdownCard lines={data.lines} />
+
       {/* Dialoglar */}
       {editProject && (
         <ProjectSettingsDialog data={data} onClose={() => setEditProject(false)} onSaved={refresh} />
@@ -650,6 +652,55 @@ function VatRow({ label, net, vat, gross, strong }: { label: string; net: number
       <td className="py-2 text-right tabular-nums">₺{fmt(vat)}</td>
       <td className="py-2 text-right tabular-nums">₺{fmt(gross)}</td>
     </tr>
+  );
+}
+
+// ————————————————————————————————————————— Maliyet kırılımı (kategori)
+function CostBreakdownCard({ lines }: { lines: Line[] }) {
+  const { rows, total } = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const l of lines) {
+      const key = l.categoryLabel || "Kategorisiz";
+      map.set(key, (map.get(key) || 0) + lineNetTL(l));
+    }
+    const total = Array.from(map.values()).reduce((a, b) => a + b, 0);
+    const rows = Array.from(map.entries())
+      .map(([name, val]) => ({ name, val, pct: total > 0 ? (val / total) * 100 : 0 }))
+      .sort((a, b) => b.val - a.val);
+    return { rows, total };
+  }, [lines]);
+
+  if (rows.length === 0) return null;
+
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-0">
+        <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-4 py-3">
+          <p className="flex items-center gap-2 text-sm font-semibold">
+            <Receipt className="size-4 text-primary" /> Maliyet Kırılımı (kategori · KDV hariç)
+          </p>
+          <span className="text-xs text-muted-foreground">
+            Toplam: <strong className="text-foreground">₺{fmt(total)}</strong>
+          </span>
+        </div>
+        <div className="divide-y">
+          {rows.map((r, i) => (
+            <div key={i} className="px-4 py-2">
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate font-medium text-slate-800">{r.name}</span>
+                <span className="shrink-0 tabular-nums">
+                  <span className="font-semibold">₺{fmt(r.val)}</span>
+                  <span className="ml-2 text-xs text-muted-foreground">%{fmt(r.pct, 1)}</span>
+                </span>
+              </div>
+              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, r.pct)}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

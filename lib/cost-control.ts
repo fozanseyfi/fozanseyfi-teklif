@@ -160,13 +160,16 @@ export function computeCostProjectMetrics(inp: CostProjectMetricsInput): CostPro
   let uninvoicedNetTL = 0;
   let uninvoicedVatTL = 0;
   let paidTL = 0;
+  let payableRemainingTL = 0; // satır bazında kalan (negatif olmaz)
 
   for (const l of lines) {
     const net = lineNetTL(l);
     const vat = lineVatTL(l);
+    const paidLine = linePaidTL(l);
     actualNetTL += net;
     actualVatTL += vat;
-    paidTL += linePaidTL(l);
+    paidTL += paidLine;
+    payableRemainingTL += Math.max(0, net + vat - paidLine);
     if (l.plannedAmount != null) {
       plannedTotalTL += l.plannedAmount;
       hasPlanned = true;
@@ -234,8 +237,9 @@ export function computeCostProjectMetrics(inp: CostProjectMetricsInput): CostPro
     uninvoicedVatTL,
     uninvoicedGrossTL: uninvoicedNetTL + uninvoicedVatTL,
     paidTL,
-    // Tedarikçilere KDV dahil ödendiği için kalan = brüt − ödenen.
-    payableBalanceTL: actualGrossTL - paidTL,
+    // Tedarikçilere kalan = satır bazında pozitif kalanların toplamı (aşırı
+    // ödeme bir satırı eksiye düşürüp toplamı yanıltmasın).
+    payableBalanceTL: payableRemainingTL,
     collectedTotal,
     plannedCollectedTotal,
     remainingReceivable,
