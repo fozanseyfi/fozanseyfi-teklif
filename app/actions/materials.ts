@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
+import { isAdmin } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import { parseQuoteItems } from "@/lib/quote";
 
@@ -161,6 +162,22 @@ export async function getCatalogItemUsage(code: string): Promise<CatalogUsageRow
   const wanted = (code || "").trim().toLowerCase();
   if (!wanted) return [];
 
+  // Yetkisiz kullanıcı: kendisine gizlenmiş proje/müşterilerin tekliflerini bu
+  // kullanım listesinde de görmemeli (getProjectAccess ile aynı kural). Admin
+  // her şeyi görür.
+  const hiddenProjectIds = new Set<string>();
+  const hiddenCustomers = new Set<string>();
+  if (!isAdmin(user)) {
+    const hidden = await prisma.userHiddenResource.findMany({
+      where: { userId: user.id, organizationId: user.organizationId },
+      select: { resourceType: true, resourceId: true },
+    });
+    for (const h of hidden) {
+      if (h.resourceType === "project") hiddenProjectIds.add(h.resourceId);
+      else if (h.resourceType === "customer") hiddenCustomers.add(h.resourceId);
+    }
+  }
+
   const projects = await prisma.project.findMany({
     where: { organizationId: user.organizationId, isTemplate: false, quoteKind: "MATERIAL_SERVICE" },
     orderBy: { updatedAt: "desc" },
@@ -169,6 +186,9 @@ export async function getCatalogItemUsage(code: string): Promise<CatalogUsageRow
 
   const rows: CatalogUsageRow[] = [];
   for (const p of projects) {
+    // Gizli proje veya gizli müşteri → atla.
+    if (hiddenProjectIds.has(p.id)) continue;
+    if (p.customerName && hiddenCustomers.has(p.customerName)) continue;
     const items = parseQuoteItems(p.projectDetail?.quoteItems);
     for (const it of items) {
       if ((it.code || "").trim().toLowerCase() !== wanted) continue;
