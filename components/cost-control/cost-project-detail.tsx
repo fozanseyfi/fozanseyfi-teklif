@@ -66,7 +66,12 @@ import {
   type Rates,
 } from "@/lib/cost-control";
 import { reminderText } from "@/lib/cost-control-statement";
-import { buildStatementPrintHtml, buildPaymentOwnersPrintHtml, buildCostLinesPrintHtml } from "@/lib/cost-statement-print";
+import {
+  buildStatementPrintHtml,
+  buildPaymentOwnersPrintHtml,
+  buildCostLinesPrintHtml,
+  buildCostReportPrintHtml,
+} from "@/lib/cost-statement-print";
 import type { BrandContext } from "@/lib/pdf-brand";
 import {
   updateCostProject,
@@ -272,6 +277,66 @@ export function CostProjectDetail({
     w.document.close();
   }
 
+  // Tüm sayfanın tek PDF raporu: 1) özet 2) kalemler 3) ödeme listesi.
+  function downloadReport() {
+    const rows = data.lines.map((l) => {
+      const net = lineNetTL(l);
+      const gross = lineGrossTL(l);
+      const paid = linePaidTL(l);
+      const st = linePayStatus(l);
+      return {
+        code: l.code,
+        description: l.description,
+        vendorName: l.vendorName,
+        qty: l.quantity,
+        unit: l.unit,
+        net,
+        vat: gross - net,
+        gross,
+        paidStatus: st === "paid" ? "Ödendi" : st === "partial" ? `Kısmi %${fmt((paid / (gross || 1)) * 100)}` : "Ödenmedi",
+      };
+    });
+    const html = buildCostReportPrintHtml({
+      brand,
+      firmName,
+      userEmail,
+      projectName: data.name,
+      todayISO: new Date().toISOString().slice(0, 10),
+      summary: {
+        customer: data.customer,
+        statusLabel: data.status === "DONE" ? "Tamamlandı" : "Devam ediyor",
+        salesNet: m.salesPrice,
+        salesVat,
+        salesGross,
+        costNet: m.actualNetTL,
+        costVat: m.actualVatTL,
+        costGross: m.actualGrossTL,
+        vok: m.vokTL,
+        vatPayable: m.vatPayableTL,
+        vatRate: data.salesVatRate,
+        corporateTax: m.corporateTaxTL,
+        corporateRate: CORPORATE_TAX_RATE,
+        uninvoicedProfit: m.uninvoicedProfitNetTL,
+        invoicedProfit: m.invoicedProfitNetTL,
+        netProfit: m.companyNetTL,
+        paid: m.paidTL,
+        payableRemaining: m.payableBalanceTL,
+        collected: m.collectedTotal,
+        remainingReceivable: m.remainingReceivable,
+        salesSym: m.salesSym,
+      },
+      rows,
+      groups: buildOwnerGroups(data.lines),
+    });
+    const w = window.open("", "_blank");
+    if (!w) {
+      toast.error("Açılır pencere engellendi — izin verin");
+      return;
+    }
+    w.document.write(html);
+    w.document.close();
+  }
+
   function removeProject() {
     if (!confirm("Bu maliyet projesi ve tüm kalemleri silinecek. Emin misiniz? Bu işlem geri alınamaz.")) return;
     start(async () => {
@@ -325,16 +390,21 @@ export function CostProjectDetail({
             </p>
           </div>
         </div>
-        {canEdit && (
-          <div className="flex shrink-0 gap-2">
-            <Button variant="outline" size="sm" onClick={() => setEditProject(true)}>
-              <Settings2 className="size-4" /> Proje Ayarları
-            </Button>
-            <Button variant="outline" size="sm" onClick={removeProject} className="text-destructive hover:bg-destructive-soft">
-              <Trash2 className="size-4" />
-            </Button>
-          </div>
-        )}
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Button size="sm" onClick={downloadReport}>
+            <FileDown className="size-4" /> PDF Analiz Çıktısı
+          </Button>
+          {canEdit && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => setEditProject(true)}>
+                <Settings2 className="size-4" /> Proje Ayarları
+              </Button>
+              <Button variant="outline" size="sm" onClick={removeProject} className="text-destructive hover:bg-destructive-soft">
+                <Trash2 className="size-4" />
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Özet metrikler */}
@@ -1295,6 +1365,74 @@ interface OwnerGroup {
   payments: { id: string; amount: number; paidDate: string; method: string; lineDesc: string; note: string }[];
 }
 
+// Ödeme sahibine göre grupla (ödeme listesi + rapor PDF paylaşır).
+function buildOwnerGroups(lines: Line[]): OwnerGroup[] {
+  const map = new Map<
+    string,
+    {
+      owner: string;
+      ibans: Set<string>;
+      total: number;
+      paid: number;
+      remaining: number;
+      vendors: Map<string, { total: number; remaining: number; ibans: Set<string> }>;
+      lineIds: string[];
+      payments: OwnerGroup["payments"];
+    }
+  >();
+  for (const l of lines) {
+    const total = lineGrossTL(l);
+    if (total <= 0) continue;
+    const owner = (l.payAccountNameOverride || l.vendorName || "—").trim() || "—";
+    const hasOverride = !!(l.payAccountNameOverride || l.payIbanOverride);
+    const iban = hasOverride ? l.payIbanOverride || "" : l.vendorPayIban || "";
+    const cur =
+      map.get(owner) ||
+      {
+        owner,
+        ibans: new Set<string>(),
+        total: 0,
+        paid: 0,
+        remaining: 0,
+        vendors: new Map<string, { total: number; remaining: number; ibans: Set<string> }>(),
+        lineIds: [] as string[],
+        payments: [] as OwnerGroup["payments"],
+      };
+    cur.total += total;
+    cur.paid += linePaidTL(l);
+    cur.remaining += Math.max(0, lineBalanceTL(l));
+    cur.lineIds.push(l.id);
+    if (iban) cur.ibans.add(iban);
+    for (const p of l.payments) {
+      cur.payments.push({ id: p.id, amount: p.amount, paidDate: p.paidDate, method: p.method, lineDesc: l.description, note: p.note });
+    }
+    const vName = (l.vendorName || "Tedarikçi belirtilmemiş").trim() || "Tedarikçi belirtilmemiş";
+    const v = cur.vendors.get(vName) || { total: 0, remaining: 0, ibans: new Set<string>() };
+    v.total += total;
+    v.remaining += Math.max(0, lineBalanceTL(l));
+    if (l.vendorPayIban) v.ibans.add(l.vendorPayIban);
+    cur.vendors.set(vName, v);
+    map.set(owner, cur);
+  }
+  return Array.from(map.values())
+    .map((g) => ({
+      owner: g.owner,
+      iban: g.ibans.size === 1 ? [...g.ibans][0] : "",
+      total: g.total,
+      paid: g.paid,
+      remaining: g.remaining,
+      vendors: Array.from(g.vendors.entries()).map(([name, v]) => ({
+        name,
+        total: v.total,
+        remaining: v.remaining,
+        iban: v.ibans.size === 1 ? [...v.ibans][0] : "",
+      })),
+      lineIds: g.lineIds,
+      payments: g.payments.sort((a, b) => b.paidDate.localeCompare(a.paidDate)),
+    }))
+    .sort((a, b) => b.remaining - a.remaining);
+}
+
 function PaymentOwnersCard({
   lines,
   firmName,
@@ -1313,79 +1451,7 @@ function PaymentOwnersCard({
   onChange: () => void;
 }) {
   const [payGroup, setPayGroup] = useState<OwnerGroup | null>(null);
-  const groups: OwnerGroup[] = useMemo(() => {
-    const map = new Map<
-      string,
-      {
-        owner: string;
-        ibans: Set<string>;
-        total: number;
-        paid: number;
-        remaining: number;
-        vendors: Map<string, { total: number; remaining: number; ibans: Set<string> }>;
-        lineIds: string[];
-        payments: OwnerGroup["payments"];
-      }
-    >();
-    for (const l of lines) {
-      const total = lineGrossTL(l); // tedarikçiye ödenecek KDV dahil tutar
-      if (total <= 0) continue;
-      // Ödeme sahibi override yoksa tedarikçi varsayılır. Aynı İSİM tek satır
-      // (IBAN farklı olsa da) — IBAN kırılımda gösterilir.
-      const owner = (l.payAccountNameOverride || l.vendorName || "—").trim() || "—";
-      // Ödeme sahibi tedarikçiden farklıysa (override), tedarikçinin IBAN'ı DEĞİL
-      // ödeme sahibinin IBAN'ı kullanılır.
-      const hasOverride = !!(l.payAccountNameOverride || l.payIbanOverride);
-      const iban = hasOverride ? l.payIbanOverride || "" : l.vendorPayIban || "";
-      const cur =
-        map.get(owner) ||
-        {
-          owner,
-          ibans: new Set<string>(),
-          total: 0,
-          paid: 0,
-          remaining: 0,
-          vendors: new Map<string, { total: number; remaining: number; ibans: Set<string> }>(),
-          lineIds: [] as string[],
-          payments: [] as OwnerGroup["payments"],
-        };
-      cur.total += total;
-      cur.paid += linePaidTL(l);
-      cur.remaining += Math.max(0, lineBalanceTL(l));
-      cur.lineIds.push(l.id);
-      if (iban) cur.ibans.add(iban);
-      for (const p of l.payments) {
-        cur.payments.push({ id: p.id, amount: p.amount, paidDate: p.paidDate, method: p.method, lineDesc: l.description, note: p.note });
-      }
-      // Alt kırılım: bu ödeme sahibi hangi tedarikçi(ler)/IBAN(lar) için ödüyor.
-      const vName = (l.vendorName || "Tedarikçi belirtilmemiş").trim() || "Tedarikçi belirtilmemiş";
-      const v = cur.vendors.get(vName) || { total: 0, remaining: 0, ibans: new Set<string>() };
-      v.total += total;
-      v.remaining += Math.max(0, lineBalanceTL(l));
-      // Alt kırılımda TEDARİKÇİNİN kendi IBAN'ı gösterilir (üst satır ödeme
-      // sahibinin IBAN'ı). Ödeme başkasına gitse de tedarikçinin IBAN'ı görünür.
-      if (l.vendorPayIban) v.ibans.add(l.vendorPayIban);
-      cur.vendors.set(vName, v);
-      map.set(owner, cur);
-    }
-    return Array.from(map.values())
-      .map((g) => ({
-        owner: g.owner,
-        iban: g.ibans.size === 1 ? [...g.ibans][0] : "",
-        total: g.total,
-        paid: g.paid,
-        remaining: g.remaining,
-        vendors: Array.from(g.vendors.entries()).map(([name, v]) => ({
-          name,
-          total: v.total,
-          remaining: v.remaining,
-          iban: v.ibans.size === 1 ? [...v.ibans][0] : "",
-        })),
-        lineIds: g.lineIds,
-        payments: g.payments.sort((a, b) => b.paidDate.localeCompare(a.paidDate)),
-      }))
-      .sort((a, b) => b.remaining - a.remaining);
-  }, [lines]);
+  const groups: OwnerGroup[] = useMemo(() => buildOwnerGroups(lines), [lines]);
 
   const totalRemaining = groups.reduce((s, g) => s + g.remaining, 0);
 
