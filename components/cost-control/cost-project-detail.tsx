@@ -391,12 +391,12 @@ export function CostProjectDetail({
                 <span className="font-semibold tabular-nums">₺{fmt(m.vokTL)}</span>
               </div>
               <div className="flex items-center justify-between text-muted-foreground">
-                <span>− Ödenecek KDV</span>
-                <span className="tabular-nums">₺{fmt(m.vatPayableTL)}</span>
+                <span>− Ödenecek KDV (%{fmt(data.salesVatRate)})</span>
+                <span className="tabular-nums text-rose-600">₺{fmt(m.vatPayableTL)}</span>
               </div>
               <div className="flex items-center justify-between text-muted-foreground">
                 <span>− Kurumlar Vergisi (%{CORPORATE_TAX_RATE})</span>
-                <span className="tabular-nums">₺{fmt(m.corporateTaxTL)}</span>
+                <span className="tabular-nums text-rose-600">₺{fmt(m.corporateTaxTL)}</span>
               </div>
               <div className="mt-1 flex items-center justify-between border-t pt-1.5 text-base font-bold">
                 <span>= Net Kâr</span>
@@ -674,8 +674,8 @@ function VatSummary({ m }: { m: ReturnType<typeof computeCostProjectMetrics> }) 
         {/* Vergi & Şirkete Net — aşama aşama (üst KPI'daki Net Kâr ile aynı sonuç).
             Yalnız faturalı kısım vergilendirilir; faturasız kâr vergisiz eklenir. */}
         <div className="mt-4 border-t pt-3">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Vergi & Şirkete Net (aşama aşama)
+          <p className="mb-1 flex items-center gap-2 text-sm font-semibold">
+            <Receipt className="size-4 text-primary" /> Vergi & Şirkete Net (aşama aşama)
           </p>
           <p className="mb-2 text-[11px] text-muted-foreground">
             Faturalı satış ₺{fmt(m.salesInvoicedNetTL)} · Faturasız satış ₺{fmt(m.salesUninvoicedNetTL)} (yalnız faturalı vergilendirilir)
@@ -683,7 +683,7 @@ function VatSummary({ m }: { m: ReturnType<typeof computeCostProjectMetrics> }) 
 
           <TaxRow label="Müşteriden alınan KDV" value={m.outputVatTL} />
           <TaxRow label="Maliyet KDV'si (indirilecek)" value={-m.inputVatTL} />
-          <div className="flex items-center justify-between border-b py-1 text-sm font-semibold">
+          <div className="flex items-center justify-between border-b py-1 text-sm font-bold">
             <span>Devlete Ödenecek KDV</span>
             <span className={cn("tabular-nums", m.vatPayableTL >= 0 ? "text-rose-600" : "text-emerald-600")}>
               ₺{fmt(m.vatPayableTL)}
@@ -692,9 +692,9 @@ function VatSummary({ m }: { m: ReturnType<typeof computeCostProjectMetrics> }) 
 
           <div className="mt-2">
             <TaxRow label="Faturalı kâr (KDV hariç)" value={m.invoicedProfitNetTL} />
-            <TaxRow label={`− Kurumlar vergisi (%${CORPORATE_TAX_RATE})`} value={-m.corporateTaxTL} />
+            <TaxRow label={`− Kurumlar vergisi (%${CORPORATE_TAX_RATE})`} value={-m.corporateTaxTL} danger />
             <TaxRow label="+ Faturasız kâr (vergisiz)" value={m.uninvoicedProfitNetTL} muted />
-            <div className="mt-1 flex items-center justify-between border-t pt-1.5 text-base font-bold">
+            <div className="mt-1 flex items-center justify-between border-t pt-1.5 text-sm font-bold">
               <span>= Şirkete Net Kâr</span>
               <span className={cn("tabular-nums", m.companyNetTL >= 0 ? "text-emerald-700" : "text-rose-600")}>
                 ₺{fmt(m.companyNetTL)}
@@ -773,11 +773,11 @@ function CostBreakdownCard({ lines }: { lines: Line[] }) {
 }
 
 // ————————————————————————————————————————— Vergi satırı (VatSummary içinde kullanılır)
-function TaxRow({ label, value, muted }: { label: string; value: number; muted?: boolean }) {
+function TaxRow({ label, value, muted, danger }: { label: string; value: number; muted?: boolean; danger?: boolean }) {
   return (
     <div className={cn("flex items-center justify-between py-1 text-sm", muted && "text-muted-foreground")}>
       <span>{label}</span>
-      <span className="tabular-nums">₺{fmt(value)}</span>
+      <span className={cn("tabular-nums", danger && "text-rose-600")}>₺{fmt(value)}</span>
     </div>
   );
 }
