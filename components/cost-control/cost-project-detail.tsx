@@ -215,6 +215,10 @@ export function CostProjectDetail({
     [data, rates],
   );
 
+  // Satış KDV'si yalnız faturalı kısımdan; faturasız kısımda KDV yok.
+  const salesVat = (data.salesInvoicedAmount || 0) * ((data.salesVatRate || 0) / 100);
+  const salesGross = data.salesPrice + salesVat;
+
   function refresh() {
     router.refresh();
   }
@@ -287,9 +291,9 @@ export function CostProjectDetail({
       {/* Özet metrikler */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi
-          label="Satış Fiyatı"
+          label="Satış (KDV hariç)"
           value={`${m.salesSym}${fmt(m.salesPrice)}`}
-          sub={data.salesCurrency !== "TRY" ? `≈ ₺${fmt(m.salesPriceTL)}` : undefined}
+          sub={`+KDV ${m.salesSym}${fmt(salesVat)} · Dahil ${m.salesSym}${fmt(salesGross)}`}
           tone="sky"
         />
         <Kpi
