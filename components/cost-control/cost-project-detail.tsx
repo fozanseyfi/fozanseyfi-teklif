@@ -372,14 +372,6 @@ export function CostProjectDetail({
           sub={`Tahsil: ${m.salesSym}${fmt(m.collectedTotal)}`}
           tone="amber"
         />
-        {m.hasPlanned && (
-          <Kpi
-            label="Varyans (Gerçek − Öngörülen)"
-            value={`${m.varianceTL > 0 ? "+" : ""}₺${fmt(m.varianceTL)}`}
-            tone={m.varianceTL > 0 ? "rose" : "emerald"}
-            sub={m.varianceTL > 0 ? "Bütçe aşımı" : "Bütçe içinde"}
-          />
-        )}
         <Kpi label="Tedarikçilere Ödenen" value={`₺${fmt(m.paidTL)}`} tone="slate" />
         <Kpi
           label="Tedarikçilere Kalan"
