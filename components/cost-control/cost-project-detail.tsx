@@ -373,15 +373,12 @@ export function CostProjectDetail({
           tone="amber"
         />
         {m.hasPlanned && (
-          <>
-            <Kpi label="Planlanan Maliyet" value={`₺${fmt(m.plannedTotalTL)}`} tone="slate" />
-            <Kpi
-              label="Varyans (Gerçek − Plan)"
-              value={`${m.varianceTL > 0 ? "+" : ""}₺${fmt(m.varianceTL)}`}
-              tone={m.varianceTL > 0 ? "rose" : "emerald"}
-              sub={m.varianceTL > 0 ? "Bütçe aşımı" : "Bütçe içinde"}
-            />
-          </>
+          <Kpi
+            label="Varyans (Gerçek − Öngörülen)"
+            value={`${m.varianceTL > 0 ? "+" : ""}₺${fmt(m.varianceTL)}`}
+            tone={m.varianceTL > 0 ? "rose" : "emerald"}
+            sub={m.varianceTL > 0 ? "Bütçe aşımı" : "Bütçe içinde"}
+          />
         )}
         <Kpi label="Tedarikçilere Ödenen" value={`₺${fmt(m.paidTL)}`} tone="slate" />
         <Kpi
@@ -389,6 +386,40 @@ export function CostProjectDetail({
           value={`₺${fmt(m.payableBalanceTL)}`}
           tone={m.payableBalanceTL > 0.5 ? "amber" : "emerald"}
         />
+
+        {/* Net Kâr özeti — VÖK − vergiler. Tek kart, alt alta. */}
+        <Card className="sm:col-span-2 lg:col-span-2">
+          <CardContent className="p-4">
+            <p className="mb-2 text-[10.5px] font-medium uppercase tracking-wider text-muted-foreground">
+              Net Kâr (vergiler sonrası)
+            </p>
+            <div className="space-y-1 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Vergi Öncesi Kâr (VÖK)</span>
+                <span className="font-semibold tabular-nums">₺{fmt(m.currentProfitTL)}</span>
+              </div>
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>− Ödenecek KDV</span>
+                <span className="tabular-nums">₺{fmt(m.vatPayableTL)}</span>
+              </div>
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>− Kurumlar Vergisi (%{CORPORATE_TAX_RATE})</span>
+                <span className="tabular-nums">₺{fmt(m.corporateTaxTL)}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between border-t pt-1.5 text-base font-bold">
+                <span>= Net Kâr</span>
+                <span
+                  className={cn(
+                    "tabular-nums",
+                    m.currentProfitTL - m.vatPayableTL - m.corporateTaxTL >= 0 ? "text-emerald-700" : "text-rose-600",
+                  )}
+                >
+                  ₺{fmt(m.currentProfitTL - m.vatPayableTL - m.corporateTaxTL)}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Kalemler */}
@@ -852,7 +883,7 @@ function CollectionsCard({
       firmName,
       projectName: data.name,
       sym,
-      total: data.salesPrice,
+      total: m.salesGrossPrice,
       collections: data.collections,
       todayISO,
       link: withLink || undefined,
@@ -893,7 +924,7 @@ function CollectionsCard({
       customer: data.customer,
       projectName: data.name,
       sym,
-      total: data.salesPrice,
+      total: m.salesGrossPrice,
       collections: data.collections,
       todayISO,
       linkUrl: link || undefined,
@@ -916,8 +947,8 @@ function CollectionsCard({
         </p>
         <div className="mb-3 grid grid-cols-3 gap-2 rounded-lg bg-muted/40 p-3 text-center text-sm">
           <div>
-            <p className="text-[10px] uppercase text-muted-foreground">Satış</p>
-            <p className="font-semibold tabular-nums">{sym}{fmt(m.salesPrice)}</p>
+            <p className="text-[10px] uppercase text-muted-foreground">Satış (KDV dahil)</p>
+            <p className="font-semibold tabular-nums">{sym}{fmt(m.salesGrossPrice)}</p>
           </div>
           <div>
             <p className="text-[10px] uppercase text-muted-foreground">Tahsil</p>

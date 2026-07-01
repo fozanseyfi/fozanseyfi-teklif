@@ -125,6 +125,7 @@ export interface CostProjectMetrics {
   paidAppliedTL: number; // borca mahsup edilen ödeme (Ödenen + Kalan = Toplam)
   payableBalanceTL: number;
   // Tahsilat (satış para biriminde)
+  salesGrossPrice: number; // satış KDV dahil (müşteriden tahsil edilecek toplam)
   collectedTotal: number;
   plannedCollectedTotal: number;
   remainingReceivable: number;
@@ -186,7 +187,9 @@ export function computeCostProjectMetrics(inp: CostProjectMetricsInput): CostPro
   // Sadece gerçekten tahsil edilenler "collected"; planlananlar ayrı.
   const collectedTotal = collections.filter((c) => !c.isPlanned).reduce((s, c) => s + (c.amount || 0), 0);
   const plannedCollectedTotal = collections.filter((c) => c.isPlanned).reduce((s, c) => s + (c.amount || 0), 0);
-  const remainingReceivable = (salesPrice || 0) - collectedTotal;
+  // Müşteriden tahsilat KDV DAHİL yapılır: satış (KDV dahil) = net + faturalı KDV.
+  const salesGrossPrice = (salesPrice || 0) + (inp.salesInvoicedAmount ?? 0) * ((inp.salesVatRate ?? 20) / 100);
+  const remainingReceivable = salesGrossPrice - collectedTotal;
   const collectedTL = toTRY(collectedTotal, (salesCurrency as QuoteCurrency) || "TRY", rates);
   const profitTL = salesPriceTL - actualNetTL;
   // Mevcut/nakit kâr: sadece tahsil edilen − fiilen ödenen (alınmamış para hariç).
@@ -241,6 +244,7 @@ export function computeCostProjectMetrics(inp: CostProjectMetricsInput): CostPro
     // Tedarikçilere kalan = satır bazında pozitif kalanların toplamı (aşırı
     // ödeme bir satırı eksiye düşürüp toplamı yanıltmasın).
     payableBalanceTL: payableRemainingTL,
+    salesGrossPrice,
     collectedTotal,
     plannedCollectedTotal,
     remainingReceivable,

@@ -37,12 +37,15 @@ export default async function PaymentStatementPage({ params }: { params: Promise
     note: c.note ?? undefined,
   }));
 
+  // Müşteriye toplam KDV DAHİL gösterilir (faturalı kısmın KDV'si eklenir).
+  const grossSale = project.salesPrice + project.salesInvoicedAmount * (project.salesVatRate / 100);
+
   const v = buildStatement({
     customer: project.customer,
     firmName,
     projectName: project.name,
     sym,
-    total: project.salesPrice,
+    total: grossSale,
     collections,
     todayISO,
   });
@@ -76,7 +79,7 @@ export default async function PaymentStatementPage({ params }: { params: Promise
                 customer: project.customer,
                 projectName: project.name,
                 sym,
-                total: project.salesPrice,
+                total: grossSale,
                 collections,
                 todayISO,
               }}
