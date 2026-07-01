@@ -52,9 +52,9 @@ export function SupplierCombobox({
     return () => document.removeEventListener("mousedown", onOutside);
   }, []);
 
-  const q = query.trim().toLowerCase();
+  const q = query.trim().toLocaleLowerCase("tr");
   const canSearch = q.length >= 3;
-  const filtered = canSearch ? vendors.filter((v) => v.name.toLowerCase().includes(q)) : [];
+  const filtered = canSearch ? vendors.filter((v) => v.name.toLocaleLowerCase("tr").includes(q)) : [];
 
   return (
     <div ref={ref} className="relative">

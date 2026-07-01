@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo, useEffect, Fragment } from "react";
+import { useState, useTransition, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
@@ -61,21 +61,21 @@ import {
   linePaidTL,
   lineBalanceTL,
   linePayStatus,
-  lineVariance,
   csym,
   PAYMENT_METHOD_LABELS,
   CORPORATE_TAX_RATE,
   type Rates,
 } from "@/lib/cost-control";
 import { reminderText } from "@/lib/cost-control-statement";
-import { buildStatementPrintHtml, buildPaymentOwnersPrintHtml } from "@/lib/cost-statement-print";
+import { buildStatementPrintHtml, buildPaymentOwnersPrintHtml, buildCostLinesPrintHtml } from "@/lib/cost-statement-print";
+import type { BrandContext } from "@/lib/pdf-brand";
 import {
   updateCostProject,
   deleteCostProject,
   createCostLine,
   updateCostLine,
   deleteCostLine,
-  addCostPayment,
+  allocateOwnerPayment,
   deleteCostPayment,
   addCostCollection,
   deleteCostCollection,
@@ -171,6 +171,8 @@ export function CostProjectDetail({
   categories,
   rates,
   firmName,
+  userEmail,
+  brand,
   canEdit,
 }: {
   data: ProjectData;
@@ -178,13 +180,14 @@ export function CostProjectDetail({
   categories: Category[];
   rates: Rates;
   firmName: string;
+  userEmail: string;
+  brand: BrandContext;
   canEdit: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [editProject, setEditProject] = useState(false);
   const [lineDialog, setLineDialog] = useState<{ open: boolean; line: Line | null }>({ open: false, line: null });
-  const [payDialog, setPayDialog] = useState<{ open: boolean; line: Line | null }>({ open: false, line: null });
   // Tedarikçi listesi yerel state — combobox'tan yeni tedarikçi eklenince anında
   // görünsün; sunucu yenilenince prop'tan senkronlanır.
   const toCombo = (v: Vendor): ComboVendor => ({
@@ -218,9 +221,46 @@ export function CostProjectDetail({
   // Satış KDV'si yalnız faturalı kısımdan; faturasız kısımda KDV yok.
   const salesVat = (data.salesInvoicedAmount || 0) * ((data.salesVatRate || 0) / 100);
   const salesGross = data.salesPrice + salesVat;
+  // Tekliften alındıysa öngörülen (teklif) maliyet/kâr küçük olarak gösterilir.
+  const imported = !!data.sourceProjectId && m.hasPlanned;
 
   function refresh() {
     router.refresh();
+  }
+
+  function downloadLinesPdf() {
+    const rows = data.lines.map((l) => {
+      const net = lineNetTL(l);
+      const gross = lineGrossTL(l);
+      const paid = linePaidTL(l);
+      const st = linePayStatus(l);
+      return {
+        code: l.code,
+        description: l.description,
+        vendorName: l.vendorName,
+        qty: l.quantity,
+        unit: l.unit,
+        net,
+        vat: gross - net,
+        gross,
+        paidStatus: st === "paid" ? "Ödendi" : st === "partial" ? `Kısmi %${fmt((paid / (gross || 1)) * 100)}` : "Ödenmedi",
+      };
+    });
+    const html = buildCostLinesPrintHtml({
+      brand,
+      firmName,
+      userEmail,
+      projectName: data.name,
+      todayISO: new Date().toISOString().slice(0, 10),
+      rows,
+    });
+    const w = window.open("", "_blank");
+    if (!w) {
+      toast.error("Açılır pencere engellendi — izin verin");
+      return;
+    }
+    w.document.write(html);
+    w.document.close();
   }
 
   function removeProject() {
@@ -299,13 +339,21 @@ export function CostProjectDetail({
         <Kpi
           label="Gerçekleşen Maliyet"
           value={`₺${fmt(m.actualNetTL)}`}
-          sub={`KDV dahil ₺${fmt(m.actualGrossTL)}`}
+          sub={
+            imported
+              ? `Öngörülen (teklif): ₺${fmt(m.plannedTotalTL)}`
+              : `KDV dahil ₺${fmt(m.actualGrossTL)}`
+          }
           tone="slate"
         />
         <Kpi
           label="Mevcut Kâr (Tahsilat − Ödeme)"
           value={`₺${fmt(m.currentProfitTL)}`}
-          sub={`Öngörülen: ₺${fmt(m.profitTL)}`}
+          sub={
+            imported
+              ? `Öngörülen (teklif) kâr: ₺${fmt(m.plannedProfitTL)}`
+              : `Öngörülen: ₺${fmt(m.profitTL)}`
+          }
           tone={m.currentProfitTL >= 0 ? "emerald" : "rose"}
           icon={m.currentProfitTL >= 0 ? "up" : "down"}
         />
@@ -342,11 +390,18 @@ export function CostProjectDetail({
               <Receipt className="size-4 text-primary" /> Harcama Kalemleri
               <span className="text-xs font-normal text-muted-foreground">({data.lines.length})</span>
             </p>
-            {canEdit && (
-              <Button size="sm" onClick={() => setLineDialog({ open: true, line: null })}>
-                <Plus className="size-4" /> Kalem Ekle
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {data.lines.length > 0 && (
+                <Button size="sm" variant="outline" onClick={downloadLinesPdf}>
+                  <FileDown className="size-4" /> PDF Çıktı
+                </Button>
+              )}
+              {canEdit && (
+                <Button size="sm" onClick={() => setLineDialog({ open: true, line: null })}>
+                  <Plus className="size-4" /> Kalem Ekle
+                </Button>
+              )}
+            </div>
           </div>
           {data.lines.length === 0 ? (
             <p className="px-4 py-12 text-center text-sm text-muted-foreground">
@@ -362,10 +417,9 @@ export function CostProjectDetail({
                     <th className="px-2 py-2 text-right">Miktar</th>
                     <th className="px-2 py-2 text-right">Birim Fiyat</th>
                     <th className="px-2 py-2 text-center">Kur</th>
-                    <th className="px-2 py-2 text-right">TL Toplam</th>
-                    <th className="px-2 py-2 text-center">KDV</th>
-                    <th className="px-2 py-2 text-right">Planlanan</th>
-                    <th className="px-2 py-2 text-right">Varyans</th>
+                    <th className="px-2 py-2 text-right">KDV hariç</th>
+                    <th className="px-2 py-2 text-right">KDV</th>
+                    <th className="px-2 py-2 text-right">KDV dahil</th>
                     <th className="px-2 py-2 text-left">Tedarikçi</th>
                     <th className="px-2 py-2 text-center">Ödeme</th>
                     <th className="px-2 py-2" />
@@ -375,7 +429,6 @@ export function CostProjectDetail({
                   {data.lines.map((l) => {
                     const net = lineNetTL(l);
                     const gross = lineGrossTL(l);
-                    const variance = lineVariance(l);
                     const status = linePayStatus(l);
                     const paid = linePaidTL(l);
                     return (
@@ -418,37 +471,24 @@ export function CostProjectDetail({
                         <td className="whitespace-nowrap px-2 py-2 text-center tabular-nums text-muted-foreground">
                           {l.currency === "TRY" ? "—" : fmt(l.exchangeRate, 4)}
                         </td>
-                        <td className="whitespace-nowrap px-2 py-2 text-right font-semibold tabular-nums">₺{fmt(net)}</td>
-                        <td className="px-2 py-2 text-center text-muted-foreground">%{fmt(l.vatRate)}</td>
-                        <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums text-muted-foreground">
-                          {l.plannedAmount == null ? "—" : `₺${fmt(l.plannedAmount)}`}
-                        </td>
-                        <td
-                          className={cn(
-                            "whitespace-nowrap px-2 py-2 text-right tabular-nums",
-                            variance == null ? "text-muted-foreground" : variance > 0 ? "text-rose-600" : "text-emerald-600",
-                          )}
-                        >
-                          {variance == null ? "—" : `${variance > 0 ? "+" : ""}₺${fmt(variance)}`}
-                        </td>
+                        <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums">₺{fmt(net)}</td>
+                        <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums text-muted-foreground">₺{fmt(gross - net)}</td>
+                        <td className="whitespace-nowrap px-2 py-2 text-right font-semibold tabular-nums">₺{fmt(gross)}</td>
                         <td className="px-2 py-2 text-left text-muted-foreground">{l.vendorName || "—"}</td>
                         <td className="px-2 py-2 text-center">
-                          <button
-                            type="button"
-                            onClick={() => setPayDialog({ open: true, line: l })}
+                          <span
                             className={cn(
-                              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors",
+                              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
                               status === "paid"
-                                ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                                ? "bg-emerald-100 text-emerald-700"
                                 : status === "partial"
-                                  ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
-                                  : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-slate-100 text-slate-600",
                             )}
-                            title="Ödeme ekle / gör"
+                            title="Ödeme kaydı en alttaki 'Ödeme Yapılacak Kişiler' bölümünden yapılır"
                           >
-                            <CreditCard className="size-3" />
-                            {status === "paid" ? "Ödendi" : status === "partial" ? `%${fmt((paid / (gross || 1)) * 100)}` : "Ödenmedi"}
-                          </button>
+                            {status === "paid" ? "Ödendi" : status === "partial" ? `Kısmi %${fmt((paid / (gross || 1)) * 100)}` : "Ödenmedi"}
+                          </span>
                         </td>
                         <td className="px-2 py-2">
                           {canEdit && (
@@ -479,14 +519,12 @@ export function CostProjectDetail({
                 <tfoot>
                   <tr className="border-t-2 bg-muted/40 font-semibold">
                     <td colSpan={5} className="px-2 py-2 text-right text-[11px] uppercase tracking-wider text-muted-foreground">
-                      Toplam (net)
+                      Toplam
                     </td>
                     <td className="px-2 py-2 text-right tabular-nums">₺{fmt(m.actualNetTL)}</td>
-                    <td className="px-2 py-2 text-center text-[11px] text-muted-foreground">KDV ₺{fmt(m.actualVatTL)}</td>
-                    <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">
-                      {m.hasPlanned ? `₺${fmt(m.plannedTotalTL)}` : "—"}
-                    </td>
-                    <td colSpan={4} />
+                    <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">₺{fmt(m.actualVatTL)}</td>
+                    <td className="px-2 py-2 text-right tabular-nums">₺{fmt(m.actualGrossTL)}</td>
+                    <td colSpan={3} />
                   </tr>
                 </tfoot>
               </table>
@@ -502,17 +540,27 @@ export function CostProjectDetail({
           data={data}
           m={m}
           firmName={firmName}
+          userEmail={userEmail}
+          brand={brand}
           canEdit={canEdit}
           pending={pending}
           onChange={refresh}
         />
       </div>
 
+      <PaymentOwnersCard
+        lines={data.lines}
+        firmName={firmName}
+        userEmail={userEmail}
+        brand={brand}
+        projectName={data.name}
+        canEdit={canEdit}
+        onChange={refresh}
+      />
+
       <TaxSummaryCard m={m} />
 
       <PartnersCard data={data} m={m} canEdit={canEdit} onChange={refresh} />
-
-      <PaymentOwnersCard lines={data.lines} firmName={firmName} projectName={data.name} />
 
       {/* Dialoglar */}
       {editProject && (
@@ -527,14 +575,6 @@ export function CostProjectDetail({
           categories={categories}
           rates={rates}
           onClose={() => setLineDialog({ open: false, line: null })}
-          onSaved={refresh}
-        />
-      )}
-      {payDialog.open && payDialog.line && (
-        <PaymentDialog
-          line={payDialog.line}
-          canEdit={canEdit}
-          onClose={() => setPayDialog({ open: false, line: null })}
           onSaved={refresh}
         />
       )}
@@ -686,6 +726,8 @@ function CollectionsCard({
   data,
   m,
   firmName,
+  userEmail,
+  brand,
   canEdit,
   pending,
   onChange,
@@ -693,6 +735,8 @@ function CollectionsCard({
   data: ProjectData;
   m: ReturnType<typeof computeCostProjectMetrics>;
   firmName: string;
+  userEmail: string;
+  brand: BrandContext;
   canEdit: boolean;
   pending: boolean;
   onChange: () => void;
@@ -783,7 +827,9 @@ function CollectionsCard({
   }
   function downloadPdf() {
     const html = buildStatementPrintHtml({
+      brand,
       firmName,
+      userEmail,
       customer: data.customer,
       projectName: data.name,
       sym,
@@ -961,7 +1007,7 @@ function PartnersCard({
             <Users2 className="size-4 text-primary" /> Kâr Dağıtımı (Ortaklar)
           </p>
           <span className="text-xs text-muted-foreground">
-            Dağıtılacak kâr: <strong className="text-foreground">₺{fmt(m.profitTL)}</strong>
+            Dağıtılacak (mevcut) kâr: <strong className="text-foreground">₺{fmt(m.currentProfitTL)}</strong>
           </span>
         </div>
 
@@ -973,7 +1019,7 @@ function PartnersCard({
 
         <div className="space-y-2">
           {rows.map((r, i) => {
-            const amount = m.profitTL * ((Number(r.sharePercent) || 0) / 100);
+            const amount = m.currentProfitTL * ((Number(r.sharePercent) || 0) / 100);
             return (
               <div key={i} className="flex items-center gap-2">
                 <Input
@@ -1161,8 +1207,36 @@ function ProjectSettingsDialog({ data, onClose, onSaved }: { data: ProjectData; 
 }
 
 // ————————————————————————————————————————— Ödeme yapılacak kişiler (dağıtım)
-function PaymentOwnersCard({ lines, firmName, projectName }: { lines: Line[]; firmName: string; projectName: string }) {
-  const groups = useMemo(() => {
+interface OwnerGroup {
+  owner: string;
+  iban: string;
+  total: number;
+  paid: number;
+  remaining: number;
+  vendors: { name: string; total: number; remaining: number }[];
+  lineIds: string[];
+  payments: { id: string; amount: number; paidDate: string; method: string; lineDesc: string; note: string }[];
+}
+
+function PaymentOwnersCard({
+  lines,
+  firmName,
+  userEmail,
+  brand,
+  projectName,
+  canEdit,
+  onChange,
+}: {
+  lines: Line[];
+  firmName: string;
+  userEmail: string;
+  brand: BrandContext;
+  projectName: string;
+  canEdit: boolean;
+  onChange: () => void;
+}) {
+  const [payGroup, setPayGroup] = useState<OwnerGroup | null>(null);
+  const groups: OwnerGroup[] = useMemo(() => {
     const map = new Map<
       string,
       {
@@ -1172,6 +1246,8 @@ function PaymentOwnersCard({ lines, firmName, projectName }: { lines: Line[]; fi
         paid: number;
         remaining: number;
         vendors: Map<string, { total: number; remaining: number }>;
+        lineIds: string[];
+        payments: OwnerGroup["payments"];
       }
     >();
     for (const l of lines) {
@@ -1181,10 +1257,25 @@ function PaymentOwnersCard({ lines, firmName, projectName }: { lines: Line[]; fi
       const owner = (l.payAccountNameOverride || l.vendorName || "—").trim() || "—";
       const iban = l.payIbanOverride || l.vendorPayIban || "";
       const key = `${owner}|${iban}`;
-      const cur = map.get(key) || { owner, iban, total: 0, paid: 0, remaining: 0, vendors: new Map() };
+      const cur =
+        map.get(key) ||
+        {
+          owner,
+          iban,
+          total: 0,
+          paid: 0,
+          remaining: 0,
+          vendors: new Map<string, { total: number; remaining: number }>(),
+          lineIds: [] as string[],
+          payments: [] as OwnerGroup["payments"],
+        };
       cur.total += total;
       cur.paid += linePaidTL(l);
       cur.remaining += Math.max(0, lineBalanceTL(l));
+      cur.lineIds.push(l.id);
+      for (const p of l.payments) {
+        cur.payments.push({ id: p.id, amount: p.amount, paidDate: p.paidDate, method: p.method, lineDesc: l.description, note: p.note });
+      }
       // Alt kırılım: bu ödeme sahibi hangi tedarikçi(ler) için ödüyor.
       const vName = (l.vendorName || "Tedarikçi belirtilmemiş").trim() || "Tedarikçi belirtilmemiş";
       const v = cur.vendors.get(vName) || { total: 0, remaining: 0 };
@@ -1201,6 +1292,8 @@ function PaymentOwnersCard({ lines, firmName, projectName }: { lines: Line[]; fi
         paid: g.paid,
         remaining: g.remaining,
         vendors: Array.from(g.vendors.entries()).map(([name, v]) => ({ name, ...v })),
+        lineIds: g.lineIds,
+        payments: g.payments.sort((a, b) => b.paidDate.localeCompare(a.paidDate)),
       }))
       .sort((a, b) => b.remaining - a.remaining);
   }, [lines]);
@@ -1213,7 +1306,9 @@ function PaymentOwnersCard({ lines, firmName, projectName }: { lines: Line[]; fi
   }
   function downloadPdf() {
     const html = buildPaymentOwnersPrintHtml({
+      brand,
       firmName,
+      userEmail,
       projectName,
       todayISO: new Date().toISOString().slice(0, 10),
       groups,
@@ -1245,75 +1340,83 @@ function PaymentOwnersCard({ lines, firmName, projectName }: { lines: Line[]; fi
             </Button>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-xs">
-            <thead>
-              <tr className="border-b bg-muted/50 text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
-                <th className="px-3 py-2 text-left">Ödeme Sahibi</th>
-                <th className="px-3 py-2 text-left">IBAN</th>
-                <th className="px-3 py-2 text-right">Ödenecek (KDV dahil)</th>
-                <th className="px-3 py-2 text-right">Ödenen</th>
-                <th className="px-3 py-2 text-right">Kalan / Durum</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {groups.map((g, i) => {
-                const done = g.remaining <= 0.5;
-                // Alt kırılımı yalnız anlamlıysa göster: birden fazla tedarikçi
-                // veya ödeme sahibi tek tedarikçiden farklıysa.
-                const showBreakdown =
-                  g.vendors.length > 1 || (g.vendors[0] && g.vendors[0].name !== g.owner);
-                return (
-                  <Fragment key={i}>
-                    <tr className="hover:bg-muted/30">
-                      <td className="px-3 py-2 font-medium text-slate-900">{g.owner}</td>
-                      <td className="px-3 py-2">
-                        {g.iban ? (
-                          <button
-                            type="button"
-                            onClick={() => copy(g.iban)}
-                            className="inline-flex items-center gap-1 font-mono text-[11px] text-slate-500 hover:text-emerald-700"
-                            title="Kopyala"
-                          >
-                            {g.iban} <Copy className="size-3" />
-                          </button>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums">₺{fmt(g.total)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-emerald-700">₺{fmt(g.paid)}</td>
-                      <td className="px-3 py-2 text-right">
-                        {done ? (
-                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                            Ödendi
-                          </span>
-                        ) : (
-                          <span className="font-semibold tabular-nums text-amber-600">₺{fmt(g.remaining)}</span>
-                        )}
-                      </td>
-                    </tr>
-                    {showBreakdown && (
-                      <tr className="bg-muted/10">
-                        <td colSpan={5} className="px-3 pb-2 pt-0">
-                          <div className="flex flex-wrap gap-x-4 gap-y-1 pl-3">
-                            {g.vendors.map((v, vi) => (
-                              <span key={vi} className="text-[11px] text-muted-foreground">
-                                ↳ {v.name}: <span className="font-semibold text-amber-600">₺{fmt(v.remaining)}</span>{" "}
-                                <span className="text-muted-foreground/70">(₺{fmt(v.total)})</span>
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                      </tr>
+
+        <div className="divide-y">
+          {groups.map((g, i) => {
+            const done = g.remaining <= 0.5;
+            const showBreakdown = g.vendors.length > 1 || (g.vendors[0] && g.vendors[0].name !== g.owner);
+            return (
+              <div key={i} className="p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-900">{g.owner}</p>
+                    {g.iban ? (
+                      <button
+                        type="button"
+                        onClick={() => copy(g.iban)}
+                        className="mt-0.5 inline-flex items-center gap-1 font-mono text-[11px] text-slate-500 hover:text-emerald-700"
+                        title="IBAN kopyala"
+                      >
+                        {g.iban} <Copy className="size-3" />
+                      </button>
+                    ) : (
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">IBAN kayıtlı değil</p>
                     )}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Ödenecek</p>
+                      <p className="text-sm font-semibold tabular-nums">₺{fmt(g.total)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Ödenen</p>
+                      <p className="text-sm font-semibold tabular-nums text-emerald-700">₺{fmt(g.paid)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Kalan</p>
+                      {done ? (
+                        <span className="inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                          Ödendi
+                        </span>
+                      ) : (
+                        <p className="text-sm font-bold tabular-nums text-amber-600">₺{fmt(g.remaining)}</p>
+                      )}
+                    </div>
+                    {canEdit && (
+                      <Button size="sm" className="h-8 shrink-0" onClick={() => setPayGroup(g)}>
+                        <CreditCard className="size-3.5" /> Ödeme
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {showBreakdown && (
+                  <div className="mt-2.5 rounded-lg border bg-muted/20 p-2.5">
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Kimin için ödeniyor
+                    </p>
+                    <div className="space-y-1">
+                      {g.vendors.map((v, vi) => (
+                        <div key={vi} className="flex items-center justify-between gap-3 text-xs">
+                          <span className="min-w-0 truncate text-slate-700">↳ {v.name}</span>
+                          <span className="shrink-0 tabular-nums">
+                            <span className="text-muted-foreground">Toplam ₺{fmt(v.total)}</span>
+                            <span className="ml-3 font-semibold text-amber-600">Kalan ₺{fmt(v.remaining)}</span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </CardContent>
+
+      {payGroup && (
+        <OwnerPayDialog group={payGroup} onClose={() => setPayGroup(null)} onSaved={onChange} />
+      )}
     </Card>
   );
 }
@@ -1341,6 +1444,13 @@ function LineDialog({
   const [busy, start] = useTransition();
   const [fxBusy, setFxBusy] = useState(false);
   const [payDiffers, setPayDiffers] = useState(!!(line?.payAccountNameOverride || line?.payIbanOverride));
+  // Ödeme sahibi de tedarikçiler arasından seçilir (elle yazılmaz). Mevcut
+  // override adına eşleşen tedarikçi varsa onun id'siyle başlar.
+  const [payOwnerVendorId, setPayOwnerVendorId] = useState(
+    line?.payAccountNameOverride
+      ? vendors.find((v) => v.name === line.payAccountNameOverride)?.id ?? ""
+      : "",
+  );
   const [f, setF] = useState({
     categoryId: line?.categoryId ?? "",
     description: line?.description ?? "",
@@ -1358,6 +1468,7 @@ function LineDialog({
     payIban: line?.payIbanOverride ?? "",
     link: line?.link ?? "",
     plannedAmount: line?.plannedAmount == null ? "" : String(line.plannedAmount),
+    paidAmount: "", // yalnız yeni kalemde: şimdiye kadar ödenen
   });
 
   const qty = parseFloat(f.quantity) || 0;
@@ -1418,6 +1529,7 @@ function LineDialog({
       payIbanOverride: payDiffers ? f.payIban : "",
       link: f.link,
       plannedAmount: f.plannedAmount === "" ? null : parseFloat(f.plannedAmount) || 0,
+      paidAmount: !line && f.paidAmount ? parseFloat(f.paidAmount) || 0 : undefined,
     };
     start(async () => {
       const r = line ? await updateCostLine(line.id, input) : await createCostLine(projectId, input);
@@ -1545,15 +1657,31 @@ function LineDialog({
                 Ödeme tedarikçiye (kayıtlı IBAN'ına) yapılacak kabul edilir.
               </p>
             ) : (
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>Ödeme Sahibi (Hesap Adı)</Label>
-                  <Input value={f.payAccountName} onChange={(e) => setF({ ...f, payAccountName: e.target.value })} placeholder="Örn. Burak Kıran" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>IBAN</Label>
-                  <Input value={f.payIban} onChange={(e) => setF({ ...f, payIban: e.target.value })} placeholder="TR.." />
-                </div>
+              <div className="mt-3 space-y-1.5">
+                <Label>Ödeme Sahibi (tedarikçilerden seç)</Label>
+                <SupplierCombobox
+                  vendors={vendors}
+                  value={payOwnerVendorId}
+                  onSelect={(v) => {
+                    setPayOwnerVendorId(v?.id ?? "");
+                    setF((p) => ({
+                      ...p,
+                      payAccountName: v?.name ?? "",
+                      payIban: v?.payIban ?? "",
+                    }));
+                  }}
+                  onCreated={onVendorCreated}
+                />
+                {f.payAccountName ? (
+                  <p className="text-[11px] text-muted-foreground">
+                    Seçili: <strong>{f.payAccountName}</strong>
+                    {f.payIban ? ` · ${f.payIban}` : " · IBAN yok (tedarikçiyi düzenleyip ekleyin)"}
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">
+                    Ödeme sahibini kayıtlı tedarikçilerden seçin; yoksa &quot;kaydet&quot; ile ekleyin.
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -1562,6 +1690,24 @@ function LineDialog({
             <Label>Fatura / Dekont Linki (ops.)</Label>
             <Input value={f.link} onChange={(e) => setF({ ...f, link: e.target.value })} placeholder="https://…" />
           </div>
+
+          {!line && (
+            <div className="rounded-lg border border-dashed p-3">
+              <Label>Ödenen Tutar (varsa)</Label>
+              <Input
+                type="number"
+                step="any"
+                value={f.paidAmount}
+                onChange={(e) => setF({ ...f, paidAmount: e.target.value })}
+                placeholder="0"
+                className="mt-1.5"
+              />
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                Bu kaleme şimdiye kadar ödediğin tutar. Boş/az bırakırsan kalanı &quot;Ödeme Yapılacak Kişiler&quot;den
+                işlersin. Kalan: <strong>₺{fmt(Math.max(0, grossTL - (parseFloat(f.paidAmount) || 0)))}</strong>
+              </p>
+            </div>
+          )}
 
           <div className="space-y-1 rounded-lg bg-muted/50 px-3 py-2.5 text-sm">
             <div className="flex items-center justify-between">
@@ -1573,7 +1719,7 @@ function LineDialog({
               <span className="tabular-nums">₺{fmt(vatTL)}</span>
             </div>
             <div className="flex items-center justify-between border-t pt-1 font-bold">
-              <span>KDV dahil</span>
+              <span>KDV dahil (ödenecek)</span>
               <span className="text-base tabular-nums text-primary">₺{fmt(grossTL)}</span>
             </div>
           </div>
@@ -1592,15 +1738,13 @@ function LineDialog({
   );
 }
 
-// ————————————————————————————————————————— Ödeme dialog (kalem bazında)
-function PaymentDialog({
-  line,
-  canEdit,
+// ————————————————————————————————————————— Ödeme dialog (ödeme sahibi bazında)
+function OwnerPayDialog({
+  group,
   onClose,
   onSaved,
 }: {
-  line: Line;
-  canEdit: boolean;
+  group: OwnerGroup;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -1610,20 +1754,19 @@ function PaymentDialog({
   const [method, setMethod] = useState("HAVALE");
   const [note, setNote] = useState("");
 
-  const gross = lineGrossTL(line); // tedarikçiye ödenecek KDV dahil tutar
-  const paid = linePaidTL(line);
-  const balance = lineBalanceTL(line);
-
   function add() {
     const a = parseFloat(amount);
     if (!a || a <= 0) return toast.error("Geçerli tutar girin");
     start(async () => {
-      const r = await addCostPayment(line.id, { amount: a, paidDate: date || undefined, method, note });
+      const r = await allocateOwnerPayment({
+        lineIds: group.lineIds,
+        amount: a,
+        paidDate: date || undefined,
+        method,
+        note,
+      });
       if (r.error) { toast.error(r.error); return; }
-      setAmount("");
-      setNote("");
-      setDate("");
-      toast.success("Ödeme eklendi");
+      toast.success("Ödeme kaydedildi");
       onSaved();
       onClose();
     });
@@ -1637,97 +1780,91 @@ function PaymentDialog({
     });
   }
 
-  const payAcc = line.payAccountNameOverride || line.vendorName || "";
-  const payIbanShown = line.payIbanOverride || line.vendorPayIban || "";
-
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Ödeme — {line.description}</DialogTitle>
-          <DialogDescription>
-            {payAcc ? `Ödeme Sahibi: ${payAcc}` : "Ödeme sahibi belirtilmemiş"}
-            {payIbanShown && ` · ${payIbanShown}`}
-          </DialogDescription>
+          <DialogTitle>Ödeme — {group.owner}</DialogTitle>
+          <DialogDescription>{group.iban || "IBAN kayıtlı değil"}</DialogDescription>
         </DialogHeader>
 
         <div className="mb-1 grid grid-cols-3 gap-2 rounded-lg bg-muted/40 p-3 text-center text-sm">
           <div>
-            <p className="text-[10px] uppercase text-muted-foreground">Ödenecek (KDV dahil)</p>
-            <p className="font-semibold tabular-nums">₺{fmt(gross)}</p>
+            <p className="text-[10px] uppercase text-muted-foreground">Ödenecek</p>
+            <p className="font-semibold tabular-nums">₺{fmt(group.total)}</p>
           </div>
           <div>
             <p className="text-[10px] uppercase text-muted-foreground">Ödenen</p>
-            <p className="font-semibold tabular-nums text-emerald-700">₺{fmt(paid)}</p>
+            <p className="font-semibold tabular-nums text-emerald-700">₺{fmt(group.paid)}</p>
           </div>
           <div>
             <p className="text-[10px] uppercase text-muted-foreground">Kalan</p>
-            <p className="font-semibold tabular-nums text-amber-600">₺{fmt(balance)}</p>
+            <p className="font-semibold tabular-nums text-amber-600">₺{fmt(group.remaining)}</p>
           </div>
         </div>
 
-        {line.payments.length > 0 && (
-          <div className="max-h-40 divide-y overflow-y-auto">
-            {line.payments.map((p) => (
-              <div key={p.id} className="flex items-center justify-between gap-2 py-1.5 text-sm">
+        <p className="text-[11px] text-muted-foreground">
+          Girilen tutar bu ödeme sahibinin kalemlerine (kalan bakiyeye göre) otomatik dağıtılır.
+        </p>
+
+        {group.payments.length > 0 && (
+          <div className="max-h-40 divide-y overflow-y-auto rounded-lg border">
+            {group.payments.map((p) => (
+              <div key={p.id} className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-sm">
                 <div className="min-w-0">
                   <span className="font-medium tabular-nums">₺{fmt(p.amount)}</span>
                   <span className="ml-2 text-xs text-muted-foreground">
                     {p.paidDate} · {PAYMENT_METHOD_LABELS[p.method] ?? p.method}
                   </span>
-                  {p.note && <span className="ml-1 text-xs text-muted-foreground">· {p.note}</span>}
+                  <span className="block truncate text-[11px] text-muted-foreground">{p.lineDesc}{p.note ? ` · ${p.note}` : ""}</span>
                 </div>
-                {canEdit && (
-                  <button onClick={() => del(p.id)} className="rounded p-1 text-destructive/70 hover:bg-destructive-soft" disabled={busy}>
-                    <Trash2 className="size-3.5" />
-                  </button>
-                )}
+                <button onClick={() => del(p.id)} className="rounded p-1 text-destructive/70 hover:bg-destructive-soft" disabled={busy}>
+                  <Trash2 className="size-3.5" />
+                </button>
               </div>
             ))}
           </div>
         )}
 
-        {canEdit && (
-          <div className="space-y-2 border-t pt-3">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-[11px]">Tutar (₺)</Label>
-                <Input type="number" step="any" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="h-9" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[11px]">Tarih</Label>
-                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[11px]">Yöntem</Label>
-                <Select value={method} onValueChange={setMethod}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(PAYMENT_METHOD_LABELS).map(([v, l]) => (
-                      <SelectItem key={v} value={v}>
-                        {l}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[11px]">Açıklama</Label>
-                <Input value={note} onChange={(e) => setNote(e.target.value)} className="h-9" />
-              </div>
+        <div className="space-y-2 border-t pt-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-[11px]">Tutar (₺)</Label>
+              <Input type="number" step="any" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="h-9" />
             </div>
-            <div className="flex justify-between gap-2">
-              <Button variant="outline" size="sm" onClick={() => setAmount(String(Math.max(0, balance)))}>
-                Kalanı yaz
-              </Button>
-              <Button size="sm" onClick={add} disabled={busy}>
-                {busy ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />} Ödeme Ekle
-              </Button>
+            <div className="space-y-1">
+              <Label className="text-[11px]">Tarih</Label>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px]">Yöntem</Label>
+              <Select value={method} onValueChange={setMethod}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PAYMENT_METHOD_LABELS).map(([v, l]) => (
+                    <SelectItem key={v} value={v}>
+                      {l}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px]">Açıklama</Label>
+              <Input value={note} onChange={(e) => setNote(e.target.value)} className="h-9" />
             </div>
           </div>
-        )}
+          <div className="flex justify-between gap-2">
+            <Button variant="outline" size="sm" onClick={() => setAmount(String(Math.max(0, group.remaining)))}>
+              Kalanı yaz
+            </Button>
+            <Button size="sm" onClick={add} disabled={busy}>
+              {busy ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />} Ödeme Kaydet
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -130,6 +130,7 @@ export interface CostProjectMetrics {
   // Kâr (TL, net bazında)
   profitTL: number; // öngörülen: satış − gerçekleşen maliyet
   currentProfitTL: number; // mevcut/nakit: tahsil edilen − ödenen (alınmamış para dahil değil)
+  plannedProfitTL: number; // teklif/planlanan kâr: satış − planlanan (öngörülen) maliyet
   profitMarginPct: number; // kâr / satış
   // Vergi & şirkete net (yalnız faturalı kısım vergilendirilir)
   salesInvoicedNetTL: number;
@@ -188,6 +189,7 @@ export function computeCostProjectMetrics(inp: CostProjectMetricsInput): CostPro
   const profitTL = salesPriceTL - actualNetTL;
   // Mevcut/nakit kâr: sadece tahsil edilen − fiilen ödenen (alınmamış para hariç).
   const currentProfitTL = collectedTL - paidTL;
+  const plannedProfitTL = salesPriceTL - plannedTotalTL;
   const profitMarginPct = salesPriceTL > 0 ? (profitTL / salesPriceTL) * 100 : 0;
 
   // ——— Vergi & şirkete net (yalnız faturalı kısım) ———
@@ -206,10 +208,11 @@ export function computeCostProjectMetrics(inp: CostProjectMetricsInput): CostPro
   const companyNetTL = invoicedProfitNetTL - corporateTaxTL + uninvoicedProfitNetTL;
 
   const partnerPctTotal = partners.reduce((s, p) => s + (p.sharePercent || 0), 0);
+  // Ortaklara dağıtılacak = MEVCUT kâr (tahsil − ödenen).
   const partnerShares = partners.map((p) => ({
     name: p.name,
     sharePercent: p.sharePercent || 0,
-    amountTL: profitTL * ((p.sharePercent || 0) / 100),
+    amountTL: currentProfitTL * ((p.sharePercent || 0) / 100),
   }));
 
   return {
@@ -239,6 +242,7 @@ export function computeCostProjectMetrics(inp: CostProjectMetricsInput): CostPro
     collectedTL,
     profitTL,
     currentProfitTL,
+    plannedProfitTL,
     profitMarginPct,
     salesInvoicedNetTL,
     salesUninvoicedNetTL,

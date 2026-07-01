@@ -320,6 +320,7 @@ export interface CostLineInput {
   payIbanOverride?: string | null;
   link?: string | null;
   plannedAmount?: number | null;
+  paidAmount?: number; // yalnız create'te: kalem eklenirken şimdiye kadar ödenen
 }
 
 function normalizeLine(input: CostLineInput) {
@@ -373,14 +374,23 @@ export async function createCostLine(
     }
   }
 
-  await prisma.costLine.create({
+  const created = await prisma.costLine.create({
     data: {
       costProjectId,
       sortOrder: (max._max.sortOrder ?? 0) + 1,
       code,
       ...normalizeLine(input),
     },
+    select: { id: true },
   });
+
+  // Kalem eklenirken ödenen tutar girildiyse ilk ödemeyi kaydet.
+  const paid = Number(input.paidAmount) || 0;
+  if (paid > 0) {
+    await prisma.costPayment.create({
+      data: { costLineId: created.id, amount: paid, paidDate: new Date(), method: "HAVALE", note: "Kalem eklenirken" },
+    });
+  }
   revalidatePath(`/cost-control/${costProjectId}`);
   return { success: true };
 }
@@ -432,6 +442,60 @@ export async function addCostPayment(
     },
   });
   revalidatePath(`/cost-control/${projectId}`);
+  return { success: true };
+}
+
+// Ödeme sahibi bazında toplu ödeme — tutarı, verilen kalemlere kalan bakiyeleri
+// sırasıyla dağıtır (KDV dahil brüt bazında). Ödeme "Ödeme Yapılacak Kişiler"
+// bölümünden bu action ile kaydedilir.
+export async function allocateOwnerPayment(input: {
+  lineIds: string[];
+  amount: number;
+  paidDate?: string;
+  method?: string;
+  note?: string;
+}): Promise<{ error?: string; success?: boolean }> {
+  const user = await requireAuth();
+  if (!canEdit(user)) return { error: "Yetkiniz yok" };
+  const amount = Number(input.amount) || 0;
+  if (amount <= 0) return { error: "Geçerli bir tutar girin" };
+  if (!input.lineIds?.length) return { error: "Kalem bulunamadı" };
+
+  const lines = await prisma.costLine.findMany({
+    where: { id: { in: input.lineIds }, costProject: { organizationId: user.organizationId } },
+    include: { payments: { select: { amount: true } } },
+  });
+  if (!lines.length) return { error: "Kalem bulunamadı" };
+
+  const method = ["HAVALE", "EFT", "NAKIT", "KART", "CEK"].includes(input.method || "")
+    ? (input.method as "HAVALE" | "EFT" | "NAKIT" | "KART" | "CEK")
+    : "HAVALE";
+  const date = toDate(input.paidDate) ?? new Date();
+  const note = (input.note || "").trim() || null;
+
+  const withRem = lines.map((l) => {
+    const gross = l.quantity * l.unitPrice * l.exchangeRate * (1 + (l.isInvoiced ? l.vatRate || 0 : 0) / 100);
+    const paid = l.payments.reduce((s, p) => s + p.amount, 0);
+    return { id: l.id, remaining: Math.max(0, gross - paid) };
+  });
+
+  let left = amount;
+  const creates: { costLineId: string; amount: number; paidDate: Date; method: typeof method; note: string | null }[] = [];
+  for (const l of withRem) {
+    if (left <= 0.001) break;
+    if (l.remaining <= 0.001) continue;
+    const pay = Math.min(l.remaining, left);
+    creates.push({ costLineId: l.id, amount: pay, paidDate: date, method, note });
+    left -= pay;
+  }
+  // Fazla ödeme (kalan bakiyeden büyük) → son kaleme ekle ki toplam tutsun.
+  if (left > 0.001) {
+    if (creates.length) creates[creates.length - 1].amount += left;
+    else creates.push({ costLineId: withRem[0].id, amount: left, paidDate: date, method, note });
+  }
+  if (creates.length) await prisma.costPayment.createMany({ data: creates });
+
+  revalidatePath(`/cost-control/${lines[0].costProjectId}`);
   return { success: true };
 }
 

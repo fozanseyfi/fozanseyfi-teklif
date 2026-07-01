@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { CostProjectDetail } from "@/components/cost-control/cost-project-detail";
+import { resolveBrand, parseBrandSettings } from "@/lib/pdf-brand";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export default async function CostProjectPage({ params }: { params: Promise<{ id
   });
   if (!project) notFound();
 
-  const [vendors, categories, rates] = await Promise.all([
+  const [vendors, categories, rates, org] = await Promise.all([
     prisma.costVendor.findMany({
       where: { organizationId: user.organizationId },
       orderBy: { name: "asc" },
@@ -50,7 +51,9 @@ export default async function CostProjectPage({ params }: { params: Promise<{ id
       orderBy: [{ sortOrder: "asc" }, { code: "asc" }],
     }),
     getRates(),
+    prisma.organization.findUnique({ where: { id: user.organizationId }, select: { brandSettings: true } }),
   ]);
+  const brand = resolveBrand(parseBrandSettings(org?.brandSettings));
 
   // Serileştir (Date → ISO)
   const data = {
@@ -123,6 +126,8 @@ export default async function CostProjectPage({ params }: { params: Promise<{ id
       categories={categoryList}
       rates={rates}
       firmName={user.organization.name}
+      userEmail={user.email ?? ""}
+      brand={brand}
       canEdit={user.platformRole !== "viewer"}
     />
   );

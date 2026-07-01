@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { csym } from "@/lib/cost-control";
 import { buildStatement, trDate, type StmtCollection } from "@/lib/cost-control-statement";
 import { StatementPdfButton } from "@/components/cost-control/statement-pdf-button";
+import { resolveBrand, parseBrandSettings } from "@/lib/pdf-brand";
 import { Wallet, CheckCircle2, CalendarClock, AlertTriangle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -22,9 +23,10 @@ export default async function PaymentStatementPage({ params }: { params: Promise
 
   const org = await prisma.organization.findUnique({
     where: { id: project.organizationId },
-    select: { name: true },
+    select: { name: true, brandSettings: true },
   });
   const firmName = org?.name ?? "Firma";
+  const brand = resolveBrand(parseBrandSettings(org?.brandSettings));
   const sym = csym(project.salesCurrency);
   const todayISO = new Date().toISOString().slice(0, 10);
 
@@ -68,7 +70,9 @@ export default async function PaymentStatementPage({ params }: { params: Promise
             </p>
             <StatementPdfButton
               input={{
+                brand,
                 firmName,
+                userEmail: "",
                 customer: project.customer,
                 projectName: project.name,
                 sym,
