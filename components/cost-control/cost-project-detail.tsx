@@ -1204,11 +1204,11 @@ function ProjectSettingsDialog({ data, onClose, onSaved }: { data: ProjectData; 
 // ————————————————————————————————————————— Ödeme yapılacak kişiler (dağıtım)
 interface OwnerGroup {
   owner: string;
-  iban: string;
+  iban: string; // tek IBAN varsa gösterilir; birden çoksa "" (kırılımda listelenir)
   total: number;
   paid: number;
   remaining: number;
-  vendors: { name: string; total: number; remaining: number }[];
+  vendors: { name: string; iban: string; total: number; remaining: number }[];
   lineIds: string[];
   payments: { id: string; amount: number; paidDate: string; method: string; lineDesc: string; note: string }[];
 }
@@ -1236,11 +1236,11 @@ function PaymentOwnersCard({
       string,
       {
         owner: string;
-        iban: string;
+        ibans: Set<string>;
         total: number;
         paid: number;
         remaining: number;
-        vendors: Map<string, { total: number; remaining: number }>;
+        vendors: Map<string, { total: number; remaining: number; ibans: Set<string> }>;
         lineIds: string[];
         payments: OwnerGroup["payments"];
       }
@@ -1248,19 +1248,19 @@ function PaymentOwnersCard({
     for (const l of lines) {
       const total = lineGrossTL(l); // tedarikçiye ödenecek KDV dahil tutar
       if (total <= 0) continue;
-      // Ödeme sahibi override yoksa tedarikçi (isim + IBAN) varsayılır.
+      // Ödeme sahibi override yoksa tedarikçi varsayılır. Aynı İSİM tek satır
+      // (IBAN farklı olsa da) — IBAN kırılımda gösterilir.
       const owner = (l.payAccountNameOverride || l.vendorName || "—").trim() || "—";
       const iban = l.payIbanOverride || l.vendorPayIban || "";
-      const key = `${owner}|${iban}`;
       const cur =
-        map.get(key) ||
+        map.get(owner) ||
         {
           owner,
-          iban,
+          ibans: new Set<string>(),
           total: 0,
           paid: 0,
           remaining: 0,
-          vendors: new Map<string, { total: number; remaining: number }>(),
+          vendors: new Map<string, { total: number; remaining: number; ibans: Set<string> }>(),
           lineIds: [] as string[],
           payments: [] as OwnerGroup["payments"],
         };
@@ -1268,25 +1268,32 @@ function PaymentOwnersCard({
       cur.paid += linePaidTL(l);
       cur.remaining += Math.max(0, lineBalanceTL(l));
       cur.lineIds.push(l.id);
+      if (iban) cur.ibans.add(iban);
       for (const p of l.payments) {
         cur.payments.push({ id: p.id, amount: p.amount, paidDate: p.paidDate, method: p.method, lineDesc: l.description, note: p.note });
       }
-      // Alt kırılım: bu ödeme sahibi hangi tedarikçi(ler) için ödüyor.
+      // Alt kırılım: bu ödeme sahibi hangi tedarikçi(ler)/IBAN(lar) için ödüyor.
       const vName = (l.vendorName || "Tedarikçi belirtilmemiş").trim() || "Tedarikçi belirtilmemiş";
-      const v = cur.vendors.get(vName) || { total: 0, remaining: 0 };
+      const v = cur.vendors.get(vName) || { total: 0, remaining: 0, ibans: new Set<string>() };
       v.total += total;
       v.remaining += Math.max(0, lineBalanceTL(l));
+      if (iban) v.ibans.add(iban);
       cur.vendors.set(vName, v);
-      map.set(key, cur);
+      map.set(owner, cur);
     }
     return Array.from(map.values())
       .map((g) => ({
         owner: g.owner,
-        iban: g.iban,
+        iban: g.ibans.size === 1 ? [...g.ibans][0] : "",
         total: g.total,
         paid: g.paid,
         remaining: g.remaining,
-        vendors: Array.from(g.vendors.entries()).map(([name, v]) => ({ name, ...v })),
+        vendors: Array.from(g.vendors.entries()).map(([name, v]) => ({
+          name,
+          total: v.total,
+          remaining: v.remaining,
+          iban: v.ibans.size === 1 ? [...v.ibans][0] : "",
+        })),
         lineIds: g.lineIds,
         payments: g.payments.sort((a, b) => b.paidDate.localeCompare(a.paidDate)),
       }))
@@ -1348,7 +1355,8 @@ function PaymentOwnersCard({
             </thead>
             <tbody className="divide-y">
               {groups.map((g, i) => {
-                const showBreakdown = g.vendors.length > 1 || (g.vendors[0] && g.vendors[0].name !== g.owner);
+                const showBreakdown =
+                  g.vendors.length > 1 || !g.iban || (g.vendors[0] && g.vendors[0].name !== g.owner);
                 return (
                   <Fragment key={i}>
                     <tr className="hover:bg-muted/30">
@@ -1382,8 +1390,21 @@ function PaymentOwnersCard({
                     {showBreakdown &&
                       g.vendors.map((v, vi) => (
                         <tr key={`${i}-${vi}`} className="text-[10.5px] text-muted-foreground">
-                          <td className="px-3 py-0.5" />
-                          <td className="px-3 py-0.5 truncate">↳ {v.name}</td>
+                          <td className="px-3 py-0.5 pl-5 truncate">↳ {v.name}</td>
+                          <td className="px-3 py-0.5 font-mono">
+                            {v.iban ? (
+                              <button
+                                type="button"
+                                onClick={() => copy(v.iban)}
+                                className="inline-flex items-center gap-1 hover:text-emerald-700"
+                                title="IBAN kopyala"
+                              >
+                                {v.iban} <Copy className="size-2.5" />
+                              </button>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
                           <td className="whitespace-nowrap px-3 py-0.5 text-right tabular-nums">
                             kalan <span className="font-semibold text-amber-600">₺{fmt(v.remaining)}</span>{" "}
                             <span>/ ₺{fmt(v.total)}</span>
