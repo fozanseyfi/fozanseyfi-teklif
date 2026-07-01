@@ -116,6 +116,9 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
   const totalCostTRY = items
     .filter((it) => !it.isOption)
     .reduce((s, it) => s + convert(it.unitCost, it.currency, "TRY", rates) * (it.qty || 0), 0);
+  const optionCostTRY = items
+    .filter((it) => it.isOption)
+    .reduce((s, it) => s + convert(it.unitCost, it.currency, "TRY", rates) * (it.qty || 0), 0);
   const optionCount = items.filter((it) => it.isOption).length;
 
   async function handleSave(goNext: boolean) {
@@ -356,13 +359,25 @@ export function QuoteItemsEditor({ projectId, projectName, initialItems, initial
             <span className="text-sm tabular-nums text-muted-foreground">
               €{fmt(rates.eur ? totalCostTRY / rates.eur : 0)}
             </span>
-            {optionCount > 0 && (
+            {fxLoading && <Loader2 className="inline size-3 animate-spin text-muted-foreground" />}
+          </div>
+          {optionCount > 0 && (
+            <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 border-t border-violet-100 bg-violet-50/50 px-4 py-2.5">
+              <span className="text-xs font-medium text-violet-700">
+                Toplam Maliyet (Opsiyonlar):
+              </span>
+              <span className="text-sm font-semibold tabular-nums text-violet-800">₺{fmt(optionCostTRY)}</span>
+              <span className="text-sm tabular-nums text-violet-700/80">
+                ${fmt(rates.usd ? optionCostTRY / rates.usd : 0)}
+              </span>
+              <span className="text-sm tabular-nums text-violet-700/80">
+                €{fmt(rates.eur ? optionCostTRY / rates.eur : 0)}
+              </span>
               <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-700">
                 {optionCount} opsiyon
               </span>
-            )}
-            {fxLoading && <Loader2 className="inline size-3 animate-spin text-muted-foreground" />}
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </fieldset>
