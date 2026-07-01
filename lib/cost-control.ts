@@ -134,6 +134,8 @@ export interface CostProjectMetrics {
   profitTL: number; // öngörülen: satış − gerçekleşen maliyet
   currentProfitTL: number; // mevcut/nakit: tahsil edilen − ödenen (alınmamış para dahil değil)
   plannedProfitTL: number; // teklif/planlanan kâr: satış − planlanan (öngörülen) maliyet
+  vokTL: number; // VÖK = KDV dahil satış − KDV dahil gerçekleşen maliyet
+  plannedVokTL: number; // Öngörülen VÖK = KDV dahil satış − KDV dahil öngörülen maliyet
   profitMarginPct: number; // kâr / satış
   // Vergi & şirkete net (yalnız faturalı kısım vergilendirilir)
   salesInvoicedNetTL: number;
@@ -205,6 +207,12 @@ export function computeCostProjectMetrics(inp: CostProjectMetricsInput): CostPro
   const outputVatTL = salesInvoicedNetTL * (salesVatRate / 100);
   const inputVatTL = invoicedVatTL; // faturalı maliyet KDV'si
   const vatPayableTL = outputVatTL - inputVatTL;
+  // VÖK (kullanıcı tanımı) = toplam satış KDV DAHİL − toplam maliyet KDV DAHİL.
+  const grossSaleTL = salesPriceTL + outputVatTL;
+  const vokTL = grossSaleTL - actualGrossTL;
+  // Öngörülen VÖK de KDV dahil: satış KDV dahil − öngörülen maliyet KDV dahil.
+  const plannedGrossTL = plannedTotalTL * (1 + salesVatRate / 100);
+  const plannedVokTL = grossSaleTL - plannedGrossTL;
   // Faturalı kâr: faturalı satış − faturalı (belgeli) maliyet (indirilebilir gider).
   const invoicedProfitNetTL = salesInvoicedNetTL - invoicedNetTL;
   const corporateTaxTL = Math.max(0, invoicedProfitNetTL) * (CORPORATE_TAX_RATE / 100);
@@ -252,6 +260,8 @@ export function computeCostProjectMetrics(inp: CostProjectMetricsInput): CostPro
     profitTL,
     currentProfitTL,
     plannedProfitTL,
+    vokTL,
+    plannedVokTL,
     profitMarginPct,
     salesInvoicedNetTL,
     salesUninvoicedNetTL,

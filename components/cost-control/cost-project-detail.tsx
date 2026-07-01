@@ -230,8 +230,8 @@ export function CostProjectDetail({
   const salesGross = data.salesPrice + salesVat;
   // Öngörülen (teklif) maliyet/kâra göre gerçekleşme yüzdeleri.
   const costVsPlannedPct = m.plannedTotalTL > 0 ? (m.actualNetTL / m.plannedTotalTL - 1) * 100 : null;
-  const profitVsPlannedPct =
-    m.hasPlanned && m.plannedProfitTL !== 0 ? (m.profitTL / m.plannedProfitTL - 1) * 100 : null;
+  const vokVsPlannedPct =
+    m.hasPlanned && m.plannedVokTL !== 0 ? (m.vokTL / m.plannedVokTL - 1) * 100 : null;
 
   function refresh() {
     router.refresh();
@@ -362,15 +362,15 @@ export function CostProjectDetail({
           tone={m.payableBalanceTL > 0.5 ? "amber" : "emerald"}
         />
         <Kpi
-          label="Vergi Öncesi Kâr (VÖK)"
-          value={`₺${fmt(m.profitTL)}`}
+          label="Vergi Öncesi Kâr (VÖK, KDV dahil)"
+          value={`₺${fmt(m.vokTL)}`}
           sub={
             m.hasPlanned
-              ? `Anlık (nakit) ₺${fmt(m.currentProfitTL)} · Öngörülen ₺${fmt(m.plannedProfitTL)}${profitVsPlannedPct != null ? ` (${profitVsPlannedPct >= 0 ? "+" : ""}%${fmt(profitVsPlannedPct, 1)})` : ""}`
+              ? `Anlık (nakit) ₺${fmt(m.currentProfitTL)} · Öngörülen ₺${fmt(m.plannedVokTL)}${vokVsPlannedPct != null ? ` (${vokVsPlannedPct >= 0 ? "+" : ""}%${fmt(vokVsPlannedPct, 1)})` : ""}`
               : `Anlık (Tahsilat − Ödeme): ₺${fmt(m.currentProfitTL)}`
           }
-          tone={m.profitTL >= 0 ? "emerald" : "rose"}
-          icon={m.profitTL >= 0 ? "up" : "down"}
+          tone={m.vokTL >= 0 ? "emerald" : "rose"}
+          icon={m.vokTL >= 0 ? "up" : "down"}
         />
         <Kpi
           label="Kalan Alacak"
@@ -387,8 +387,8 @@ export function CostProjectDetail({
             </p>
             <div className="space-y-1 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Vergi Öncesi Kâr (VÖK)</span>
-                <span className="font-semibold tabular-nums">₺{fmt(m.profitTL)}</span>
+                <span className="text-muted-foreground">Vergi Öncesi Kâr (VÖK, KDV dahil)</span>
+                <span className="font-semibold tabular-nums">₺{fmt(m.vokTL)}</span>
               </div>
               <div className="flex items-center justify-between text-muted-foreground">
                 <span>− Ödenecek KDV</span>
@@ -403,10 +403,10 @@ export function CostProjectDetail({
                 <span
                   className={cn(
                     "tabular-nums",
-                    m.profitTL - m.vatPayableTL - m.corporateTaxTL >= 0 ? "text-emerald-700" : "text-rose-600",
+                    m.vokTL - m.vatPayableTL - m.corporateTaxTL >= 0 ? "text-emerald-700" : "text-rose-600",
                   )}
                 >
-                  ₺{fmt(m.profitTL - m.vatPayableTL - m.corporateTaxTL)}
+                  ₺{fmt(m.vokTL - m.vatPayableTL - m.corporateTaxTL)}
                 </span>
               </div>
             </div>
@@ -771,16 +771,20 @@ function TaxSummaryCard({ m }: { m: ReturnType<typeof computeCostProjectMetrics>
             )}
           </div>
 
-          {/* Kâr & vergi */}
+          {/* Kâr & vergi — yalnız faturalı iş (faturasız kâr vergisiz, dahil edilmez) */}
           <div className="rounded-lg border p-3">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Kâr & Vergi</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Kâr & Vergi (faturalı)</p>
             <TaxRow label="Faturalı kâr (KDV hariç)" value={m.invoicedProfitNetTL} />
             <TaxRow label={`Kurumlar vergisi (%${CORPORATE_TAX_RATE})`} value={-m.corporateTaxTL} />
-            <TaxRow label="Faturasız kâr (vergisiz)" value={m.uninvoicedProfitNetTL} muted />
             <div className="mt-1 flex items-center justify-between border-t pt-1.5 text-sm font-bold">
-              <span>Şirkete Net Kalan</span>
-              <span className={cn("tabular-nums", m.companyNetTL >= 0 ? "text-emerald-700" : "text-rose-600")}>
-                ₺{fmt(m.companyNetTL)}
+              <span>Vergi Sonrası Net (faturalı)</span>
+              <span
+                className={cn(
+                  "tabular-nums",
+                  m.invoicedProfitNetTL - m.corporateTaxTL >= 0 ? "text-emerald-700" : "text-rose-600",
+                )}
+              >
+                ₺{fmt(m.invoicedProfitNetTL - m.corporateTaxTL)}
               </span>
             </div>
           </div>
