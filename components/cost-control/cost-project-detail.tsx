@@ -47,6 +47,7 @@ import {
   MessageCircle,
   Mail,
   Link2,
+  FileDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatNumber } from "@/lib/utils";
@@ -66,6 +67,7 @@ import {
   type Rates,
 } from "@/lib/cost-control";
 import { reminderText } from "@/lib/cost-control-statement";
+import { buildStatementPrintHtml } from "@/lib/cost-statement-print";
 import {
   updateCostProject,
   deleteCostProject,
@@ -364,6 +366,7 @@ export function CostProjectDetail({
                 <tbody className="divide-y">
                   {data.lines.map((l) => {
                     const net = lineNetTL(l);
+                    const gross = lineGrossTL(l);
                     const variance = lineVariance(l);
                     const status = linePayStatus(l);
                     const paid = linePaidTL(l);
@@ -436,7 +439,7 @@ export function CostProjectDetail({
                             title="Ödeme ekle / gör"
                           >
                             <CreditCard className="size-3" />
-                            {status === "paid" ? "Ödendi" : status === "partial" ? `%${fmt((paid / (net || 1)) * 100)}` : "Ödenmedi"}
+                            {status === "paid" ? "Ödendi" : status === "partial" ? `%${fmt((paid / (gross || 1)) * 100)}` : "Ödenmedi"}
                           </button>
                         </td>
                         <td className="px-2 py-2">
@@ -705,6 +708,26 @@ function CollectionsCard({
       window.location.href = `mailto:?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(buildMsg(l))}`;
     });
   }
+  function downloadPdf() {
+    const html = buildStatementPrintHtml({
+      firmName,
+      customer: data.customer,
+      projectName: data.name,
+      sym,
+      total: data.salesPrice,
+      collections: data.collections,
+      todayISO,
+      linkUrl: link || undefined,
+    });
+    const w = window.open("", "_blank");
+    if (!w) {
+      toast.error("Açılır pencere engellendi — izin verin");
+      return;
+    }
+    w.document.write(html);
+    w.document.close();
+    // HTML içindeki window.onload → otomatik yazdır (PDF olarak kaydet).
+  }
 
   return (
     <Card>
@@ -734,6 +757,9 @@ function CollectionsCard({
               <Share2 className="size-3.5" /> Müşteriye Ödeme Ekstresi Gönder
             </p>
             <div className="flex flex-wrap gap-2">
+              <Button size="sm" className="h-8" onClick={downloadPdf}>
+                <FileDown className="size-3.5" /> PDF Çıktı
+              </Button>
               <Button size="sm" variant="outline" className="h-8" onClick={sendWhatsApp} disabled={linking}>
                 <MessageCircle className="size-3.5 text-emerald-600" /> WhatsApp
               </Button>
@@ -743,19 +769,10 @@ function CollectionsCard({
               <Button size="sm" variant="outline" className="h-8" onClick={copyLink} disabled={linking}>
                 {linking ? <Loader2 className="size-3.5 animate-spin" /> : <Link2 className="size-3.5" />} Linki Kopyala
               </Button>
-              {link && (
-                <a
-                  href={link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs text-emerald-700 hover:underline"
-                >
-                  <ExternalLink className="size-3.5" /> Önizle
-                </a>
-              )}
             </div>
             <p className="mt-1.5 text-[10.5px] text-muted-foreground">
-              Toplam borç, ödenenler ve planlanan ödemeler tarih/gün durumuyla (bugün · X gün sonra · gecikmiş) müşteriye iletilir.
+              <strong>PDF Çıktı</strong> ile ekstreyi PDF olarak kaydedip paylaşabilirsin. WhatsApp/E-posta metin bildirimi
+              gönderir; toplam borç, ödenenler ve planlanan ödemeler tarih/gün durumuyla (bugün · X gün sonra · gecikmiş) yer alır.
             </p>
           </div>
         )}
@@ -1061,7 +1078,7 @@ function PaymentOwnersCard({ lines }: { lines: Line[] }) {
       { owner: string; iban: string; total: number; paid: number; remaining: number }
     >();
     for (const l of lines) {
-      const total = lineNetTL(l);
+      const total = lineGrossTL(l); // tedarikçiye ödenecek KDV dahil tutar
       if (total <= 0) continue;
       // Ödeme sahibi override yoksa tedarikçi (isim + IBAN) varsayılır.
       const owner = (l.payAccountNameOverride || l.vendorName || "—").trim() || "—";
@@ -1102,7 +1119,7 @@ function PaymentOwnersCard({ lines }: { lines: Line[] }) {
               <tr className="border-b bg-muted/50 text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
                 <th className="px-3 py-2 text-left">Ödeme Sahibi</th>
                 <th className="px-3 py-2 text-left">IBAN</th>
-                <th className="px-3 py-2 text-right">Toplam (net)</th>
+                <th className="px-3 py-2 text-right">Ödenecek (KDV dahil)</th>
                 <th className="px-3 py-2 text-right">Ödenen</th>
                 <th className="px-3 py-2 text-right">Kalan / Durum</th>
               </tr>
@@ -1194,7 +1211,11 @@ function LineDialog({
   const qty = parseFloat(f.quantity) || 0;
   const price = parseFloat(f.unitPrice) || 0;
   const rate = f.currency === "TRY" ? 1 : parseFloat(f.exchangeRate) || 0;
-  const netTL = qty * price * rate;
+  const netTL = qty * price * rate; // girilen birim fiyat KDV hariç
+  // Faturasız kalemde KDV yoktur.
+  const vatRatePreview = f.isInvoiced ? parseFloat(f.vatRate) || 0 : 0;
+  const vatTL = netTL * (vatRatePreview / 100);
+  const grossTL = netTL + vatTL;
 
   function setCurrency(c: string) {
     let er = f.exchangeRate;
@@ -1303,7 +1324,7 @@ function LineDialog({
               <Input value={f.unit} onChange={(e) => setF({ ...f, unit: e.target.value })} placeholder="adet" />
             </div>
             <div className="space-y-1.5">
-              <Label>Birim Fiyat</Label>
+              <Label>Birim Fiyat (KDV hariç)</Label>
               <Input type="number" step="any" value={f.unitPrice} onChange={(e) => setF({ ...f, unitPrice: e.target.value })} />
             </div>
             <div className="space-y-1.5">
@@ -1390,9 +1411,19 @@ function LineDialog({
             <Input value={f.link} onChange={(e) => setF({ ...f, link: e.target.value })} placeholder="https://…" />
           </div>
 
-          <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2 text-sm">
-            <span className="text-muted-foreground">TL Toplam (net)</span>
-            <span className="text-base font-bold tabular-nums">₺{fmt(netTL)}</span>
+          <div className="space-y-1 rounded-lg bg-muted/50 px-3 py-2.5 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">TL Toplam (KDV hariç)</span>
+              <span className="font-semibold tabular-nums">₺{fmt(netTL)}</span>
+            </div>
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span>KDV (%{fmt(vatRatePreview)})</span>
+              <span className="tabular-nums">₺{fmt(vatTL)}</span>
+            </div>
+            <div className="flex items-center justify-between border-t pt-1 font-bold">
+              <span>KDV dahil</span>
+              <span className="text-base tabular-nums text-primary">₺{fmt(grossTL)}</span>
+            </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-1">
@@ -1427,7 +1458,7 @@ function PaymentDialog({
   const [method, setMethod] = useState("HAVALE");
   const [note, setNote] = useState("");
 
-  const net = lineNetTL(line);
+  const gross = lineGrossTL(line); // tedarikçiye ödenecek KDV dahil tutar
   const paid = linePaidTL(line);
   const balance = lineBalanceTL(line);
 
@@ -1470,8 +1501,8 @@ function PaymentDialog({
 
         <div className="mb-1 grid grid-cols-3 gap-2 rounded-lg bg-muted/40 p-3 text-center text-sm">
           <div>
-            <p className="text-[10px] uppercase text-muted-foreground">TL Toplam</p>
-            <p className="font-semibold tabular-nums">₺{fmt(net)}</p>
+            <p className="text-[10px] uppercase text-muted-foreground">Ödenecek (KDV dahil)</p>
+            <p className="font-semibold tabular-nums">₺{fmt(gross)}</p>
           </div>
           <div>
             <p className="text-[10px] uppercase text-muted-foreground">Ödenen</p>

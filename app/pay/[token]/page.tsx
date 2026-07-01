@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { csym } from "@/lib/cost-control";
 import { buildStatement, trDate, type StmtCollection } from "@/lib/cost-control-statement";
+import { StatementPdfButton } from "@/components/cost-control/statement-pdf-button";
 import { Wallet, CheckCircle2, CalendarClock, AlertTriangle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -61,10 +62,21 @@ export default async function PaymentStatementPage({ params }: { params: Promise
               <p className="truncate text-xs text-white/85">{firmName}</p>
             </div>
           </div>
-          <div className="px-6 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
             <p className="text-sm text-slate-700">
               Sayın <strong>{project.customer || "Yetkili"}</strong>, aşağıda güncel ödeme durumunuz yer almaktadır.
             </p>
+            <StatementPdfButton
+              input={{
+                firmName,
+                customer: project.customer,
+                projectName: project.name,
+                sym,
+                total: project.salesPrice,
+                collections,
+                todayISO,
+              }}
+            />
           </div>
         </div>
 

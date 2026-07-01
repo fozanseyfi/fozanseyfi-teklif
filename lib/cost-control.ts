@@ -46,10 +46,13 @@ export function lineNetTL(l: { quantity: number; unitPrice: number; exchangeRate
   return (l.quantity || 0) * (l.unitPrice || 0) * (l.exchangeRate || 0);
 }
 
+/** KDV — faturasız kalemde KDV yoktur (0). */
 export function lineVatTL(l: LineLike): number {
+  if (!l.isInvoiced) return 0;
   return lineNetTL(l) * ((l.vatRate || 0) / 100);
 }
 
+/** KDV dahil tutar = tedarikçiye fiilen ödenen tutar (faturasızda = net). */
 export function lineGrossTL(l: LineLike): number {
   return lineNetTL(l) + lineVatTL(l);
 }
@@ -58,17 +61,17 @@ export function linePaidTL(l: LineLike): number {
   return (l.payments ?? []).reduce((s, p) => s + (p.amount || 0), 0);
 }
 
-/** Kalan ödenecek (net bazında — şartname: Kalan = TL Toplam − Ödenen). */
+/** Kalan ödenecek — tedarikçiye KDV DAHİL ödeniyor: Kalan = KDV dahil − Ödenen. */
 export function lineBalanceTL(l: LineLike): number {
-  return lineNetTL(l) - linePaidTL(l);
+  return lineGrossTL(l) - linePaidTL(l);
 }
 
 export type PayStatus = "unpaid" | "partial" | "paid";
 export function linePayStatus(l: LineLike): PayStatus {
-  const net = lineNetTL(l);
+  const gross = lineGrossTL(l);
   const paid = linePaidTL(l);
   if (paid <= 0.001) return "unpaid";
-  if (paid + 0.5 >= net) return "paid";
+  if (paid + 0.5 >= gross) return "paid";
   return "partial";
 }
 
@@ -199,7 +202,8 @@ export function computeCostProjectMetrics(inp: CostProjectMetricsInput): CostPro
     uninvoicedVatTL,
     uninvoicedGrossTL: uninvoicedNetTL + uninvoicedVatTL,
     paidTL,
-    payableBalanceTL: actualNetTL - paidTL,
+    // Tedarikçilere KDV dahil ödendiği için kalan = brüt − ödenen.
+    payableBalanceTL: actualGrossTL - paidTL,
     collectedTotal,
     plannedCollectedTotal,
     remainingReceivable,
