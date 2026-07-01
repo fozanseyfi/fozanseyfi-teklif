@@ -28,6 +28,7 @@ import {
   UserCircle2,
   Upload,
   Package,
+  Wallet,
 } from "lucide-react";
 import { logout, switchOrganization } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
@@ -72,6 +73,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/templates", icon: LayoutTemplate, label: "Şablonlar" },
       { href: "/materials", icon: Package, label: "Malzemeler" },
       { href: "/customers", icon: Users, label: "Müşteriler" },
+      { href: "/cost-control", icon: Wallet, label: "Maliyet Kontrol" },
     ],
   },
   {

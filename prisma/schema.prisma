@@ -619,3 +619,184 @@ model PlatformSettings {
 
   @@schema("solar")
 }
+
+// =============================================================================
+// MALİYET KONTROL (Cost Control) modülü — teklif akışından bağımsız, gerçek
+// harcama/tahsilat takibi. Org bazlı izole (organizationId UUID, cross-schema
+// FK yok — MaterialCatalogItem deseni). Not: mevcut `CostItem` modeli ve
+// `CostCategory` enum'ı GES domain'ine ait; çakışmayı önlemek için bu modülde
+// CostLine / CostCategoryDef adları kullanıldı.
+// =============================================================================
+
+/// Maliyet kontrol projesi — satış fiyatı + gerçekleşen harcama takibi. Teklif
+/// projesinden (sourceProjectId) import edilebilir ama bağımsız yaşar.
+model CostProject {
+  id              String            @id @default(cuid())
+  organizationId  String            @map("organization_id") @db.Uuid
+  createdById     String            @map("created_by_id") @db.Uuid
+  name            String
+  customer        String            @default("")
+  salesPrice      Float             @default(0) @map("sales_price")
+  salesCurrency   String            @default("TRY") @map("sales_currency")
+  salesVatRate    Float             @default(20) @map("sales_vat_rate")
+  startDate       DateTime?         @map("start_date")
+  endDate         DateTime?         @map("end_date")
+  status          CostProjectStatus @default(ACTIVE)
+  // Kaynak teklif projesi (opsiyonel) — import edildiyse referans/etiket.
+  sourceProjectId String?           @map("source_project_id")
+  notes           String?
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  lines       CostLine[]
+  collections CostCollection[]
+  partners    CostPartner[]
+
+  @@index([organizationId])
+  @@map("cost_projects")
+  @@schema("solar")
+}
+
+/// Maliyet kategorisi tanımı (org geneli) — otomatik kod A.1, A.2… Öntanımlı
+/// set seed'lenir; kullanıcı kendi ekleyebilir.
+model CostCategoryDef {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id") @db.Uuid
+  code           String
+  name           String
+  isDefault      Boolean  @default(false) @map("is_default")
+  sortOrder      Int      @default(0) @map("sort_order")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  lines CostLine[]
+
+  @@index([organizationId])
+  @@map("cost_categories")
+  @@schema("solar")
+}
+
+/// Satıcı (vendor) — org geneli tek defter. Ödeme hesabı satıcıdan farklı
+/// olabilir (payAccountName / payIban).
+model CostVendor {
+  id              String   @id @default(cuid())
+  organizationId  String   @map("organization_id") @db.Uuid
+  name            String
+  email           String?
+  phone           String?
+  taxNo           String?  @map("tax_no")
+  defaultInvoiced Boolean  @default(true) @map("default_invoiced")
+  payAccountName  String?  @map("pay_account_name")
+  payIban         String?  @map("pay_iban")
+  bank            String?
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  lines CostLine[]
+
+  @@index([organizationId])
+  @@map("cost_vendors")
+  @@schema("solar")
+}
+
+/// Harcama kalemi — birim fiyat × miktar × kur = TL toplam. Planlanan bütçe
+/// (opsiyonel) ile varyans; kalem bazında KDV ve faturalı/faturasız.
+model CostLine {
+  id            String  @id @default(cuid())
+  costProjectId String  @map("cost_project_id")
+  costProject   CostProject @relation(fields: [costProjectId], references: [id], onDelete: Cascade)
+  categoryId    String? @map("category_id")
+  category      CostCategoryDef? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  code        String  @default("")
+  description String
+  model       String?
+  brand       String?
+  unit        String  @default("adet")
+  quantity    Float   @default(0)
+  unitPrice   Float   @default(0) @map("unit_price")
+  currency    String  @default("TRY")
+  exchangeRate Float  @default(1) @map("exchange_rate")
+  vatRate     Float   @default(20) @map("vat_rate")
+  isInvoiced  Boolean @default(true) @map("is_invoiced")
+
+  vendorId    String? @map("vendor_id")
+  vendor      CostVendor? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  payAccountNameOverride String? @map("pay_account_name_override")
+  payIbanOverride        String? @map("pay_iban_override")
+
+  // Planlanan bütçe (TL, opsiyonel) — varyans = gerçekleşen(TL) − planlanan.
+  plannedAmount Float? @map("planned_amount")
+  sortOrder     Int    @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  payments CostPayment[]
+
+  @@index([costProjectId])
+  @@index([vendorId])
+  @@map("cost_lines")
+  @@schema("solar")
+}
+
+/// Satıcıya yapılan ödeme (kısmi olabilir). Tutar TL.
+model CostPayment {
+  id         String            @id @default(cuid())
+  costLineId String            @map("cost_line_id")
+  costLine   CostLine          @relation(fields: [costLineId], references: [id], onDelete: Cascade)
+  amount     Float
+  paidDate   DateTime          @map("paid_date")
+  method     CostPaymentMethod @default(HAVALE)
+  note       String?
+  createdAt  DateTime          @default(now()) @map("created_at")
+
+  @@index([costLineId])
+  @@map("cost_payments")
+  @@schema("solar")
+}
+
+/// Müşteriden tahsilat (kısmi/avans). Tutar satış para biriminde varsayılır.
+model CostCollection {
+  id            String   @id @default(cuid())
+  costProjectId String   @map("cost_project_id")
+  costProject   CostProject @relation(fields: [costProjectId], references: [id], onDelete: Cascade)
+  amount        Float
+  collectedDate DateTime @map("collected_date")
+  note          String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([costProjectId])
+  @@map("cost_collections")
+  @@schema("solar")
+}
+
+/// Kâr dağıtımı — ortak payları (yüzde). Toplam %100 olmalı (uyarı).
+model CostPartner {
+  id            String   @id @default(cuid())
+  costProjectId String   @map("cost_project_id")
+  costProject   CostProject @relation(fields: [costProjectId], references: [id], onDelete: Cascade)
+  name          String
+  sharePercent  Float    @default(0) @map("share_percent")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([costProjectId])
+  @@map("cost_partners")
+  @@schema("solar")
+}
+
+enum CostProjectStatus {
+  ACTIVE
+  DONE
+
+  @@schema("solar")
+}
+
+enum CostPaymentMethod {
+  HAVALE
+  EFT
+  NAKIT
+  KART
+  CEK
+
+  @@schema("solar")
+}
