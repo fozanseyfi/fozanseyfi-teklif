@@ -178,10 +178,15 @@ export default async function PaymentStatementPage({ params }: { params: Promise
                             : p.status.label}
                       </span>
                     </div>
-                    <span className="shrink-0 font-semibold tabular-nums text-slate-800">
-                      {sym}
-                      {fmt(p.amount)}
-                    </span>
+                    <div className="shrink-0 text-right">
+                      <span className="block font-semibold tabular-nums text-slate-800">
+                        {sym}
+                        {fmt(p.amount)}
+                      </span>
+                      <span className="text-[11px] tabular-nums text-slate-400">
+                        toplamın %{grossSale > 0 ? Math.round((p.amount / grossSale) * 100) : 0}
+                      </span>
+                    </div>
                   </div>
                 );
               })}

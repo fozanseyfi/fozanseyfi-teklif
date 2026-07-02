@@ -152,12 +152,13 @@ export function buildStatementPrintHtml(inp: StatementPrintInput): string {
     : `<tr><td colspan="4" class="empty">Kayıtlı ödeme yok</td></tr>`;
 
   const plannedSection = v.planned.length
-    ? `<h2>Planlanan Ödemeler</h2><table><thead><tr><th>Tarih</th><th>Açıklama</th><th>Durum</th><th class="num">Tutar</th></tr></thead><tbody>${v.planned
+    ? `<h2>Planlanan Ödemeler</h2><table><thead><tr><th>Tarih</th><th>Açıklama</th><th>Durum</th><th class="num">Tutar</th><th class="num">Toplamın %</th></tr></thead><tbody>${v.planned
         .map((p) => {
           const tone = p.status.tone;
           const label =
             tone === "overdue" ? `Gecikmiş — ${esc(p.status.label)}` : tone === "today" ? "Bugün" : esc(p.status.label);
-          return `<tr><td>${esc(trDate(p.collectedDate))}</td><td>${esc(p.note || "-")}</td><td class="${tone}">${label}</td><td class="num">${sym}${fmt(p.amount)}</td></tr>`;
+          const share = total > 0 ? (p.amount / total) * 100 : 0;
+          return `<tr><td>${esc(trDate(p.collectedDate))}</td><td>${esc(p.note || "-")}</td><td class="${tone}">${label}</td><td class="num">${sym}${fmt(p.amount)}</td><td class="num dim">%${fmt1(share)}</td></tr>`;
         })
         .join("")}</tbody></table>`
     : "";
