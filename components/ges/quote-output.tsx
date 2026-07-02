@@ -191,8 +191,8 @@ export function QuoteOutput({ projectId, quoteTitle, customer, revisions, brand,
                   {optionItems.map((it) => (
                     <div key={it.id} className="flex items-center justify-between gap-3 py-1.5">
                       <span className="min-w-0">
-                        {it.name || it.code}
-                        {it.desc && <span className="text-muted-foreground"> — {it.desc}</span>}
+                        <span>{it.name || it.code}</span>
+                        {it.desc && <span className="block whitespace-pre-line text-muted-foreground">{it.desc}</span>}
                       </span>
                       <span className="shrink-0 font-semibold tabular-nums">
                         {sym}{fmt(lineTotalSaleOut(it, out, rates))}

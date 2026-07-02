@@ -105,7 +105,7 @@ export default async function ShareTeklifPage({ params }: Props) {
                             {it.code && it.name && (
                               <span className="ml-1 text-[10.5px] text-slate-400">· {it.code}</span>
                             )}
-                            {it.desc && <span className="block text-[11px] text-slate-500">{it.desc}</span>}
+                            {it.desc && <span className="block whitespace-pre-line text-[11px] text-slate-500">{it.desc}</span>}
                           </td>
                           <td className="whitespace-nowrap px-3 py-2 text-right text-slate-600">
                             {fmt(it.qty, it.qty % 1 === 0 ? 0 : 2)} {it.unit}
@@ -152,8 +152,8 @@ export default async function ShareTeklifPage({ params }: Props) {
                 {optionItems.map((it) => (
                   <div key={it.id} className="flex items-center justify-between gap-3 py-1.5">
                     <span className="min-w-0 text-slate-700">
-                      {it.name || it.code}
-                      {it.desc && <span className="text-slate-500"> — {it.desc}</span>}
+                      <span>{it.name || it.code}</span>
+                      {it.desc && <span className="block whitespace-pre-line text-slate-500">{it.desc}</span>}
                     </span>
                     <span className="shrink-0 font-semibold tabular-nums text-slate-800">
                       {sym}{fmt(lineTotalSaleOut(it, out, rates))}
