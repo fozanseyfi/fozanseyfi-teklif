@@ -47,6 +47,7 @@ import {
   Mail,
   Link2,
   FileDown,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatNumber } from "@/lib/utils";
@@ -1399,6 +1400,8 @@ interface OwnerGroup {
   vendors: { name: string; iban: string; total: number; remaining: number }[];
   lineIds: string[];
   payments: { id: string; amount: number; paidDate: string; method: string; lineDesc: string; note: string }[];
+  overpaid: number; // bu sahibin kalemlerinde borçtan fazla ödenen toplam
+  overLines: { desc: string; amount: number }[]; // fazla ödenen kalemler
 }
 
 // Ödeme sahibine göre grupla (ödeme listesi + rapor PDF paylaşır).
@@ -1414,6 +1417,8 @@ function buildOwnerGroups(lines: Line[]): OwnerGroup[] {
       vendors: Map<string, { total: number; remaining: number; ibans: Set<string> }>;
       lineIds: string[];
       payments: OwnerGroup["payments"];
+      overpaid: number;
+      overLines: { desc: string; amount: number }[];
     }
   >();
   for (const l of lines) {
@@ -1433,10 +1438,18 @@ function buildOwnerGroups(lines: Line[]): OwnerGroup[] {
         vendors: new Map<string, { total: number; remaining: number; ibans: Set<string> }>(),
         lineIds: [] as string[],
         payments: [] as OwnerGroup["payments"],
+        overpaid: 0,
+        overLines: [] as { desc: string; amount: number }[],
       };
     cur.total += total;
     cur.paid += linePaidTL(l);
     cur.remaining += Math.max(0, lineBalanceTL(l));
+    // Bu kaleme borcundan (KDV dahil) fazla ödendiyse kaydet.
+    const over = Math.max(0, linePaidTL(l) - total);
+    if (over > 0.5) {
+      cur.overpaid += over;
+      cur.overLines.push({ desc: l.description || l.code || "Kalem", amount: over });
+    }
     cur.lineIds.push(l.id);
     if (iban) cur.ibans.add(iban);
     for (const p of l.payments) {
@@ -1465,6 +1478,8 @@ function buildOwnerGroups(lines: Line[]): OwnerGroup[] {
       })),
       lineIds: g.lineIds,
       payments: g.payments.sort((a, b) => b.paidDate.localeCompare(a.paidDate)),
+      overpaid: g.overpaid,
+      overLines: g.overLines,
     }))
     .sort((a, b) => b.remaining - a.remaining);
 }
@@ -1490,6 +1505,7 @@ function PaymentOwnersCard({
   const groups: OwnerGroup[] = useMemo(() => buildOwnerGroups(lines), [lines]);
 
   const totalRemaining = groups.reduce((s, g) => s + g.remaining, 0);
+  const overpaidGroups = groups.filter((g) => g.overpaid > 0.5);
 
   function copy(t: string) {
     navigator.clipboard.writeText((t || "").replace(/\s+/g, ""));
@@ -1532,6 +1548,27 @@ function PaymentOwnersCard({
           </div>
         </div>
 
+        {overpaidGroups.length > 0 && (
+          <div className="border-b border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-700">
+            <p className="flex items-center gap-1.5 font-semibold">
+              <AlertTriangle className="size-3.5" /> Fazla ödeme var — borcundan fazla ödenen kalem(ler):
+            </p>
+            <ul className="mt-1 space-y-0.5 pl-5">
+              {overpaidGroups.flatMap((g) =>
+                g.overLines.map((o, k) => (
+                  <li key={`${g.owner}-${k}`}>
+                    <span className="font-medium">{o.desc}</span> ({g.owner}) — fazla{" "}
+                    <span className="font-semibold">₺{fmt(o.amount)}</span>
+                  </li>
+                )),
+              )}
+            </ul>
+            <p className="mt-1 text-[10.5px] text-rose-600/80">
+              İlgili sahibin &quot;Öde&quot; ekranından fazla ödemeyi silip düzeltebilirsin.
+            </p>
+          </div>
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
@@ -1552,7 +1589,14 @@ function PaymentOwnersCard({
                 return (
                   <Fragment key={i}>
                     <tr className="border-t-2 border-border bg-white hover:bg-muted/30">
-                      <td className="px-3 py-2 text-[13px] font-semibold text-slate-900">{g.owner}</td>
+                      <td className="px-3 py-2 text-[13px] font-semibold text-slate-900">
+                        {g.owner}
+                        {g.overpaid > 0.5 && (
+                          <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-rose-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-rose-700">
+                            <AlertTriangle className="size-2.5" /> Fazla ₺{fmt(g.overpaid)}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-3 py-2">
                         {g.iban ? (
                           <button
