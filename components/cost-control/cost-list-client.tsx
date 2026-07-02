@@ -87,19 +87,23 @@ export function CostListClient({
   const totals = useMemo(() => {
     let salesNet = 0,
       salesGross = 0,
-      cost = 0,
+      costNet = 0,
+      costGross = 0,
       profit = 0,
+      vokFinal = 0,
       recv = 0,
       pay = 0;
     for (const p of projects) {
       salesNet += p.salesPriceTL;
       salesGross += p.salesGrossTL;
-      cost += p.actualGrossTL;
+      costNet += p.actualNetTL;
+      costGross += p.actualGrossTL;
       profit += p.currentProfitTL;
+      vokFinal += p.vokTL;
       recv += p.remainingReceivableTL;
       pay += p.payableBalanceTL;
     }
-    return { salesNet, salesGross, cost, profit, recv, pay };
+    return { salesNet, salesGross, costNet, costGross, profit, vokFinal, recv, pay };
   }, [projects]);
 
   return (
@@ -144,13 +148,31 @@ export function CostListClient({
       {/* Portföy KPI */}
       {projects.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <MiniKpi label="Toplam Satış (KDV hariç)" value={`₺${fmt(totals.salesNet)}`} tone="slate" />
-          <MiniKpi label="Toplam Satış (KDV dahil)" value={`₺${fmt(totals.salesGross)}`} tone="slate" />
-          <MiniKpi label="Toplam Maliyet (KDV dahil)" value={`₺${fmt(totals.cost)}`} tone="slate" />
+          <MiniKpi
+            label="Toplam Satış (KDV hariç)"
+            value={`₺${fmt(totals.salesNet)}`}
+            tone="slate"
+            label2="Toplam Maliyet (KDV hariç)"
+            value2={`₺${fmt(totals.costNet)}`}
+            tone2="slate"
+          />
+          <MiniKpi
+            label="Toplam Satış (KDV dahil)"
+            value={`₺${fmt(totals.salesGross)}`}
+            tone="slate"
+            label2="Toplam Maliyet (KDV dahil)"
+            value2={`₺${fmt(totals.costGross)}`}
+            tone2="slate"
+          />
           <MiniKpi
             label="Toplam Anlık VÖK"
             value={`₺${fmt(totals.profit)}`}
             tone={totals.profit >= 0 ? "emerald" : "rose"}
+          />
+          <MiniKpi
+            label="Toplam İş Sonu VÖK"
+            value={`₺${fmt(totals.vokFinal)}`}
+            tone={totals.vokFinal >= 0 ? "emerald" : "rose"}
           />
           <MiniKpi label="Tedarikçilere Kalan Ödeme" value={`₺${fmt(totals.pay)}`} tone="amber" />
           <MiniKpi label="Kalan Alacak" value={`₺${fmt(totals.recv)}`} tone="amber" />
@@ -300,20 +322,42 @@ export function CostListClient({
   );
 }
 
-function MiniKpi({ label, value, tone }: { label: string; value: string; tone: "slate" | "emerald" | "rose" | "amber" }) {
-  const toneCls =
-    tone === "emerald"
-      ? "text-emerald-700"
-      : tone === "rose"
-        ? "text-rose-600"
-        : tone === "amber"
-          ? "text-amber-600"
-          : "text-slate-900";
+type KpiTone = "slate" | "emerald" | "rose" | "amber";
+function toneClass(tone: KpiTone) {
+  return tone === "emerald"
+    ? "text-emerald-700"
+    : tone === "rose"
+      ? "text-rose-600"
+      : tone === "amber"
+        ? "text-amber-600"
+        : "text-slate-900";
+}
+function MiniKpi({
+  label,
+  value,
+  tone,
+  label2,
+  value2,
+  tone2 = "slate",
+}: {
+  label: string;
+  value: string;
+  tone: KpiTone;
+  label2?: string;
+  value2?: string;
+  tone2?: KpiTone;
+}) {
   return (
     <Card>
       <CardContent className="p-4">
         <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
-        <p className={`mt-1 text-xl font-bold tabular-nums ${toneCls}`}>{value}</p>
+        <p className={`mt-1 text-xl font-bold tabular-nums ${toneClass(tone)}`}>{value}</p>
+        {value2 !== undefined && (
+          <>
+            <p className="mt-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label2}</p>
+            <p className={`mt-1 text-xl font-bold tabular-nums ${toneClass(tone2)}`}>{value2}</p>
+          </>
+        )}
       </CardContent>
     </Card>
   );
