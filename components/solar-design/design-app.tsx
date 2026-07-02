@@ -41,6 +41,8 @@ import { polygonAreaPx } from "@/lib/solar-design/geometry";
 import { computeLayout, panelsKwp } from "@/lib/solar-design/layout-engine";
 
 const CanvasEditor = dynamic(() => import("./canvas-editor"), { ssr: false });
+const MapPicker = dynamic(() => import("./map-picker"), { ssr: false });
+const CropStep = dynamic(() => import("./crop-step"), { ssr: false });
 
 type StepKey = "gorsel" | "cizim" | "panel" | "analiz";
 const STEPS: { key: StepKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -180,12 +182,17 @@ function Editor() {
   const [selectedPlaneId, setSelectedPlaneId] = useState<string | null>(null);
   const [calibPx, setCalibPx] = useState<number | null>(null);
   const [calibMeters, setCalibMeters] = useState("");
+  const [mapMode, setMapMode] = useState(false);
+  const [pending, setPending] = useState<{ dataUrl: string; mpp: number } | null>(null);
 
   useEffect(() => { if (step === "panel" || step === "analiz") setTool("select"); }, [step]);
 
   const totalPanels = doc.placed.length;
   const totalKwp = panelsKwp(totalPanels, doc.panelConfig.watt);
   const canvasTool: EditorTool = step === "gorsel" || step === "cizim" ? tool : "select";
+  const showMap = step === "gorsel" && mapMode && !pending;
+  const showCrop = step === "gorsel" && !!pending;
+  const showToolbar = (step === "gorsel" && !mapMode && !pending && !!doc.imageDataUrl) || step === "cizim";
 
   function addPlane(points: Vec[]) {
     const idx = doc.planes.length;
@@ -255,7 +262,7 @@ function Editor() {
       <div className="grid gap-3 lg:grid-cols-[1fr_320px]">
         {/* Canvas kolonu */}
         <div className="space-y-2">
-          {(step === "gorsel" || step === "cizim") && (
+          {showToolbar && (
             <div className="flex flex-wrap items-center gap-1.5 rounded-lg border bg-card p-1.5">
               <ToolBtn active={tool === "select"} onClick={() => setTool("select")} icon={MousePointer2} label="Seç / Taşı" />
               {step === "cizim" && <ToolBtn active={tool === "draw"} onClick={() => setTool("draw")} icon={PencilRuler} label="Çatı Çiz" />}
@@ -283,19 +290,34 @@ function Editor() {
           )}
 
           <div className="h-[calc(100vh-16rem)] min-h-[420px]">
-            <CanvasEditor
-              tool={canvasTool}
-              selectedPlaneId={selectedPlaneId}
-              onSelectPlane={setSelectedPlaneId}
-              onCalibrated={(px) => setCalibPx(px)}
-              onPlaneAdded={addPlane}
-            />
+            {showMap ? (
+              <MapPicker onCapture={(dataUrl, mpp) => setPending({ dataUrl, mpp })} onCancel={() => setMapMode(false)} />
+            ) : showCrop ? (
+              <CropStep
+                src={pending!.dataUrl}
+                onConfirm={(cropped) => {
+                  update((d) => { d.imageDataUrl = cropped; d.metersPerPixel = pending!.mpp; });
+                  setPending(null);
+                  setMapMode(false);
+                  toast.success("Altlık hazır — “Çatı Çizimi” sekmesine geçebilirsin");
+                }}
+                onCancel={() => setPending(null)}
+              />
+            ) : (
+              <CanvasEditor
+                tool={canvasTool}
+                selectedPlaneId={selectedPlaneId}
+                onSelectPlane={setSelectedPlaneId}
+                onCalibrated={(px) => setCalibPx(px)}
+                onPlaneAdded={addPlane}
+              />
+            )}
           </div>
         </div>
 
         {/* Sağ panel */}
         <div className="space-y-3">
-          {step === "gorsel" && <GorselPanel mpp={doc.metersPerPixel} hasImage={!!doc.imageDataUrl} onUpload={(url) => update((d) => { d.imageDataUrl = url; })} onCalibTool={() => setTool("calibrate")} />}
+          {step === "gorsel" && <GorselPanel mpp={doc.metersPerPixel} hasImage={!!doc.imageDataUrl} onMap={() => { setPending(null); setMapMode(true); }} onUpload={(url) => update((d) => { d.imageDataUrl = url; })} onCalibTool={() => setTool("calibrate")} />}
           {step === "cizim" && <CizimPanel selectedPlaneId={selectedPlaneId} setSelectedPlaneId={setSelectedPlaneId} update={update} />}
           {step === "panel" && <PanelPanel update={update} onAuto={autoLayout} totalPanels={totalPanels} totalKwp={totalKwp} />}
           {step === "analiz" && <AnalizPanel />}
@@ -326,7 +348,7 @@ function StepNav({ step, setStep }: { step: StepKey; setStep: (s: StepKey) => vo
   );
 }
 
-function GorselPanel({ mpp, hasImage, onUpload, onCalibTool }: { mpp: number | null; hasImage: boolean; onUpload: (dataUrl: string) => void; onCalibTool: () => void }) {
+function GorselPanel({ mpp, hasImage, onMap, onUpload, onCalibTool }: { mpp: number | null; hasImage: boolean; onMap: () => void; onUpload: (dataUrl: string) => void; onCalibTool: () => void }) {
   function pick(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -339,22 +361,27 @@ function GorselPanel({ mpp, hasImage, onUpload, onCalibTool }: { mpp: number | n
   return (
     <Card>
       <CardContent className="space-y-3 p-4">
-        <p className="text-sm font-semibold text-slate-800">1) Görüntü</p>
-        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 px-3 py-4 text-sm text-slate-600 hover:border-emerald-300 hover:bg-emerald-50/40">
-          <ImagePlus className="size-4" /> {hasImage ? "Görüntüyü değiştir" : "Uydu/drone görüntüsü yükle"}
+        <p className="text-sm font-semibold text-slate-800">1) Altlık Görüntü</p>
+        <Button className="w-full" onClick={onMap}><MapIcon className="size-4" /> Haritadan Al (uydu)</Button>
+        <p className="text-[11px] text-muted-foreground">
+          Haritada adres ara → binaya yaklaş → “Bu Görünümü Al” → kırp. Ölçek <b>otomatik</b> hesaplanır.
+        </p>
+        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 px-3 py-3 text-[12px] text-slate-600 hover:border-emerald-300 hover:bg-emerald-50/40">
+          <ImagePlus className="size-4" /> {hasImage ? "Bunun yerine görüntü yükle" : "veya drone/ekran görüntüsü yükle"}
           <input type="file" accept="image/*" onChange={pick} className="hidden" />
         </label>
-        <p className="text-[11px] text-muted-foreground">Google Earth/Maps ekran görüntüsü veya drone fotoğrafı.</p>
 
         <div className="border-t pt-3">
-          <p className="text-sm font-semibold text-slate-800">2) Ölçek Kalibrasyonu</p>
+          <p className="text-sm font-semibold text-slate-800">2) Ölçek</p>
           {mpp ? (
             <p className="mt-1 text-[12px] text-emerald-700">✓ Kalibre: 1 m = {fmt(1 / mpp, 1)} px</p>
           ) : (
             <p className="mt-1 text-[12px] text-amber-600">Henüz kalibre edilmedi.</p>
           )}
-          <p className="mt-2 text-[11px] text-muted-foreground">Bilinen bir mesafeyi (ör. bina kenarı) çizin, gerçek uzunluğunu girin.</p>
-          <Button size="sm" variant="outline" className="mt-2 w-full" onClick={onCalibTool}><Ruler className="size-4" /> Kalibrasyon Çizgisi Çiz</Button>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Haritadan alınca ölçek otomatik gelir. Yüklenen görüntüde bir kenarı çizip gerçek uzunluğu girin.
+          </p>
+          <Button size="sm" variant="outline" className="mt-2 w-full" onClick={onCalibTool} disabled={!hasImage}><Ruler className="size-4" /> Kalibrasyon Çizgisi Çiz</Button>
         </div>
       </CardContent>
     </Card>
