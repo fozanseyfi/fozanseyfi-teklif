@@ -76,41 +76,21 @@ export function buildStatement(inp: StatementInput): StatementView {
   return { collected, remaining, paid, planned, hasOverdue, nextPlanned };
 }
 
-/** WhatsApp / e-posta için düz metin hatırlatma. */
+/** WhatsApp / e-posta için KISA düz metin hatırlatma. */
 export function reminderText(inp: StatementInput): string {
   const v = buildStatement(inp);
   const L: string[] = [];
   L.push(`Sayın ${inp.customer || "Yetkili"},`);
   L.push("");
-  L.push(`${inp.firmName} olarak "${inp.projectName}" işi için ödeme bilgilendirmesidir.`);
-  L.push("");
-  L.push(`Toplam tutar: ${inp.sym}${fmtN(inp.total)}`);
-  L.push(`Bugüne kadar ödediğiniz: ${inp.sym}${fmtN(v.collected)}`);
-  L.push(`Kalan bakiye: ${inp.sym}${fmtN(v.remaining)}`);
-  if (v.paid.length) {
-    L.push("");
-    L.push("Ödeme geçmişiniz:");
-    v.paid.forEach((p) => L.push(`• ${trDate(p.collectedDate)} tarihinde ${inp.sym}${fmtN(p.amount)} ödendi`));
-  }
-  if (v.planned.length) {
-    L.push("");
-    L.push("Planlanan ödemeleriniz:");
-    v.planned.forEach((p) => {
-      const note =
-        p.status.tone === "overdue"
-          ? `${trDate(p.collectedDate)} tarihli GECİKMİŞ ödeme (${p.status.label})`
-          : p.status.tone === "today"
-            ? `bugün (${trDate(p.collectedDate)})`
-            : `${trDate(p.collectedDate)} — ${p.status.label}`;
-      L.push(`• ${inp.sym}${fmtN(p.amount)} · ${note}`);
-    });
-  }
+  L.push(
+    `${inp.firmName} olarak "${inp.projectName}" işiniz için güncel ödeme durumunuzu paylaşıyoruz. Kalan bakiye: ${inp.sym}${fmtN(v.remaining)}.`,
+  );
   if (inp.link) {
     L.push("");
-    L.push(`Detaylı ekstrenizi buradan görebilirsiniz:`);
+    L.push("Detaylı ekstrenize buradan ulaşabilirsiniz:");
     L.push(inp.link);
   }
   L.push("");
-  L.push("Bilginize sunar, iyi çalışmalar dileriz.");
+  L.push("İyi çalışmalar dileriz.");
   return L.join("\n");
 }
