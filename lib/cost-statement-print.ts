@@ -327,6 +327,9 @@ export interface CostReportSummary {
 function money(sym: string, n: number): string {
   return `${sym}${fmt(n)}`;
 }
+function fmt1(n: number): string {
+  return (n || 0).toLocaleString("tr-TR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
 
 function summaryBodyHtml(s: CostReportSummary): string {
   const kpi = (label: string, value: string, sub?: string) =>
@@ -358,6 +361,73 @@ function summaryBodyHtml(s: CostReportSummary): string {
     <p style="margin-top:6px;color:#64748b;font-size:10px">Kurumlar vergisi yalnız faturalı kâr (₺${fmt(s.invoicedProfit)}) üzerinden; faturasız kâr (₺${fmt(s.uninvoicedProfit)}) VÖK'e dahildir.</p>`;
 }
 
+export interface ReportBreakdownRow {
+  name: string;
+  amount: number;
+  pct: number;
+}
+export interface ReportCollection {
+  date: string;
+  amount: number;
+  planned: boolean;
+  note: string;
+}
+export interface ReportPartner {
+  name: string;
+  sharePercent: number;
+  amount: number;
+}
+
+function extraSummaryHtml(
+  s: CostReportSummary,
+  breakdown: ReportBreakdownRow[],
+  collections: ReportCollection[],
+  partners: ReportPartner[],
+): string {
+  const sym = s.salesSym;
+  const bd = breakdown.length
+    ? `<h2 style="margin-top:18px">Maliyet Kırılımı (kategori · KDV dahil)</h2>
+       <table><thead><tr><th>Kategori</th><th class="num">Tutar</th><th class="num">%</th></tr></thead>
+       <tbody>${breakdown
+         .map((r) => `<tr><td>${esc(r.name)}</td><td class="num">₺${fmt(r.amount)}</td><td class="num">%${fmt1(r.pct)}</td></tr>`)
+         .join("")}</tbody></table>`
+    : "";
+
+  const paid = collections.filter((c) => !c.planned);
+  const planned = collections.filter((c) => c.planned);
+  const collRows = paid.length
+    ? paid
+        .map((c) => `<tr><td>${esc(trDate(c.date))}</td><td>${esc(c.note || "-")}</td><td class="num">${money(sym, c.amount)}</td></tr>`)
+        .join("")
+    : `<tr><td colspan="3" class="empty">Tahsilat kaydı yok</td></tr>`;
+  const plannedRows = planned.length
+    ? `<h2 style="margin-top:12px">Planlanan Tahsilatlar</h2>
+       <table><thead><tr><th>Planlanan Tarih</th><th>Açıklama</th><th class="num">Tutar</th></tr></thead>
+       <tbody>${planned
+         .map((c) => `<tr><td>${esc(trDate(c.date))}</td><td>${esc(c.note || "-")}</td><td class="num">${money(sym, c.amount)}</td></tr>`)
+         .join("")}</tbody></table>`
+    : "";
+  const tahsilat = `
+    <h2 style="margin-top:18px">Müşteriden Tahsilat</h2>
+    <div class="summary" style="margin-bottom:8px">
+      <div class="sbox"><div class="l">Satış (KDV dahil)</div><div class="v">${money(sym, s.salesGross)}</div></div>
+      <div class="sbox g"><div class="l">Tahsil Edilen</div><div class="v">${money(sym, s.collected)}</div></div>
+      <div class="sbox a"><div class="l">Kalan Alacak</div><div class="v">${money(sym, s.remainingReceivable)}</div></div>
+    </div>
+    <table><thead><tr><th>Tarih</th><th>Açıklama</th><th class="num">Tutar</th></tr></thead><tbody>${collRows}</tbody></table>
+    ${plannedRows}`;
+
+  const ort = partners.length
+    ? `<h2 style="margin-top:18px">Ortaklara Dağıtım (mevcut kâr)</h2>
+       <table><thead><tr><th>Ortak</th><th class="num">Pay %</th><th class="num">Tutar</th></tr></thead>
+       <tbody>${partners
+         .map((p) => `<tr><td>${esc(p.name)}</td><td class="num">%${fmt1(p.sharePercent)}</td><td class="num">₺${fmt(p.amount)}</td></tr>`)
+         .join("")}</tbody></table>`
+    : "";
+
+  return `${bd}${tahsilat}${ort}`;
+}
+
 export function buildCostReportPrintHtml(inp: {
   brand: BrandContext;
   firmName: string;
@@ -367,6 +437,9 @@ export function buildCostReportPrintHtml(inp: {
   summary: CostReportSummary;
   rows: CostLinePrintRow[];
   groups: PayOwnerRow[];
+  breakdown: ReportBreakdownRow[];
+  collections: ReportCollection[];
+  partners: ReportPartner[];
 }): string {
   const b = inp.brand;
   const docId = generateDocId();
@@ -413,7 +486,7 @@ export function buildCostReportPrintHtml(inp: {
 </style>
 </head>
 <body>
-  ${page("Özet · " + inp.projectName, summaryBodyHtml(inp.summary))}
+  ${page("Özet · " + inp.projectName, summaryBodyHtml(inp.summary) + extraSummaryHtml(inp.summary, inp.breakdown, inp.collections, inp.partners))}
   ${page("Harcama Kalemleri · " + inp.projectName, costLinesBodyHtml(inp.rows))}
   ${page("Ödeme Listesi · " + inp.projectName, paymentOwnersBodyHtml(inp.groups), true)}
   <div class="foot">${esc(inp.firmName)} · Belge No: ${docId} · ${esc(inp.userEmail)}</div>

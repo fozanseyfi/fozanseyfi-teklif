@@ -332,6 +332,28 @@ export function CostProjectDetail({
       },
       rows,
       groups: buildOwnerGroups(data.lines),
+      breakdown: (() => {
+        const map = new Map<string, number>();
+        for (const l of data.lines) {
+          const key = l.categoryLabel || "Kategorisiz";
+          map.set(key, (map.get(key) || 0) + lineGrossTL(l));
+        }
+        const total = Array.from(map.values()).reduce((a, b) => a + b, 0);
+        return Array.from(map.entries())
+          .map(([name, amount]) => ({ name, amount, pct: total > 0 ? (amount / total) * 100 : 0 }))
+          .sort((a, b) => b.amount - a.amount);
+      })(),
+      collections: data.collections.map((c) => ({
+        date: c.collectedDate,
+        amount: c.amount,
+        planned: c.isPlanned,
+        note: c.note,
+      })),
+      partners: data.partners.map((p) => ({
+        name: p.name,
+        sharePercent: p.sharePercent,
+        amount: m.currentProfitTL * ((p.sharePercent || 0) / 100),
+      })),
     });
     const w = window.open("", "_blank");
     if (!w) {
