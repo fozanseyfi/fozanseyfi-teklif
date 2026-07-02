@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { csym } from "@/lib/cost-control";
 import { buildStatement, trDate, type StmtCollection } from "@/lib/cost-control-statement";
 import { StatementPdfButton } from "@/components/cost-control/statement-pdf-button";
+import { StatementQr } from "@/components/cost-control/statement-qr";
 import { resolveBrand, parseBrandSettings } from "@/lib/pdf-brand";
-import { Wallet, CheckCircle2, CalendarClock, AlertTriangle } from "lucide-react";
+import { Wallet, CheckCircle2, CalendarClock, AlertTriangle, Landmark, QrCode } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +52,15 @@ export default async function PaymentStatementPage({ params }: { params: Promise
     todayISO,
   });
 
+  // Çevrimiçi ekstre mutlak URL'i — QR için.
+  const h = await headers();
+  const host = h.get("host") ?? "";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  const link = host ? `${proto}://${host}/pay/${token}` : "";
+
+  const pct = grossSale > 0 ? Math.max(0, Math.min(100, Math.round((v.collected / grossSale) * 100))) : 0;
+  const hasBank = !!(brand.payCompanyName || brand.payBankName || brand.payIban);
+
   const accent = "#059669";
 
   return (
@@ -82,6 +93,7 @@ export default async function PaymentStatementPage({ params }: { params: Promise
                 total: grossSale,
                 collections,
                 todayISO,
+                linkUrl: link || undefined,
               }}
             />
           </div>
@@ -97,9 +109,23 @@ export default async function PaymentStatementPage({ params }: { params: Promise
 
         {/* Özet */}
         <div className="grid grid-cols-3 gap-3">
-          <SummaryCard label="Toplam Tutar" value={`${sym}${fmt(project.salesPrice)}`} tone="slate" />
+          <SummaryCard label="Toplam Tutar" value={`${sym}${fmt(grossSale)}`} tone="slate" />
           <SummaryCard label="Ödenen" value={`${sym}${fmt(v.collected)}`} tone="emerald" />
           <SummaryCard label="Kalan Bakiye" value={`${sym}${fmt(v.remaining)}`} tone="amber" />
+        </div>
+
+        {/* Ödeme tamamlanma */}
+        <div className="rounded-2xl border bg-white p-4 shadow-sm">
+          <div className="mb-2 flex items-center justify-between text-sm">
+            <span className="font-medium text-slate-700">Ödeme Tamamlanma</span>
+            <span className="text-slate-600">
+              <strong className="text-emerald-700">%{pct}</strong> ödendi · kalan {sym}
+              {fmt(v.remaining)}
+            </span>
+          </div>
+          <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+          </div>
         </div>
 
         {/* Ödeme geçmişi */}
@@ -127,34 +153,82 @@ export default async function PaymentStatementPage({ params }: { params: Promise
         {v.planned.length > 0 && (
           <Section title="Planlanan Ödemeler" icon={<CalendarClock className="size-4 text-sky-600" />}>
             <div className="divide-y">
-              {v.planned.map((p, i) => (
-                <div key={i} className="flex items-center justify-between gap-3 py-2.5 text-sm">
-                  <div className="min-w-0">
-                    <p className="font-medium text-slate-800">{trDate(p.collectedDate)}</p>
-                    <span
-                      className={
-                        p.status.tone === "overdue"
-                          ? "text-xs font-semibold text-rose-600"
+              {v.planned.map((p, i) => {
+                const hasNote = !!p.note?.trim();
+                return (
+                  <div key={i} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-slate-800">
+                        {hasNote ? p.note : trDate(p.collectedDate)}
+                      </p>
+                      <span
+                        className={
+                          p.status.tone === "overdue"
+                            ? "text-xs font-semibold text-rose-600"
+                            : p.status.tone === "today"
+                              ? "text-xs font-semibold text-amber-600"
+                              : "text-xs text-slate-500"
+                        }
+                      >
+                        {hasNote ? `${trDate(p.collectedDate)} · ` : ""}
+                        {p.status.tone === "overdue"
+                          ? `Gecikmiş — ${p.status.label}`
                           : p.status.tone === "today"
-                            ? "text-xs font-semibold text-amber-600"
-                            : "text-xs text-slate-500"
-                      }
-                    >
-                      {p.status.tone === "overdue"
-                        ? `Gecikmiş — ${p.status.label}`
-                        : p.status.tone === "today"
-                          ? "Bugün ödenecek"
-                          : p.status.label}
+                            ? "Bugün ödenecek"
+                            : p.status.label}
+                      </span>
+                    </div>
+                    <span className="shrink-0 font-semibold tabular-nums text-slate-800">
+                      {sym}
+                      {fmt(p.amount)}
                     </span>
                   </div>
-                  <span className="shrink-0 font-semibold tabular-nums text-slate-800">
-                    {sym}
-                    {fmt(p.amount)}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </Section>
+        )}
+
+        {/* Ödeme bilgileri + karekod */}
+        {(hasBank || link) && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {hasBank && (
+              <Section title="Ödeme Bilgileri" icon={<Landmark className="size-4 text-emerald-600" />}>
+                <dl className="space-y-2 py-1 text-sm">
+                  {brand.payCompanyName && (
+                    <div>
+                      <dt className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">Hesap Sahibi</dt>
+                      <dd className="font-medium text-slate-800">{brand.payCompanyName}</dd>
+                    </div>
+                  )}
+                  {brand.payBankName && (
+                    <div>
+                      <dt className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">Banka</dt>
+                      <dd className="font-medium text-slate-800">{brand.payBankName}</dd>
+                    </div>
+                  )}
+                  {brand.payIban && (
+                    <div>
+                      <dt className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">IBAN</dt>
+                      <dd className="select-all font-mono font-semibold tracking-wide text-slate-900">{brand.payIban}</dd>
+                    </div>
+                  )}
+                </dl>
+              </Section>
+            )}
+            {link && (
+              <Section title="Çevrimiçi Ekstre" icon={<QrCode className="size-4 text-emerald-600" />}>
+                <div className="flex items-center gap-4 py-1">
+                  <div className="shrink-0 rounded-lg border bg-white p-2">
+                    <StatementQr value={link} size={104} />
+                  </div>
+                  <p className="text-xs leading-relaxed text-slate-500">
+                    Karekodu telefonunuzla okutarak bu ekstreye her an ulaşabilirsiniz. Sayfa güncel ödeme durumunuzu gösterir.
+                  </p>
+                </div>
+              </Section>
+            )}
+          </div>
         )}
 
         <p className="px-2 text-center text-[11px] text-slate-400">

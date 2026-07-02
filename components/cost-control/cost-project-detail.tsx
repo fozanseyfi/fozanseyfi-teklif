@@ -73,6 +73,7 @@ import {
   buildCostLinesPrintHtml,
   buildCostReportPrintHtml,
 } from "@/lib/cost-statement-print";
+import { qrSvgMarkup } from "@/lib/qr";
 import type { BrandContext } from "@/lib/pdf-brand";
 import {
   updateCostProject,
@@ -1017,26 +1018,30 @@ function CollectionsCard({
     });
   }
   function downloadPdf() {
-    const html = buildStatementPrintHtml({
-      brand,
-      firmName,
-      userEmail,
-      customer: data.customer,
-      projectName: data.name,
-      sym,
-      total: m.salesGrossPrice,
-      collections: data.collections,
-      todayISO,
-      linkUrl: link || undefined,
+    // Ekstre linkini garantiye al ki QR karekod üretilebilsin.
+    ensureLink((l) => {
+      const html = buildStatementPrintHtml({
+        brand,
+        firmName,
+        userEmail,
+        customer: data.customer,
+        projectName: data.name,
+        sym,
+        total: m.salesGrossPrice,
+        collections: data.collections,
+        todayISO,
+        linkUrl: l || undefined,
+        qrSvg: l ? qrSvgMarkup(l) : undefined,
+      });
+      const w = window.open("", "_blank");
+      if (!w) {
+        toast.error("Açılır pencere engellendi — izin verin");
+        return;
+      }
+      w.document.write(html);
+      w.document.close();
+      // HTML içindeki window.onload → otomatik yazdır (PDF olarak kaydet).
     });
-    const w = window.open("", "_blank");
-    if (!w) {
-      toast.error("Açılır pencere engellendi — izin verin");
-      return;
-    }
-    w.document.write(html);
-    w.document.close();
-    // HTML içindeki window.onload → otomatik yazdır (PDF olarak kaydet).
   }
 
   return (

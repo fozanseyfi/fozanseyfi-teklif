@@ -61,8 +61,28 @@ function shell({ brand, firmName, userEmail, docTitle, subtitle, todayISO, bodyH
   th, td { text-align:left; padding:7px 10px; border-bottom:1px solid #eef2f7; }
   thead th { background:#f8fafc; font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; color:#64748b; }
   td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  td.dim { color:#94a3b8; font-size:11px; }
   td.empty { text-align:center; color:#94a3b8; }
   td.overdue { color:#dc2626; font-weight:700; } td.today { color:#d97706; font-weight:700; } td.future { color:#64748b; }
+  .progwrap { margin:2px 0 18px; }
+  .progrow { display:flex; justify-content:space-between; font-size:11px; color:#64748b; margin-bottom:5px; }
+  .progrow b { color:#059669; }
+  .prog { height:10px; border-radius:99px; background:#eef2f7; overflow:hidden; }
+  .prog > span { display:block; height:100%; background:${brand.accentGradient}; border-radius:99px; }
+  .qr { display:flex; align-items:center; gap:16px; margin-top:20px; padding:14px 16px; border:1px solid #e2e8f0; border-radius:12px; background:#f8fafc; }
+  .qr .qrimg { flex:0 0 auto; padding:6px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; line-height:0; }
+  .qr .qrimg svg { display:block; width:96px; height:96px; }
+  .qr .qrh { font-size:12px; font-weight:800; color:#0f172a; text-transform:uppercase; letter-spacing:.5px; }
+  .qr .qrd { font-size:11px; color:#64748b; margin-top:3px; line-height:1.5; }
+  .qr .qrl { font-size:10px; color:${esc(brand.primary)}; margin-top:5px; word-break:break-all; }
+  .pay { margin-top:20px; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; }
+  .pay .payh { background:#f1f5f9; padding:8px 14px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:#334155; }
+  .pay .paytbl { width:100%; }
+  .pay .paytbl td { border-bottom:1px solid #f1f5f9; padding:8px 14px; }
+  .pay .paytbl tr:last-child td { border-bottom:0; }
+  .pay .payk { width:130px; font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; color:#94a3b8; vertical-align:top; }
+  .pay .payv { font-size:12px; font-weight:600; color:#0f172a; }
+  .pay .payv.mono { font-family:'Courier New',monospace; letter-spacing:.5px; font-weight:700; }
   td.owner { font-weight:700; } td.iban { font-family:monospace; font-size:11px; color:#475569; }
   td.rem { color:#d97706; font-weight:700; } td.done { color:#059669; font-weight:700; }
   tr.sub td { padding-top:2px; }
@@ -102,6 +122,7 @@ export interface StatementPrintInput {
   collections: StmtCollection[];
   todayISO: string;
   linkUrl?: string;
+  qrSvg?: string; // çevrimiçi ekstre karekodu (SVG markup) — client'ta üretilir
 }
 
 export function buildStatementPrintHtml(inp: StatementPrintInput): string {
@@ -115,40 +136,76 @@ export function buildStatementPrintHtml(inp: StatementPrintInput): string {
     todayISO: inp.todayISO,
   });
   const sym = inp.sym;
+  const total = inp.total || 0;
+  const pct = total > 0 ? Math.max(0, Math.min(100, (v.collected / total) * 100)) : 0;
 
+  // Ödeme geçmişi — kümülatif % (o ödemeden sonra toplam ne kadarı ödendi).
+  let running = 0;
   const paidRows = v.paid.length
     ? v.paid
-        .map(
-          (p) =>
-            `<tr><td>${esc(trDate(p.collectedDate))}</td><td>${esc(p.note || "-")}</td><td class="num">${sym}${fmt(p.amount)}</td></tr>`,
-        )
+        .map((p) => {
+          running += p.amount || 0;
+          const cum = total > 0 ? Math.max(0, Math.min(100, (running / total) * 100)) : 0;
+          return `<tr><td>${esc(trDate(p.collectedDate))}</td><td>${esc(p.note || "-")}</td><td class="num">${sym}${fmt(p.amount)}</td><td class="num dim">%${fmt1(cum)}</td></tr>`;
+        })
         .join("")
-    : `<tr><td colspan="3" class="empty">Kayıtlı ödeme yok</td></tr>`;
+    : `<tr><td colspan="4" class="empty">Kayıtlı ödeme yok</td></tr>`;
 
   const plannedSection = v.planned.length
-    ? `<h2>Planlanan Ödemeler</h2><table><thead><tr><th>Tarih</th><th>Durum</th><th class="num">Tutar</th></tr></thead><tbody>${v.planned
+    ? `<h2>Planlanan Ödemeler</h2><table><thead><tr><th>Tarih</th><th>Açıklama</th><th>Durum</th><th class="num">Tutar</th></tr></thead><tbody>${v.planned
         .map((p) => {
           const tone = p.status.tone;
           const label =
             tone === "overdue" ? `Gecikmiş — ${esc(p.status.label)}` : tone === "today" ? "Bugün" : esc(p.status.label);
-          return `<tr><td>${esc(trDate(p.collectedDate))}</td><td class="${tone}">${label}</td><td class="num">${sym}${fmt(p.amount)}</td></tr>`;
+          return `<tr><td>${esc(trDate(p.collectedDate))}</td><td>${esc(p.note || "-")}</td><td class="${tone}">${label}</td><td class="num">${sym}${fmt(p.amount)}</td></tr>`;
         })
         .join("")}</tbody></table>`
     : "";
+
+  const bank = inp.brand;
+  const payBlock =
+    bank.payCompanyName || bank.payIban || bank.payBankName
+      ? `<div class="pay">
+           <div class="payh">Ödeme Bilgileri</div>
+           <table class="paytbl"><tbody>
+             ${bank.payCompanyName ? `<tr><td class="payk">Hesap Sahibi</td><td class="payv">${esc(bank.payCompanyName)}</td></tr>` : ""}
+             ${bank.payBankName ? `<tr><td class="payk">Banka</td><td class="payv">${esc(bank.payBankName)}</td></tr>` : ""}
+             ${bank.payIban ? `<tr><td class="payk">IBAN</td><td class="payv mono">${esc(bank.payIban)}</td></tr>` : ""}
+           </tbody></table>
+         </div>`
+      : "";
+
+  const qrBlock = inp.qrSvg
+    ? `<div class="qr">
+         <div class="qrimg">${inp.qrSvg}</div>
+         <div class="qrtxt">
+           <div class="qrh">Çevrimiçi Ekstre</div>
+           <div class="qrd">Karekodu telefonunuzla okutarak güncel ödeme durumunuzu her an görüntüleyebilirsiniz.</div>
+           ${inp.linkUrl ? `<div class="qrl">${esc(inp.linkUrl)}</div>` : ""}
+         </div>
+       </div>`
+    : inp.linkUrl
+      ? `<p class="link">Çevrimiçi ekstre: ${esc(inp.linkUrl)}</p>`
+      : "";
 
   const body = `
     <p class="greet">Sayın <b>${esc(inp.customer || "Yetkili")}</b>,</p>
     <p class="greet">&quot;${esc(inp.projectName)}&quot; işine ait güncel ödeme durumunuz aşağıdadır.</p>
     ${v.hasOverdue ? `<div class="banner">Vadesi geçmiş ödemeniz bulunmaktadır. Lütfen en kısa sürede iletişime geçiniz.</div>` : ""}
     <div class="summary">
-      <div class="sbox"><div class="l">Toplam Tutar</div><div class="v">${sym}${fmt(inp.total)}</div></div>
+      <div class="sbox"><div class="l">Toplam Tutar</div><div class="v">${sym}${fmt(total)}</div></div>
       <div class="sbox g"><div class="l">Ödenen</div><div class="v">${sym}${fmt(v.collected)}</div></div>
       <div class="sbox a"><div class="l">Kalan Bakiye</div><div class="v">${sym}${fmt(v.remaining)}</div></div>
     </div>
+    <div class="progwrap">
+      <div class="progrow"><span>Ödeme tamamlanma</span><span><b>%${fmt1(pct)}</b> ödendi · kalan ${sym}${fmt(v.remaining)}</span></div>
+      <div class="prog"><span style="width:${pct.toFixed(1)}%"></span></div>
+    </div>
     <h2>Ödeme Geçmişi</h2>
-    <table><thead><tr><th>Tarih</th><th>Açıklama</th><th class="num">Tutar</th></tr></thead><tbody>${paidRows}</tbody></table>
+    <table><thead><tr><th>Tarih</th><th>Açıklama</th><th class="num">Tutar</th><th class="num">Kümülatif</th></tr></thead><tbody>${paidRows}</tbody></table>
     ${plannedSection}
-    ${inp.linkUrl ? `<p class="link">Çevrimiçi ekstre: ${esc(inp.linkUrl)}</p>` : ""}`;
+    ${payBlock}
+    ${qrBlock}`;
 
   return shell({
     brand: inp.brand,

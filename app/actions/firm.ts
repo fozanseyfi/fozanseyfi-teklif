@@ -53,6 +53,9 @@ export async function updateBrandSettings(formData: FormData) {
     watermarkEnabled: formData.get("watermarkEnabled") === "on",
     taxNumber: ((formData.get("taxNumber") as string) || "").trim() || undefined,
     contact: ((formData.get("contact") as string) || "").trim() || undefined,
+    payCompanyName: ((formData.get("payCompanyName") as string) || "").trim() || undefined,
+    payBankName: ((formData.get("payBankName") as string) || "").trim() || undefined,
+    payIban: ((formData.get("payIban") as string) || "").trim().toUpperCase().replace(/\s+/g, "") || undefined,
   };
 
   await prisma.organization.update({

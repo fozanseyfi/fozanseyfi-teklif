@@ -31,6 +31,7 @@ import {
   Quote,
   Type,
   Stamp,
+  Landmark,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -66,6 +67,9 @@ export function BrandSettingsCard({ firmName, initialBrand }: Props) {
   const [watermarkEnabled, setWatermarkEnabled] = useState(initialBrand.watermarkEnabled ?? false);
   const [taxNumber, setTaxNumber] = useState(initialBrand.taxNumber ?? "");
   const [contact, setContact] = useState(initialBrand.contact ?? "");
+  const [payCompanyName, setPayCompanyName] = useState(initialBrand.payCompanyName ?? "");
+  const [payBankName, setPayBankName] = useState(initialBrand.payBankName ?? "");
+  const [payIban, setPayIban] = useState(initialBrand.payIban ?? "");
   const [stampUrl, setStampUrl] = useState<string | undefined>(initialBrand.stampUrl);
 
   // ─── Logo upload ─────────────────────────────────────────────────────
@@ -159,6 +163,9 @@ export function BrandSettingsCard({ firmName, initialBrand }: Props) {
     watermarkEnabled,
     taxNumber: taxNumber || undefined,
     contact: contact || undefined,
+    payCompanyName: payCompanyName || undefined,
+    payBankName: payBankName || undefined,
+    payIban: payIban || undefined,
     stampUrl,
     stampEnabled: !!stampUrl,
   };
@@ -396,6 +403,52 @@ export function BrandSettingsCard({ firmName, initialBrand }: Props) {
               <p className="text-[11px] text-slate-500">
                 Bu bilgiler PDF footer'ında firma adıyla birlikte küçük
                 puntoda gözükür. Boş bırakılırsa hiç gösterilmez.
+              </p>
+            </FieldRow>
+
+            {/* ─── ÖDEME / BANKA BıLGıLERı ─────────────────────────────── */}
+            <FieldRow icon={Landmark} label="Ödeme / Banka Bilgileri (Ekstre)">
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-500">
+                    Hesap Sahibi (Resmi Ünvan)
+                  </Label>
+                  <Input
+                    name="payCompanyName"
+                    value={payCompanyName}
+                    onChange={(e) => setPayCompanyName(e.target.value)}
+                    placeholder="Örn. ANK ELEKTRİK ... LİMİTED ŞİRKETİ"
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-500">
+                      Banka
+                    </Label>
+                    <Input
+                      name="payBankName"
+                      value={payBankName}
+                      onChange={(e) => setPayBankName(e.target.value)}
+                      placeholder="Örn. Kuveyt Türk"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-500">
+                      IBAN (TL)
+                    </Label>
+                    <Input
+                      name="payIban"
+                      value={payIban}
+                      onChange={(e) => setPayIban(e.target.value)}
+                      placeholder="TR..."
+                      className="font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                Müşteriye gönderilen <strong>Ödeme Ekstresi</strong> PDF'inde ve çevrimiçi ekstre
+                sayfasında "Ödeme Bilgileri" olarak gösterilir. Boş bırakılırsa gösterilmez.
               </p>
             </FieldRow>
 

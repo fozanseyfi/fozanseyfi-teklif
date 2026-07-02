@@ -43,6 +43,10 @@ export interface BrandSettings {
   watermarkEnabled?: boolean;
   taxNumber?: string;
   contact?: string;
+  // Ödeme / banka bilgileri — müşteri ödeme ekstresinde "Ödeme Bilgileri" olarak gösterilir.
+  payCompanyName?: string; // hesap sahibi resmi ünvan
+  payBankName?: string;
+  payIban?: string;
   // Kaşe / imza görseli (PNG/JPG) — teklif PDF'inde "Teklif Veren Onayı" kutusunda gösterilir.
   stampUrl?: string;
   stampFileName?: string;
@@ -91,6 +95,9 @@ export function parseBrandSettings(raw: unknown): BrandSettings {
     watermarkEnabled: pickBool("watermarkEnabled"),
     taxNumber: pickStr("taxNumber"),
     contact: pickStr("contact"),
+    payCompanyName: pickStr("payCompanyName"),
+    payBankName: pickStr("payBankName"),
+    payIban: pickStr("payIban"),
     stampUrl: pickStr("stampUrl"),
     stampFileName: pickStr("stampFileName"),
     stampEnabled: pickBool("stampEnabled"),
@@ -157,6 +164,10 @@ export interface BrandContext {
   // Footer extras
   taxNumber?: string;
   contact?: string;
+  // Ödeme / banka bilgileri
+  payCompanyName?: string;
+  payBankName?: string;
+  payIban?: string;
 }
 
 export function resolveBrand(brand: BrandSettings | null | undefined): BrandContext {
@@ -183,6 +194,9 @@ export function resolveBrand(brand: BrandSettings | null | undefined): BrandCont
     showWatermark: b.watermarkEnabled === true,
     taxNumber: b.taxNumber,
     contact: b.contact,
+    payCompanyName: b.payCompanyName,
+    payBankName: b.payBankName,
+    payIban: b.payIban,
   };
 }
 
