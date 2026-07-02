@@ -7,7 +7,7 @@ import { saveQuote } from "@/app/actions/quote";
 import { useDirtyTracker } from "@/lib/unsaved-changes";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { NotesMaddeEditor } from "@/components/ges/notes-madde-editor";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -618,13 +618,12 @@ export function QuoteAnaliz({ projectId, projectName, initialItems, initialMeta 
               <StickyNote className="size-4 text-muted-foreground" /> Teklif Notları
             </Label>
             <p className="text-[11px] text-muted-foreground">
-              Her satır PDF&apos;de ayrı madde (1-2-3) olarak gösterilir. Yeni madde için Enter&apos;a basın — alan yazdıkça büyür.
+              Her madde PDF&apos;de ayrı sıra (1-2-3) olarak gösterilir. Yeni madde için Enter&apos;a basın.
             </p>
-            <Textarea
+            <NotesMaddeEditor
               value={meta.notes ?? ""}
-              onChange={(e) => setMeta((p) => ({ ...p, notes: e.target.value }))}
-              placeholder={"Teslim süresi 4 hafta\nNakliye dahildir\n2 yıl garanti"}
-              className="min-h-[92px] w-full resize-y text-sm leading-relaxed [field-sizing:content]"
+              onChange={(v) => setMeta((p) => ({ ...p, notes: v }))}
+              placeholder="Örn. Teslim süresi 4 hafta"
             />
           </CardContent>
         </Card>
