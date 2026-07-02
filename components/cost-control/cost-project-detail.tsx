@@ -462,7 +462,11 @@ export function CostProjectDetail({
               </div>
               <div className="flex items-center justify-between text-muted-foreground">
                 <span>− Ödenecek KDV (%{fmt(data.salesVatRate)})</span>
-                <span className="tabular-nums text-rose-600">₺{fmt(m.vatPayableTL)}</span>
+                {m.vatPayableTL > 0 ? (
+                  <span className="tabular-nums text-rose-600">₺{fmt(m.vatPayableTL)}</span>
+                ) : (
+                  <span className="text-emerald-600">KDV yükü yok</span>
+                )}
               </div>
               <div className="flex items-center justify-between text-muted-foreground">
                 <span>− Kurumlar Vergisi (%{CORPORATE_TAX_RATE})</span>
@@ -755,10 +759,17 @@ function VatSummary({ m }: { m: ReturnType<typeof computeCostProjectMetrics> }) 
           <TaxRow label="Maliyet KDV'si (indirilecek)" value={-m.inputVatTL} />
           <div className="flex items-center justify-between border-b py-1 text-sm font-bold">
             <span>Devlete Ödenecek KDV</span>
-            <span className={cn("tabular-nums", m.vatPayableTL >= 0 ? "text-rose-600" : "text-emerald-600")}>
-              ₺{fmt(m.vatPayableTL)}
-            </span>
+            {m.vatPayableTL > 0 ? (
+              <span className="tabular-nums text-rose-600">₺{fmt(m.vatPayableTL)}</span>
+            ) : (
+              <span className="text-emerald-600">KDV yükü yok</span>
+            )}
           </div>
+          {m.vatPayableTL <= 0 && (
+            <p className="text-[10.5px] text-muted-foreground">
+              İndirilecek KDV daha yüksek — devreden KDV ₺{fmt(Math.abs(m.vatPayableTL))} (sonraki döneme).
+            </p>
+          )}
 
           <div className="mt-2">
             <TaxRow label="Faturalı kâr (KDV hariç)" value={m.invoicedProfitNetTL} />

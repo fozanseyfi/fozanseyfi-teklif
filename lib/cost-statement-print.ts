@@ -348,7 +348,7 @@ function summaryBodyHtml(s: CostReportSummary): string {
       <tbody>
         <tr><td>Müşteriden alınan KDV</td><td class="num">₺${fmt(s.salesVat)}</td></tr>
         <tr><td>Maliyet KDV'si (indirilecek)</td><td class="num">−₺${fmt(s.costVat)}</td></tr>
-        <tr class="strong"><td>Devlete Ödenecek KDV (%${fmt(s.vatRate)})</td><td class="num rem">₺${fmt(s.vatPayable)}</td></tr>
+        <tr class="strong"><td>Devlete Ödenecek KDV (%${fmt(s.vatRate)})</td><td class="num ${s.vatPayable > 0 ? "rem" : "done"}">${s.vatPayable > 0 ? `₺${fmt(s.vatPayable)}` : "KDV yükü yok"}</td></tr>
         <tr><td>Faturalı kâr (KDV hariç)</td><td class="num">₺${fmt(s.invoicedProfit)}</td></tr>
         <tr><td>− Kurumlar Vergisi (%${fmt(s.corporateRate)})</td><td class="num rem">−₺${fmt(s.corporateTax)}</td></tr>
         <tr><td>+ Faturasız kâr (vergisiz)</td><td class="num">₺${fmt(s.uninvoicedProfit)}</td></tr>
