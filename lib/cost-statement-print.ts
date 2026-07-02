@@ -23,6 +23,15 @@ function fmt(n: number): string {
   return (n || 0).toLocaleString("tr-TR", { maximumFractionDigits: 0 });
 }
 
+/** IBAN'ı okunur grupla: ilk 2 karakter, ardından 4'erli bloklar (TR 7800 2050 …). */
+export function formatIban(iban: string): string {
+  const s = (iban || "").replace(/\s+/g, "").toUpperCase();
+  if (!s) return "";
+  const head = s.slice(0, 2);
+  const rest = s.slice(2).replace(/(.{4})/g, "$1 ").trim();
+  return rest ? `${head} ${rest}` : head;
+}
+
 interface ShellArgs {
   brand: BrandContext;
   firmName: string;
@@ -56,7 +65,7 @@ function shell({ brand, firmName, userEmail, docTitle, subtitle, todayISO, bodyH
   .sbox .l { font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:#64748b; }
   .sbox .v { font-size:16px; font-weight:800; margin-top:3px; }
   .sbox.g .v { color:#059669; } .sbox.a .v { color:#d97706; }
-  h2 { font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:#334155; margin:18px 0 6px; }
+  h2 { font-size:12.5px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:#0f172a; margin:22px 0 10px; padding:7px 12px; border-left:4px solid ${esc(brand.primary)}; border-radius:0 8px 8px 0; background:linear-gradient(90deg, ${esc(brand.primary)}14, transparent 80%); }
   table { width:100%; border-collapse:collapse; }
   th, td { text-align:left; padding:7px 10px; border-bottom:1px solid #eef2f7; }
   thead th { background:#f8fafc; font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; color:#64748b; }
@@ -74,7 +83,8 @@ function shell({ brand, firmName, userEmail, docTitle, subtitle, todayISO, bodyH
   .qr .qrimg svg { display:block; width:96px; height:96px; }
   .qr .qrh { font-size:12px; font-weight:800; color:#0f172a; text-transform:uppercase; letter-spacing:.5px; }
   .qr .qrd { font-size:11px; color:#64748b; margin-top:3px; line-height:1.5; }
-  .qr .qrl { font-size:10px; color:${esc(brand.primary)}; margin-top:5px; word-break:break-all; }
+  .qr .qrl { font-size:11px; color:#64748b; margin-top:6px; }
+  .linksent { font-size:11.5px; color:#64748b; margin-top:14px; }
   .pay { margin-top:20px; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; }
   .pay .payh { background:#f1f5f9; padding:8px 14px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:#334155; }
   .pay .paytbl { width:100%; }
@@ -171,10 +181,17 @@ export function buildStatementPrintHtml(inp: StatementPrintInput): string {
            <table class="paytbl"><tbody>
              ${bank.payCompanyName ? `<tr><td class="payk">Hesap Sahibi</td><td class="payv">${esc(bank.payCompanyName)}</td></tr>` : ""}
              ${bank.payBankName ? `<tr><td class="payk">Banka</td><td class="payv">${esc(bank.payBankName)}</td></tr>` : ""}
-             ${bank.payIban ? `<tr><td class="payk">IBAN</td><td class="payv mono">${esc(bank.payIban)}</td></tr>` : ""}
+             ${bank.payIban ? `<tr><td class="payk">IBAN</td><td class="payv mono">${esc(formatIban(bank.payIban))}</td></tr>` : ""}
            </tbody></table>
          </div>`
       : "";
+
+  const linkWord = inp.linkUrl
+    ? `<a href="${esc(inp.linkUrl)}" style="color:${esc(bank.primary)};font-weight:700;text-decoration:underline">linkten</a>`
+    : "";
+  const linkSentence = inp.linkUrl
+    ? `Güncel ekstrenize ${linkWord} de ulaşım sağlayabilirsiniz.`
+    : "";
 
   const qrBlock = inp.qrSvg
     ? `<div class="qr">
@@ -182,11 +199,11 @@ export function buildStatementPrintHtml(inp: StatementPrintInput): string {
          <div class="qrtxt">
            <div class="qrh">Çevrimiçi Ekstre</div>
            <div class="qrd">Karekodu telefonunuzla okutarak güncel ödeme durumunuzu her an görüntüleyebilirsiniz.</div>
-           ${inp.linkUrl ? `<div class="qrl">${esc(inp.linkUrl)}</div>` : ""}
+           ${inp.linkUrl ? `<div class="qrl">${linkSentence}</div>` : ""}
          </div>
        </div>`
     : inp.linkUrl
-      ? `<p class="link">Çevrimiçi ekstre: ${esc(inp.linkUrl)}</p>`
+      ? `<p class="linksent">${linkSentence}</p>`
       : "";
 
   const body = `

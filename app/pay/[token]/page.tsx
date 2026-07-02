@@ -5,6 +5,7 @@ import { csym } from "@/lib/cost-control";
 import { buildStatement, trDate, type StmtCollection } from "@/lib/cost-control-statement";
 import { StatementPdfButton } from "@/components/cost-control/statement-pdf-button";
 import { StatementQr } from "@/components/cost-control/statement-qr";
+import { formatIban } from "@/lib/cost-statement-print";
 import { resolveBrand, parseBrandSettings } from "@/lib/pdf-brand";
 import { Wallet, CheckCircle2, CalendarClock, AlertTriangle, Landmark, QrCode } from "lucide-react";
 
@@ -215,7 +216,7 @@ export default async function PaymentStatementPage({ params }: { params: Promise
                   {brand.payIban && (
                     <div>
                       <dt className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">IBAN</dt>
-                      <dd className="select-all font-mono font-semibold tracking-wide text-slate-900">{brand.payIban}</dd>
+                      <dd className="select-all font-mono font-semibold tracking-wide text-slate-900">{formatIban(brand.payIban)}</dd>
                     </div>
                   )}
                 </dl>
@@ -257,7 +258,7 @@ function SummaryCard({ label, value, tone }: { label: string; value: string; ton
 function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
-      <div className="flex items-center gap-2 border-b bg-slate-50/60 px-5 py-3 text-sm font-semibold text-slate-700">
+      <div className="flex items-center gap-2 border-b border-l-4 border-l-emerald-500 bg-gradient-to-r from-emerald-50/70 to-transparent px-5 py-3 text-[13px] font-bold uppercase tracking-wide text-slate-800">
         {icon} {title}
       </div>
       <div className="px-5 py-2">{children}</div>
