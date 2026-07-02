@@ -1,7 +1,8 @@
 /**
- * SolarLayout — 3D Tasarım aracı tipleri (PRD §5).
- * Koordinatlar canvas "layer" pikselidir; metrik değerler metersPerPixel ile
- * türetilir. İzole modül — platformun geri kalanını etkilemez.
+ * SolarLayout — 3D Tasarım tipleri. Çatı, nokta + çizgi (graf) olarak modellenir;
+ * kapalı yüzeyler otomatik tespit edilir. Her noktanın yüksekliği (z, metre) 3B
+ * için kullanılır. Koordinatlar canvas "layer" pikselidir; metrik değerler
+ * metersPerPixel ile türetilir.
  */
 
 export interface Vec {
@@ -9,13 +10,24 @@ export interface Vec {
   y: number;
 }
 
-export interface RoofPlane {
+export interface RNode {
   id: string;
-  name: string;
-  points: Vec[]; // piksel (layer-space)
-  tiltDeg: number; // eğim 0–60
-  azimuthDeg: number; // 0–360, 180 = güney
-  color: string;
+  x: number;
+  y: number;
+  z: number; // yükseklik (m) — 3B ve eğim için
+}
+
+export interface REdge {
+  id: string;
+  a: string; // node id
+  b: string; // node id
+}
+
+/** Tespit edilen kapalı yüzeyin (çatı bölümü) ek bilgisi — imza ile eşlenir. */
+export interface FaceMeta {
+  name?: string;
+  tiltDeg?: number;
+  azimuthDeg?: number;
 }
 
 export interface PanelConfig {
@@ -29,8 +41,7 @@ export interface PanelConfig {
 
 export interface PlacedPanel {
   id: string;
-  planeId: string;
-  // Eksen-hizalı olmayan dikdörtgen: sol-üst köşe (px) + boyut (px) + dönüş.
+  face: string; // yüzey imzası (sorted node ids)
   x: number;
   y: number;
   w: number;
@@ -45,7 +56,9 @@ export interface DesignDoc {
   city: string;
   imageDataUrl: string | null;
   metersPerPixel: number | null;
-  planes: RoofPlane[];
+  nodes: RNode[];
+  edges: REdge[];
+  faceMeta: Record<string, FaceMeta>;
   panelConfig: PanelConfig;
   placed: PlacedPanel[];
   updatedAt: string;
@@ -60,12 +73,22 @@ export const DEFAULT_PANEL_CONFIG: PanelConfig = {
   edgeMarginMm: 300,
 };
 
-export const PLANE_COLORS = [
-  "#059669",
-  "#2563eb",
-  "#d97706",
-  "#7c3aed",
-  "#db2777",
-  "#0891b2",
-  "#65a30d",
-];
+export const FACE_COLORS = ["#059669", "#2563eb", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#65a30d", "#e11d48"];
+
+/** Boş belge alanlarını normalize et (eski/yarım kayıtlara karşı). */
+export function normalizeDoc(d: Partial<DesignDoc>): DesignDoc {
+  return {
+    id: d.id || "",
+    name: d.name || "İsimsiz",
+    address: d.address || "",
+    city: d.city || "Ankara",
+    imageDataUrl: d.imageDataUrl ?? null,
+    metersPerPixel: d.metersPerPixel ?? null,
+    nodes: Array.isArray(d.nodes) ? d.nodes : [],
+    edges: Array.isArray(d.edges) ? d.edges : [],
+    faceMeta: d.faceMeta && typeof d.faceMeta === "object" ? d.faceMeta : {},
+    panelConfig: d.panelConfig || { ...DEFAULT_PANEL_CONFIG },
+    placed: Array.isArray(d.placed) ? d.placed : [],
+    updatedAt: d.updatedAt || new Date(0).toISOString(),
+  };
+}

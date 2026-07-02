@@ -1,17 +1,17 @@
-import type { PanelConfig, PlacedPanel, RoofPlane, Vec } from "./types";
+import type { PanelConfig, PlacedPanel, Vec } from "./types";
 import { longestEdgeAngle, pointInPolygon, rotate } from "./geometry";
 
 /**
- * Otomatik panel yerleşimi (PRD §4.5). Grid tabanlı doldurma + ofset optimizasyonu.
- * Grid, çatı poligonunun en uzun kenarına hizalanır (paneller çatı yönünde dizilir).
- * Kenar güvenlik payı gözetilir. Eğim düzeltmesi Faz 2 (şu an izdüşüm üzerinden).
+ * Otomatik panel yerleşimi — grid + ofset optimizasyonu. Grid, yüzey poligonunun
+ * en uzun kenarına hizalanır (paneller çatı yönünde). Kenar payı gözetilir.
+ * Eğim düzeltmesi Faz 2 (şu an izdüşüm üzerinden).
  */
 export function computeLayout(
-  plane: RoofPlane,
+  poly: Vec[],
+  faceSig: string,
   cfg: PanelConfig,
   metersPerPixel: number,
 ): PlacedPanel[] {
-  const poly = plane.points;
   if (poly.length < 3 || !metersPerPixel || metersPerPixel <= 0) return [];
 
   const mmToPx = (mm: number) => mm / 1000 / metersPerPixel;
@@ -23,7 +23,6 @@ export function computeLayout(
 
   const theta = longestEdgeAngle(poly);
   const origin = poly[0];
-  // Poligonu edge-hizalı çerçeveye döndür (−theta) → eksen hizalı grid kur.
   const rot = poly.map((p) => rotate(p, origin, -theta));
   const minX = Math.min(...rot.map((p) => p.x));
   const maxX = Math.max(...rot.map((p) => p.x));
@@ -34,9 +33,7 @@ export function computeLayout(
   const pitchY = ph + gap;
   if (maxX - minX < pw || maxY - minY < ph) return [];
 
-  // Panel dikdörtgeni (rotasyonlu çerçevede sol-üst) çatı içinde + paydan uzak mı?
   const fits = (rx: number, ry: number): boolean => {
-    // Payı içeri al: panel kenarlarından margin kadar poligon içinde kalmalı.
     const corners: Vec[] = [
       { x: rx - margin, y: ry - margin },
       { x: rx + pw + margin, y: ry - margin },
@@ -51,7 +48,6 @@ export function computeLayout(
     return true;
   };
 
-  // Ofset optimizasyonu: başlangıcı x/y'de kaydırıp en çok panel sığan diziyi seç.
   const STEPS = 6;
   let best: PlacedPanel[] = [];
   for (let ox = 0; ox < STEPS; ox++) {
@@ -63,23 +59,14 @@ export function computeLayout(
         for (let x = startX; x + pw <= maxX - margin + 0.001; x += pitchX) {
           if (fits(x, y)) {
             const tl = rotate({ x, y }, origin, theta);
-            out.push({
-              id: `${plane.id}-${out.length}`,
-              planeId: plane.id,
-              x: tl.x,
-              y: tl.y,
-              w: pw,
-              h: ph,
-              rotationDeg: (theta * 180) / Math.PI,
-            });
+            out.push({ id: "", face: faceSig, x: tl.x, y: tl.y, w: pw, h: ph, rotationDeg: (theta * 180) / Math.PI });
           }
         }
       }
       if (out.length > best.length) best = out;
     }
   }
-  // id'leri benzersizleştir.
-  return best.map((p, i) => ({ ...p, id: `${plane.id}-p${i}` }));
+  return best.map((p, i) => ({ ...p, id: `${faceSig}#${i}#${Math.round(p.x)},${Math.round(p.y)}` }));
 }
 
 export function panelsKwp(count: number, watt: number): number {

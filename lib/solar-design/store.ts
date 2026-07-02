@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import type { DesignDoc } from "./types";
-import { DEFAULT_PANEL_CONFIG } from "./types";
+import { DEFAULT_PANEL_CONFIG, normalizeDoc } from "./types";
 
 /**
  * SolarLayout editör store'u — tek aktif tasarım + geri al/yinele + localStorage
@@ -80,7 +80,9 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       city: city.trim(),
       imageDataUrl: null,
       metersPerPixel: null,
-      planes: [],
+      nodes: [],
+      edges: [],
+      faceMeta: {},
       panelConfig: { ...DEFAULT_PANEL_CONFIG },
       placed: [],
       updatedAt: new Date().toISOString(),
@@ -93,7 +95,8 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
     try {
       const raw = localStorage.getItem(docKey(id));
       if (!raw) return;
-      set({ active: JSON.parse(raw), past: [], future: [] });
+      const doc = normalizeDoc(JSON.parse(raw));
+      set({ active: doc, past: [], future: [] });
     } catch {
       /* yok say */
     }
