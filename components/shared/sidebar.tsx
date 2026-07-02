@@ -30,6 +30,7 @@ import {
   Package,
   Wallet,
   Truck,
+  SunMedium,
 } from "lucide-react";
 import { logout, switchOrganization } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
@@ -76,6 +77,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/customers", icon: Users, label: "Müşteriler" },
       { href: "/suppliers", icon: Truck, label: "Tedarikçiler" },
       { href: "/cost-control", icon: Wallet, label: "Maliyet Kontrol" },
+      { href: "/tasarim", icon: SunMedium, label: "3D Tasarım" },
     ],
   },
   {
