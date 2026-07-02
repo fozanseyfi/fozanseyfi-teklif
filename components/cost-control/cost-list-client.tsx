@@ -34,6 +34,9 @@ import {
   Loader2,
   Package,
   ChevronDown,
+  ChevronRight,
+  CheckCircle2,
+  Clock,
   AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -363,85 +366,93 @@ function MiniKpi({
 
 function CostCard({ p }: { p: CostProjectCard }) {
   const vokPos = p.vokTL >= 0;
+  const curPos = p.currentProfitTL >= 0;
+  const done = p.status === "DONE";
+  const collected = p.salesGrossPrice - p.remainingReceivable;
+  const pct = p.salesGrossPrice > 0 ? Math.max(0, Math.min(100, Math.round((collected / p.salesGrossPrice) * 100))) : 0;
+  const rail = done ? "bg-slate-400" : vokPos ? "bg-emerald-500" : "bg-rose-500";
   return (
     <Link href={`/cost-control/${p.id}`} className="group block">
-      <Card className="h-full transition-all hover:border-emerald-300 hover:shadow-md">
-        <CardContent className="space-y-3 p-4">
+      <div className="flex h-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:border-emerald-300 hover:shadow-md">
+        <div className={`w-1.5 shrink-0 ${rail}`} />
+        <div className="min-w-0 flex-1 p-4">
+          {/* Başlık */}
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="truncate font-semibold text-slate-900">{p.name}</p>
               <p className="truncate text-xs text-muted-foreground">{p.customer || "Müşteri belirtilmemiş"}</p>
             </div>
-            <Badge
-              variant="outline"
-              className={
-                p.status === "DONE"
-                  ? "shrink-0 border-slate-300 bg-slate-100 text-slate-600"
-                  : "shrink-0 border-emerald-300 bg-emerald-50 text-emerald-700"
-              }
+            <span
+              className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                done ? "border-slate-300 bg-slate-100 text-slate-600" : "border-emerald-300 bg-emerald-50 text-emerald-700"
+              }`}
             >
-              {p.status === "DONE" ? "Tamamlandı" : "Devam"}
-            </Badge>
+              {done ? <CheckCircle2 className="size-3" /> : <Clock className="size-3" />}
+              {done ? "Tamamlandı" : "Devam"}
+            </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <Metric label="Satış (KDV dahil)" value={`${p.salesSym}${fmt(p.salesGrossPrice)}`} />
-            <Metric label="Maliyet (KDV dahil)" value={`₺${fmt(p.actualGrossTL)}`} />
-            <Metric
-              label="VÖK (TL)"
-              value={`₺${fmt(p.vokTL)}`}
-              sub={`anlık ₺${fmt(p.currentProfitTL)}`}
-              accent={vokPos ? "emerald" : "rose"}
-              icon={vokPos ? "up" : "down"}
-            />
-            <Metric label="Kalan Alacak" value={`${p.salesSym}${fmt(p.remainingReceivable)}`} accent="amber" />
+          {/* VÖK — önce anlık, yanında iş sonu + tahsilat halkası */}
+          <div className="mt-3 flex items-end justify-between gap-3">
+            <div className="flex min-w-0 gap-5">
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wider text-slate-400">Anlık VÖK</p>
+                <p className={`flex items-center gap-1 text-xl font-bold tabular-nums ${curPos ? "text-emerald-700" : "text-rose-600"}`}>
+                  {curPos ? <TrendingUp className="size-4" /> : <TrendingDown className="size-4" />}
+                  ₺{fmt(p.currentProfitTL)}
+                </p>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wider text-slate-400">İş Sonu VÖK</p>
+                <p className={`text-xl font-bold tabular-nums ${vokPos ? "text-emerald-700" : "text-rose-600"}`}>
+                  ₺{fmt(p.vokTL)}
+                </p>
+              </div>
+            </div>
+            <div
+              className="flex size-14 shrink-0 items-center justify-center rounded-full"
+              style={{ background: `conic-gradient(#10b981 ${pct * 3.6}deg, #e2e8f0 0)` }}
+              title={`Tahsilat %${pct}`}
+            >
+              <div className="flex size-11 flex-col items-center justify-center rounded-full bg-white">
+                <span className="text-[11px] font-bold text-slate-700">%{pct}</span>
+                <span className="text-[7px] uppercase tracking-wide text-slate-400">tahsil</span>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center justify-between border-t pt-2 text-[11px] text-muted-foreground">
+          {/* İkincil metrikler — çip */}
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            <CostChip label="Satış (KDV dahil)" value={`${p.salesSym}${fmt(p.salesGrossPrice)}`} />
+            <CostChip label="Maliyet (KDV dahil)" value={`₺${fmt(p.actualGrossTL)}`} />
+            <CostChip label="Kalan Alacak" value={`${p.salesSym}${fmt(p.remainingReceivable)}`} tone="amber" />
+          </div>
+
+          {/* Alt bilgi */}
+          <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 text-[11px] text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Package className="size-3" /> {p.lineCount} kalem
             </span>
-            <span className="inline-flex items-center gap-1 font-medium text-emerald-700 opacity-0 transition-opacity group-hover:opacity-100">
-              Aç <ArrowRight className="size-3" />
+            <span className="inline-flex items-center gap-1 font-medium text-emerald-700">
+              Aç <ChevronRight className="size-3" />
             </span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </Link>
   );
 }
 
-function Metric({
-  label,
-  value,
-  sub,
-  accent,
-  icon,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  accent?: "emerald" | "rose" | "amber";
-  icon?: "up" | "down";
-}) {
+function CostChip({ label, value, tone }: { label: string; value: string; tone?: "amber" }) {
   const cls =
-    accent === "emerald"
-      ? "text-emerald-700"
-      : accent === "rose"
-        ? "text-rose-600"
-        : accent === "amber"
-          ? "text-amber-600"
-          : "text-slate-900";
+    tone === "amber"
+      ? "border-amber-200 bg-amber-50 text-amber-700"
+      : "border-slate-200 bg-slate-50 text-slate-700";
   return (
-    <div className="min-w-0">
-      <p className="text-[10.5px] uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className={`flex items-center gap-1 truncate font-semibold tabular-nums ${cls}`}>
-        {icon === "up" && <TrendingUp className="size-3.5" />}
-        {icon === "down" && <TrendingDown className="size-3.5" />}
-        {value}
-      </p>
-      {sub && <p className="truncate text-[10.5px] tabular-nums text-muted-foreground">({sub})</p>}
-    </div>
+    <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10.5px] ${cls}`}>
+      <span className="text-slate-400">{label}</span>
+      <span className="font-semibold tabular-nums">{value}</span>
+    </span>
   );
 }
 

@@ -319,12 +319,20 @@ function DesignStatusPanel({ s }: { s: Sample }) {
           <StatusBadge status={s.status} />
         </div>
         <div className="mt-3 flex items-end justify-between gap-3">
-          <div>
-            <p className="text-[10px] uppercase tracking-wider text-slate-400">İş Sonu VÖK</p>
-            <p className={`flex items-center gap-1 text-2xl font-bold tabular-nums ${vokPos ? "text-emerald-700" : "text-rose-600"}`}>
-              {vokPos ? <TrendingUp className="size-5" /> : <TrendingDown className="size-5" />}
-              {s.sym}{fmt(s.vok)}
-            </p>
+          <div className="flex min-w-0 gap-5">
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wider text-slate-400">Anlık VÖK</p>
+              <p className={`flex items-center gap-1 text-xl font-bold tabular-nums ${s.current >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
+                {s.current >= 0 ? <TrendingUp className="size-4" /> : <TrendingDown className="size-4" />}
+                {s.sym}{fmt(s.current)}
+              </p>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wider text-slate-400">İş Sonu VÖK</p>
+              <p className={`text-xl font-bold tabular-nums ${vokPos ? "text-emerald-700" : "text-rose-600"}`}>
+                {s.sym}{fmt(s.vok)}
+              </p>
+            </div>
           </div>
           <div className="flex size-14 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(#10b981 ${s.collectedPct * 3.6}deg, #e2e8f0 0)` }}>
             <div className="flex size-11 flex-col items-center justify-center rounded-full bg-white">
@@ -334,8 +342,8 @@ function DesignStatusPanel({ s }: { s: Sample }) {
           </div>
         </div>
         <div className="mt-3 flex flex-wrap gap-1.5">
-          <Chip label="Satış" value={`${s.sym}${fmt(s.salesGross)}`} />
-          <Chip label="Maliyet" value={`${s.sym}${fmt(s.costGross)}`} />
+          <Chip label="Satış (KDV dahil)" value={`${s.sym}${fmt(s.salesGross)}`} />
+          <Chip label="Maliyet (KDV dahil)" value={`${s.sym}${fmt(s.costGross)}`} />
           <Chip label="Kalan Alacak" value={`${s.sym}${fmt(s.receivable)}`} tone="amber" />
         </div>
         <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 text-[11px] text-slate-500">
