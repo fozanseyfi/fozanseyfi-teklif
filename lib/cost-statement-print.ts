@@ -1,4 +1,4 @@
-import { buildStatement, trDate, type StmtCollection } from "@/lib/cost-control-statement";
+import { buildStatement, trDate, plannedStatus, type StmtCollection } from "@/lib/cost-control-statement";
 import {
   brandRowHtml,
   brandFooterHtml,
@@ -378,42 +378,70 @@ export interface ReportPartner {
   amount: number;
 }
 
+/** Ayrı sayfa: Maliyet Kırılımı (kategori · KDV dahil) — büyük başlıklı. */
+function breakdownPageHtml(breakdown: ReportBreakdownRow[]): string {
+  const total = breakdown.reduce((s, r) => s + r.amount, 0);
+  const rows = breakdown.length
+    ? breakdown
+        .map(
+          (r) => `<tr>
+            <td>${esc(r.name)}</td>
+            <td style="width:38%"><div class="prog"><span style="width:${Math.max(0, Math.min(100, r.pct)).toFixed(1)}%"></span></div></td>
+            <td class="num">₺${fmt(r.amount)}</td>
+            <td class="num">%${fmt1(r.pct)}</td>
+          </tr>`,
+        )
+        .join("")
+    : `<tr><td colspan="4" class="empty">Kalem yok</td></tr>`;
+  return `
+    <div class="bigtitle">
+      <div class="t">Maliyet Kırılımı</div>
+      <div class="s">Kategori Bazında · KDV Dahil</div>
+      <div class="rule"></div>
+    </div>
+    <table>
+      <thead><tr><th>Kategori</th><th>Dağılım</th><th class="num">Tutar (KDV dahil)</th><th class="num">Pay</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="2" class="num">TOPLAM</td><td class="num">₺${fmt(total)}</td><td class="num">%100,0</td></tr></tfoot>
+    </table>`;
+}
+
+/** Sayfa 1 ekleri: müşteriden tahsilat + ortaklara dağıtım (beautified). */
 function extraSummaryHtml(
   s: CostReportSummary,
-  breakdown: ReportBreakdownRow[],
   collections: ReportCollection[],
   partners: ReportPartner[],
+  todayISO: string,
 ): string {
   const sym = s.salesSym;
-  const bd = breakdown.length
-    ? `<h2 style="margin-top:18px">Maliyet Kırılımı (kategori · KDV dahil)</h2>
-       <table><thead><tr><th>Kategori</th><th class="num">Tutar</th><th class="num">%</th></tr></thead>
-       <tbody>${breakdown
-         .map((r) => `<tr><td>${esc(r.name)}</td><td class="num">₺${fmt(r.amount)}</td><td class="num">%${fmt1(r.pct)}</td></tr>`)
-         .join("")}</tbody></table>`
-    : "";
+  const pct = s.salesGross > 0 ? Math.max(0, Math.min(100, (s.collected / s.salesGross) * 100)) : 0;
 
-  const paid = collections.filter((c) => !c.planned);
-  const planned = collections.filter((c) => c.planned);
+  const paid = collections.filter((c) => !c.planned).sort((a, b) => (a.date < b.date ? 1 : -1));
+  const planned = collections.filter((c) => c.planned).sort((a, b) => (a.date < b.date ? -1 : 1));
   const collRows = paid.length
     ? paid
-        .map((c) => `<tr><td>${esc(trDate(c.date))}</td><td>${esc(c.note || "-")}</td><td class="num">${money(sym, c.amount)}</td></tr>`)
+        .map((c) => `<tr><td>${esc(trDate(c.date))}</td><td>${esc(c.note || "-")}</td><td class="num done">${money(sym, c.amount)}</td></tr>`)
         .join("")
     : `<tr><td colspan="3" class="empty">Tahsilat kaydı yok</td></tr>`;
   const plannedRows = planned.length
-    ? `<h2 style="margin-top:12px">Planlanan Tahsilatlar</h2>
-       <table><thead><tr><th>Planlanan Tarih</th><th>Açıklama</th><th class="num">Tutar</th></tr></thead>
+    ? `<h2 style="margin-top:14px">Planlanan Tahsilatlar</h2>
+       <table><thead><tr><th>Planlanan Tarih</th><th>Durum</th><th>Açıklama</th><th class="num">Tutar</th></tr></thead>
        <tbody>${planned
-         .map((c) => `<tr><td>${esc(trDate(c.date))}</td><td>${esc(c.note || "-")}</td><td class="num">${money(sym, c.amount)}</td></tr>`)
+         .map((c) => {
+           const st = plannedStatus(c.date, todayISO);
+           return `<tr><td>${esc(trDate(c.date))}</td><td class="${st.tone}">${esc(st.label)}</td><td>${esc(c.note || "-")}</td><td class="num">${money(sym, c.amount)}</td></tr>`;
+         })
          .join("")}</tbody></table>`
     : "";
   const tahsilat = `
     <h2 style="margin-top:18px">Müşteriden Tahsilat</h2>
-    <div class="summary" style="margin-bottom:8px">
-      <div class="sbox"><div class="l">Satış (KDV dahil)</div><div class="v">${money(sym, s.salesGross)}</div></div>
-      <div class="sbox g"><div class="l">Tahsil Edilen</div><div class="v">${money(sym, s.collected)}</div></div>
-      <div class="sbox a"><div class="l">Kalan Alacak</div><div class="v">${money(sym, s.remainingReceivable)}</div></div>
+    <div class="kgrid" style="margin-bottom:6px">
+      <div class="kbox"><div class="kl">Satış (KDV dahil)</div><div class="kv">${money(sym, s.salesGross)}</div></div>
+      <div class="kbox g"><div class="kl">Tahsil Edilen</div><div class="kv">${money(sym, s.collected)}</div></div>
+      <div class="kbox a"><div class="kl">Kalan Alacak</div><div class="kv">${money(sym, s.remainingReceivable)}</div></div>
     </div>
+    <div class="prog"><span style="width:${pct.toFixed(1)}%"></span></div>
+    <div class="proglbl"><span>Tahsilat ilerlemesi</span><span>%${fmt1(pct)} tahsil edildi</span></div>
     <table><thead><tr><th>Tarih</th><th>Açıklama</th><th class="num">Tutar</th></tr></thead><tbody>${collRows}</tbody></table>
     ${plannedRows}`;
 
@@ -425,7 +453,7 @@ function extraSummaryHtml(
          .join("")}</tbody></table>`
     : "";
 
-  return `${bd}${tahsilat}${ort}`;
+  return `${tahsilat}${ort}`;
 }
 
 export function buildCostReportPrintHtml(inp: {
@@ -478,15 +506,26 @@ export function buildCostReportPrintHtml(inp: {
   .subitem { font-size:11px; color:#475569; } .subitem .dim { color:#94a3b8; }
   .kgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
   .kbox { border:1px solid #e2e8f0; border-radius:10px; padding:10px 12px; }
+  .kbox.g { border-color:#bbf7d0; background:#f0fdf4; } .kbox.a { border-color:#fed7aa; background:#fffbeb; }
   .kbox .kl { font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:#64748b; }
   .kbox .kv { font-size:16px; font-weight:800; margin-top:3px; }
+  .kbox.g .kv { color:#059669; } .kbox.a .kv { color:#d97706; }
   .kbox .ks { font-size:10px; color:#94a3b8; margin-top:2px; }
+  .prog { height:8px; border-radius:99px; background:#eef2f7; overflow:hidden; margin:2px 0 4px; }
+  .prog > span { display:block; height:100%; background:${b.accentGradient}; }
+  .proglbl { display:flex; justify-content:space-between; font-size:10px; color:#64748b; margin-bottom:12px; }
+  td.overdue { color:#dc2626; font-weight:700; } td.today { color:#d97706; font-weight:700; } td.future { color:#64748b; }
+  .bigtitle { text-align:center; margin:26px 0 18px; }
+  .bigtitle .t { font-size:20px; font-weight:800; letter-spacing:.5px; color:#0f172a; }
+  .bigtitle .s { font-size:11px; color:#64748b; margin-top:4px; text-transform:uppercase; letter-spacing:.6px; }
+  .bigtitle .rule { width:56px; height:3px; border-radius:99px; background:${b.accentGradient}; margin:10px auto 0; }
   .foot { padding: 10px 26px; border-top:1px solid #e2e8f0; color:#64748b; font-size:10px; }
   @media print { .content { padding:14px 16px; } }
 </style>
 </head>
 <body>
-  ${page("Özet · " + inp.projectName, summaryBodyHtml(inp.summary) + extraSummaryHtml(inp.summary, inp.breakdown, inp.collections, inp.partners))}
+  ${page("Özet · " + inp.projectName, summaryBodyHtml(inp.summary) + extraSummaryHtml(inp.summary, inp.collections, inp.partners, inp.todayISO))}
+  ${inp.breakdown.length ? page("Maliyet Kırılımı · " + inp.projectName, breakdownPageHtml(inp.breakdown)) : ""}
   ${page("Harcama Kalemleri · " + inp.projectName, costLinesBodyHtml(inp.rows))}
   ${page("Ödeme Listesi · " + inp.projectName, paymentOwnersBodyHtml(inp.groups), true)}
   <div class="foot">${esc(inp.firmName)} · Belge No: ${docId} · ${esc(inp.userEmail)}</div>
