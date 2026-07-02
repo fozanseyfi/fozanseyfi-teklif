@@ -32,12 +32,19 @@ export default function MapPicker({ onCapture, onCancel }: Props) {
 
   useEffect(() => {
     if (!wrapRef.current || mapRef.current) return;
-    const map = L.map(wrapRef.current, { zoomControl: true, attributionControl: true }).setView([39.925, 32.866], 6);
+    const map = L.map(wrapRef.current, {
+      zoomControl: true,
+      attributionControl: true,
+      maxZoom: 23,
+      zoomSnap: 0.5,
+    }).setView([39.925, 32.866], 6);
     L.tileLayer(
-      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      { maxNativeZoom: 19, maxZoom: 22, attribution: "Görüntü © Esri, Maxar, Earthstar Geographics" },
+      "/api/tile?z={z}&x={x}&y={y}",
+      { maxNativeZoom: 19, maxZoom: 23, attribution: "Görüntü © Esri, Maxar, Earthstar Geographics" },
     ).addTo(map);
     mapRef.current = map;
+    // İlk yerleşimde konteyner boyutu netleşsin.
+    setTimeout(() => map.invalidateSize(), 200);
     return () => {
       map.remove();
       mapRef.current = null;
@@ -72,30 +79,69 @@ export default function MapPicker({ onCapture, onCancel }: Props) {
     setBusy(true);
     try {
       const b = map.getBounds();
-      const size = map.getSize();
-      const R = 6378137;
-      const d2r = Math.PI / 180;
-      const lng2x = (lng: number) => R * lng * d2r;
-      const lat2y = (lat: number) => R * Math.log(Math.tan(Math.PI / 4 + (lat * d2r) / 2));
-      const minx = lng2x(b.getWest());
-      const maxx = lng2x(b.getEast());
-      const miny = lat2y(b.getSouth());
-      const maxy = lat2y(b.getNorth());
-      const f = Math.min(2, 4096 / size.x, 4096 / size.y);
-      const w = Math.round(size.x * f);
-      const h = Math.round(size.y * f);
       const latC = (b.getNorth() + b.getSouth()) / 2;
-      const mpp = ((maxx - minx) / w) * Math.cos(latC * d2r);
-      const bbox = `${minx},${miny},${maxx},${maxy}`;
-      const res = await fetch(`/api/satellite?bbox=${encodeURIComponent(bbox)}&w=${w}&h=${h}`);
-      if (!res.ok) throw new Error();
-      const blob = await res.blob();
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const fr = new FileReader();
-        fr.onload = () => resolve(String(fr.result));
-        fr.onerror = reject;
-        fr.readAsDataURL(blob);
-      });
+      const d2r = Math.PI / 180;
+
+      // Yakalama zoom'u: native (19) veya mevcut zoom'un tabanı; çok fazla döşeme
+      // olmayacak şekilde azalt.
+      const project = (lat: number, lng: number, z: number) => {
+        const scale = 256 * 2 ** z;
+        const siny = Math.min(Math.max(Math.sin(lat * d2r), -0.9999), 0.9999);
+        return {
+          x: (lng / 360 + 0.5) * scale,
+          y: (0.5 - Math.log((1 + siny) / (1 - siny)) / (4 * Math.PI)) * scale,
+        };
+      };
+
+      let z = Math.min(19, Math.max(1, Math.floor(map.getZoom())));
+      let tl = project(b.getNorth(), b.getWest(), z);
+      let br = project(b.getSouth(), b.getEast(), z);
+      // Döşeme sayısını sınırla (büyük yakalamalarda zoom düşür).
+      while (z > 1) {
+        const tx = Math.floor(br.x / 256) - Math.floor(tl.x / 256) + 1;
+        const ty = Math.floor(br.y / 256) - Math.floor(tl.y / 256) + 1;
+        if (tx * ty <= 48) break;
+        z -= 1;
+        tl = project(b.getNorth(), b.getWest(), z);
+        br = project(b.getSouth(), b.getEast(), z);
+      }
+
+      const canvasW = Math.max(1, Math.round(br.x - tl.x));
+      const canvasH = Math.max(1, Math.round(br.y - tl.y));
+      const n = 2 ** z;
+      const txMin = Math.floor(tl.x / 256);
+      const txMax = Math.floor((br.x - 1) / 256);
+      const tyMin = Math.floor(tl.y / 256);
+      const tyMax = Math.floor((br.y - 1) / 256);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = canvasW;
+      canvas.height = canvasH;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("ctx");
+
+      const jobs: Promise<void>[] = [];
+      for (let tx = txMin; tx <= txMax; tx++) {
+        for (let ty = tyMin; ty <= tyMax; ty++) {
+          const xx = ((tx % n) + n) % n;
+          const yy = ty;
+          if (yy < 0 || yy >= n) continue;
+          const dx = tx * 256 - tl.x;
+          const dy = ty * 256 - tl.y;
+          jobs.push(
+            new Promise<void>((resolve) => {
+              const im = new window.Image();
+              im.onload = () => { ctx.drawImage(im, dx, dy); resolve(); };
+              im.onerror = () => resolve(); // eksik döşemeyi atla
+              im.src = `/api/tile?z=${z}&x=${xx}&y=${yy}`;
+            }),
+          );
+        }
+      }
+      await Promise.all(jobs);
+
+      const mpp = (156543.03392 * Math.cos(latC * d2r)) / 2 ** z;
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
       onCapture(dataUrl, mpp);
     } catch {
       toast.error("Görüntü alınamadı, tekrar deneyin");
