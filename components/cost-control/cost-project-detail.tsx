@@ -237,6 +237,10 @@ export function CostProjectDetail({
   const costVsPlannedPct = m.plannedTotalTL > 0 ? (m.actualNetTL / m.plannedTotalTL - 1) * 100 : null;
   const vokVsPlannedPct =
     m.hasPlanned && m.plannedVokTL !== 0 ? (m.vokTL / m.plannedVokTL - 1) * 100 : null;
+  // KDV yükü yoksa (negatif/devreden) net kâra ARTI olarak yansıtma → 0 kabul et.
+  const effectiveVatPayable = Math.max(0, m.vatPayableTL);
+  // Net Kâr = VÖK (KDV dahil) − ödenecek KDV (yük yoksa 0) − kurumlar vergisi.
+  const netProfitTL = m.vokTL - effectiveVatPayable - m.corporateTaxTL;
 
   function refresh() {
     router.refresh();
@@ -318,8 +322,8 @@ export function CostProjectDetail({
         corporateRate: CORPORATE_TAX_RATE,
         uninvoicedProfit: m.uninvoicedProfitNetTL,
         invoicedProfit: m.invoicedProfitNetTL,
-        netProfit: m.companyNetTL,
-        paid: m.paidTL,
+        netProfit: netProfitTL,
+        paid: m.paidAppliedTL,
         payableRemaining: m.payableBalanceTL,
         collected: m.collectedTotal,
         remainingReceivable: m.remainingReceivable,
@@ -425,7 +429,12 @@ export function CostProjectDetail({
           }
           tone="slate"
         />
-        <Kpi label="Tedarikçilere Ödenen" value={`₺${fmt(m.paidTL)}`} tone="slate" />
+        <Kpi
+          label="Tedarikçilere Ödenen"
+          value={`₺${fmt(m.paidAppliedTL)}`}
+          sub={m.paidTL > m.paidAppliedTL + 0.5 ? `Fazla ödeme: ₺${fmt(m.paidTL - m.paidAppliedTL)}` : undefined}
+          tone="slate"
+        />
         <Kpi
           label="Tedarikçilere Kalan"
           value={`₺${fmt(m.payableBalanceTL)}`}
@@ -474,8 +483,8 @@ export function CostProjectDetail({
               </div>
               <div className="mt-1 flex items-center justify-between border-t pt-1.5 text-base font-bold">
                 <span>= Net Kâr</span>
-                <span className={cn("tabular-nums", m.companyNetTL >= 0 ? "text-emerald-700" : "text-rose-600")}>
-                  ₺{fmt(m.companyNetTL)}
+                <span className={cn("tabular-nums", netProfitTL >= 0 ? "text-emerald-700" : "text-rose-600")}>
+                  ₺{fmt(netProfitTL)}
                 </span>
               </div>
             </div>
@@ -772,15 +781,31 @@ function VatSummary({ m }: { m: ReturnType<typeof computeCostProjectMetrics> }) 
           )}
 
           <div className="mt-2">
-            <TaxRow label="Faturalı kâr (KDV hariç)" value={m.invoicedProfitNetTL} />
+            <TaxRow label="Vergi Öncesi Kâr (VÖK, KDV dahil)" value={m.vokTL} />
+            <div className="flex items-center justify-between py-1 text-sm">
+              <span>− Ödenecek KDV</span>
+              {m.vatPayableTL > 0 ? (
+                <span className="tabular-nums text-rose-600">₺{fmt(m.vatPayableTL)}</span>
+              ) : (
+                <span className="text-emerald-600">yük yok (0)</span>
+              )}
+            </div>
             <TaxRow label={`− Kurumlar vergisi (%${CORPORATE_TAX_RATE})`} value={-m.corporateTaxTL} danger />
-            <TaxRow label="+ Faturasız kâr (vergisiz)" value={m.uninvoicedProfitNetTL} muted />
             <div className="mt-1 flex items-center justify-between border-t pt-1.5 text-sm font-bold">
               <span>= Şirkete Net Kâr</span>
-              <span className={cn("tabular-nums", m.companyNetTL >= 0 ? "text-emerald-700" : "text-rose-600")}>
-                ₺{fmt(m.companyNetTL)}
+              <span
+                className={cn(
+                  "tabular-nums",
+                  m.vokTL - Math.max(0, m.vatPayableTL) - m.corporateTaxTL >= 0 ? "text-emerald-700" : "text-rose-600",
+                )}
+              >
+                ₺{fmt(m.vokTL - Math.max(0, m.vatPayableTL) - m.corporateTaxTL)}
               </span>
             </div>
+            <p className="mt-1 text-[10.5px] text-muted-foreground">
+              Kurumlar vergisi yalnız faturalı kâr (₺{fmt(m.invoicedProfitNetTL)}) üzerinden; faturasız kâr (₺
+              {fmt(m.uninvoicedProfitNetTL)}) VÖK&apos;e dahildir.
+            </p>
           </div>
 
           {m.salesInvoicedNetTL <= 0 && (

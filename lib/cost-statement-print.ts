@@ -349,12 +349,13 @@ function summaryBodyHtml(s: CostReportSummary): string {
         <tr><td>Müşteriden alınan KDV</td><td class="num">₺${fmt(s.salesVat)}</td></tr>
         <tr><td>Maliyet KDV'si (indirilecek)</td><td class="num">−₺${fmt(s.costVat)}</td></tr>
         <tr class="strong"><td>Devlete Ödenecek KDV (%${fmt(s.vatRate)})</td><td class="num ${s.vatPayable > 0 ? "rem" : "done"}">${s.vatPayable > 0 ? `₺${fmt(s.vatPayable)}` : "KDV yükü yok"}</td></tr>
-        <tr><td>Faturalı kâr (KDV hariç)</td><td class="num">₺${fmt(s.invoicedProfit)}</td></tr>
+        <tr><td>Vergi Öncesi Kâr (VÖK, KDV dahil)</td><td class="num">₺${fmt(s.vok)}</td></tr>
+        <tr><td>− Ödenecek KDV</td><td class="num rem">${s.vatPayable > 0 ? `−₺${fmt(s.vatPayable)}` : "yük yok (0)"}</td></tr>
         <tr><td>− Kurumlar Vergisi (%${fmt(s.corporateRate)})</td><td class="num rem">−₺${fmt(s.corporateTax)}</td></tr>
-        <tr><td>+ Faturasız kâr (vergisiz)</td><td class="num">₺${fmt(s.uninvoicedProfit)}</td></tr>
         <tr class="strong"><td>= Şirkete Net Kâr</td><td class="num done">₺${fmt(s.netProfit)}</td></tr>
       </tbody>
-    </table>`;
+    </table>
+    <p style="margin-top:6px;color:#64748b;font-size:10px">Kurumlar vergisi yalnız faturalı kâr (₺${fmt(s.invoicedProfit)}) üzerinden; faturasız kâr (₺${fmt(s.uninvoicedProfit)}) VÖK'e dahildir.</p>`;
 }
 
 export function buildCostReportPrintHtml(inp: {
