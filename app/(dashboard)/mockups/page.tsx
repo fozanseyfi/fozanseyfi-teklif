@@ -105,6 +105,23 @@ const MOCKUPS: MockupCard[] = [
     href: "/mockups/yearly-report",
   },
   {
+    id: "cost-cards",
+    code: "UI",
+    title: "Maliyet Kartı — 5 Kurumsal Tasarım",
+    subtitle: "Tasarım — cost-control proje kartı alternatifleri",
+    description:
+      "Maliyet Kontrol ana sayfadaki proje kartları için 5 farklı kurumsal tasarım yan yana: Finansal Tablo, Koyu Başlık, Metrik Izgara, Minimal Muhasebe, Durum Panosu. Her biri kârlı+zararlı örnekle. Beğenileni gerçek karta uygularız.",
+    icon: Palette,
+    effort: "~1 saat",
+    highlights: [
+      "5 farklı kart stili — 2 örnek projeyle (kârlı + zararlı)",
+      "İş sonu VÖK, satış/maliyet KDV dahil, kalan alacak, tahsilat %",
+      "Durum rozeti, tahsilat çubuğu/halkası her tasarımda",
+      "Karar sonrası ~1 saatlik uygulama",
+    ],
+    href: "/mockups/cost-cards",
+  },
+  {
     id: "sidebar-alts",
     code: "UI",
     title: "Sidebar Renk Alternatifleri",
