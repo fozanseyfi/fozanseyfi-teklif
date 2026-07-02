@@ -168,11 +168,9 @@ export function CostListClient({
             label="Toplam Anlık VÖK"
             value={`₺${fmt(totals.profit)}`}
             tone={totals.profit >= 0 ? "emerald" : "rose"}
-          />
-          <MiniKpi
-            label="Toplam İş Sonu VÖK"
-            value={`₺${fmt(totals.vokFinal)}`}
-            tone={totals.vokFinal >= 0 ? "emerald" : "rose"}
+            label2="Toplam İş Sonu VÖK"
+            value2={`₺${fmt(totals.vokFinal)}`}
+            tone2={totals.vokFinal >= 0 ? "emerald" : "rose"}
           />
           <MiniKpi label="Tedarikçilere Kalan Ödeme" value={`₺${fmt(totals.pay)}`} tone="amber" />
           <MiniKpi label="Kalan Alacak" value={`₺${fmt(totals.recv)}`} tone="amber" />
