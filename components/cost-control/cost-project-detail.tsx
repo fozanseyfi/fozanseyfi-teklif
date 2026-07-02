@@ -530,25 +530,43 @@ export function CostProjectDetail({
         </Card>
       </div>
 
-      {/* Sekmeler */}
-      <div className="flex flex-wrap items-center gap-1.5">
+      {/* Sekmeler — segmented control, belirgin */}
+      <div className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-100/70 p-1.5 shadow-sm">
         {COST_TABS.map((t) => {
           const Icon = t.icon;
           const active = tab === t.key;
+          const count =
+            t.key === "kalemler"
+              ? data.lines.length
+              : t.key === "tahsilat"
+                ? data.collections.length
+                : t.key === "ortaklar"
+                  ? data.partners.length
+                  : null;
           return (
             <button
               key={t.key}
               type="button"
               onClick={() => setTab(t.key)}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] font-medium transition-colors",
+                "group inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-semibold transition-all",
                 active
-                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                  : "border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground",
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "text-slate-600 hover:bg-white hover:text-slate-900 hover:shadow-sm",
               )}
             >
-              <Icon className="size-3.5" />
+              <Icon className={cn("size-4", active ? "text-white" : "text-slate-400 group-hover:text-emerald-600")} />
               {t.label}
+              {count != null && count > 0 && (
+                <span
+                  className={cn(
+                    "ml-0.5 inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
+                    active ? "bg-white/25 text-white" : "bg-slate-200 text-slate-600",
+                  )}
+                >
+                  {count}
+                </span>
+              )}
             </button>
           );
         })}
