@@ -310,6 +310,7 @@ export interface CostReportSummary {
   costVat: number;
   costGross: number;
   vok: number;
+  current: number; // anlık (nakit) VÖK = tahsil − ödenen
   vatPayable: number;
   vatRate: number;
   corporateTax: number;
@@ -339,8 +340,8 @@ function summaryBodyHtml(s: CostReportSummary): string {
     <p style="margin:0 0 12px;color:#64748b;font-size:11px">Müşteri: <b>${esc(s.customer || "—")}</b> · Durum: ${esc(s.statusLabel)}</p>
     <div class="kgrid">
       ${kpi("Satış (KDV hariç)", money(s.salesSym, s.salesNet), `+KDV ${money(s.salesSym, s.salesVat)} · Dahil ${money(s.salesSym, s.salesGross)}`)}
-      ${kpi("Gerçekleşen Maliyet (KDV hariç)", `₺${fmt(s.costNet)}`, `KDV dahil ₺${fmt(s.costGross)}`)}
-      ${kpi("Vergi Öncesi Kâr (VÖK, KDV dahil)", `₺${fmt(s.vok)}`)}
+      ${kpi("Gerçekleşen Maliyet (KDV hariç)", `₺${fmt(s.costNet)}`, `+KDV ₺${fmt(s.costVat)} · Dahil ₺${fmt(s.costGross)}`)}
+      ${kpi("Vergi Öncesi Kâr (VÖK, KDV dahil)", `₺${fmt(s.vok)}`, `Anlık (nakit) ₺${fmt(s.current)}`)}
       ${kpi("Kalan Alacak", money(s.salesSym, s.remainingReceivable), `Tahsil: ${money(s.salesSym, s.collected)}`)}
       ${kpi("Tedarikçilere Ödenen", `₺${fmt(s.paid)}`)}
       ${kpi("Tedarikçilere Kalan", `₺${fmt(s.payableRemaining)}`)}

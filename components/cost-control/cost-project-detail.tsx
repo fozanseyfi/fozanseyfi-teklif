@@ -317,6 +317,7 @@ export function CostProjectDetail({
         costVat: m.actualVatTL,
         costGross: m.actualGrossTL,
         vok: m.vokTL,
+        current: m.currentProfitTL,
         vatPayable: m.vatPayableTL,
         vatRate: data.salesVatRate,
         corporateTax: m.corporateTaxTL,
@@ -447,8 +448,8 @@ export function CostProjectDetail({
           value={`₺${fmt(m.actualNetTL)}`}
           sub={
             m.hasPlanned && costVsPlannedPct != null
-              ? `KDV dahil ₺${fmt(m.actualGrossTL)} · Öngörülen ₺${fmt(m.plannedTotalTL)} (${costVsPlannedPct >= 0 ? "+" : ""}%${fmt(costVsPlannedPct, 1)})`
-              : `KDV dahil ₺${fmt(m.actualGrossTL)}`
+              ? `+KDV ₺${fmt(m.actualVatTL)} · Dahil ₺${fmt(m.actualGrossTL)} · Öngörülen ₺${fmt(m.plannedTotalTL)} (${costVsPlannedPct >= 0 ? "+" : ""}%${fmt(costVsPlannedPct, 1)})`
+              : `+KDV ₺${fmt(m.actualVatTL)} · Dahil ₺${fmt(m.actualGrossTL)}`
           }
           tone="slate"
         />
