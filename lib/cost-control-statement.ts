@@ -83,11 +83,11 @@ export function reminderText(inp: StatementInput): string {
   L.push(`Sayın ${inp.customer || "Yetkili"},`);
   L.push("");
   L.push(
-    `${inp.firmName} olarak "${inp.projectName}" işiniz için güncel ödeme durumunuzu paylaşıyoruz. Kalan bakiye: ${inp.sym}${fmtN(v.remaining)}.`,
+    `${inp.firmName} olarak "${inp.projectName}" işiniz için güncel ödeme durumunuzu aşağıdaki linkten görebilirsiniz.`,
   );
+  L.push(`Kalan bakiye: ${inp.sym}${fmtN(v.remaining)}`);
   if (inp.link) {
     L.push("");
-    L.push("Detaylı ekstrenize buradan ulaşabilirsiniz:");
     L.push(inp.link);
   }
   L.push("");
