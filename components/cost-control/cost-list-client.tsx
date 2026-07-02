@@ -33,6 +33,8 @@ import {
   ArrowRight,
   Loader2,
   Package,
+  ChevronDown,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatNumber } from "@/lib/utils";
@@ -64,6 +66,14 @@ export function CostListClient({
   const [q, setQ] = useState("");
   const [newOpen, setNewOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [plannedOpen, setPlannedOpen] = useState(false);
+
+  // Planlanan tahsilat özeti — en yakın ödeme + gecikme durumu.
+  const planned = useMemo(() => {
+    const nearest = upcoming[0] ?? null; // liste tarihe göre artan sıralı
+    const overdue = upcoming.filter((u) => plannedStatus(u.date, todayISO).tone === "overdue");
+    return { nearest, overdueCount: overdue.length, hasOverdue: overdue.length > 0 };
+  }, [upcoming, todayISO]);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -73,21 +83,23 @@ export function CostListClient({
     );
   }, [q, projects]);
 
-  // Portföy özeti
+  // Portföy özeti — tüm tutarlar TL'ye çevrilmiş toplanır (para birimi karışmaz).
   const totals = useMemo(() => {
-    let sales = 0,
+    let salesNet = 0,
+      salesGross = 0,
       cost = 0,
       profit = 0,
       recv = 0,
       pay = 0;
     for (const p of projects) {
-      // Satış farklı para biriminde olabilir; kart özetinde TL yaklaşmak yerine
-      // yalnız TL bazlı maliyet/kâr toplarız (satışları toplamıyoruz para karışmasın).
+      salesNet += p.salesPriceTL;
+      salesGross += p.salesGrossTL;
       cost += p.actualGrossTL;
       profit += p.currentProfitTL;
+      recv += p.remainingReceivableTL;
       pay += p.payableBalanceTL;
     }
-    return { sales, cost, profit, recv, pay };
+    return { salesNet, salesGross, cost, profit, recv, pay };
   }, [projects]);
 
   return (
@@ -131,35 +143,81 @@ export function CostListClient({
 
       {/* Portföy KPI */}
       {projects.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-3">
-          <MiniKpi label="Toplam Gerçekleşen Maliyet (KDV dahil)" value={`₺${fmt(totals.cost)}`} tone="slate" />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <MiniKpi label="Toplam Satış (KDV hariç)" value={`₺${fmt(totals.salesNet)}`} tone="slate" />
+          <MiniKpi label="Toplam Satış (KDV dahil)" value={`₺${fmt(totals.salesGross)}`} tone="slate" />
+          <MiniKpi label="Toplam Maliyet (KDV dahil)" value={`₺${fmt(totals.cost)}`} tone="slate" />
           <MiniKpi
-            label="Toplam Vergi Öncesi Kâr (VÖK)"
+            label="Toplam Anlık VÖK"
             value={`₺${fmt(totals.profit)}`}
             tone={totals.profit >= 0 ? "emerald" : "rose"}
           />
           <MiniKpi label="Tedarikçilere Kalan Ödeme" value={`₺${fmt(totals.pay)}`} tone="amber" />
+          <MiniKpi label="Kalan Alacak" value={`₺${fmt(totals.recv)}`} tone="amber" />
         </div>
       )}
 
-      {/* Planlanan tahsilatlar */}
+      {/* Planlanan tahsilatlar — açılır/kapanır (standartta kapalı) */}
       {upcoming.length > 0 && (
-        <Card className="overflow-hidden border-sky-200">
+        <Card className={`overflow-hidden ${planned.hasOverdue ? "border-rose-200" : "border-sky-200"}`}>
           <CardContent className="p-0">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-sky-50/60 px-4 py-3">
-              <p className="flex items-center gap-2 text-sm font-semibold text-sky-800">
-                <CalendarClock className="size-4" /> Planlanan Tahsilatlar
-                <span className="text-xs font-normal text-sky-600">({upcoming.length})</span>
+            <button
+              type="button"
+              onClick={() => setPlannedOpen((v) => !v)}
+              className={`flex w-full flex-wrap items-center justify-between gap-2 px-4 py-3 text-left transition-colors ${
+                planned.hasOverdue ? "bg-rose-50/70 hover:bg-rose-50" : "bg-sky-50/60 hover:bg-sky-50"
+              }`}
+            >
+              <p
+                className={`flex items-center gap-2 text-sm font-semibold ${
+                  planned.hasOverdue ? "text-rose-800" : "text-sky-800"
+                }`}
+              >
+                {planned.hasOverdue ? (
+                  <AlertTriangle className="size-4 text-rose-600" />
+                ) : (
+                  <CalendarClock className="size-4" />
+                )}
+                Planlanan Tahsilatlar
+                <span className={`text-xs font-normal ${planned.hasOverdue ? "text-rose-600" : "text-sky-600"}`}>
+                  ({upcoming.length})
+                </span>
               </p>
-              <span className="text-xs text-sky-700">
-                Toplam kalan planlanan:{" "}
-                <strong>
-                  {upcoming[0]?.salesSym ?? "₺"}
-                  {fmt(upcoming.reduce((s, u) => s + u.amount, 0))}
-                </strong>
-              </span>
-            </div>
-            <div className="divide-y">
+              <div className="flex items-center gap-3">
+                {/* Kapalı iken en yakın ödeme günü / gecikme uyarısı */}
+                {!plannedOpen && planned.nearest && (
+                  <span
+                    className={`text-xs font-medium ${
+                      planned.hasOverdue ? "text-rose-600" : "text-slate-600"
+                    }`}
+                  >
+                    {planned.hasOverdue ? (
+                      <>
+                        {planned.overdueCount} gecikmiş ödeme · en yakın {trDate(planned.nearest.date)}
+                      </>
+                    ) : (
+                      <>
+                        En yakın: {trDate(planned.nearest.date)} · {plannedStatus(planned.nearest.date, todayISO).label}
+                      </>
+                    )}
+                  </span>
+                )}
+                {plannedOpen && (
+                  <span className="text-xs text-sky-700">
+                    Toplam kalan planlanan:{" "}
+                    <strong>
+                      {upcoming[0]?.salesSym ?? "₺"}
+                      {fmt(upcoming.reduce((s, u) => s + u.amount, 0))}
+                    </strong>
+                  </span>
+                )}
+                <ChevronDown
+                  className={`size-4 shrink-0 text-slate-400 transition-transform ${plannedOpen ? "rotate-180" : ""}`}
+                />
+              </div>
+            </button>
+            {plannedOpen && (
+            <div className="divide-y border-t">
               {upcoming.map((u) => {
                 const st = plannedStatus(u.date, todayISO);
                 return (
@@ -193,6 +251,7 @@ export function CostListClient({
                 );
               })}
             </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -261,7 +320,7 @@ function MiniKpi({ label, value, tone }: { label: string; value: string; tone: "
 }
 
 function CostCard({ p }: { p: CostProjectCard }) {
-  const curProfitPos = p.currentProfitTL >= 0;
+  const vokPos = p.vokTL >= 0;
   return (
     <Link href={`/cost-control/${p.id}`} className="group block">
       <Card className="h-full transition-all hover:border-emerald-300 hover:shadow-md">
@@ -284,13 +343,14 @@ function CostCard({ p }: { p: CostProjectCard }) {
           </div>
 
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <Metric label="Satış" value={`${p.salesSym}${fmt(p.salesPrice)}`} />
+            <Metric label="Satış (KDV dahil)" value={`${p.salesSym}${fmt(p.salesGrossPrice)}`} />
             <Metric label="Maliyet (KDV dahil)" value={`₺${fmt(p.actualGrossTL)}`} />
             <Metric
               label="VÖK (TL)"
-              value={`₺${fmt(p.currentProfitTL)}`}
-              accent={curProfitPos ? "emerald" : "rose"}
-              icon={curProfitPos ? "up" : "down"}
+              value={`₺${fmt(p.vokTL)}`}
+              sub={`anlık ₺${fmt(p.currentProfitTL)}`}
+              accent={vokPos ? "emerald" : "rose"}
+              icon={vokPos ? "up" : "down"}
             />
             <Metric label="Kalan Alacak" value={`${p.salesSym}${fmt(p.remainingReceivable)}`} accent="amber" />
           </div>
@@ -312,11 +372,13 @@ function CostCard({ p }: { p: CostProjectCard }) {
 function Metric({
   label,
   value,
+  sub,
   accent,
   icon,
 }: {
   label: string;
   value: string;
+  sub?: string;
   accent?: "emerald" | "rose" | "amber";
   icon?: "up" | "down";
 }) {
@@ -336,6 +398,7 @@ function Metric({
         {icon === "down" && <TrendingDown className="size-3.5" />}
         {value}
       </p>
+      {sub && <p className="truncate text-[10.5px] tabular-nums text-muted-foreground">({sub})</p>}
     </div>
   );
 }

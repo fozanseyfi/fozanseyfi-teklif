@@ -80,13 +80,18 @@ export interface CostProjectCard {
   status: "ACTIVE" | "DONE";
   salesSym: string;
   salesPrice: number;
+  salesGrossPrice: number; // satış KDV dahil (satış para biriminde)
+  salesPriceTL: number; // KDV hariç satış (TL)
+  salesGrossTL: number; // KDV dahil satış (TL)
   actualNetTL: number;
   actualGrossTL: number;
   profitTL: number;
   currentProfitTL: number;
+  vokTL: number; // VÖK = KDV dahil satış − KDV dahil maliyet (TL)
   profitMarginPct: number;
   collectedTotal: number;
   remainingReceivable: number;
+  remainingReceivableTL: number; // kalan alacak (TL)
   paidTL: number;
   payableBalanceTL: number;
   lineCount: number;
@@ -142,13 +147,18 @@ export async function listCostProjects(): Promise<CostProjectCard[]> {
       status: p.status,
       salesSym: m.salesSym,
       salesPrice: m.salesPrice,
+      salesGrossPrice: m.salesGrossPrice,
+      salesPriceTL: m.salesPriceTL,
+      salesGrossTL: m.salesPriceTL + m.outputVatTL,
       actualNetTL: m.actualNetTL,
       actualGrossTL: m.actualGrossTL,
       profitTL: m.profitTL,
       currentProfitTL: m.currentProfitTL,
+      vokTL: m.vokTL,
       profitMarginPct: m.profitMarginPct,
       collectedTotal: m.collectedTotal,
       remainingReceivable: m.remainingReceivable,
+      remainingReceivableTL: m.salesPriceTL + m.outputVatTL - m.collectedTL,
       paidTL: m.paidTL,
       payableBalanceTL: m.payableBalanceTL,
       lineCount: p.lines.length,
