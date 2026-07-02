@@ -48,6 +48,7 @@ import {
   Link2,
   FileDown,
   AlertTriangle,
+  PieChart,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatNumber } from "@/lib/utils";
@@ -99,6 +100,17 @@ function fmtIban(s: string): string {
   const raw = (s || "").replace(/\s+/g, "");
   return raw ? raw.replace(/(.{4})/g, "$1 ").trim() : "";
 }
+
+// ————————————————————————————————————————— sekmeler
+type CostTabKey = "kalemler" | "vergi" | "tahsilat" | "odeme" | "ortaklar" | "kirilim";
+const COST_TABS: { key: CostTabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { key: "kalemler", label: "Harcama Kalemleri", icon: Receipt },
+  { key: "vergi", label: "KDV / İş Özeti", icon: Landmark },
+  { key: "tahsilat", label: "Tahsilat", icon: HandCoins },
+  { key: "odeme", label: "Ödeme Yapılacak Kişiler", icon: Wallet },
+  { key: "ortaklar", label: "Ortaklar", icon: Users2 },
+  { key: "kirilim", label: "Maliyet Kırılımı", icon: PieChart },
+];
 
 // ————————————————————————————————————————— tipler
 interface Payment {
@@ -200,6 +212,7 @@ export function CostProjectDetail({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [editProject, setEditProject] = useState(false);
+  const [tab, setTab] = useState<CostTabKey>("kalemler");
   const [lineDialog, setLineDialog] = useState<{ open: boolean; line: Line | null }>({ open: false, line: null });
   // Tedarikçi listesi yerel state — combobox'tan yeni tedarikçi eklenince anında
   // görünsün; sunucu yenilenince prop'tan senkronlanır.
@@ -517,7 +530,32 @@ export function CostProjectDetail({
         </Card>
       </div>
 
-      {/* Kalemler */}
+      {/* Sekmeler */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {COST_TABS.map((t) => {
+          const Icon = t.icon;
+          const active = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] font-medium transition-colors",
+                active
+                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                  : "border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground",
+              )}
+            >
+              <Icon className="size-3.5" />
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Harcama Kalemleri */}
+      {tab === "kalemler" && (
       <Card className="overflow-hidden">
         <CardContent className="p-0">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-4 py-3">
@@ -667,10 +705,13 @@ export function CostProjectDetail({
           )}
         </CardContent>
       </Card>
+      )}
 
-      {/* KDV / İş Özeti + Tahsilat + Ortak */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <VatSummary m={m} />
+      {/* KDV / İş Özeti */}
+      {tab === "vergi" && <VatSummary m={m} />}
+
+      {/* Tahsilat */}
+      {tab === "tahsilat" && (
         <CollectionsCard
           data={data}
           m={m}
@@ -681,21 +722,26 @@ export function CostProjectDetail({
           pending={pending}
           onChange={refresh}
         />
-      </div>
+      )}
 
-      <PaymentOwnersCard
-        lines={data.lines}
-        firmName={firmName}
-        userEmail={userEmail}
-        brand={brand}
-        projectName={data.name}
-        canEdit={canEdit}
-        onChange={refresh}
-      />
+      {/* Ödeme Yapılacak Kişiler */}
+      {tab === "odeme" && (
+        <PaymentOwnersCard
+          lines={data.lines}
+          firmName={firmName}
+          userEmail={userEmail}
+          brand={brand}
+          projectName={data.name}
+          canEdit={canEdit}
+          onChange={refresh}
+        />
+      )}
 
-      <PartnersCard data={data} m={m} canEdit={canEdit} onChange={refresh} />
+      {/* Ortaklar */}
+      {tab === "ortaklar" && <PartnersCard data={data} m={m} canEdit={canEdit} onChange={refresh} />}
 
-      <CostBreakdownCard lines={data.lines} />
+      {/* Maliyet Kırılımı */}
+      {tab === "kirilim" && <CostBreakdownCard lines={data.lines} />}
 
       {/* Dialoglar */}
       {editProject && (
