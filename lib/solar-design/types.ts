@@ -61,6 +61,8 @@ export interface DesignDoc {
   faceMeta: Record<string, FaceMeta>;
   panelConfig: PanelConfig;
   placed: PlacedPanel[];
+  /** Bina (saçak) yüksekliği (m) — 3B'de cephe/duvarlar bu değere göre çizilir. */
+  baseHeight: number;
   updatedAt: string;
 }
 
@@ -89,6 +91,7 @@ export function normalizeDoc(d: Partial<DesignDoc>): DesignDoc {
     faceMeta: d.faceMeta && typeof d.faceMeta === "object" ? d.faceMeta : {},
     panelConfig: d.panelConfig || { ...DEFAULT_PANEL_CONFIG },
     placed: Array.isArray(d.placed) ? d.placed : [],
+    baseHeight: typeof d.baseHeight === "number" ? d.baseHeight : 0,
     updatedAt: d.updatedAt || new Date(0).toISOString(),
   };
 }

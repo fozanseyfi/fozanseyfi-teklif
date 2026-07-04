@@ -28,7 +28,8 @@ export function sigOf(nodeIds: string[]): string {
   return [...nodeIds].sort().join(",");
 }
 
-export function detectFaces(nodes: RNode[], edges: REdge[]): DetectedFace[] {
+/** Graf içindeki tüm minimum kapalı döngüler (temizlenmiş, ≥3 nokta). */
+function allCycles(nodes: RNode[], edges: REdge[]): string[][] {
   const pos = new Map(nodes.map((n) => [n.id, { x: n.x, y: n.y }]));
   const adj = new Map<string, string[]>();
   const addAdj = (u: string, v: string) => {
@@ -72,22 +73,36 @@ export function detectFaces(nodes: RNode[], edges: REdge[]): DetectedFace[] {
     }
   }
 
-  const areaOf = (f: string[]) => polygonAreaPx(f.map((id) => pos.get(id)!));
-  const signed = (f: string[]) => {
-    let s = 0;
-    for (let i = 0; i < f.length; i++) {
-      const a = pos.get(f[i])!;
-      const b = pos.get(f[(i + 1) % f.length])!;
-      s += a.x * b.y - b.x * a.y;
-    }
-    return s / 2;
-  };
+  return rawFaces.map(cleanCycle).filter((f) => f.length >= 3);
+}
 
-  const cleaned = rawFaces.map(cleanCycle).filter((f) => f.length >= 3);
-  if (!cleaned.length) return [];
-  // En dış yüzey = mutlak alanı en büyük olan → at.
+/** İşaretli alan (shoelace) — en dış çevreyi bulmak için. */
+function signedArea(f: string[], pos: Map<string, Vec>): number {
+  let s = 0;
+  for (let i = 0; i < f.length; i++) {
+    const a = pos.get(f[i])!;
+    const b = pos.get(f[(i + 1) % f.length])!;
+    s += a.x * b.y - b.x * a.y;
+  }
+  return s / 2;
+}
+
+/** En dış döngünün indeksi (mutlak alanı en büyük olan). */
+function outerIndex(cleaned: string[][], pos: Map<string, Vec>): number {
   let outer = 0;
-  for (let i = 1; i < cleaned.length; i++) if (Math.abs(signed(cleaned[i])) > Math.abs(signed(cleaned[outer]))) outer = i;
+  for (let i = 1; i < cleaned.length; i++)
+    if (Math.abs(signedArea(cleaned[i], pos)) > Math.abs(signedArea(cleaned[outer], pos))) outer = i;
+  return outer;
+}
+
+export function detectFaces(nodes: RNode[], edges: REdge[]): DetectedFace[] {
+  const pos = new Map(nodes.map((n) => [n.id, { x: n.x, y: n.y }]));
+  const cleaned = allCycles(nodes, edges);
+  if (!cleaned.length) return [];
+
+  const areaOf = (f: string[]) => polygonAreaPx(f.map((id) => pos.get(id)!));
+  // En dış yüzey = mutlak alanı en büyük olan → at.
+  const outer = outerIndex(cleaned, pos);
 
   const faces = cleaned
     .filter((_, i) => i !== outer)
@@ -103,6 +118,14 @@ export function detectFaces(nodes: RNode[], edges: REdge[]): DetectedFace[] {
     .sort((a, b) => a.centroid.y - b.centroid.y || a.centroid.x - b.centroid.x);
 
   return faces;
+}
+
+/** Bina ayak izi = en dış çevre (sıralı node id döngüsü). Duvar/cephe çizimi için. Yoksa null. */
+export function detectOuterBoundary(nodes: RNode[], edges: REdge[]): string[] | null {
+  const pos = new Map(nodes.map((n) => [n.id, { x: n.x, y: n.y }]));
+  const cleaned = allCycles(nodes, edges);
+  if (!cleaned.length) return null;
+  return cleaned[outerIndex(cleaned, pos)];
 }
 
 export function faceCoords(face: DetectedFace, nodes: RNode[]): Vec[] {

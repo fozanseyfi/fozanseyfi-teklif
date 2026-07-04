@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import {
   Plus, Trash2, Undo2, Redo2, MousePointer2, PencilRuler, Ruler, ArrowLeft, ArrowRight,
   LayoutGrid, Sun, Map as MapIcon, ImagePlus, Zap, CheckCircle2, Box,
@@ -70,7 +71,7 @@ function DesignList({ index, onOpen, onCreate, onRemove }: {
           <div>
             <p className="text-[10.5px] font-semibold uppercase tracking-wider text-emerald-700">3D Tasarım</p>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Güneş Paneli Yerleşim Tasarımı</h1>
-            <p className="mt-1 text-sm text-slate-600">Haritadan bina bul, çatıyı çiz (yükseklikli), 3B'de gör, panelleri yerleştir, analiz al.</p>
+            <p className="mt-1 text-sm text-slate-600">Haritadan bina bul, çatıyı çiz (yükseklikli), 3B’de gör, panelleri yerleştir, analiz al.</p>
           </div>
         </CardContent>
       </Card>
@@ -131,6 +132,7 @@ function Editor() {
   const [mapMode, setMapMode] = useState(false);
   const [pending, setPending] = useState<{ dataUrl: string; mpp: number } | null>(null);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- adım değişince aracı sıfırla (dış senkronizasyon)
   useEffect(() => { if (step === "panel" || step === "analiz" || step === "3b") setTool("select"); }, [step]);
 
   const faces = useMemo(() => detectFaces(doc.nodes, doc.edges), [doc.nodes, doc.edges]);
@@ -233,7 +235,7 @@ function Editor() {
         <div className="space-y-3">
           {step === "gorsel" && <GorselPanel mpp={mpp} hasImage={!!doc.imageDataUrl} onMap={() => { setPending(null); setMapMode(true); }} onUpload={(url) => update((d) => { d.imageDataUrl = url; })} onCalibTool={() => setTool("calibrate")} />}
           {step === "cizim" && <CizimPanel faces={faces} selectedNodeId={selectedNodeId} selectedFaceSig={selectedFaceSig} onSelectFace={setSelectedFaceSig} update={update} />}
-          {step === "3b" && <Card><CardContent className="space-y-2 p-4 text-sm text-slate-600"><p className="font-semibold text-slate-800">3B Görünüm</p><p className="text-[12px]">Fare ile döndür, tekerlekle yakınlaş, sağ tıkla kaydır. Yükseklikler “Çatı Çizimi”nde her noktaya girdiğin <b>z</b> değerinden gelir. Panel de çatı eğimine oturur.</p></CardContent></Card>}
+          {step === "3b" && <ThreeDPanel update={update} />}
           {step === "panel" && <PanelPanel update={update} onAuto={autoLayout} totalPanels={totalPanels} totalKwp={totalKwp} hasSelectedFace={!!selectedFaceSig} />}
           {step === "analiz" && <AnalizPanel faces={faces} />}
           <StepNav step={step} setStep={setStep} />
@@ -347,6 +349,32 @@ function CizimPanel({ faces, selectedNodeId, selectedFaceSig, onSelectFace, upda
         {!node && !face && faces.length > 0 && (
           <p className="border-t pt-3 text-[11px] text-muted-foreground">Bir nokta seçip yükseklik ver, ya da bir bölüm seç. Ara kırılım için “Çiz” ile çizgiden başla.</p>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ThreeDPanel({ update }: { update: ReturnType<typeof useDesignStore.getState>["update"] }) {
+  const doc = useDesignStore((s) => s.active)!;
+  const h = doc.baseHeight || 0;
+  return (
+    <Card>
+      <CardContent className="space-y-3 p-4">
+        <p className="text-sm font-semibold text-slate-800">Bina Yüksekliği</p>
+        <div className="rounded-lg bg-emerald-50 p-3 text-center">
+          <p className="text-[10px] uppercase tracking-wider text-emerald-600">Saçak / duvar yüksekliği</p>
+          <p className="text-2xl font-bold tabular-nums text-emerald-700">{fmt(h, 1)} m</p>
+        </div>
+        <div className="space-y-2">
+          <Slider min={0} max={30} step={0.5} value={[Math.min(30, h)]} onValueChange={(v) => update((d) => { d.baseHeight = v[0]; })} />
+          <div className="flex items-center gap-2">
+            <Input type="number" step="any" min={0} value={h} onChange={(e) => update((d) => { d.baseHeight = Math.max(0, parseFloat(e.target.value) || 0); })} className="h-9" />
+            <span className="text-[12px] text-muted-foreground">m</span>
+          </div>
+        </div>
+        <p className="rounded-md bg-slate-50 p-2 text-[11px] text-slate-500">
+          3B görünümde <b>yeşil topu</b> ya da <b>çatıyı</b> tutup yukarı çek: bina yükselir, cephe (duvarlar) ortaya çıkar. Çatı eğimi “Çatı Çizimi”ndeki nokta <b>z</b> değerlerinden gelir; bina yüksekliği bunun altına eklenir.
+        </p>
       </CardContent>
     </Card>
   );
