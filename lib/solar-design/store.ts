@@ -86,6 +86,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       panelConfig: { ...DEFAULT_PANEL_CONFIG },
       placed: [],
       baseHeight: 0,
+      locked: false,
       updatedAt: new Date().toISOString(),
     };
     persistDoc(doc);

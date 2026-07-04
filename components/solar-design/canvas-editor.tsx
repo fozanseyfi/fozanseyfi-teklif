@@ -9,8 +9,31 @@ import { FACE_COLORS } from "@/lib/solar-design/types";
 import { dist, nearestOnSegment } from "@/lib/solar-design/geometry";
 import { detectFaces } from "@/lib/solar-design/faces";
 import { planarize } from "@/lib/solar-design/planarize";
+import { toast } from "sonner";
 
 export type EditorMode = "draw" | "roof-select" | "panel-select" | "view";
+
+/** Panelin dünya köşeleri (grup orijini x,y etrafında dönmüş dörtgen). */
+function panelCorners(p: { x: number; y: number; w: number; h: number; rotationDeg: number }): Vec[] {
+  const rad = (p.rotationDeg * Math.PI) / 180, c = Math.cos(rad), s = Math.sin(rad);
+  return ([[0, 0], [p.w, 0], [p.w, p.h], [0, p.h]] as const).map(([lx, ly]) => ({ x: p.x + lx * c - ly * s, y: p.y + lx * s + ly * c }));
+}
+
+/** İki dışbükey dörtgen üst üste mi (SAT). Sadece temas ediyorsa (bitişik) üst üste sayılmaz. */
+function polysOverlap(A: Vec[], B: Vec[]): boolean {
+  const EPS = 0.5;
+  for (const poly of [A, B]) {
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i], b = poly[(i + 1) % poly.length];
+      const nx = -(b.y - a.y), ny = b.x - a.x; // kenar normali
+      let minA = Infinity, maxA = -Infinity, minB = Infinity, maxB = -Infinity;
+      for (const q of A) { const d = q.x * nx + q.y * ny; if (d < minA) minA = d; if (d > maxA) maxA = d; }
+      for (const q of B) { const d = q.x * nx + q.y * ny; if (d < minB) minB = d; if (d > maxB) maxB = d; }
+      if (maxA <= minB + EPS || maxB <= minA + EPS) return false; // ayrık eksen → çakışma yok
+    }
+  }
+  return true;
+}
 
 interface Props {
   mode: EditorMode;
@@ -397,11 +420,15 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
                   const ref = panelDragRef.current;
                   const o = ref?.orig.get(p.id);
                   const delta = o ? { x: e.target.x() - o.x, y: e.target.y() - o.y } : { x: 0, y: 0 };
-                  update((d) => {
-                    d.placed = d.placed.map((q) => (ref?.orig.has(q.id) ? { ...q, x: (ref.orig.get(q.id)!.x) + delta.x, y: (ref.orig.get(q.id)!.y) + delta.y } : q));
-                  }, true);
+                  const movedIds = ref ? new Set(ref.orig.keys()) : new Set([p.id]);
+                  const proposed = doc.placed.map((q) => (ref?.orig.has(q.id) ? { ...q, x: (ref.orig.get(q.id)!.x) + delta.x, y: (ref.orig.get(q.id)!.y) + delta.y } : q));
+                  // Üst üste binme kontrolü: taşınan paneller diğerleriyle çakışırsa reddet.
+                  const others = proposed.filter((q) => !movedIds.has(q.id));
+                  const clash = proposed.some((m) => movedIds.has(m.id) && others.some((q) => polysOverlap(panelCorners(m), panelCorners(q))));
                   panelDragRef.current = null;
                   setPanelDelta(null);
+                  if (clash) { toast.error("Paneller üst üste gelemez"); return; } // update yok → eski konuma döner
+                  update((d) => { d.placed = proposed; }, true);
                 }}
               >
                 {(() => {

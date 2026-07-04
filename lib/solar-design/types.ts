@@ -37,6 +37,12 @@ export interface PanelConfig {
   orientation: "portrait" | "landscape";
   gapMm: number;
   edgeMarginMm: number;
+  /** Gruplama — yatayda kaç panelden sonra boşluk (0 = grupsuz) ve boşluğun mm'i. */
+  colGroup: number;
+  colGap: number;
+  /** Gruplama — dikeyde kaç panelden sonra boşluk (0 = grupsuz) ve boşluğun mm'i. */
+  rowGroup: number;
+  rowGap: number;
 }
 
 export interface PlacedPanel {
@@ -63,6 +69,8 @@ export interface DesignDoc {
   placed: PlacedPanel[];
   /** Bina (saçak) yüksekliği (m) — 3B'de cephe/duvarlar bu değere göre çizilir. */
   baseHeight: number;
+  /** Çatı tamamlanıp kilitlendi mi — kilitliyken çatı düzenlenemez, panel yerleşimi yapılır. */
+  locked: boolean;
   updatedAt: string;
 }
 
@@ -73,6 +81,10 @@ export const DEFAULT_PANEL_CONFIG: PanelConfig = {
   orientation: "portrait",
   gapMm: 20,
   edgeMarginMm: 300,
+  colGroup: 0,
+  colGap: 500,
+  rowGroup: 0,
+  rowGap: 500,
 };
 
 export const FACE_COLORS = ["#059669", "#2563eb", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#65a30d", "#e11d48"];
@@ -89,9 +101,10 @@ export function normalizeDoc(d: Partial<DesignDoc>): DesignDoc {
     nodes: Array.isArray(d.nodes) ? d.nodes : [],
     edges: Array.isArray(d.edges) ? d.edges : [],
     faceMeta: d.faceMeta && typeof d.faceMeta === "object" ? d.faceMeta : {},
-    panelConfig: d.panelConfig || { ...DEFAULT_PANEL_CONFIG },
+    panelConfig: { ...DEFAULT_PANEL_CONFIG, ...(d.panelConfig || {}) },
     placed: Array.isArray(d.placed) ? d.placed : [],
     baseHeight: typeof d.baseHeight === "number" ? d.baseHeight : 0,
+    locked: !!d.locked,
     updatedAt: d.updatedAt || new Date(0).toISOString(),
   };
 }

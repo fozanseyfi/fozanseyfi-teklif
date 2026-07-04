@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import {
   Plus, Trash2, Undo2, Redo2, MousePointer2, PencilRuler, ArrowLeft, ArrowRight,
-  LayoutGrid, Sun, Map as MapIcon, ImagePlus, Zap, CheckCircle2, Box,
+  LayoutGrid, Sun, Map as MapIcon, ImagePlus, Zap, CheckCircle2, Box, Lock, Unlock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -24,10 +24,11 @@ const MapPicker = dynamic(() => import("./map-picker"), { ssr: false });
 const CropStep = dynamic(() => import("./crop-step"), { ssr: false });
 const ThreeView = dynamic(() => import("./three-view"), { ssr: false });
 
-type StepKey = "gorsel" | "cizim" | "analiz";
+type StepKey = "gorsel" | "cizim" | "panel" | "analiz";
 const STEPS: { key: StepKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: "gorsel", label: "Görüntü & Ölçek", icon: MapIcon },
   { key: "cizim", label: "Çatıyı Belirle", icon: PencilRuler },
+  { key: "panel", label: "Panel Yerleşimi", icon: LayoutGrid },
   { key: "analiz", label: "Analiz", icon: Zap },
 ];
 
@@ -123,8 +124,9 @@ function Editor() {
 
   const [step, setStep] = useState<StepKey>("gorsel");
   const [tool, setTool] = useState<"select" | "draw">("select");
-  // "Çatıyı Belirle" adımında 2B çizim ↔ 3B model geçişi (aynı adım içinde).
+  // "Çatıyı Belirle" ve "Panel Yerleşimi" adımlarında 2B ↔ 3B geçişi.
   const [cizimView, setCizimView] = useState<"2d" | "3d">("2d");
+  const [panelView, setPanelView] = useState<"2d" | "3d">("2d");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedFaceSig, setSelectedFaceSig] = useState<string | null>(null);
   const [mapMode, setMapMode] = useState(false);
@@ -135,18 +137,22 @@ function Editor() {
 
   const faces = useMemo(() => detectFaces(doc.nodes, doc.edges), [doc.nodes, doc.edges]);
   const mpp = doc.metersPerPixel;
+  const locked = doc.locked;
   const totalPanels = doc.placed.length;
   const totalKwp = panelsKwp(totalPanels, doc.panelConfig.watt);
 
-  const is3D = step === "cizim" && cizimView === "3d";
+  const setLocked = (v: boolean) => update((d) => { d.locked = v; });
+
+  const is3D = (step === "cizim" && cizimView === "3d") || (step === "panel" && panelView === "3d");
+  const threeEditable = step === "cizim" && !locked; // 3B'de yükseklik düzenleme yalnız çizim + kilitsizken
   const mode: EditorMode =
-    step === "analiz" ? "view"
-      : step === "cizim" ? (is3D ? "view" : tool === "draw" ? "draw" : "roof-select")
+    step === "panel" ? "panel-select"
+      : step === "cizim" ? (locked ? "view" : tool === "draw" ? "draw" : "roof-select")
         : "view";
 
   const showMap = step === "gorsel" && mapMode && !pending;
   const showCrop = step === "gorsel" && !!pending;
-  const showCanvasToolbar = step === "cizim" && cizimView === "2d";
+  const showCanvasToolbar = step === "cizim" && cizimView === "2d" && !locked;
 
   function autoLayout(scope: "all" | "selected") {
     if (!mpp) { toast.error("Ölçek bulunamadı — altlığı haritadan alın."); return; }
@@ -177,10 +183,12 @@ function Editor() {
       <div className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-100/70 p-1.5 shadow-sm">
         {STEPS.map((s) => {
           const Icon = s.icon; const active = step === s.key;
+          const gated = s.key === "panel" && !locked; // panel yerleşimi çatı kilitliyken
           return (
             <button key={s.key} type="button" onClick={() => setStep(s.key)}
               className={cn("inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-semibold transition-all", active ? "bg-emerald-600 text-white shadow-sm" : "text-slate-600 hover:bg-white hover:text-slate-900")}>
               <Icon className="size-4" /> {s.label}
+              {gated && <Lock className="size-3 opacity-60" />}
             </button>
           );
         })}
@@ -188,11 +196,29 @@ function Editor() {
 
       <div className="grid gap-3 lg:grid-cols-[1fr_320px]">
         <div className="space-y-2">
-          {/* Çatıyı Belirle: 2B çizim ↔ 3B model geçişi */}
+          {/* 2B / 3B geçişi (Çatıyı Belirle + Panel Yerleşimi) */}
           {step === "cizim" && (
-            <div className="flex w-fit items-center gap-1 rounded-lg border bg-card p-1">
-              <ToolBtn active={cizimView === "2d"} onClick={() => setCizimView("2d")} icon={PencilRuler} label="2B Çizim" />
-              <ToolBtn active={cizimView === "3d"} onClick={() => setCizimView("3d")} icon={Box} label="3B Model" />
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex w-fit items-center gap-1 rounded-lg border bg-card p-1">
+                <ToolBtn active={cizimView === "2d"} onClick={() => setCizimView("2d")} icon={PencilRuler} label="2B Çizim" />
+                <ToolBtn active={cizimView === "3d"} onClick={() => setCizimView("3d")} icon={Box} label="3B Model" />
+              </div>
+              {locked ? (
+                <Button size="sm" variant="outline" onClick={() => setLocked(false)}><Unlock className="size-4" /> Kilidi Aç (düzenle)</Button>
+              ) : (
+                <Button size="sm" onClick={() => { setLocked(true); setStep("panel"); toast.success("Çatı kilitlendi — panel yerleşimine geçildi"); }}><Lock className="size-4" /> Çatıyı Tamamla ve Kilitle</Button>
+              )}
+            </div>
+          )}
+          {step === "panel" && (
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex w-fit items-center gap-1 rounded-lg border bg-card p-1">
+                <ToolBtn active={panelView === "2d"} onClick={() => setPanelView("2d")} icon={LayoutGrid} label="2B Yerleşim" />
+                <ToolBtn active={panelView === "3d"} onClick={() => setPanelView("3d")} icon={Box} label="3B Önizleme" />
+              </div>
+              {panelView === "2d" && (
+                <span className="text-[11px] text-muted-foreground">Panel tıkla (Shift çoklu) · sürükle-taşı · <b>R</b> döndür · <b>Del</b> sil · üst üste gelemez</span>
+              )}
             </div>
           )}
 
@@ -208,13 +234,19 @@ function Editor() {
             </div>
           )}
 
+          {step === "cizim" && locked && (
+            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2 text-[12px] text-amber-800">
+              <Lock className="size-4 shrink-0" /> Çatı kilitli — düzenlemek için “Kilidi Aç”. Panel yerleşimi için “Panel Yerleşimi” sekmesine geç.
+            </div>
+          )}
+
           <div className="h-[calc(100vh-16rem)] min-h-[440px]">
             {showMap ? (
               <MapPicker onCapture={(dataUrl, m) => setPending({ dataUrl, mpp: m })} onCancel={() => setMapMode(false)} />
             ) : showCrop ? (
               <CropStep src={pending!.dataUrl} onConfirm={(cropped) => { update((d) => { d.imageDataUrl = cropped; d.metersPerPixel = pending!.mpp; }); setPending(null); setMapMode(false); toast.success("Altlık hazır — “Çatıyı Belirle”ye geç"); }} onCancel={() => setPending(null)} />
             ) : is3D ? (
-              mpp ? <ThreeView /> : <div className="flex h-full items-center justify-center rounded-xl border bg-slate-100 text-sm text-slate-400">Önce haritadan ölçekli altlık alın, sonra çatıyı çizin.</div>
+              mpp ? <ThreeView editable={threeEditable} /> : <div className="flex h-full items-center justify-center rounded-xl border bg-slate-100 text-sm text-slate-400">Önce haritadan ölçekli altlık alın, sonra çatıyı çizin.</div>
             ) : (
               <CanvasEditor mode={mode} selectedNodeId={selectedNodeId} onSelectNode={setSelectedNodeId} selectedFaceSig={selectedFaceSig} onSelectFace={setSelectedFaceSig} />
             )}
@@ -223,18 +255,28 @@ function Editor() {
 
         <div className="space-y-3">
           {step === "gorsel" && <GorselPanel mpp={mpp} hasImage={!!doc.imageDataUrl} onMap={() => { setPending(null); setMapMode(true); }} onUpload={(url) => update((d) => { d.imageDataUrl = url; })} />}
-          {step === "cizim" && cizimView === "2d" && <CizimPanel faces={faces} selectedNodeId={selectedNodeId} selectedFaceSig={selectedFaceSig} onSelectFace={setSelectedFaceSig} update={update} />}
-          {step === "cizim" && cizimView === "3d" && (
-            <>
-              <ThreeDPanel update={update} />
-              <PanelPanel update={update} onAuto={autoLayout} totalPanels={totalPanels} totalKwp={totalKwp} hasSelectedFace={!!selectedFaceSig} />
-            </>
-          )}
+          {step === "cizim" && !locked && cizimView === "2d" && <CizimPanel faces={faces} selectedNodeId={selectedNodeId} selectedFaceSig={selectedFaceSig} onSelectFace={setSelectedFaceSig} update={update} />}
+          {step === "cizim" && !locked && cizimView === "3d" && <ThreeDPanel update={update} />}
+          {step === "cizim" && locked && <LockPanel onUnlock={() => setLocked(false)} onPanel={() => setStep("panel")} />}
+          {step === "panel" && <PanelPanel update={update} onAuto={autoLayout} totalPanels={totalPanels} totalKwp={totalKwp} hasSelectedFace={!!selectedFaceSig} locked={locked} onLock={() => { setLocked(true); }} onEditRoof={() => { setLocked(false); setStep("cizim"); }} />}
           {step === "analiz" && <AnalizPanel faces={faces} />}
           <StepNav step={step} setStep={setStep} />
         </div>
       </div>
     </div>
+  );
+}
+
+function LockPanel({ onUnlock, onPanel }: { onUnlock: () => void; onPanel: () => void }) {
+  return (
+    <Card>
+      <CardContent className="space-y-3 p-4">
+        <p className="flex items-center gap-2 text-sm font-semibold text-slate-800"><Lock className="size-4 text-amber-600" /> Çatı Kilitli</p>
+        <p className="text-[12px] text-muted-foreground">Çatı modeli tamamlandı ve kilitlendi. Panelleri yerleştirmek için “Panel Yerleşimi” sekmesine geç, ya da çatıyı yeniden düzenlemek için kilidi aç.</p>
+        <Button size="sm" className="w-full" onClick={onPanel}><LayoutGrid className="size-4" /> Panel Yerleşimine Geç</Button>
+        <Button size="sm" variant="outline" className="w-full" onClick={onUnlock}><Unlock className="size-4" /> Kilidi Aç (çatıyı düzenle)</Button>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -367,23 +409,30 @@ function ThreeDPanel({ update }: { update: ReturnType<typeof useDesignStore.getS
           </div>
         </div>
         <p className="rounded-md bg-slate-50 p-2 text-[11px] text-slate-500">
-          3B görünümde <b>yeşil topu</b> ya da <b>çatıyı</b> tutup yukarı çek: bina yükselir, cephe (duvarlar) ortaya çıkar. Çatı eğimi “Çatı Çizimi”ndeki nokta <b>z</b> değerlerinden gelir; bina yüksekliği bunun altına eklenir.
+          3B modelde tutup çekerek yükseklik ver: <b>yeşil top</b> = tüm bina, <b>nokta topu</b> = tek nokta, <b>turuncu top</b> = kenar (çizgi), <b>bölüm yüzeyi</b> = o bölümün tümü. Böylece çatının kendi içinde kot farkı verebilirsin.
         </p>
       </CardContent>
     </Card>
   );
 }
 
-function PanelPanel({ update, onAuto, totalPanels, totalKwp, hasSelectedFace }: {
+function PanelPanel({ update, onAuto, totalPanels, totalKwp, hasSelectedFace, locked, onEditRoof }: {
   update: ReturnType<typeof useDesignStore.getState>["update"];
   onAuto: (scope: "all" | "selected") => void;
   totalPanels: number; totalKwp: number; hasSelectedFace: boolean;
+  locked: boolean; onLock: () => void; onEditRoof: () => void;
 }) {
   const doc = useDesignStore((s) => s.active)!;
   const c = doc.panelConfig;
   return (
     <Card>
       <CardContent className="space-y-3 p-4">
+        <div className="flex items-center justify-between rounded-md bg-slate-50 px-2 py-1.5 text-[11px]">
+          <span className="flex items-center gap-1 text-slate-600">
+            {locked ? <><Lock className="size-3 text-amber-600" /> Çatı kilitli</> : "Çatı düzenlenebilir"}
+          </span>
+          <button type="button" onClick={onEditRoof} className="font-semibold text-primary hover:underline">Çatıyı Düzenle</button>
+        </div>
         <p className="text-sm font-semibold text-slate-800">Panel</p>
         <div className="space-y-1">
           <Label className="text-[11px]">Hazır model</Label>
@@ -407,12 +456,22 @@ function PanelPanel({ update, onAuto, totalPanels, totalKwp, hasSelectedFace }: 
           <NumF label="Panel arası (mm)" value={c.gapMm} onChange={(v) => update((d) => { d.panelConfig.gapMm = v; })} />
           <NumF label="Çatı kenar payı (mm)" value={c.edgeMarginMm} onChange={(v) => update((d) => { d.panelConfig.edgeMarginMm = v; })} />
         </div>
+        <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50/60 p-2.5">
+          <p className="text-[11px] font-semibold text-slate-700">Gruplama (dizi arası boşluk)</p>
+          <div className="grid grid-cols-2 gap-2">
+            <NumF label="Yatayda / grup (adet)" value={c.colGroup} onChange={(v) => update((d) => { d.panelConfig.colGroup = Math.max(0, Math.round(v)); })} />
+            <NumF label="Yatay boşluk (mm)" value={c.colGap} onChange={(v) => update((d) => { d.panelConfig.colGap = Math.max(0, v); })} />
+            <NumF label="Dikeyde / grup (adet)" value={c.rowGroup} onChange={(v) => update((d) => { d.panelConfig.rowGroup = Math.max(0, Math.round(v)); })} />
+            <NumF label="Dikey boşluk (mm)" value={c.rowGap} onChange={(v) => update((d) => { d.panelConfig.rowGap = Math.max(0, v); })} />
+          </div>
+          <p className="text-[10.5px] text-muted-foreground">0 = gruplama yok. Örn. yatayda 4 → her 4 panelden sonra boşluk bırakılır (dizi arası geçiş yolu).</p>
+        </div>
         <div className="flex gap-2 border-t pt-3">
           <Button size="sm" className="flex-1" onClick={() => onAuto("all")}><LayoutGrid className="size-4" /> Tümüne Yerleştir</Button>
           <Button size="sm" variant="outline" disabled={!hasSelectedFace} onClick={() => onAuto("selected")}>Seçili Bölüm</Button>
         </div>
         <Button size="sm" variant="outline" className="w-full text-destructive" onClick={() => update((d) => { d.placed = []; }, true)}><Trash2 className="size-4" /> Panelleri Temizle</Button>
-        <p className="rounded-md bg-slate-50 p-2 text-[11px] text-slate-500">Tuvalde panelleri tıkla (Shift ile çoklu), sürükle-taşı, <b>R</b> döndür, <b>Del</b> sil.</p>
+        <p className="rounded-md bg-slate-50 p-2 text-[11px] text-slate-500">Paneli tıkla (Shift ile çoklu), sürükle-taşı, <b>R</b> döndür, <b>Del</b> sil. Panel başka panelin üstüne bırakılamaz (üst üste gelmez).</p>
         <div className="rounded-lg bg-slate-50 p-3 text-center"><p className="text-[11px] uppercase tracking-wider text-slate-400">Toplam</p><p className="text-lg font-bold text-slate-900">{totalPanels} panel · {fmt(totalKwp, 2)} kWp</p></div>
       </CardContent>
     </Card>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { useDesignStore } from "@/lib/solar-design/store";
@@ -30,13 +30,18 @@ function bary(
   return { u: 1 - v - w, v, w };
 }
 
-export default function ThreeView() {
+export default function ThreeView({ editable = true }: { editable?: boolean } = {}) {
   const doc = useDesignStore((s) => s.active)!;
   const update = useDesignStore((s) => s.update);
   const wrapRef = useRef<HTMLDivElement>(null);
   const infoRef = useRef<HTMLDivElement>(null);
   const labelsRef = useRef<HTMLDivElement>(null);
   const camRef = useRef<{ pos: THREE.Vector3; target: THREE.Vector3 } | null>(null);
+  const [labelsOn, setLabelsOn] = useState(true);
+
+  useEffect(() => {
+    if (labelsRef.current) labelsRef.current.style.display = labelsOn ? "" : "none";
+  }, [labelsOn]);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -115,31 +120,37 @@ export default function ThreeView() {
     scene.add(handleGroup);
     const draggables: THREE.Object3D[] = [];
 
+    // Tutamaçlar yalnız düzenlenebilir modda (çizim + kilitsiz). Kilitliyken /
+    // panel önizlemesinde salt-okunur → tutamaç yok.
     // Bina tepe topu
     const buildingHandle = new THREE.Mesh(buildGeo, buildingHandleMat);
     buildingHandle.userData = { kind: "building" };
-    handleGroup.add(buildingHandle);
+    if (editable) handleGroup.add(buildingHandle);
 
     // Nokta topları
-    const nodeHandles = doc.nodes.map((n) => {
-      const m = new THREE.Mesh(nodeGeo, nodeHandleMat);
-      m.userData = { kind: "node", id: n.id };
-      handleGroup.add(m);
-      return { mesh: m, node: n };
-    });
+    const nodeHandles = editable
+      ? doc.nodes.map((n) => {
+          const m = new THREE.Mesh(nodeGeo, nodeHandleMat);
+          m.userData = { kind: "node", id: n.id };
+          handleGroup.add(m);
+          return { mesh: m, node: n };
+        })
+      : [];
 
-    // Kenar topları (orta nokta)
-    const edgeHandles = doc.edges
-      .map((e) => {
-        const a = nodeById.get(e.a);
-        const b = nodeById.get(e.b);
-        if (!a || !b) return null;
-        const m = new THREE.Mesh(edgeGeo, edgeHandleMat);
-        m.userData = { kind: "edge", a: e.a, b: e.b };
-        handleGroup.add(m);
-        return { mesh: m, a, b };
-      })
-      .filter(Boolean) as { mesh: THREE.Mesh; a: RNode; b: RNode }[];
+    // Kenar topları (orta nokta) — kenarı (çizgiyi) iki ucundan birlikte kaldırır
+    const edgeHandles = editable
+      ? (doc.edges
+          .map((e) => {
+            const a = nodeById.get(e.a);
+            const b = nodeById.get(e.b);
+            if (!a || !b) return null;
+            const m = new THREE.Mesh(edgeGeo, edgeHandleMat);
+            m.userData = { kind: "edge", a: e.a, b: e.b };
+            handleGroup.add(m);
+            return { mesh: m, a, b };
+          })
+          .filter(Boolean) as { mesh: THREE.Mesh; a: RNode; b: RNode }[])
+      : [];
 
     // Bölüm etiketleri (HTML overlay) — her karede yeniden konumlanır.
     const faceLabels = faces.map((f, i) => {
@@ -217,9 +228,8 @@ export default function ThreeView() {
         geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
         geo.computeVertexNormals();
         const mesh = new THREE.Mesh(geo, faceMats[i]);
-        mesh.userData = { kind: "face", nodeIds: f.nodes };
         building.add(mesh);
-        draggables.push(mesh);
+        if (editable) { mesh.userData = { kind: "face", nodeIds: f.nodes }; draggables.push(mesh); }
       });
 
       // Kenarlar
@@ -271,18 +281,20 @@ export default function ThreeView() {
         addQuad(inner as THREE.Vector3[], 0.14, panelMat); // koyu panel (iç, hafif üstte)
       });
 
-      // Tutamaçları konumla + draggable listesini kur
-      buildingHandle.position.set(toWorld(cx, cy).x, baseH + maxLiveZ() + Math.max(0.6, handleR * 2), toWorld(cx, cy).z);
-      draggables.push(buildingHandle);
-      for (const nh of nodeHandles) {
-        const w = toWorld(nh.node.x, nh.node.y);
-        nh.mesh.position.set(w.x, zOf(nh.node), w.z);
-        draggables.push(nh.mesh);
-      }
-      for (const eh of edgeHandles) {
-        const wa = toWorld(eh.a.x, eh.a.y), wb = toWorld(eh.b.x, eh.b.y);
-        eh.mesh.position.set((wa.x + wb.x) / 2, (zOf(eh.a) + zOf(eh.b)) / 2, (wa.z + wb.z) / 2);
-        draggables.push(eh.mesh);
+      // Tutamaçları konumla + draggable listesini kur (yalnız düzenlenebilir modda)
+      if (editable) {
+        buildingHandle.position.set(toWorld(cx, cy).x, baseH + maxLiveZ() + Math.max(0.6, handleR * 2), toWorld(cx, cy).z);
+        draggables.push(buildingHandle);
+        for (const nh of nodeHandles) {
+          const w = toWorld(nh.node.x, nh.node.y);
+          nh.mesh.position.set(w.x, zOf(nh.node), w.z);
+          draggables.push(nh.mesh);
+        }
+        for (const eh of edgeHandles) {
+          const wa = toWorld(eh.a.x, eh.a.y), wb = toWorld(eh.b.x, eh.b.y);
+          eh.mesh.position.set((wa.x + wb.x) / 2, (zOf(eh.a) + zOf(eh.b)) / 2, (wa.z + wb.z) / 2);
+          draggables.push(eh.mesh);
+        }
       }
 
       if (infoRef.current) infoRef.current.textContent = `Bina yüksekliği: ${baseH.toFixed(1)} m`;
@@ -417,7 +429,7 @@ export default function ThreeView() {
       if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc.nodes, doc.edges, doc.placed, doc.imageDataUrl, doc.metersPerPixel, doc.baseHeight, doc.faceMeta]);
+  }, [doc.nodes, doc.edges, doc.placed, doc.imageDataUrl, doc.metersPerPixel, doc.baseHeight, doc.faceMeta, editable]);
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-xl border bg-slate-200">
@@ -426,8 +438,17 @@ export default function ThreeView() {
       <div ref={infoRef} className="pointer-events-none absolute left-2 top-2 rounded-md bg-emerald-600/90 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
         Bina yüksekliği: {(doc.baseHeight || 0).toFixed(1)} m
       </div>
+      <button
+        type="button"
+        onClick={() => setLabelsOn((v) => !v)}
+        className="absolute right-2 top-2 rounded-md bg-white/90 px-2 py-1 text-[11px] font-medium text-slate-600 shadow-sm ring-1 ring-slate-200 hover:bg-white"
+      >
+        {labelsOn ? "Etiketleri gizle" : "Etiketleri göster"}
+      </button>
       <div className="pointer-events-none absolute bottom-2 right-2 max-w-[92%] rounded-md bg-white/85 px-2 py-1 text-[10px] text-slate-500 shadow-sm">
-        Yeşil top: bina · Nokta topu: çatı yüksekliği · Turuncu (kenar) &amp; bölüm yüzeyi de çekilir · Sol tık: döndür · Tekerlek: zoom · Sağ tık: kaydır
+        {editable
+          ? "Yeşil top: bina · Nokta topu: nokta · Turuncu top: kenar (çizgi) · Bölüm yüzeyi: tüm bölüm · Sol tık döndür · Tekerlek zoom · Sağ tık kaydır"
+          : "Önizleme (çatı kilitli) · Sol tık döndür · Tekerlek zoom · Sağ tık kaydır"}
       </div>
     </div>
   );
