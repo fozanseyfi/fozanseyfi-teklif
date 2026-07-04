@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import {
-  Plus, Trash2, Undo2, Redo2, MousePointer2, PencilRuler, Ruler, ArrowLeft, ArrowRight,
+  Plus, Trash2, Undo2, Redo2, MousePointer2, PencilRuler, ArrowLeft, ArrowRight,
   LayoutGrid, Sun, Map as MapIcon, ImagePlus, Zap, CheckCircle2, Box,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -24,12 +24,10 @@ const MapPicker = dynamic(() => import("./map-picker"), { ssr: false });
 const CropStep = dynamic(() => import("./crop-step"), { ssr: false });
 const ThreeView = dynamic(() => import("./three-view"), { ssr: false });
 
-type StepKey = "gorsel" | "cizim" | "3b" | "panel" | "analiz";
+type StepKey = "gorsel" | "cizim" | "analiz";
 const STEPS: { key: StepKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: "gorsel", label: "Görüntü & Ölçek", icon: MapIcon },
-  { key: "cizim", label: "Çatı Çizimi", icon: PencilRuler },
-  { key: "3b", label: "3B Görünüm", icon: Box },
-  { key: "panel", label: "Paneller", icon: LayoutGrid },
+  { key: "cizim", label: "Çatıyı Belirle", icon: PencilRuler },
   { key: "analiz", label: "Analiz", icon: Zap },
 ];
 
@@ -124,45 +122,36 @@ function Editor() {
   const canRedo = useDesignStore((s) => s.future.length > 0);
 
   const [step, setStep] = useState<StepKey>("gorsel");
-  const [tool, setTool] = useState<"select" | "draw" | "calibrate">("select");
+  const [tool, setTool] = useState<"select" | "draw">("select");
+  // "Çatıyı Belirle" adımında 2B çizim ↔ 3B model geçişi (aynı adım içinde).
+  const [cizimView, setCizimView] = useState<"2d" | "3d">("2d");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedFaceSig, setSelectedFaceSig] = useState<string | null>(null);
-  const [calibPx, setCalibPx] = useState<number | null>(null);
-  const [calibMeters, setCalibMeters] = useState("");
   const [mapMode, setMapMode] = useState(false);
   const [pending, setPending] = useState<{ dataUrl: string; mpp: number } | null>(null);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- adım değişince aracı sıfırla (dış senkronizasyon)
-  useEffect(() => { if (step === "panel" || step === "analiz" || step === "3b") setTool("select"); }, [step]);
+  useEffect(() => { if (step !== "cizim") setTool("select"); }, [step]);
 
   const faces = useMemo(() => detectFaces(doc.nodes, doc.edges), [doc.nodes, doc.edges]);
   const mpp = doc.metersPerPixel;
   const totalPanels = doc.placed.length;
   const totalKwp = panelsKwp(totalPanels, doc.panelConfig.watt);
 
+  const is3D = step === "cizim" && cizimView === "3d";
   const mode: EditorMode =
-    step === "panel" ? "panel-select"
-      : step === "analiz" ? "view"
-        : step === "cizim" ? (tool === "draw" ? "draw" : tool === "calibrate" ? "calibrate" : "roof-select")
-          : step === "gorsel" ? (tool === "calibrate" ? "calibrate" : "view")
-            : "view";
+    step === "analiz" ? "view"
+      : step === "cizim" ? (is3D ? "view" : tool === "draw" ? "draw" : "roof-select")
+        : "view";
 
   const showMap = step === "gorsel" && mapMode && !pending;
   const showCrop = step === "gorsel" && !!pending;
-  const showCanvasToolbar = (step === "gorsel" && !mapMode && !pending && !!doc.imageDataUrl) || step === "cizim";
-
-  function applyCalibration() {
-    const m = parseFloat(calibMeters);
-    if (!calibPx || !m || m <= 0) { toast.error("Geçerli uzunluk girin"); return; }
-    update((d) => { d.metersPerPixel = m / calibPx; });
-    setCalibPx(null); setCalibMeters(""); setTool("select");
-    toast.success("Ölçek kalibre edildi");
-  }
+  const showCanvasToolbar = step === "cizim" && cizimView === "2d";
 
   function autoLayout(scope: "all" | "selected") {
-    if (!mpp) { toast.error("Önce ölçek kalibrasyonu yapın"); return; }
+    if (!mpp) { toast.error("Ölçek bulunamadı — altlığı haritadan alın."); return; }
     const target = scope === "selected" && selectedFaceSig ? faces.filter((f) => f.sig === selectedFaceSig) : faces;
-    if (!target.length) { toast.error("Çatı bölümü yok (önce çizin)"); return; }
+    if (!target.length) { toast.error("Çatı bölümü yok (önce çatıyı belirleyin)"); return; }
     const placed = target.flatMap((f) => computeLayout(faceCoords(f, doc.nodes), f.sig, doc.panelConfig, mpp));
     update((d) => {
       const sigs = new Set(target.map((f) => f.sig));
@@ -199,23 +188,23 @@ function Editor() {
 
       <div className="grid gap-3 lg:grid-cols-[1fr_320px]">
         <div className="space-y-2">
-          {showCanvasToolbar && (
-            <div className="flex flex-wrap items-center gap-1.5 rounded-lg border bg-card p-1.5">
-              <ToolBtn active={tool === "select"} onClick={() => setTool("select")} icon={MousePointer2} label="Seç / Taşı" />
-              {step === "cizim" && <ToolBtn active={tool === "draw"} onClick={() => setTool("draw")} icon={PencilRuler} label="Çiz" />}
-              <ToolBtn active={tool === "calibrate"} onClick={() => setTool("calibrate")} icon={Ruler} label="Kalibrasyon" />
-              <span className="ml-auto text-[11px] text-muted-foreground">
-                {tool === "draw" ? "Tıkla: nokta · Çizgiye tıkla: araya nokta · Bitir/İptal tuval üstünde"
-                  : tool === "calibrate" ? "Bilinen kenarın iki ucuna tıkla"
-                    : "Nokta sürükle (birleştir) · Çizgiye çift tık: nokta · Sağ tık: sil"}
-              </span>
+          {/* Çatıyı Belirle: 2B çizim ↔ 3B model geçişi */}
+          {step === "cizim" && (
+            <div className="flex w-fit items-center gap-1 rounded-lg border bg-card p-1">
+              <ToolBtn active={cizimView === "2d"} onClick={() => setCizimView("2d")} icon={PencilRuler} label="2B Çizim" />
+              <ToolBtn active={cizimView === "3d"} onClick={() => setCizimView("3d")} icon={Box} label="3B Model" />
             </div>
           )}
 
-          {calibPx != null && (
-            <div className="flex items-end gap-2 rounded-lg border border-rose-200 bg-rose-50/60 p-2.5">
-              <div className="flex-1 space-y-1"><Label className="text-[11px] text-rose-700">Çizilen mesafenin gerçek uzunluğu (m)</Label><Input autoFocus type="number" step="any" value={calibMeters} onChange={(e) => setCalibMeters(e.target.value)} placeholder="Örn. 10" className="h-9 bg-white" /></div>
-              <Button size="sm" onClick={applyCalibration}><Ruler className="size-4" /> Uygula</Button>
+          {showCanvasToolbar && (
+            <div className="flex flex-wrap items-center gap-1.5 rounded-lg border bg-card p-1.5">
+              <ToolBtn active={tool === "select"} onClick={() => setTool("select")} icon={MousePointer2} label="Seç / Taşı" />
+              <ToolBtn active={tool === "draw"} onClick={() => setTool("draw")} icon={PencilRuler} label="Çiz" />
+              <span className="ml-auto text-[11px] text-muted-foreground">
+                {tool === "draw"
+                  ? "Tıkla: nokta · Çizgiye tıkla: araya nokta · Bitir/İptal tuval üstünde"
+                  : "Nokta sürükle (birleştir) · Çizgiye tıkla: araya nokta · Sağ tık: sil"}
+              </span>
             </div>
           )}
 
@@ -223,20 +212,24 @@ function Editor() {
             {showMap ? (
               <MapPicker onCapture={(dataUrl, m) => setPending({ dataUrl, mpp: m })} onCancel={() => setMapMode(false)} />
             ) : showCrop ? (
-              <CropStep src={pending!.dataUrl} onConfirm={(cropped) => { update((d) => { d.imageDataUrl = cropped; d.metersPerPixel = pending!.mpp; }); setPending(null); setMapMode(false); toast.success("Altlık hazır — “Çatı Çizimi”ne geç"); }} onCancel={() => setPending(null)} />
-            ) : step === "3b" ? (
-              mpp ? <ThreeView /> : <div className="flex h-full items-center justify-center rounded-xl border bg-slate-100 text-sm text-slate-400">Önce ölçek + çatı çizimi gerekli.</div>
+              <CropStep src={pending!.dataUrl} onConfirm={(cropped) => { update((d) => { d.imageDataUrl = cropped; d.metersPerPixel = pending!.mpp; }); setPending(null); setMapMode(false); toast.success("Altlık hazır — “Çatıyı Belirle”ye geç"); }} onCancel={() => setPending(null)} />
+            ) : is3D ? (
+              mpp ? <ThreeView /> : <div className="flex h-full items-center justify-center rounded-xl border bg-slate-100 text-sm text-slate-400">Önce haritadan ölçekli altlık alın, sonra çatıyı çizin.</div>
             ) : (
-              <CanvasEditor mode={mode} selectedNodeId={selectedNodeId} onSelectNode={setSelectedNodeId} selectedFaceSig={selectedFaceSig} onSelectFace={setSelectedFaceSig} onCalibrated={(px) => setCalibPx(px)} />
+              <CanvasEditor mode={mode} selectedNodeId={selectedNodeId} onSelectNode={setSelectedNodeId} selectedFaceSig={selectedFaceSig} onSelectFace={setSelectedFaceSig} />
             )}
           </div>
         </div>
 
         <div className="space-y-3">
-          {step === "gorsel" && <GorselPanel mpp={mpp} hasImage={!!doc.imageDataUrl} onMap={() => { setPending(null); setMapMode(true); }} onUpload={(url) => update((d) => { d.imageDataUrl = url; })} onCalibTool={() => setTool("calibrate")} />}
-          {step === "cizim" && <CizimPanel faces={faces} selectedNodeId={selectedNodeId} selectedFaceSig={selectedFaceSig} onSelectFace={setSelectedFaceSig} update={update} />}
-          {step === "3b" && <ThreeDPanel update={update} />}
-          {step === "panel" && <PanelPanel update={update} onAuto={autoLayout} totalPanels={totalPanels} totalKwp={totalKwp} hasSelectedFace={!!selectedFaceSig} />}
+          {step === "gorsel" && <GorselPanel mpp={mpp} hasImage={!!doc.imageDataUrl} onMap={() => { setPending(null); setMapMode(true); }} onUpload={(url) => update((d) => { d.imageDataUrl = url; })} />}
+          {step === "cizim" && cizimView === "2d" && <CizimPanel faces={faces} selectedNodeId={selectedNodeId} selectedFaceSig={selectedFaceSig} onSelectFace={setSelectedFaceSig} update={update} />}
+          {step === "cizim" && cizimView === "3d" && (
+            <>
+              <ThreeDPanel update={update} />
+              <PanelPanel update={update} onAuto={autoLayout} totalPanels={totalPanels} totalKwp={totalKwp} hasSelectedFace={!!selectedFaceSig} />
+            </>
+          )}
           {step === "analiz" && <AnalizPanel faces={faces} />}
           <StepNav step={step} setStep={setStep} />
         </div>
@@ -263,7 +256,7 @@ function StepNav({ step, setStep }: { step: StepKey; setStep: (s: StepKey) => vo
   );
 }
 
-function GorselPanel({ mpp, hasImage, onMap, onUpload, onCalibTool }: { mpp: number | null; hasImage: boolean; onMap: () => void; onUpload: (dataUrl: string) => void; onCalibTool: () => void }) {
+function GorselPanel({ mpp, hasImage, onMap, onUpload }: { mpp: number | null; hasImage: boolean; onMap: () => void; onUpload: (dataUrl: string) => void }) {
   function pick(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]; if (!f) return;
     if (f.size > 12 * 1024 * 1024) { toast.error("Görüntü 12 MB'den küçük olmalı"); return; }
@@ -281,8 +274,9 @@ function GorselPanel({ mpp, hasImage, onMap, onUpload, onCalibTool }: { mpp: num
         </label>
         <div className="border-t pt-3">
           <p className="text-sm font-semibold text-slate-800">2) Ölçek</p>
-          {mpp ? <p className="mt-1 text-[12px] text-emerald-700">✓ 1 m = {fmt(1 / mpp, 1)} px</p> : <p className="mt-1 text-[12px] text-amber-600">Henüz kalibre edilmedi.</p>}
-          <Button size="sm" variant="outline" className="mt-2 w-full" onClick={onCalibTool} disabled={!hasImage}><Ruler className="size-4" /> Kalibrasyon Çizgisi Çiz</Button>
+          {mpp
+            ? <p className="mt-1 text-[12px] text-emerald-700">✓ Ölçek hazır · 1 m = {fmt(1 / mpp, 1)} px</p>
+            : <p className="mt-1 text-[12px] text-amber-600">Ölçek haritadan otomatik gelir. Altlığı “Haritadan Al” ile eklerseniz ölçek kendiliğinden ayarlanır.</p>}
         </div>
       </CardContent>
     </Card>

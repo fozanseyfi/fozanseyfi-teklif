@@ -8,8 +8,9 @@ import type { Vec, RNode, DesignDoc } from "@/lib/solar-design/types";
 import { FACE_COLORS } from "@/lib/solar-design/types";
 import { dist, nearestOnSegment } from "@/lib/solar-design/geometry";
 import { detectFaces } from "@/lib/solar-design/faces";
+import { planarize } from "@/lib/solar-design/planarize";
 
-export type EditorMode = "draw" | "calibrate" | "roof-select" | "panel-select" | "view";
+export type EditorMode = "draw" | "roof-select" | "panel-select" | "view";
 
 interface Props {
   mode: EditorMode;
@@ -17,7 +18,6 @@ interface Props {
   onSelectNode: (id: string | null) => void;
   selectedFaceSig: string | null;
   onSelectFace: (sig: string | null) => void;
-  onCalibrated: (pixelDistance: number) => void;
 }
 
 const SNAP_SCREEN = 12;
@@ -29,7 +29,7 @@ function genId(): string {
 
 type Hit = { kind: "node"; id: string } | { kind: "edge"; edgeId: string; point: Vec } | { kind: "free"; point: Vec };
 
-export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selectedFaceSig, onSelectFace, onCalibrated }: Props) {
+export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selectedFaceSig, onSelectFace }: Props) {
   const doc = useDesignStore((s) => s.active) as DesignDoc;
   const update = useDesignStore((s) => s.update);
   const undo = useDesignStore((s) => s.undo);
@@ -41,7 +41,6 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   const [cursor, setCursor] = useState<Vec | null>(null);
-  const [calib, setCalib] = useState<Vec[]>([]);
 
   // Çizim zinciri
   const [activeNode, setActiveNode] = useState<string | null>(null);
@@ -62,10 +61,13 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
 
   useEffect(() => {
     activeRef.current = activeNode;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- çizim zinciri durumunu yansıt (dış senkronizasyon)
     setDrawing(!!activeNode);
   }, [activeNode]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mod değişince panel seçimini sıfırla (dış senkronizasyon)
   useEffect(() => { if (mode !== "panel-select") setSelPanels(new Set()); }, [mode]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mod değişince çizim zincirini sıfırla (dış senkronizasyon)
   useEffect(() => { if (mode !== "draw") { setActiveNode(null); chainRef.current = 0; } }, [mode]);
 
   // Boyut
@@ -80,6 +82,7 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
 
   // Görüntü
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- altlık görüntüsünü yükle (dış kaynak senkronizasyonu)
     if (!doc.imageDataUrl) { setImg(null); return; }
     const im = new window.Image();
     im.onload = () => {
@@ -146,6 +149,7 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
       if (hit.kind === "free") d.nodes.push({ id: nid, x: p.x, y: p.y, z: 0 });
       else if (hit.kind === "edge") splitEdge(d, hit.edgeId, hit.point, nid);
       if (prev && prev !== targetId) addEdgeIfMissing(d, prev, targetId);
+      planarize(d); // yeni çizgi mevcut çizgileri kesiyorsa kesişimlere nokta at
     }, true);
     activeRef.current = targetId;
     setActiveNode(targetId);
@@ -163,16 +167,10 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
   function stageClick() {
     const p = relPos();
     if (!p) return;
-    if (mode === "calibrate") {
-      const next = [...calib, p];
-      if (next.length === 2) { onCalibrated(dist(next[0], next[1])); setCalib([]); }
-      else setCalib(next);
-      return;
-    }
     if (mode === "draw") { drawClick(p); return; }
   }
 
-  function stageMouseMove() { if (mode === "draw" || mode === "calibrate") setCursor(relPos()); }
+  function stageMouseMove() { if (mode === "draw" || mode === "roof-select") setCursor(relPos()); }
 
   function onWheel(e: Konva.KonvaEventObject<WheelEvent>) {
     e.evt.preventDefault();
@@ -233,6 +231,7 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
       } else {
         self.x = p.x; self.y = p.y;
       }
+      planarize(d); // taşınan nokta bir çizgiyi kesiyorsa kesişime nokta at
     }, true);
     setNodeDrag(null);
   }
@@ -273,7 +272,13 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
       : { x: p.x, y: p.y };
 
   const draggableStage = mode === "roof-select" || mode === "panel-select" || mode === "view";
-  const cursorStyle = mode === "draw" || mode === "calibrate" ? "crosshair" : "default";
+  const cursorStyle = mode === "draw" ? "crosshair" : "default";
+
+  // Çizgi üstü hayalet nokta — imleç bir kenara yakınken (nokta değil) göster.
+  const edgeGhost =
+    (mode === "roof-select" || mode === "draw") && cursor
+      ? (() => { const h = snapHit(cursor); return h.kind === "edge" ? h.point : null; })()
+      : null;
 
   return (
     <div ref={wrapRef} className="relative h-full w-full overflow-hidden rounded-xl border bg-slate-100">
@@ -332,7 +337,7 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
             const name = doc.faceMeta[f.sig]?.name || `Çatı Bölümü ${i + 1}`;
             return (
               <Group key={f.sig}>
-                <Line points={pts} closed fill={color + (active ? "44" : "22")} stroke={color} strokeWidth={(active ? 2 : 1) / scale}
+                <Line points={pts} closed fill={color + (active ? "33" : "14")} stroke={color} strokeWidth={(active ? 2 : 1) / scale}
                   onClick={() => { if (mode === "roof-select") { onSelectFace(f.sig); onSelectNode(null); } }} onTap={() => mode === "roof-select" && onSelectFace(f.sig)} />
                 <Text x={f.centroid.x} y={f.centroid.y} text={name} fontSize={13 / scale} fill="#0f172a" stroke="#fff" strokeWidth={3 / scale} fillAfterStrokeEnabled offsetX={30 / scale} listening={false} />
               </Group>
@@ -351,8 +356,11 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
             return (
               <Group key={e.id}>
                 <Line points={[pa.x, pa.y, pb.x, pb.y]} stroke="#1e293b" strokeWidth={1.6 / scale}
-                  hitStrokeWidth={10 / scale}
-                  onDblClick={() => { if (mode !== "roof-select") return; const p = relPos(); if (!p) return; const r = nearestOnSegment(p, pa, pb); update((d) => splitEdge(d, e.id, r.point, genId()), true); }} />
+                  hitStrokeWidth={12 / scale}
+                  onMouseEnter={(ev) => { if (mode === "roof-select") { const st = ev.target.getStage(); if (st) st.container().style.cursor = "copy"; } }}
+                  onMouseLeave={(ev) => { const st = ev.target.getStage(); if (st) st.container().style.cursor = cursorStyle; }}
+                  onClick={() => { if (mode !== "roof-select") return; const p = relPos(); if (!p) return; const r = nearestOnSegment(p, pa, pb); update((d) => { splitEdge(d, e.id, r.point, genId()); planarize(d); }, true); }}
+                  onDblClick={() => { if (mode !== "roof-select") return; const p = relPos(); if (!p) return; const r = nearestOnSegment(p, pa, pb); update((d) => { splitEdge(d, e.id, r.point, genId()); planarize(d); }, true); }} />
                 <Text x={mid.x} y={mid.y} text={mLabel(dist(pa, pb))} fontSize={11.5 / scale} fill="#0f172a" stroke="#fff" strokeWidth={2.6 / scale} fillAfterStrokeEnabled offsetX={16 / scale} offsetY={6 / scale} listening={false} />
               </Group>
             );
@@ -396,10 +404,21 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
                   setPanelDelta(null);
                 }}
               >
-                <Rect width={p.w} height={p.h} fill="#0b1e3f" stroke={sel ? "#f59e0b" : "#3b82f6"} strokeWidth={(sel ? 2 : 0.6) / scale} cornerRadius={0.5} opacity={0.92} />
-                <Rect x={p.w / 2} width={0.3 / scale} height={p.h} fill="#1e3a8a" listening={false} />
-                <Rect y={p.h / 3} width={p.w} height={0.3 / scale} fill="#1e3a8a" listening={false} />
-                <Rect y={(p.h * 2) / 3} width={p.w} height={0.3 / scale} fill="#1e3a8a" listening={false} />
+                {(() => {
+                  const fr = Math.min(p.w, p.h) * 0.05;
+                  const iw = p.w - 2 * fr, ih = p.h - 2 * fr;
+                  return (
+                    <>
+                      {/* Beyaz çerçeve (dış) */}
+                      <Rect width={p.w} height={p.h} fill="#ffffff" cornerRadius={0.5} stroke={sel ? "#f59e0b" : undefined} strokeWidth={(sel ? 2 : 0) / scale} />
+                      {/* Koyu panel (iç) */}
+                      <Rect x={fr} y={fr} width={iw} height={ih} fill="#0b1e3f" opacity={0.94} listening={false} />
+                      <Rect x={fr + iw / 2} y={fr} width={0.3 / scale} height={ih} fill="#1e3a8a" listening={false} />
+                      <Rect x={fr} y={fr + ih / 3} width={iw} height={0.3 / scale} fill="#1e3a8a" listening={false} />
+                      <Rect x={fr} y={fr + (ih * 2) / 3} width={iw} height={0.3 / scale} fill="#1e3a8a" listening={false} />
+                    </>
+                  );
+                })()}
               </Group>
             );
           })}
@@ -446,10 +465,11 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
               )}
             </>
           )}
-          {calib.length > 0 && (
+          {/* Çizgi üstü hayalet nokta — imleç kenardayken belirir, tıklayınca nokta olur. */}
+          {edgeGhost && (
             <>
-              <Line points={[...calib.flatMap((v) => [v.x, v.y]), ...(cursor && calib.length === 1 ? [cursor.x, cursor.y] : [])]} stroke="#dc2626" strokeWidth={2 / scale} />
-              {calib.map((v, i) => <Circle key={i} x={v.x} y={v.y} radius={4 / scale} fill="#dc2626" />)}
+              <Circle x={edgeGhost.x} y={edgeGhost.y} radius={8 / scale} stroke="#059669" strokeWidth={1.5 / scale} dash={[3 / scale, 3 / scale]} />
+              <Circle x={edgeGhost.x} y={edgeGhost.y} radius={4 / scale} fill="#059669" opacity={0.85} />
             </>
           )}
         </Layer>
