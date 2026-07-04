@@ -80,17 +80,19 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       city: city.trim(),
       imageDataUrl: null,
       metersPerPixel: null,
+      panelConfig: { ...DEFAULT_PANEL_CONFIG },
+      placed: [],
+      masses: [],
+      activeMassId: null,
+      locked: false,
+      updatedAt: new Date().toISOString(),
       nodes: [],
       edges: [],
       faceMeta: {},
-      panelConfig: { ...DEFAULT_PANEL_CONFIG },
-      placed: [],
       baseHeight: 3,
       roofType: "hip",
       pitchDeg: 25,
       ridgeAxisDeg: 0,
-      locked: false,
-      updatedAt: new Date().toISOString(),
     };
     persistDoc(doc);
     set({ active: doc, past: [], future: [], index: readIndex() });

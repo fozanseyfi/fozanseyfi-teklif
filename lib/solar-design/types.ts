@@ -50,12 +50,31 @@ export interface PanelConfig {
 
 export interface PlacedPanel {
   id: string;
-  face: string; // yüzey imzası (sorted node ids)
+  face: string; // düzlem kimliği: `${massId}:${planeId}`
   x: number;
   y: number;
   w: number;
   h: number;
   rotationDeg: number;
+}
+
+/**
+ * Bina kütlesi (mass) — SketchUp benzeri kompoze modellemenin birimi. Her kütle
+ * kendi ayak izi + duvar yüksekliği + çatısı olan bir hacim. Bir kütle başka bir
+ * kütlenin çatısına oturabilir (parentId) → "çatı üstü ek yapı".
+ */
+export interface Mass {
+  id: string;
+  name: string;
+  footprint: Vec[]; // plan çokgeni (görüntü px)
+  baseM: number; // taban kotu (m) — zemin 0; çocuk kütlede ebeveyn çatı üstü
+  wallM: number; // duvar (saçak) yüksekliği (m)
+  roofType: RoofType;
+  pitchDeg: number;
+  ridgeAxisDeg: number;
+  parapet: boolean; // düz çatıda kenar duvarı
+  parapetM: number; // parapet yüksekliği (m)
+  parentId: string | null; // üstüne oturduğu kütle (çatı üstü yapı)
 }
 
 export interface DesignDoc {
@@ -65,22 +84,51 @@ export interface DesignDoc {
   city: string;
   imageDataUrl: string | null;
   metersPerPixel: number | null;
+  panelConfig: PanelConfig;
+  placed: PlacedPanel[];
+  /** Bina kütleleri (kompoze model). masses[0] ana bina; diğerleri kanat/çatı-üstü. */
+  masses: Mass[];
+  /** Düzenlenen aktif kütle. */
+  activeMassId: string | null;
+  /** Çatı tamamlanıp kilitlendi mi — kilitliyken kütleler düzenlenemez, panel yerleşimi yapılır. */
+  locked: boolean;
+  updatedAt: string;
+  // — eski (kullanım dışı, uyumluluk için normalize edilir) —
   nodes: RNode[];
   edges: REdge[];
   faceMeta: Record<string, FaceMeta>;
-  panelConfig: PanelConfig;
-  placed: PlacedPanel[];
-  /** Bina (saçak) yüksekliği (m) — duvar/cephe yüksekliği; çatı bunun üstüne oturur. */
   baseHeight: number;
-  /** Parametrik çatı tipi. */
   roofType: RoofType;
-  /** Çatı eğim açısı (derece). */
   pitchDeg: number;
-  /** Beşik (gable) çatıda sırt (ridge) ekseninin açısı (derece). */
   ridgeAxisDeg: number;
-  /** Çatı tamamlanıp kilitlendi mi — kilitliyken çatı düzenlenemez, panel yerleşimi yapılır. */
-  locked: boolean;
-  updatedAt: string;
+}
+
+export const DEFAULT_MASS: Omit<Mass, "id" | "footprint"> = {
+  name: "Bina",
+  baseM: 0,
+  wallM: 3,
+  roofType: "hip",
+  pitchDeg: 25,
+  ridgeAxisDeg: 0,
+  parapet: false,
+  parapetM: 0.8,
+  parentId: null,
+};
+
+export function normalizeMass(m: Partial<Mass>): Mass {
+  return {
+    id: m.id || "",
+    name: m.name || "Bina",
+    footprint: Array.isArray(m.footprint) ? m.footprint : [],
+    baseM: typeof m.baseM === "number" ? m.baseM : 0,
+    wallM: typeof m.wallM === "number" ? m.wallM : 3,
+    roofType: m.roofType === "flat" || m.roofType === "gable" || m.roofType === "hip" ? m.roofType : "hip",
+    pitchDeg: typeof m.pitchDeg === "number" ? m.pitchDeg : 25,
+    ridgeAxisDeg: typeof m.ridgeAxisDeg === "number" ? m.ridgeAxisDeg : 0,
+    parapet: !!m.parapet,
+    parapetM: typeof m.parapetM === "number" ? m.parapetM : 0.8,
+    parentId: m.parentId ?? null,
+  };
 }
 
 export const DEFAULT_PANEL_CONFIG: PanelConfig = {
@@ -107,16 +155,18 @@ export function normalizeDoc(d: Partial<DesignDoc>): DesignDoc {
     city: d.city || "Ankara",
     imageDataUrl: d.imageDataUrl ?? null,
     metersPerPixel: d.metersPerPixel ?? null,
+    panelConfig: { ...DEFAULT_PANEL_CONFIG, ...(d.panelConfig || {}) },
+    placed: Array.isArray(d.placed) ? d.placed : [],
+    masses: Array.isArray(d.masses) ? d.masses.map(normalizeMass) : [],
+    activeMassId: d.activeMassId ?? null,
+    locked: !!d.locked,
+    updatedAt: d.updatedAt || new Date(0).toISOString(),
     nodes: Array.isArray(d.nodes) ? d.nodes : [],
     edges: Array.isArray(d.edges) ? d.edges : [],
     faceMeta: d.faceMeta && typeof d.faceMeta === "object" ? d.faceMeta : {},
-    panelConfig: { ...DEFAULT_PANEL_CONFIG, ...(d.panelConfig || {}) },
-    placed: Array.isArray(d.placed) ? d.placed : [],
     baseHeight: typeof d.baseHeight === "number" ? d.baseHeight : 0,
     roofType: d.roofType === "gable" || d.roofType === "hip" ? d.roofType : "hip",
     pitchDeg: typeof d.pitchDeg === "number" ? d.pitchDeg : 25,
     ridgeAxisDeg: typeof d.ridgeAxisDeg === "number" ? d.ridgeAxisDeg : 0,
-    locked: !!d.locked,
-    updatedAt: d.updatedAt || new Date(0).toISOString(),
   };
 }
