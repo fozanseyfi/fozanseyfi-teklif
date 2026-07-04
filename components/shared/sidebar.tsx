@@ -448,11 +448,13 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     const initial = saved === "1";
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount'ta localStorage'dan başlangıç durumu (dış senkronizasyon)
     setCollapsed(initial);
     document.documentElement.style.setProperty("--sidebar-w", initial ? "4rem" : "14rem");
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- rota değişince mobil menüyü kapat (dış senkronizasyon)
     setMobileOpen(false);
   }, [pathname]);
 
@@ -497,14 +499,18 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
           >
             <Menu className="size-5" />
           </button>
-          <div className="flex min-w-0 items-center gap-2">
+          <Link
+            href="/dashboard"
+            aria-label="Dashboard'a git"
+            className="flex min-w-0 items-center gap-2 rounded-lg transition-opacity hover:opacity-80"
+          >
             <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
               <Sun className="size-4" />
             </div>
             <p className="shimmer-text truncate text-sm font-semibold text-foreground">
               Teklif Platformu
             </p>
-          </div>
+          </Link>
         </div>
 
         {/* Desktop: Panel switcher (dropdown) */}
@@ -588,14 +594,25 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
             showCollapsed ? "lg:justify-center lg:px-2" : "lg:gap-3 lg:pl-5 lg:pr-2",
           )}
         >
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-            <Sun className="size-5" />
-          </div>
-          <div className={cn("min-w-0 flex-1", showCollapsed ? "lg:hidden" : "")}>
-            <p className="truncate text-sm font-semibold tracking-tight text-white">
-              Teklif Platformu
-            </p>
-          </div>
+          <Link
+            href="/dashboard"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Dashboard'a git"
+            title="Dashboard'a git"
+            className={cn(
+              "flex min-w-0 items-center gap-3 rounded-lg transition-opacity hover:opacity-80",
+              showCollapsed ? "lg:flex-none lg:gap-0" : "flex-1",
+            )}
+          >
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+              <Sun className="size-5" />
+            </div>
+            <div className={cn("min-w-0 flex-1", showCollapsed ? "lg:hidden" : "")}>
+              <p className="truncate text-sm font-semibold tracking-tight text-white">
+                Teklif Platformu
+              </p>
+            </div>
+          </Link>
           {/* Collapse chevron — desktop only */}
           <button
             type="button"
