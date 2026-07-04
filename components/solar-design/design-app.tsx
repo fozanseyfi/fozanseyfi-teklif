@@ -16,8 +16,11 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDesignStore } from "@/lib/solar-design/store";
 import type { EditorMode } from "./canvas-editor";
-import { detectFaces, faceCoords } from "@/lib/solar-design/faces";
+import { detectOuterBoundary } from "@/lib/solar-design/faces";
 import { computeLayout, panelsKwp } from "@/lib/solar-design/layout-engine";
+import { generateRoof, planeAreaM2 } from "@/lib/solar-design/roof-model";
+import type { RoofModel } from "@/lib/solar-design/roof-model";
+import type { Vec, RoofType } from "@/lib/solar-design/types";
 
 const CanvasEditor = dynamic(() => import("./canvas-editor"), { ssr: false });
 const MapPicker = dynamic(() => import("./map-picker"), { ssr: false });
@@ -135,16 +138,26 @@ function Editor() {
   // eslint-disable-next-line react-hooks/set-state-in-effect -- adım değişince aracı sıfırla (dış senkronizasyon)
   useEffect(() => { if (step !== "cizim") setTool("select"); }, [step]);
 
-  const faces = useMemo(() => detectFaces(doc.nodes, doc.edges), [doc.nodes, doc.edges]);
   const mpp = doc.metersPerPixel;
   const locked = doc.locked;
   const totalPanels = doc.placed.length;
   const totalKwp = panelsKwp(totalPanels, doc.panelConfig.watt);
 
+  // Bina ayak izi (dış hat) + parametrik çatı düzlemleri.
+  const footprint = useMemo<Vec[]>(() => {
+    const ids = detectOuterBoundary(doc.nodes, doc.edges);
+    if (!ids) return [];
+    const byId = new Map(doc.nodes.map((n) => [n.id, n]));
+    return ids.map((id) => byId.get(id)).filter(Boolean).map((n) => ({ x: n!.x, y: n!.y }));
+  }, [doc.nodes, doc.edges]);
+  const roofModel = useMemo(
+    () => generateRoof(footprint, doc.roofType, doc.pitchDeg, doc.ridgeAxisDeg, doc.baseHeight || 0, mpp || 0.05),
+    [footprint, doc.roofType, doc.pitchDeg, doc.ridgeAxisDeg, doc.baseHeight, mpp],
+  );
+
   const setLocked = (v: boolean) => update((d) => { d.locked = v; });
 
   const is3D = (step === "cizim" && cizimView === "3d") || (step === "panel" && panelView === "3d");
-  const threeEditable = step === "cizim" && !locked; // 3B'de yükseklik düzenleme yalnız çizim + kilitsizken
   const mode: EditorMode =
     step === "panel" ? "panel-select"
       : step === "cizim" ? (locked ? "view" : tool === "draw" ? "draw" : "roof-select")
@@ -154,15 +167,11 @@ function Editor() {
   const showCrop = step === "gorsel" && !!pending;
   const showCanvasToolbar = step === "cizim" && cizimView === "2d" && !locked;
 
-  function autoLayout(scope: "all" | "selected") {
+  function autoLayout() {
     if (!mpp) { toast.error("Ölçek bulunamadı — altlığı haritadan alın."); return; }
-    const target = scope === "selected" && selectedFaceSig ? faces.filter((f) => f.sig === selectedFaceSig) : faces;
-    if (!target.length) { toast.error("Çatı bölümü yok (önce çatıyı belirleyin)"); return; }
-    const placed = target.flatMap((f) => computeLayout(faceCoords(f, doc.nodes), f.sig, doc.panelConfig, mpp));
-    update((d) => {
-      const sigs = new Set(target.map((f) => f.sig));
-      d.placed = scope === "selected" ? [...d.placed.filter((p) => !sigs.has(p.face)), ...placed] : placed;
-    }, true);
+    if (!roofModel.planes.length) { toast.error("Önce bina hattını çizip çatı tipini seçin."); return; }
+    const placed = roofModel.planes.flatMap((pl) => computeLayout(pl.poly, pl.id, doc.panelConfig, mpp));
+    update((d) => { d.placed = placed; }, true);
     toast.success(`${placed.length} panel yerleştirildi`);
   }
 
@@ -246,7 +255,7 @@ function Editor() {
             ) : showCrop ? (
               <CropStep src={pending!.dataUrl} onConfirm={(cropped) => { update((d) => { d.imageDataUrl = cropped; d.metersPerPixel = pending!.mpp; }); setPending(null); setMapMode(false); toast.success("Altlık hazır — “Çatıyı Belirle”ye geç"); }} onCancel={() => setPending(null)} />
             ) : is3D ? (
-              mpp ? <ThreeView editable={threeEditable} /> : <div className="flex h-full items-center justify-center rounded-xl border bg-slate-100 text-sm text-slate-400">Önce haritadan ölçekli altlık alın, sonra çatıyı çizin.</div>
+              mpp ? <ThreeView /> : <div className="flex h-full items-center justify-center rounded-xl border bg-slate-100 text-sm text-slate-400">Önce haritadan ölçekli altlık alın, sonra bina hattını çizin.</div>
             ) : (
               <CanvasEditor mode={mode} selectedNodeId={selectedNodeId} onSelectNode={setSelectedNodeId} selectedFaceSig={selectedFaceSig} onSelectFace={setSelectedFaceSig} />
             )}
@@ -255,11 +264,11 @@ function Editor() {
 
         <div className="space-y-3">
           {step === "gorsel" && <GorselPanel mpp={mpp} hasImage={!!doc.imageDataUrl} onMap={() => { setPending(null); setMapMode(true); }} onUpload={(url) => update((d) => { d.imageDataUrl = url; })} />}
-          {step === "cizim" && !locked && cizimView === "2d" && <CizimPanel faces={faces} selectedNodeId={selectedNodeId} selectedFaceSig={selectedFaceSig} onSelectFace={setSelectedFaceSig} update={update} />}
-          {step === "cizim" && !locked && cizimView === "3d" && <ThreeDPanel update={update} />}
+          {step === "cizim" && !locked && cizimView === "2d" && <CizimPanel footprintCount={footprint.length} />}
+          {step === "cizim" && !locked && cizimView === "3d" && <RoofPanel update={update} />}
           {step === "cizim" && locked && <LockPanel onUnlock={() => setLocked(false)} onPanel={() => setStep("panel")} />}
-          {step === "panel" && <PanelPanel update={update} onAuto={autoLayout} totalPanels={totalPanels} totalKwp={totalKwp} hasSelectedFace={!!selectedFaceSig} locked={locked} onLock={() => { setLocked(true); }} onEditRoof={() => { setLocked(false); setStep("cizim"); }} />}
-          {step === "analiz" && <AnalizPanel faces={faces} />}
+          {step === "panel" && <PanelPanel update={update} onAuto={autoLayout} totalPanels={totalPanels} totalKwp={totalKwp} locked={locked} onEditRoof={() => { setLocked(false); setStep("cizim"); }} />}
+          {step === "analiz" && <AnalizPanel model={roofModel} totalPanels={totalPanels} totalKwp={totalKwp} />}
           <StepNav step={step} setStep={setStep} />
         </div>
       </div>
@@ -325,102 +334,70 @@ function GorselPanel({ mpp, hasImage, onMap, onUpload }: { mpp: number | null; h
   );
 }
 
-function CizimPanel({ faces, selectedNodeId, selectedFaceSig, onSelectFace, update }: {
-  faces: ReturnType<typeof detectFaces>;
-  selectedNodeId: string | null;
-  selectedFaceSig: string | null;
-  onSelectFace: (sig: string | null) => void;
-  update: ReturnType<typeof useDesignStore.getState>["update"];
-}) {
-  const doc = useDesignStore((s) => s.active)!;
-  const node = doc.nodes.find((n) => n.id === selectedNodeId) || null;
-  const face = faces.find((f) => f.sig === selectedFaceSig) || null;
-  const faceArea = face && doc.metersPerPixel ? face.areaPx * doc.metersPerPixel ** 2 : null;
-
+function CizimPanel({ footprintCount }: { footprintCount: number }) {
   return (
     <Card>
       <CardContent className="space-y-3 p-4">
-        <p className="text-sm font-semibold text-slate-800">Çatı Bölümleri ({faces.length})</p>
-        {faces.length === 0 ? (
-          <p className="text-[12px] text-muted-foreground">“Çiz” aracıyla çatı hattını çizin. Kapalı alanlar otomatik bölüm olur.</p>
-        ) : (
-          <div className="space-y-1">
-            {faces.map((f, i) => (
-              <button key={f.sig} type="button" onClick={() => onSelectFace(f.sig)}
-                className={cn("flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left text-sm", f.sig === selectedFaceSig ? "border-emerald-300 bg-emerald-50/50" : "border-transparent hover:bg-slate-50")}>
-                <span className="truncate">{doc.faceMeta[f.sig]?.name || `Çatı Bölümü ${i + 1}`}</span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {node && (
-          <div className="space-y-2 border-t pt-3">
-            <p className="text-[12px] font-semibold text-slate-700">Seçili Nokta</p>
-            <div className="space-y-1">
-              <Label className="text-[11px]">Yükseklik (z, m) — 3B için</Label>
-              <Input type="number" step="any" value={node.z} onChange={(e) => update((d) => { const t = d.nodes.find((x) => x.id === node.id); if (t) t.z = parseFloat(e.target.value) || 0; })} />
-            </div>
-            <Button size="sm" variant="outline" className="w-full text-destructive" onClick={() => update((d) => { d.nodes = d.nodes.filter((x) => x.id !== node.id); d.edges = d.edges.filter((e) => e.a !== node.id && e.b !== node.id); }, true)}>
-              <Trash2 className="size-4" /> Noktayı Sil
-            </Button>
-          </div>
-        )}
-
-        {face && (
-          <div className="space-y-2 border-t pt-3">
-            <p className="text-[12px] font-semibold text-slate-700">Seçili Bölüm</p>
-            <div className="space-y-1">
-              <Label className="text-[11px]">Ad</Label>
-              <Input value={doc.faceMeta[face.sig]?.name || ""} placeholder={`Çatı Bölümü`} onChange={(e) => update((d) => { d.faceMeta[face.sig] = { ...d.faceMeta[face.sig], name: e.target.value }; })} />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1"><Label className="text-[11px]">Eğim (°)</Label><Input type="number" value={doc.faceMeta[face.sig]?.tiltDeg ?? 25} onChange={(e) => update((d) => { d.faceMeta[face.sig] = { ...d.faceMeta[face.sig], tiltDeg: parseFloat(e.target.value) || 0 }; })} /></div>
-              <div className="space-y-1"><Label className="text-[11px]">Azimut (°)</Label><Input type="number" value={doc.faceMeta[face.sig]?.azimuthDeg ?? 180} onChange={(e) => update((d) => { d.faceMeta[face.sig] = { ...d.faceMeta[face.sig], azimuthDeg: parseFloat(e.target.value) || 0 }; })} /></div>
-            </div>
-            <p className="text-[11px] text-muted-foreground">Alan: {faceArea != null ? `${fmt(faceArea, 1)} m²` : "ölçek gerekli"}</p>
-          </div>
-        )}
-
-        {!node && !face && faces.length > 0 && (
-          <p className="border-t pt-3 text-[11px] text-muted-foreground">Bir nokta seçip yükseklik ver, ya da bir bölüm seç. Ara kırılım için “Çiz” ile çizgiden başla.</p>
-        )}
+        <p className="text-sm font-semibold text-slate-800">Bina Hattı (Footprint)</p>
+        <p className="text-[12px] text-muted-foreground">
+          “Çiz” aracıyla binanın <b>dış hattını</b> tıklaya tıklaya çiz ve kapat (ilk noktaya dön). Sonra <b>3B Model</b> sekmesinden çatı tipini ve eğimini seç — çatı otomatik, kusursuz üretilir.
+        </p>
+        <div className="rounded-lg bg-slate-50 p-3 text-center">
+          <p className="text-[10px] uppercase tracking-wider text-slate-400">Hat köşesi</p>
+          <p className="text-lg font-bold text-slate-900">{footprintCount}</p>
+        </div>
+        {footprintCount < 3 && <p className="text-[11px] text-amber-600">En az 3 köşeli kapalı bir alan çizin.</p>}
       </CardContent>
     </Card>
   );
 }
 
-function ThreeDPanel({ update }: { update: ReturnType<typeof useDesignStore.getState>["update"] }) {
+const ROOF_TYPES: { v: RoofType; label: string; desc: string }[] = [
+  { v: "flat", label: "Düz", desc: "Yatay teras çatı" },
+  { v: "gable", label: "Beşik", desc: "İki yöne eğimli, ortada sırt" },
+  { v: "hip", label: "Kırma", desc: "Tüm kenarlardan eğimli" },
+];
+
+function RoofPanel({ update }: { update: ReturnType<typeof useDesignStore.getState>["update"] }) {
   const doc = useDesignStore((s) => s.active)!;
-  const h = doc.baseHeight || 0;
   return (
     <Card>
       <CardContent className="space-y-3 p-4">
-        <p className="text-sm font-semibold text-slate-800">Bina Yüksekliği</p>
-        <div className="rounded-lg bg-emerald-50 p-3 text-center">
-          <p className="text-[10px] uppercase tracking-wider text-emerald-600">Saçak / duvar yüksekliği</p>
-          <p className="text-2xl font-bold tabular-nums text-emerald-700">{fmt(h, 1)} m</p>
+        <p className="text-sm font-semibold text-slate-800">Çatı</p>
+        <div className="space-y-1">
+          <Label className="text-[11px]">Çatı tipi</Label>
+          <Select value={doc.roofType} onValueChange={(v) => update((d) => { d.roofType = v as RoofType; })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{ROOF_TYPES.map((t) => <SelectItem key={t.v} value={t.v}>{t.label} — {t.desc}</SelectItem>)}</SelectContent>
+          </Select>
         </div>
         <div className="space-y-2">
-          <Slider min={0} max={30} step={0.5} value={[Math.min(30, h)]} onValueChange={(v) => update((d) => { d.baseHeight = v[0]; })} />
-          <div className="flex items-center gap-2">
-            <Input type="number" step="any" min={0} value={h} onChange={(e) => update((d) => { d.baseHeight = Math.max(0, parseFloat(e.target.value) || 0); })} className="h-9" />
-            <span className="text-[12px] text-muted-foreground">m</span>
-          </div>
+          <div className="flex items-center justify-between"><Label className="text-[11px]">Saçak / duvar yüksekliği</Label><span className="text-[12px] font-semibold text-emerald-700">{fmt(doc.baseHeight || 0, 1)} m</span></div>
+          <Slider min={0} max={20} step={0.5} value={[Math.min(20, doc.baseHeight || 0)]} onValueChange={(v) => update((d) => { d.baseHeight = v[0]; })} />
         </div>
-        <p className="rounded-md bg-slate-50 p-2 text-[11px] text-slate-500">
-          3B modelde tutup çekerek yükseklik ver: <b>yeşil top</b> = tüm bina, <b>nokta topu</b> = tek nokta, <b>turuncu top</b> = kenar (çizgi), <b>bölüm yüzeyi</b> = o bölümün tümü. Böylece çatının kendi içinde kot farkı verebilirsin.
-        </p>
+        {doc.roofType !== "flat" && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between"><Label className="text-[11px]">Eğim</Label><span className="text-[12px] font-semibold text-emerald-700">{doc.pitchDeg}°</span></div>
+            <Slider min={5} max={60} step={1} value={[doc.pitchDeg]} onValueChange={(v) => update((d) => { d.pitchDeg = v[0]; })} />
+          </div>
+        )}
+        {doc.roofType === "gable" && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between"><Label className="text-[11px]">Sırt (ridge) yönü</Label><span className="text-[12px] font-semibold text-emerald-700">{doc.ridgeAxisDeg}°</span></div>
+            <Slider min={0} max={180} step={5} value={[doc.ridgeAxisDeg]} onValueChange={(v) => update((d) => { d.ridgeAxisDeg = v[0]; })} />
+          </div>
+        )}
+        <p className="rounded-md bg-slate-50 p-2 text-[11px] text-slate-500">Çatı, bina dış hattından <b>otomatik</b> üretilir — her düzlem tam düz ve su geçirmez. Panel bu düzlemlere kusursuz oturur.</p>
       </CardContent>
     </Card>
   );
 }
 
-function PanelPanel({ update, onAuto, totalPanels, totalKwp, hasSelectedFace, locked, onEditRoof }: {
+function PanelPanel({ update, onAuto, totalPanels, totalKwp, locked, onEditRoof }: {
   update: ReturnType<typeof useDesignStore.getState>["update"];
-  onAuto: (scope: "all" | "selected") => void;
-  totalPanels: number; totalKwp: number; hasSelectedFace: boolean;
-  locked: boolean; onLock: () => void; onEditRoof: () => void;
+  onAuto: () => void;
+  totalPanels: number; totalKwp: number;
+  locked: boolean; onEditRoof: () => void;
 }) {
   const doc = useDesignStore((s) => s.active)!;
   const c = doc.panelConfig;
@@ -466,9 +443,8 @@ function PanelPanel({ update, onAuto, totalPanels, totalKwp, hasSelectedFace, lo
           </div>
           <p className="text-[10.5px] text-muted-foreground">0 = gruplama yok. Örn. yatayda 4 → her 4 panelden sonra boşluk bırakılır (dizi arası geçiş yolu).</p>
         </div>
-        <div className="flex gap-2 border-t pt-3">
-          <Button size="sm" className="flex-1" onClick={() => onAuto("all")}><LayoutGrid className="size-4" /> Tümüne Yerleştir</Button>
-          <Button size="sm" variant="outline" disabled={!hasSelectedFace} onClick={() => onAuto("selected")}>Seçili Bölüm</Button>
+        <div className="border-t pt-3">
+          <Button size="sm" className="w-full" onClick={onAuto}><LayoutGrid className="size-4" /> Panelleri Otomatik Yerleştir</Button>
         </div>
         <Button size="sm" variant="outline" className="w-full text-destructive" onClick={() => update((d) => { d.placed = []; }, true)}><Trash2 className="size-4" /> Panelleri Temizle</Button>
         <p className="rounded-md bg-slate-50 p-2 text-[11px] text-slate-500">Paneli tıkla (Shift ile çoklu), sürükle-taşı, <b>R</b> döndür, <b>Del</b> sil. Panel başka panelin üstüne bırakılamaz (üst üste gelmez).</p>
@@ -482,18 +458,16 @@ function NumF({ label, value, onChange }: { label: string; value: number; onChan
   return (<div className="space-y-1"><Label className="text-[11px]">{label}</Label><Input type="number" value={value} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} /></div>);
 }
 
-function AnalizPanel({ faces }: { faces: ReturnType<typeof detectFaces> }) {
+function AnalizPanel({ model, totalPanels, totalKwp }: { model: RoofModel; totalPanels: number; totalKwp: number }) {
   const doc = useDesignStore((s) => s.active)!;
   const mpp = doc.metersPerPixel;
-  const totalPanels = doc.placed.length;
-  const totalKwp = panelsKwp(totalPanels, doc.panelConfig.watt);
   const yieldKwhKwp = CITY_YIELD[doc.city] ?? 1500;
   const annual = totalKwp * yieldKwhKwp;
-  const roofAreaM2 = mpp ? faces.reduce((s, f) => s + f.areaPx, 0) * mpp ** 2 : null;
+  const roofAreaM2 = mpp ? model.planes.reduce((s, pl) => s + planeAreaM2(pl, mpp), 0) : null;
   const usedAreaM2 = mpp ? doc.placed.reduce((s, p) => s + p.w * p.h, 0) * mpp ** 2 : null;
-  const perFace = faces.map((f, i) => {
-    const n = doc.placed.filter((p) => p.face === f.sig).length;
-    return { name: doc.faceMeta[f.sig]?.name || `Çatı Bölümü ${i + 1}`, n, kwp: panelsKwp(n, doc.panelConfig.watt) };
+  const perFace = model.planes.map((pl) => {
+    const n = doc.placed.filter((p) => p.face === pl.id).length;
+    return { name: pl.name, n, kwp: panelsKwp(n, doc.panelConfig.watt) };
   });
   return (
     <Card>

@@ -10,6 +10,9 @@ export interface Vec {
   y: number;
 }
 
+/** Parametrik çatı tipi. */
+export type RoofType = "flat" | "gable" | "hip";
+
 export interface RNode {
   id: string;
   x: number;
@@ -67,8 +70,14 @@ export interface DesignDoc {
   faceMeta: Record<string, FaceMeta>;
   panelConfig: PanelConfig;
   placed: PlacedPanel[];
-  /** Bina (saçak) yüksekliği (m) — 3B'de cephe/duvarlar bu değere göre çizilir. */
+  /** Bina (saçak) yüksekliği (m) — duvar/cephe yüksekliği; çatı bunun üstüne oturur. */
   baseHeight: number;
+  /** Parametrik çatı tipi. */
+  roofType: RoofType;
+  /** Çatı eğim açısı (derece). */
+  pitchDeg: number;
+  /** Beşik (gable) çatıda sırt (ridge) ekseninin açısı (derece). */
+  ridgeAxisDeg: number;
   /** Çatı tamamlanıp kilitlendi mi — kilitliyken çatı düzenlenemez, panel yerleşimi yapılır. */
   locked: boolean;
   updatedAt: string;
@@ -104,6 +113,9 @@ export function normalizeDoc(d: Partial<DesignDoc>): DesignDoc {
     panelConfig: { ...DEFAULT_PANEL_CONFIG, ...(d.panelConfig || {}) },
     placed: Array.isArray(d.placed) ? d.placed : [],
     baseHeight: typeof d.baseHeight === "number" ? d.baseHeight : 0,
+    roofType: d.roofType === "gable" || d.roofType === "hip" ? d.roofType : "hip",
+    pitchDeg: typeof d.pitchDeg === "number" ? d.pitchDeg : 25,
+    ridgeAxisDeg: typeof d.ridgeAxisDeg === "number" ? d.ridgeAxisDeg : 0,
     locked: !!d.locked,
     updatedAt: d.updatedAt || new Date(0).toISOString(),
   };

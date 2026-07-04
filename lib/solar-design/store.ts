@@ -85,7 +85,10 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       faceMeta: {},
       panelConfig: { ...DEFAULT_PANEL_CONFIG },
       placed: [],
-      baseHeight: 0,
+      baseHeight: 3,
+      roofType: "hip",
+      pitchDeg: 25,
+      ridgeAxisDeg: 0,
       locked: false,
       updatedAt: new Date().toISOString(),
     };
