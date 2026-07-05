@@ -15,6 +15,15 @@ function genId(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
   return `n${Date.now()}${Math.floor(Math.random() * 1e6)}`;
 }
+/** Bir önceki noktaya göre yatay/dikey hizaya "kilitle" (8° tolerans). */
+function orthoSnap(from: Vec, to: Vec): { p: Vec; ax: "h" | "v" | null } {
+  const dx = to.x - from.x, dy = to.y - from.y;
+  const ang = (Math.atan2(dy, dx) * 180) / Math.PI;
+  const near = (t: number) => Math.abs(((ang - t + 540) % 360) - 180) < 8;
+  if (near(0) || near(180)) return { p: { x: to.x, y: from.y }, ax: "h" };
+  if (near(90) || near(-90)) return { p: { x: from.x, y: to.y }, ax: "v" };
+  return { p: to, ax: null };
+}
 
 /**
  * 2B plan editörü. İki mod:
@@ -35,6 +44,7 @@ export default function MassEditor({ mode }: { mode: MassMode }) {
   const [cursor, setCursor] = useState<Vec | null>(null);
   const [selNode, setSelNode] = useState<string | null>(null);
   const [chainId, setChainId] = useState<string | null>(null);
+  const [snapAxis, setSnapAxis] = useState<"h" | "v" | null>(null);
 
   const active = doc.masses.find((m) => m.id === doc.activeMassId) || null;
   const editingRoof = !!active?.roofEditable;
@@ -137,12 +147,19 @@ export default function MassEditor({ mode }: { mode: MassMode }) {
       setChainId(newId || prev);
       return;
     }
-    // footprint çizim
+    // footprint çizim (dik snap)
     if (mode !== "draw") return;
     if (fp.length >= 3 && dist(p, fp[0]) <= snapPx) return;
-    setFootprint((arr) => [...arr, p]);
+    const sp = fp.length > 0 ? orthoSnap(fp[fp.length - 1], p).p : p;
+    setFootprint((arr) => [...arr, sp]);
   }
-  function stageMouseMove() { if (mode === "draw") setCursor(relPos()); }
+  function stageMouseMove() {
+    if (mode !== "draw") { return; }
+    const raw = relPos();
+    if (!raw) { setCursor(null); return; }
+    if (!editingRoof && fp.length > 0) { const s = orthoSnap(fp[fp.length - 1], raw); setCursor(s.p); setSnapAxis(s.ax); }
+    else { setCursor(raw); setSnapAxis(null); }
+  }
 
   function onWheel(e: Konva.KonvaEventObject<WheelEvent>) {
     e.evt.preventDefault();
@@ -296,7 +313,11 @@ export default function MassEditor({ mode }: { mode: MassMode }) {
         {/* Çizim önizleme */}
         <Layer listening={false}>
           {mode === "draw" && cursor && !editingRoof && fp.length > 0 && (
-            <Line points={[fp[fp.length - 1].x, fp[fp.length - 1].y, cursor.x, cursor.y]} stroke="#059669" strokeWidth={1.4 / scale} dash={[6 / scale, 4 / scale]} />
+            <>
+              <Line points={[-100000, fp[fp.length - 1].y, 100000, fp[fp.length - 1].y]} stroke={snapAxis === "h" ? "#d946ef" : "#cbd5e1"} strokeWidth={(snapAxis === "h" ? 1.4 : 0.8) / scale} dash={[8 / scale, 6 / scale]} />
+              <Line points={[fp[fp.length - 1].x, -100000, fp[fp.length - 1].x, 100000]} stroke={snapAxis === "v" ? "#d946ef" : "#cbd5e1"} strokeWidth={(snapAxis === "v" ? 1.4 : 0.8) / scale} dash={[8 / scale, 6 / scale]} />
+              <Line points={[fp[fp.length - 1].x, fp[fp.length - 1].y, cursor.x, cursor.y]} stroke={snapAxis ? "#d946ef" : "#059669"} strokeWidth={1.6 / scale} dash={[6 / scale, 4 / scale]} />
+            </>
           )}
           {mode === "draw" && cursor && !editingRoof && fp.length >= 3 && dist(cursor, fp[0]) <= snapPx && (
             <Circle x={fp[0].x} y={fp[0].y} radius={9 / scale} stroke="#f59e0b" strokeWidth={2 / scale} />

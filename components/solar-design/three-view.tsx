@@ -89,9 +89,17 @@ export default function ThreeView() {
         const eavesM = roof.eavesM;
         const bnd = roof.boundary;
         const siblings = built.filter((b) => (b.mass.parentId ?? null) === (mass.parentId ?? null) && b.mass.id !== mass.id).map((b) => b.mass);
+        const cxb = bnd.reduce((s, p) => s + p.x, 0) / (bnd.length || 1);
+        const cyb = bnd.reduce((s, p) => s + p.y, 0) / (bnd.length || 1);
+        // Bir kenar "iç" sayılır: kenarın DIŞ tarafı (komşuya bakan yüz) bir kardeş
+        // kütlenin içindeyse → bitişik/örtüşen paylaşılan duvar gizlenir (combine).
         const isInternal = (a: { x: number; y: number }, b: { x: number; y: number }) => {
           const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-          return siblings.some((s) => pointInPolygon(mid, s.footprint));
+          let nx = b.y - a.y, ny = -(b.x - a.x);
+          const L = Math.hypot(nx, ny) || 1; nx /= L; ny /= L;
+          if ((mid.x - cxb) * nx + (mid.y - cyb) * ny < 0) { nx = -nx; ny = -ny; }
+          const probe = { x: mid.x + nx * 4, y: mid.y + ny * 4 };
+          return siblings.some((s) => pointInPolygon(probe, s.footprint) || pointInPolygon(mid, s.footprint));
         };
         // Duvarlar (iç/paylaşılan kenarlar gizlenir → combine)
         if (bnd.length >= 2) {

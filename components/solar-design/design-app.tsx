@@ -19,8 +19,9 @@ import { useDesignStore } from "@/lib/solar-design/store";
 import { computeLayout, panelsKwp } from "@/lib/solar-design/layout-engine";
 import { massRoof, faceAreaM2, seedRoofGraph } from "@/lib/solar-design/roof-model";
 import type { MassRoof } from "@/lib/solar-design/roof-model";
+import { pointInPolygon } from "@/lib/solar-design/geometry";
 import { DEFAULT_MASS } from "@/lib/solar-design/types";
-import type { Mass, RoofType } from "@/lib/solar-design/types";
+import type { Mass, RoofType, PlacedPanel } from "@/lib/solar-design/types";
 
 const CanvasEditor = dynamic(() => import("./canvas-editor"), { ssr: false });
 const MassEditor = dynamic(() => import("./mass-editor"), { ssr: false });
@@ -200,7 +201,15 @@ function Editor() {
 
   function autoLayout() {
     if (!mpp) { toast.error("Ölçek bulunamadı — altlığı haritadan alın."); return; }
-    const placed = built.flatMap(({ mass, roof }) => roof.faces.flatMap((f) => computeLayout(f.poly, `${mass.id}:${f.id}`, doc.panelConfig, mpp)));
+    const placed = built.flatMap(({ mass, roof }) => {
+      const children = doc.masses.filter((mm) => mm.parentId === mass.id && mm.footprint.length >= 3);
+      const covered = (p: PlacedPanel) => {
+        const rad = (p.rotationDeg * Math.PI) / 180, c = Math.cos(rad), s = Math.sin(rad);
+        const cx = p.x + (p.w / 2) * c - (p.h / 2) * s, cy = p.y + (p.w / 2) * s + (p.h / 2) * c;
+        return children.some((ch) => pointInPolygon({ x: cx, y: cy }, ch.footprint));
+      };
+      return roof.faces.flatMap((f) => computeLayout(f.poly, `${mass.id}:${f.id}`, doc.panelConfig, mpp)).filter((p) => !covered(p));
+    });
     if (!placed.length) { toast.error("Çatı düzlemi yok — önce bina hattını çizin."); return; }
     update((d) => { d.placed = placed; }, true);
     toast.success(`${placed.length} panel yerleştirildi`);
