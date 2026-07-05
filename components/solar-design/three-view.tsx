@@ -82,6 +82,8 @@ export default function ThreeView() {
       }
       const roofTexMat = tex ? new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }) : null;
       if (roofTexMat) disposables.push(roofTexMat);
+      const dormerMat = new THREE.MeshStandardMaterial({ color: 0xc4b5fd, roughness: 0.9, side: THREE.DoubleSide });
+      disposables.push(dormerMat);
       const uvOf = (x: number, y: number) => [x / imgW, 1 - y / imgH];
 
       let colorI = 0;
@@ -153,6 +155,35 @@ export default function ThreeView() {
           el.textContent = built.length > 1 ? `${mass.name} · ${face.name}` : face.name;
           labelsRef.current?.appendChild(el);
           faceLabels.push({ el, cxp, cyp, z: face.zAbs(cxp, cyp) });
+        });
+
+        // Dormerlar (çatı çıkıntısı) — oturdukları yüzeyden yükselen beşik/tek eğim
+        mass.dormers.forEach((dm) => {
+          if (dm.widthM <= 0 || dm.depthM <= 0) return;
+          const face = roof.faces.find((f) => pointInPolygon({ x: dm.x, y: dm.y }, f.poly));
+          const zBase = face ? face.zAbs(dm.x, dm.y) : roof.eavesM;
+          const hw = dm.widthM / 2 / mpp, hd = dm.depthM / 2 / mpp;
+          const x0 = dm.x - hw, x1 = dm.x + hw, y0 = dm.y - hd, y1 = dm.y + hd, yc = dm.y;
+          const P = (px: number, py: number, h: number): number[] => { const w = toWorld(px, py); return [w.x, h, w.z]; };
+          const quad = (a: number[], b: number[], c: number[], d: number[]) => [...a, ...b, ...c, ...a, ...c, ...d];
+          const tri = (a: number[], b: number[], c: number[]) => [...a, ...b, ...c];
+          const pos: number[] = [];
+          if (dm.type === "gable") {
+            const eaveH = zBase + dm.ridgeM * 0.4, ridgeH = zBase + dm.ridgeM;
+            pos.push(...quad(P(x0, y0, zBase), P(x1, y0, zBase), P(x1, y0, eaveH), P(x0, y0, eaveH)));
+            pos.push(...quad(P(x0, y1, zBase), P(x1, y1, zBase), P(x1, y1, eaveH), P(x0, y1, eaveH)));
+            pos.push(...quad(P(x0, y0, zBase), P(x0, y1, zBase), P(x0, y1, eaveH), P(x0, y0, eaveH)), ...tri(P(x0, y0, eaveH), P(x0, y1, eaveH), P(x0, yc, ridgeH)));
+            pos.push(...quad(P(x1, y0, zBase), P(x1, y1, zBase), P(x1, y1, eaveH), P(x1, y0, eaveH)), ...tri(P(x1, y0, eaveH), P(x1, y1, eaveH), P(x1, yc, ridgeH)));
+            pos.push(...quad(P(x0, y0, eaveH), P(x1, y0, eaveH), P(x1, yc, ridgeH), P(x0, yc, ridgeH)));
+            pos.push(...quad(P(x0, y1, eaveH), P(x1, y1, eaveH), P(x1, yc, ridgeH), P(x0, yc, ridgeH)));
+          } else {
+            const hHi = zBase + dm.ridgeM, hLo = zBase + 0.05;
+            pos.push(...quad(P(x0, y0, zBase), P(x1, y0, zBase), P(x1, y0, hHi), P(x0, y0, hHi)));
+            pos.push(...quad(P(x0, y0, zBase), P(x0, y1, zBase), P(x0, y1, hLo), P(x0, y0, hHi)));
+            pos.push(...quad(P(x1, y0, zBase), P(x1, y1, zBase), P(x1, y1, hLo), P(x1, y0, hHi)));
+            pos.push(...quad(P(x0, y0, hHi), P(x1, y0, hHi), P(x1, y1, hLo), P(x0, y1, hLo)));
+          }
+          addMesh(pos, dormerMat);
         });
       });
 

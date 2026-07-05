@@ -65,6 +65,17 @@ export interface Obstacle {
   heightM: number; // 3B'de görsel yükseklik (m)
 }
 
+/** Çatı çıkıntısı (dormer) — çatıya oturan parametrik beşik/tek eğim yapı. */
+export interface Dormer {
+  id: string;
+  x: number; // roof plan merkezi (px)
+  y: number;
+  widthM: number; // sırt yönü genişliği
+  depthM: number; // eğim yönü derinliği
+  ridgeM: number; // çatı yüzeyinden sırt yüksekliği (m)
+  type: "gable" | "shed";
+}
+
 /**
  * Bina kütlesi (mass) — SketchUp benzeri kompoze modellemenin birimi. Her kütle
  * kendi ayak izi + duvar yüksekliği + çatısı olan bir hacim. Bir kütle başka bir
@@ -87,6 +98,10 @@ export interface Mass {
   /** Düzenlenebilir çatı grafiği — noktalar (x,y px; z = saçaktan metre yükseklik). */
   roofNodes: RNode[];
   roofEdges: REdge[];
+  /** Per-yüzey eğim (derece) — anahtar: yüzey imzası (face.sig). Yoksa pitchDeg. */
+  facePitch: Record<string, number>;
+  /** Çatı çıkıntıları (dormer). */
+  dormers: Dormer[];
 }
 
 export interface DesignDoc {
@@ -130,6 +145,8 @@ export const DEFAULT_MASS: Omit<Mass, "id" | "footprint"> = {
   roofEditable: false,
   roofNodes: [],
   roofEdges: [],
+  facePitch: {},
+  dormers: [],
 };
 
 export function normalizeMass(m: Partial<Mass>): Mass {
@@ -148,6 +165,8 @@ export function normalizeMass(m: Partial<Mass>): Mass {
     roofEditable: !!m.roofEditable,
     roofNodes: Array.isArray(m.roofNodes) ? m.roofNodes : [],
     roofEdges: Array.isArray(m.roofEdges) ? m.roofEdges : [],
+    facePitch: m.facePitch && typeof m.facePitch === "object" ? m.facePitch : {},
+    dormers: Array.isArray(m.dormers) ? m.dormers : [],
   };
 }
 

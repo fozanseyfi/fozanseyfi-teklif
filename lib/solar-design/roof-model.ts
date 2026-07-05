@@ -247,23 +247,42 @@ export function massRoof(mass: Mass, mpp: number): MassRoof {
  * girmeden tutarlı, düzlemsel çatı. Dış hat (saçak) = 0; iç noktalar saçağa
  * uzaklık × tan(eğim) kadar yükselir (straight-skeleton mantığı).
  */
-export function autoRoofHeights(nodes: RNode[], edges: REdge[], pitchDeg: number, mpp: number): RNode[] {
+export function autoRoofHeights(nodes: RNode[], edges: REdge[], defaultPitch: number, mpp: number, facePitch?: Record<string, number>): RNode[] {
   const boundary = detectOuterBoundary(nodes, edges);
   if (!boundary || boundary.length < 3) return nodes.map((n) => ({ ...n, z: 0 }));
   const bset = new Set(boundary);
   const byId = new Map(nodes.map((n) => [n.id, n]));
-  const segs: [Vec, Vec][] = [];
+  const ekey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
+  const bEdge = new Set<string>();
+  const allSegs: [Vec, Vec][] = [];
   for (let i = 0; i < boundary.length; i++) {
-    const a = byId.get(boundary[i]), b = byId.get(boundary[(i + 1) % boundary.length]);
-    if (a && b) segs.push([a, b]);
+    const ai = boundary[i], bi = boundary[(i + 1) % boundary.length];
+    bEdge.add(ekey(ai, bi));
+    const a = byId.get(ai), b = byId.get(bi);
+    if (a && b) allSegs.push([a, b]);
   }
-  const t = Math.tan((pitchDeg * Math.PI) / 180);
-  return nodes.map((n) => {
-    if (bset.has(n.id)) return { ...n, z: 0 };
-    let dmin = Infinity;
-    for (const [a, b] of segs) { const r = nearestOnSegment(n, a, b); if (r.dist < dmin) dmin = r.dist; }
-    return { ...n, z: Number.isFinite(dmin) ? Math.round(dmin * mpp * t * 100) / 100 : 0 };
-  });
+  const tan = (deg: number) => Math.tan((deg * Math.PI) / 180);
+  const z = new Map<string, number>();
+  for (const n of nodes) if (bset.has(n.id)) z.set(n.id, 0);
+  // Her yüzey kendi saçak kenarından, kendi eğimiyle yükseltir (paylaşılan noktada en yüksek kazanır).
+  for (const f of detectFaces(nodes, edges)) {
+    const pitch = facePitch && facePitch[f.sig] != null ? facePitch[f.sig] : defaultPitch;
+    const eaveSegs: [Vec, Vec][] = [];
+    for (let i = 0; i < f.nodes.length; i++) {
+      const ai = f.nodes[i], bi = f.nodes[(i + 1) % f.nodes.length];
+      if (bEdge.has(ekey(ai, bi))) { const a = byId.get(ai), b = byId.get(bi); if (a && b) eaveSegs.push([a, b]); }
+    }
+    const segs = eaveSegs.length ? eaveSegs : allSegs;
+    for (const id of f.nodes) {
+      if (bset.has(id)) continue;
+      const n = byId.get(id); if (!n) continue;
+      let d = Infinity;
+      for (const [a, b] of segs) { const r = nearestOnSegment(n, a, b); if (r.dist < d) d = r.dist; }
+      const cand = Number.isFinite(d) ? Math.round(d * mpp * tan(pitch) * 100) / 100 : 0;
+      z.set(id, Math.max(z.get(id) ?? 0, cand));
+    }
+  }
+  return nodes.map((n) => ({ ...n, z: z.get(n.id) ?? 0 }));
 }
 
 /** Parametrik çatıyı düzenlenebilir grafiğe "tohumla" (elle düzenlemeye geçiş). */

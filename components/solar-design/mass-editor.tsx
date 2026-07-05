@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Stage, Layer, Image as KonvaImage, Line, Circle, Text, Group } from "react-konva";
+import { Stage, Layer, Image as KonvaImage, Line, Circle, Rect, Text, Group } from "react-konva";
 import type Konva from "konva";
 import { useDesignStore } from "@/lib/solar-design/store";
 import type { Vec, DesignDoc } from "@/lib/solar-design/types";
@@ -90,6 +90,10 @@ export default function MassEditor({ mode }: { mode: MassMode }) {
   function setFootprint(mut: (arr: Vec[]) => Vec[], history = true) {
     if (!active) return;
     update((d) => { const m = d.masses.find((x) => x.id === active.id); if (m) m.footprint = mut(m.footprint.map((p) => ({ ...p }))); }, history);
+  }
+  function moveDormer(id: string, x: number, y: number) {
+    if (!active) return;
+    update((d) => { const m = d.masses.find((mm) => mm.id === active.id); const dm = m?.dormers.find((x2) => x2.id === id); if (dm) { dm.x = x; dm.y = y; } }, true);
   }
   // ── Çatı grafiği yazma (planarize ile) ──
   function setRoof(mut: (g: { nodes: typeof rn; edges: typeof re }) => void, history = true) {
@@ -307,6 +311,22 @@ export default function MassEditor({ mode }: { mode: MassMode }) {
                 })}
               </>
             )}
+          </Layer>
+        )}
+
+        {/* Dormerlar — sürükleyerek konumla */}
+        {active && mpp && active.dormers.length > 0 && (
+          <Layer>
+            {active.dormers.map((dm) => {
+              const hw = dm.widthM / 2 / mpp, hd = dm.depthM / 2 / mpp;
+              return (
+                <Group key={dm.id} x={dm.x} y={dm.y} draggable={mode === "edit" || mode === "move"} onDragEnd={(e) => moveDormer(dm.id, e.target.x(), e.target.y())}>
+                  <Rect x={-hw} y={-hd} width={hw * 2} height={hd * 2} fill="#7c3aed22" stroke="#7c3aed" strokeWidth={1.6 / scale} />
+                  <Line points={dm.type === "gable" ? [-hw, 0, hw, 0] : [-hw, -hd, hw, -hd]} stroke="#7c3aed" strokeWidth={1.3 / scale} dash={[4 / scale, 3 / scale]} listening={false} />
+                  <Text text="dormer" fontSize={10 / scale} fill="#5b21b6" stroke="#fff" strokeWidth={2.2 / scale} fillAfterStrokeEnabled offsetX={16 / scale} offsetY={5 / scale} listening={false} />
+                </Group>
+              );
+            })}
           </Layer>
         )}
 
