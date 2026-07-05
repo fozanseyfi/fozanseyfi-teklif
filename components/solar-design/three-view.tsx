@@ -172,11 +172,12 @@ export default function ThreeView() {
           const pos: number[] = [];
           const zc = face0 ? face0.zAbs(dm.x, dm.y) : roof.eavesM; // düz taban (çatı yüzeyi kotu)
           const eaveH = zc + 0.05, ridgeH = zc + dm.ridgeM;
-          // Simetrik beşik: sırt genişlik ekseni (x) boyunca, y=0'da. İki eğim + iki alınlık.
-          pos.push(...quad(P(-hw, hd, eaveH), P(hw, hd, eaveH), P(hw, 0, ridgeH), P(-hw, 0, ridgeH))); // ön eğim
-          pos.push(...quad(P(-hw, -hd, eaveH), P(hw, -hd, eaveH), P(hw, 0, ridgeH), P(-hw, 0, ridgeH))); // arka eğim
-          pos.push(...tri(P(-hw, hd, eaveH), P(-hw, -hd, eaveH), P(-hw, 0, ridgeH))); // sol alınlık
-          pos.push(...tri(P(hw, hd, eaveH), P(hw, -hd, eaveH), P(hw, 0, ridgeH))); // sağ alınlık
+          const ry = Math.max(-hd, Math.min(hd, (dm.ridgeYM || 0) / mpp)); // sırt orta noktası (y)
+          // Beşik: sırt genişlik ekseni (x) boyunca, y=ry'de (kayabilir). İki eğim + iki alınlık.
+          pos.push(...quad(P(-hw, hd, eaveH), P(hw, hd, eaveH), P(hw, ry, ridgeH), P(-hw, ry, ridgeH))); // ön eğim
+          pos.push(...quad(P(-hw, -hd, eaveH), P(hw, -hd, eaveH), P(hw, ry, ridgeH), P(-hw, ry, ridgeH))); // arka eğim
+          pos.push(...tri(P(-hw, hd, eaveH), P(-hw, -hd, eaveH), P(-hw, ry, ridgeH))); // sol alınlık
+          pos.push(...tri(P(hw, hd, eaveH), P(hw, -hd, eaveH), P(hw, ry, ridgeH))); // sağ alınlık
           addMesh(pos, dormerMat);
         });
       });

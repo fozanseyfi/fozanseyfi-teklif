@@ -284,7 +284,7 @@ function Editor() {
       if (!m || m.footprint.length < 3) return;
       const cx = m.footprint.reduce((s, p) => s + p.x, 0) / m.footprint.length;
       const cy = m.footprint.reduce((s, p) => s + p.y, 0) / m.footprint.length;
-      m.dormers.push({ id: newMassId(), x: cx, y: cy, widthM: 2.4, depthM: 1.6, ridgeM: 1, dirDeg: 0, type: "gable" });
+      m.dormers.push({ id: newMassId(), x: cx, y: cy, widthM: 2.4, depthM: 1.6, ridgeM: 1, ridgeYM: 0, dirDeg: 0, type: "gable" });
     }, true);
     setTool("move");
     toast.success("Dormer eklendi — 2B'de sürükleyerek konumla");

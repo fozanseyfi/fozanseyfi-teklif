@@ -73,6 +73,7 @@ export interface Dormer {
   widthM: number; // sırt yönü genişliği
   depthM: number; // eğim yönü derinliği
   ridgeM: number; // çatı yüzeyinden sırt yüksekliği (m)
+  ridgeYM: number; // sırt orta noktasının yerel y kayması (m; 0=merkez) → asimetrik çatı
   dirDeg: number; // döndürme (derece)
   type: "gable" | "hip" | "shed";
 }
