@@ -669,7 +669,7 @@ function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect
                   <Button size="sm" variant="outline" onClick={onAddDormer}><Plus className="size-4" /> Dormer</Button>
                 </div>
                 {active.dormers.length === 0 ? (
-                  <p className="text-[10.5px] text-muted-foreground">Ekle → 2B’de sürükleyerek konumla. Ölçüler aşağıdan.</p>
+                  <p className="text-[10.5px] text-muted-foreground">Ekle → 2B’de sürükleyerek çatıya konumla. Tabanı çatı yüzeyine oturur; “Sırt” = çatıdan yükseklik.</p>
                 ) : active.dormers.map((dm, i) => (
                   <div key={dm.id} className="space-y-1 rounded-md border border-slate-200 p-2">
                     <div className="flex items-center justify-between"><span className="text-[11px] font-medium">Dormer {i + 1}</span>
@@ -678,7 +678,7 @@ function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect
                     <div className="grid grid-cols-3 gap-1">
                       <div><Label className="text-[10px]">Gen (m)</Label><Input type="number" step="0.1" className="h-7" value={dm.widthM} onChange={(e) => onUpdateDormer(dm.id, (d) => { d.widthM = parseFloat(e.target.value) || 0.5; })} /></div>
                       <div><Label className="text-[10px]">Der (m)</Label><Input type="number" step="0.1" className="h-7" value={dm.depthM} onChange={(e) => onUpdateDormer(dm.id, (d) => { d.depthM = parseFloat(e.target.value) || 0.5; })} /></div>
-                      <div><Label className="text-[10px]">Yük (m)</Label><Input type="number" step="0.1" className="h-7" value={dm.ridgeM} onChange={(e) => onUpdateDormer(dm.id, (d) => { d.ridgeM = parseFloat(e.target.value) || 0.2; })} /></div>
+                      <div><Label className="text-[10px]" title="Çatı yüzeyinden sırt yüksekliği">Sırt (m)</Label><Input type="number" step="0.1" className="h-7" value={dm.ridgeM} onChange={(e) => onUpdateDormer(dm.id, (d) => { d.ridgeM = parseFloat(e.target.value) || 0.2; })} /></div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Label className="text-[10px] shrink-0">Döndür</Label>

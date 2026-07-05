@@ -82,7 +82,7 @@ export default function ThreeView() {
       }
       const roofTexMat = tex ? new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }) : null;
       if (roofTexMat) disposables.push(roofTexMat);
-      const dormerMat = new THREE.MeshStandardMaterial({ color: 0xc4b5fd, roughness: 0.9, side: THREE.DoubleSide });
+      const dormerMat = new THREE.MeshStandardMaterial({ color: 0xeef2f6, roughness: 0.9, side: THREE.DoubleSide });
       disposables.push(dormerMat);
       const uvOf = (x: number, y: number) => [x / imgW, 1 - y / imgH];
 
@@ -157,43 +157,45 @@ export default function ThreeView() {
           faceLabels.push({ el, cxp, cyp, z: face.zAbs(cxp, cyp) });
         });
 
-        // Dormerlar (çatı çıkıntısı) — tabanı BİNA TABANINA basar; döndürülebilir; beşik/kırma/tek eğim
+        // Dormerlar — tabanı çatı yüzeyine oturur (eğimi izler, kaynaşır); rengi bina ile aynı.
         mass.dormers.forEach((dm) => {
           if (dm.widthM <= 0 || dm.depthM <= 0) return;
-          const face = roof.faces.find((f) => pointInPolygon({ x: dm.x, y: dm.y }, f.poly));
-          const zTop = face ? face.zAbs(dm.x, dm.y) : roof.eavesM; // çatı yüzeyi kotu
-          const base = mass.baseM; // taban = bina tabanı
+          const face0 = roof.faces.find((f) => pointInPolygon({ x: dm.x, y: dm.y }, f.poly));
+          const zc = face0 ? face0.zAbs(dm.x, dm.y) : roof.eavesM; // merkez çatı kotu
           const hw = dm.widthM / 2 / mpp, hd = dm.depthM / 2 / mpp;
           const ang = ((dm.dirDeg || 0) * Math.PI) / 180, ca = Math.cos(ang), sa = Math.sin(ang);
-          // yerel (lx,ly) → döndür → dünya
-          const P = (lx: number, ly: number, h: number): number[] => { const w = toWorld(dm.x + lx * ca - ly * sa, dm.y + lx * sa + ly * ca); return [w.x, h, w.z]; };
+          const cpx = (lx: number, ly: number) => ({ x: dm.x + lx * ca - ly * sa, y: dm.y + lx * sa + ly * ca });
+          // taban kotu: o noktadaki çatı yüzeyi (eğimi izler → dormer çatıya kaynaşır)
+          const bz = (lx: number, ly: number) => { const q = cpx(lx, ly); const f = roof.faces.find((ff) => pointInPolygon(q, ff.poly)) || face0; return f ? f.zAbs(q.x, q.y) : roof.eavesM; };
+          const P = (lx: number, ly: number, h: number): number[] => { const q = cpx(lx, ly); const w = toWorld(q.x, q.y); return [w.x, h, w.z]; };
           const quad = (a: number[], b: number[], c: number[], d: number[]) => [...a, ...b, ...c, ...a, ...c, ...d];
           const tri = (a: number[], b: number[], c: number[]) => [...a, ...b, ...c];
           const pos: number[] = [];
-          const eaveH = zTop + dm.ridgeM * 0.4, ridgeH = zTop + dm.ridgeM;
+          const eaveH = zc + Math.max(0.2, dm.ridgeM * 0.3), ridgeH = zc + dm.ridgeM;
+          const b00 = bz(-hw, -hd), b10 = bz(hw, -hd), b11 = bz(hw, hd), b01 = bz(-hw, hd);
           if (dm.type === "gable") {
-            pos.push(...quad(P(-hw, -hd, base), P(hw, -hd, base), P(hw, -hd, eaveH), P(-hw, -hd, eaveH)));
-            pos.push(...quad(P(-hw, hd, base), P(hw, hd, base), P(hw, hd, eaveH), P(-hw, hd, eaveH)));
-            pos.push(...quad(P(-hw, -hd, base), P(-hw, hd, base), P(-hw, hd, eaveH), P(-hw, -hd, eaveH)), ...tri(P(-hw, -hd, eaveH), P(-hw, hd, eaveH), P(-hw, 0, ridgeH)));
-            pos.push(...quad(P(hw, -hd, base), P(hw, hd, base), P(hw, hd, eaveH), P(hw, -hd, eaveH)), ...tri(P(hw, -hd, eaveH), P(hw, hd, eaveH), P(hw, 0, ridgeH)));
+            pos.push(...quad(P(-hw, -hd, b00), P(hw, -hd, b10), P(hw, -hd, eaveH), P(-hw, -hd, eaveH)));
+            pos.push(...quad(P(-hw, hd, b01), P(hw, hd, b11), P(hw, hd, eaveH), P(-hw, hd, eaveH)));
+            pos.push(...quad(P(-hw, -hd, b00), P(-hw, hd, b01), P(-hw, hd, eaveH), P(-hw, -hd, eaveH)), ...tri(P(-hw, -hd, eaveH), P(-hw, hd, eaveH), P(-hw, 0, ridgeH)));
+            pos.push(...quad(P(hw, -hd, b10), P(hw, hd, b11), P(hw, hd, eaveH), P(hw, -hd, eaveH)), ...tri(P(hw, -hd, eaveH), P(hw, hd, eaveH), P(hw, 0, ridgeH)));
             pos.push(...quad(P(-hw, -hd, eaveH), P(hw, -hd, eaveH), P(hw, 0, ridgeH), P(-hw, 0, ridgeH)));
             pos.push(...quad(P(-hw, hd, eaveH), P(hw, hd, eaveH), P(hw, 0, ridgeH), P(-hw, 0, ridgeH)));
           } else if (dm.type === "hip") {
             const rt = hw * 0.35;
-            pos.push(...quad(P(-hw, -hd, base), P(hw, -hd, base), P(hw, -hd, eaveH), P(-hw, -hd, eaveH)));
-            pos.push(...quad(P(-hw, hd, base), P(hw, hd, base), P(hw, hd, eaveH), P(-hw, hd, eaveH)));
-            pos.push(...quad(P(-hw, -hd, base), P(-hw, hd, base), P(-hw, hd, eaveH), P(-hw, -hd, eaveH)));
-            pos.push(...quad(P(hw, -hd, base), P(hw, hd, base), P(hw, hd, eaveH), P(hw, -hd, eaveH)));
+            pos.push(...quad(P(-hw, -hd, b00), P(hw, -hd, b10), P(hw, -hd, eaveH), P(-hw, -hd, eaveH)));
+            pos.push(...quad(P(-hw, hd, b01), P(hw, hd, b11), P(hw, hd, eaveH), P(-hw, hd, eaveH)));
+            pos.push(...quad(P(-hw, -hd, b00), P(-hw, hd, b01), P(-hw, hd, eaveH), P(-hw, -hd, eaveH)));
+            pos.push(...quad(P(hw, -hd, b10), P(hw, hd, b11), P(hw, hd, eaveH), P(hw, -hd, eaveH)));
             pos.push(...quad(P(-hw, -hd, eaveH), P(hw, -hd, eaveH), P(rt, 0, ridgeH), P(-rt, 0, ridgeH)));
             pos.push(...quad(P(-hw, hd, eaveH), P(hw, hd, eaveH), P(rt, 0, ridgeH), P(-rt, 0, ridgeH)));
             pos.push(...tri(P(-hw, -hd, eaveH), P(-hw, hd, eaveH), P(-rt, 0, ridgeH)));
             pos.push(...tri(P(hw, -hd, eaveH), P(hw, hd, eaveH), P(rt, 0, ridgeH)));
           } else {
-            const hHi = zTop + dm.ridgeM, hLo = zTop + 0.05;
-            pos.push(...quad(P(-hw, -hd, base), P(hw, -hd, base), P(hw, -hd, hHi), P(-hw, -hd, hHi)));
-            pos.push(...quad(P(-hw, hd, base), P(hw, hd, base), P(hw, hd, hLo), P(-hw, hd, hLo)));
-            pos.push(...quad(P(-hw, -hd, base), P(-hw, hd, base), P(-hw, hd, hLo), P(-hw, -hd, hHi)));
-            pos.push(...quad(P(hw, -hd, base), P(hw, hd, base), P(hw, hd, hLo), P(hw, -hd, hHi)));
+            const hHi = zc + dm.ridgeM, hLo = eaveH;
+            pos.push(...quad(P(-hw, -hd, b00), P(hw, -hd, b10), P(hw, -hd, hHi), P(-hw, -hd, hHi)));
+            pos.push(...quad(P(-hw, hd, b01), P(hw, hd, b11), P(hw, hd, hLo), P(-hw, hd, hLo)));
+            pos.push(...quad(P(-hw, -hd, b00), P(-hw, hd, b01), P(-hw, hd, hLo), P(-hw, -hd, hHi)));
+            pos.push(...quad(P(hw, -hd, b10), P(hw, hd, b11), P(hw, hd, hLo), P(hw, -hd, hHi)));
             pos.push(...quad(P(-hw, -hd, hHi), P(hw, -hd, hHi), P(hw, hd, hLo), P(-hw, hd, hLo)));
           }
           addMesh(pos, dormerMat);
