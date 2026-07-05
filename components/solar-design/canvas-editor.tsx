@@ -9,6 +9,7 @@ import { FACE_COLORS } from "@/lib/solar-design/types";
 import { dist, nearestOnSegment } from "@/lib/solar-design/geometry";
 import { detectFaces } from "@/lib/solar-design/faces";
 import { planarize } from "@/lib/solar-design/planarize";
+import { massRoof } from "@/lib/solar-design/roof-model";
 import { toast } from "sonner";
 
 export type EditorMode = "draw" | "roof-select" | "panel-select" | "view";
@@ -81,6 +82,11 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
 
   const nodeById = useMemo(() => new Map(doc.nodes.map((n) => [n.id, n])), [doc.nodes]);
   const faces = useMemo(() => detectFaces(doc.nodes, doc.edges), [doc.nodes, doc.edges]);
+  // Kütle çatı yüzeyleri — panel yerleşiminde bağlam (bina hattı) göstermek için.
+  const massFaces = useMemo(
+    () => doc.masses.flatMap((m) => massRoof(m, doc.metersPerPixel || 0.05).faces.map((f) => ({ id: `${m.id}:${f.id}`, name: f.name, poly: f.poly }))),
+    [doc.masses, doc.metersPerPixel],
+  );
 
   useEffect(() => {
     activeRef.current = activeNode;
@@ -350,6 +356,24 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
         style={{ background: "#e2e8f0", cursor: cursorStyle }}
       >
         <Layer>{img && <KonvaImage image={img} listening={false} />}</Layer>
+
+        {/* Kütle çatı yüzeyleri — panel yerleşiminde bina bağlamı (salt görsel) */}
+        {mode === "panel-select" && (
+          <Layer listening={false}>
+            {massFaces.map((f) => {
+              if (f.poly.length < 3) return null;
+              const cx = f.poly.reduce((s, p) => s + p.x, 0) / f.poly.length;
+              const cy = f.poly.reduce((s, p) => s + p.y, 0) / f.poly.length;
+              const n = doc.placed.filter((pp) => pp.face === f.id).length;
+              return (
+                <Group key={f.id}>
+                  <Line points={f.poly.flatMap((p) => [p.x, p.y])} closed fill="#0596690f" stroke="#059669" strokeWidth={1.3 / scale} dash={[7 / scale, 4 / scale]} />
+                  <Text x={cx} y={cy} text={`${f.name} · ${n} panel`} fontSize={12 / scale} fill="#065f46" stroke="#fff" strokeWidth={2.8 / scale} fillAfterStrokeEnabled offsetX={34 / scale} offsetY={6 / scale} />
+                </Group>
+              );
+            })}
+          </Layer>
+        )}
 
         {/* Yüzeyler (çatı bölümleri) */}
         <Layer>

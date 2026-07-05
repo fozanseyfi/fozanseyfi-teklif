@@ -232,10 +232,11 @@ function Editor() {
       <div className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-100/70 p-1.5 shadow-sm">
         {STEPS.map((s) => {
           const Icon = s.icon; const active = step === s.key;
-          const gated = s.key === "panel" && !locked; // panel yerleşimi çatı kilitliyken
+          const gated = (s.key === "panel" || s.key === "analiz") && !locked; // panel/analiz çatı kilitliyken
           return (
-            <button key={s.key} type="button" onClick={() => setStep(s.key)}
-              className={cn("inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-semibold transition-all", active ? "bg-emerald-600 text-white shadow-sm" : "text-slate-600 hover:bg-white hover:text-slate-900")}>
+            <button key={s.key} type="button"
+              onClick={() => { if (gated) { toast.error("Önce çatıyı tamamlayıp kilitleyin"); return; } setStep(s.key); }}
+              className={cn("inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-semibold transition-all", active ? "bg-emerald-600 text-white shadow-sm" : gated ? "text-slate-400" : "text-slate-600 hover:bg-white hover:text-slate-900")}>
               <Icon className="size-4" /> {s.label}
               {gated && <Lock className="size-3 opacity-60" />}
             </button>
@@ -322,7 +323,7 @@ function Editor() {
           {step === "cizim" && locked && <LockPanel onUnlock={() => setLocked(false)} onPanel={() => setStep("panel")} />}
           {step === "panel" && <PanelPanel update={update} onAuto={autoLayout} totalPanels={totalPanels} totalKwp={totalKwp} locked={locked} onEditRoof={() => { setLocked(false); setStep("cizim"); }} />}
           {step === "analiz" && <AnalizPanel built={built} totalPanels={totalPanels} totalKwp={totalKwp} />}
-          <StepNav step={step} setStep={setStep} />
+          <StepNav step={step} setStep={setStep} locked={locked} />
         </div>
       </div>
     </div>
@@ -350,12 +351,15 @@ function ToolBtn({ active, onClick, icon: Icon, label }: { active: boolean; onCl
   );
 }
 
-function StepNav({ step, setStep }: { step: StepKey; setStep: (s: StepKey) => void }) {
+function StepNav({ step, setStep, locked }: { step: StepKey; setStep: (s: StepKey) => void; locked: boolean }) {
   const i = STEPS.findIndex((s) => s.key === step);
+  const next = STEPS[i + 1];
+  const blocked = !!next && (next.key === "panel" || next.key === "analiz") && !locked;
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between gap-2">
       <Button variant="outline" size="sm" disabled={i === 0} onClick={() => setStep(STEPS[i - 1].key)}><ArrowLeft className="size-4" /> Geri</Button>
-      <Button size="sm" disabled={i === STEPS.length - 1} onClick={() => setStep(STEPS[i + 1].key)}>İlerle <ArrowRight className="size-4" /></Button>
+      {blocked && <span className="text-[11px] font-medium text-amber-600">Önce çatıyı tamamlayıp kilitleyin</span>}
+      <Button size="sm" disabled={i === STEPS.length - 1 || blocked} title={blocked ? "Önce çatıyı tamamlayıp kilitleyin" : undefined} onClick={() => next && setStep(next.key)}>İlerle <ArrowRight className="size-4" /></Button>
     </div>
   );
 }
