@@ -45,9 +45,16 @@ function newMassId(): string {
 /** Hazır bina/çatı taban şekilleri (birim koordinat; 1 birim ≈ 8 m). Tıkla-ekle. */
 const SHAPE_TEMPLATES: { key: string; label: string; poly: Vec[] }[] = [
   { key: "rect", label: "Dikdörtgen", poly: [{ x: 0, y: 0 }, { x: 1.6, y: 0 }, { x: 1.6, y: 1 }, { x: 0, y: 1 }] },
+  { key: "square", label: "Kare", poly: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }] },
+  { key: "long", label: "Uzun", poly: [{ x: 0, y: 0 }, { x: 2.6, y: 0 }, { x: 2.6, y: 0.7 }, { x: 0, y: 0.7 }] },
+  { key: "skew", label: "Eğik", poly: [{ x: 0.35, y: 0 }, { x: 1.1, y: 0 }, { x: 0.75, y: 2.2 }, { x: 0, y: 2.2 }] },
   { key: "L", label: "L", poly: [{ x: 0, y: 0 }, { x: 1.5, y: 0 }, { x: 1.5, y: 0.6 }, { x: 0.6, y: 0.6 }, { x: 0.6, y: 1.4 }, { x: 0, y: 1.4 }] },
   { key: "T", label: "T", poly: [{ x: 0, y: 0 }, { x: 1.5, y: 0 }, { x: 1.5, y: 0.55 }, { x: 1, y: 0.55 }, { x: 1, y: 1.4 }, { x: 0.5, y: 1.4 }, { x: 0.5, y: 0.55 }, { x: 0, y: 0.55 }] },
   { key: "U", label: "U", poly: [{ x: 0, y: 0 }, { x: 0.5, y: 0 }, { x: 0.5, y: 0.85 }, { x: 1, y: 0.85 }, { x: 1, y: 0 }, { x: 1.5, y: 0 }, { x: 1.5, y: 1.4 }, { x: 0, y: 1.4 }] },
+  { key: "plus", label: "Artı", poly: [{ x: 0.35, y: 0 }, { x: 0.65, y: 0 }, { x: 0.65, y: 0.35 }, { x: 1, y: 0.35 }, { x: 1, y: 0.65 }, { x: 0.65, y: 0.65 }, { x: 0.65, y: 1 }, { x: 0.35, y: 1 }, { x: 0.35, y: 0.65 }, { x: 0, y: 0.65 }, { x: 0, y: 0.35 }, { x: 0.35, y: 0.35 }] },
+  { key: "H", label: "H", poly: [{ x: 0, y: 0 }, { x: 0.3, y: 0 }, { x: 0.3, y: 0.4 }, { x: 0.7, y: 0.4 }, { x: 0.7, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0.7, y: 1 }, { x: 0.7, y: 0.6 }, { x: 0.3, y: 0.6 }, { x: 0.3, y: 1 }, { x: 0, y: 1 }] },
+  { key: "hex", label: "6gen", poly: [{ x: 0.25, y: 0 }, { x: 0.75, y: 0 }, { x: 1, y: 0.5 }, { x: 0.75, y: 1 }, { x: 0.25, y: 1 }, { x: 0, y: 0.5 }] },
+  { key: "oct", label: "8gen", poly: [{ x: 0.3, y: 0 }, { x: 0.7, y: 0 }, { x: 1, y: 0.3 }, { x: 1, y: 0.7 }, { x: 0.7, y: 1 }, { x: 0.3, y: 1 }, { x: 0, y: 0.7 }, { x: 0, y: 0.3 }] },
 ];
 
 /** Dormer'ın çatı plan dörtgeni (px) — panel keepout için. */
