@@ -11,7 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import {
   Plus, Trash2, Undo2, Redo2, MousePointer2, PencilRuler, ArrowLeft, ArrowRight,
   LayoutGrid, Sun, Map as MapIcon, ImagePlus, Zap, CheckCircle2, Box, Lock, Unlock,
-  Building2, Layers,
+  Building2, Layers, Move,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -131,7 +131,7 @@ function Editor() {
   const canRedo = useDesignStore((s) => s.future.length > 0);
 
   const [step, setStep] = useState<StepKey>("gorsel");
-  const [tool, setTool] = useState<"edit" | "draw">("edit"); // footprint: köşe düzenle / çiz
+  const [tool, setTool] = useState<"edit" | "draw" | "move">("edit"); // footprint: köşe düzenle / çiz / taşı
   const [cizimView, setCizimView] = useState<"2d" | "3d">("2d");
   const [panelView, setPanelView] = useState<"2d" | "3d">("2d");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -182,7 +182,7 @@ function Editor() {
   }
 
   const is3D = (step === "cizim" && cizimView === "3d") || (step === "panel" && panelView === "3d");
-  const massMode = locked ? "view" : tool === "draw" ? "draw" : "edit";
+  const massMode = locked ? "view" : tool;
 
   const showMap = step === "gorsel" && mapMode && !pending;
   const showCrop = step === "gorsel" && !!pending;
@@ -256,10 +256,13 @@ function Editor() {
             <div className="flex flex-wrap items-center gap-1.5 rounded-lg border bg-card p-1.5">
               <ToolBtn active={tool === "draw"} onClick={() => setTool("draw")} icon={PencilRuler} label="Hat Çiz" />
               <ToolBtn active={tool === "edit"} onClick={() => setTool("edit")} icon={MousePointer2} label="Köşe Düzenle" />
+              <ToolBtn active={tool === "move"} onClick={() => setTool("move")} icon={Move} label="Taşı" />
               <span className="ml-auto text-[11px] text-muted-foreground">
                 {tool === "draw"
                   ? "Köşeleri tıkla · ilk köşeye dönünce kapanır"
-                  : "Köşe sürükle · Çizgiye çift tık: köşe ekle · Sağ tık: köşe sil"}
+                  : tool === "move"
+                    ? "Kütleyi sürükleyerek taşı (yanlış birleşmeyi düzelt)"
+                    : "Köşe sürükle · Çizgiye çift tık: köşe ekle · Sağ tık: köşe sil"}
               </span>
             </div>
           )}
