@@ -284,7 +284,7 @@ function Editor() {
       if (!m || m.footprint.length < 3) return;
       const cx = m.footprint.reduce((s, p) => s + p.x, 0) / m.footprint.length;
       const cy = m.footprint.reduce((s, p) => s + p.y, 0) / m.footprint.length;
-      m.dormers.push({ id: newMassId(), x: cx, y: cy, widthM: 2.4, depthM: 1.6, ridgeM: 1, ridgeYM: 0, dirDeg: 0, type: "gable" });
+      m.dormers.push({ id: newMassId(), x: cx, y: cy, widthM: 2.4, depthM: 1.6, ridgeM: 1, ridgeYM: 0, ridgeHalfM: 1.2, dirDeg: 0, type: "gable" });
     }, true);
     setTool("move");
     toast.success("Dormer eklendi — 2B'de sürükleyerek konumla");
@@ -696,11 +696,11 @@ function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect
                     <div className="flex items-center justify-between"><span className="text-[11px] font-medium">Dormer {i + 1}</span>
                       <button type="button" onClick={() => onRemoveDormer(dm.id)} className="rounded p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600"><Trash2 className="size-3.5" /></button>
                     </div>
-                    <div className="grid grid-cols-3 gap-1">
+                    <div className="grid grid-cols-2 gap-1">
                       <div><Label className="text-[10px]">Gen (m)</Label><Input type="number" step="0.1" className="h-7" value={dm.widthM} onChange={(e) => onUpdateDormer(dm.id, (d) => { d.widthM = parseFloat(e.target.value) || 0.5; })} /></div>
                       <div><Label className="text-[10px]">Der (m)</Label><Input type="number" step="0.1" className="h-7" value={dm.depthM} onChange={(e) => onUpdateDormer(dm.id, (d) => { d.depthM = parseFloat(e.target.value) || 0.5; })} /></div>
-                      <div><Label className="text-[10px]" title="Çatı yüzeyinden sırt yüksekliği">Sırt (m)</Label><Input type="number" step="0.1" className="h-7" value={dm.ridgeM} onChange={(e) => onUpdateDormer(dm.id, (d) => { d.ridgeM = parseFloat(e.target.value) || 0.2; })} /></div>
                     </div>
+                    <p className="text-[9.5px] text-slate-400">Eğim/yükseklik binadan otomatik. Yeşil uç noktalar = sırt uzunluğu (beşik↔kırma), cyan = sırt kaydır.</p>
                     <div className="flex items-center gap-2">
                       <Label className="text-[10px] shrink-0">Döndür</Label>
                       <Slider min={0} max={360} step={5} value={[dm.dirDeg || 0]} onValueChange={(v) => onUpdateDormer(dm.id, (d) => { d.dirDeg = v[0]; })} />

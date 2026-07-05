@@ -172,7 +172,9 @@ export default function ThreeView() {
           const pos: number[] = [];
           const zc = face0 ? face0.zAbs(dm.x, dm.y) : roof.eavesM; // saçak = çatı yüzeyi kotu
           const base = mass.baseM; // taban = zemin kotu → duvarlar zeminden yükselir
-          const eaveH = zc, ridgeH = zc + dm.ridgeM;
+          const eaveH = zc;
+          const rise = hd * mpp * Math.tan(((mass.pitchDeg || 25) * Math.PI) / 180); // eğim = bina eğimi
+          const ridgeH = zc + rise;
           const ry = Math.max(-hd, Math.min(hd, (dm.ridgeYM || 0) / mpp)); // sırt orta noktası (y)
           const dl = (a: number[], b: number[]) => scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a[0], a[1], a[2]), new THREE.Vector3(b[0], b[1], b[2])]), lineMat));
           if (dm.type === "shed") {
@@ -188,7 +190,7 @@ export default function ThreeView() {
             pos.push(...quad(P(-hw, -hd, base), P(hw, -hd, base), P(hw, -hd, eaveH), P(-hw, -hd, eaveH)));
             pos.push(...quad(P(-hw, hd, base), P(-hw, -hd, base), P(-hw, -hd, eaveH), P(-hw, hd, eaveH)));
             pos.push(...quad(P(hw, hd, base), P(hw, -hd, base), P(hw, -hd, eaveH), P(hw, hd, eaveH)));
-            const rt = dm.type === "hip" ? hw * 0.3 : hw; // beşik: sırt tam genişlik; kırma: kısa sırt
+            const rt = Math.max(0, Math.min(hw, (dm.ridgeHalfM ?? hw * mpp) / mpp)); // sırt yarı-uzunluğu
             pos.push(...quad(P(-hw, hd, eaveH), P(hw, hd, eaveH), P(rt, ry, ridgeH), P(-rt, ry, ridgeH))); // ön eğim
             pos.push(...quad(P(-hw, -hd, eaveH), P(hw, -hd, eaveH), P(rt, ry, ridgeH), P(-rt, ry, ridgeH))); // arka eğim
             pos.push(...tri(P(-hw, hd, eaveH), P(-hw, -hd, eaveH), P(-rt, ry, ridgeH))); // sol (beşik alınlık / kırma hip yüzü)
