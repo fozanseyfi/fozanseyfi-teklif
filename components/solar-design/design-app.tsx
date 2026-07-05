@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDesignStore } from "@/lib/solar-design/store";
 import { computeLayout, panelsKwp } from "@/lib/solar-design/layout-engine";
-import { massRoof, faceAreaM2, seedRoofGraph, autoRoofHeights } from "@/lib/solar-design/roof-model";
+import { massRoof, faceAreaM2, seedRoofGraph, autoRoofHeights, generateRoof } from "@/lib/solar-design/roof-model";
 import type { MassRoof } from "@/lib/solar-design/roof-model";
 import { pointInPolygon } from "@/lib/solar-design/geometry";
 import { DEFAULT_MASS } from "@/lib/solar-design/types";
@@ -84,13 +84,33 @@ function polysOverlapD(A: Vec[], B: Vec[]): boolean {
   return true;
 }
 
-/** Şablonu 24×24 kutuya sığdırıp çizen küçük ikon. */
-function ShapeIcon({ poly }: { poly: Vec[] }) {
+/** Şablonun kırma (hip) çatı iç çizgileri (birim koordinat) — önizleme için. */
+function templateRoofLines(poly: Vec[]): [Vec, Vec][] {
+  try {
+    const sc = poly.map((p) => ({ x: p.x * 100, y: p.y * 100 }));
+    const model = generateRoof(sc, "hip", 30, 0, 3, 0.05);
+    const seen = new Map<string, { a: Vec; b: Vec; n: number }>();
+    const r = (v: number) => Math.round(v);
+    const key = (a: Vec, b: Vec) => { const A = `${r(a.x)},${r(a.y)}`, B = `${r(b.x)},${r(b.y)}`; return A < B ? `${A}|${B}` : `${B}|${A}`; };
+    for (const pl of model.planes) { const P = pl.poly; for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length]; const k = key(a, b); const e = seen.get(k); if (e) e.n++; else seen.set(k, { a, b, n: 1 }); } }
+    return [...seen.values()].filter((e) => e.n >= 2).map((e) => [{ x: e.a.x / 100, y: e.a.y / 100 }, { x: e.b.x / 100, y: e.b.y / 100 }] as [Vec, Vec]);
+  } catch { return []; }
+}
+const TEMPLATE_LINES: Record<string, [Vec, Vec][]> = Object.fromEntries(SHAPE_TEMPLATES.map((t) => [t.key, templateRoofLines(t.poly)]));
+
+/** Şablonu 24×24 kutuya sığdırıp çizen küçük ikon (dış hat + kırma çatı çizgileri). */
+function ShapeIcon({ poly, lines }: { poly: Vec[]; lines?: [Vec, Vec][] }) {
   const xs = poly.map((p) => p.x), ys = poly.map((p) => p.y);
   const minx = Math.min(...xs), maxx = Math.max(...xs), miny = Math.min(...ys), maxy = Math.max(...ys);
   const w = maxx - minx || 1, h = maxy - miny || 1, s = 16 / Math.max(w, h);
-  const pts = poly.map((p) => `${4 + (p.x - minx) * s},${4 + (p.y - miny) * s}`).join(" ");
-  return <svg width={24} height={24} viewBox="0 0 24 24"><polygon points={pts} fill="#05966922" stroke="#059669" strokeWidth={1.3} /></svg>;
+  const T = (p: Vec) => ({ x: 4 + (p.x - minx) * s, y: 4 + (p.y - miny) * s });
+  const pts = poly.map((p) => { const q = T(p); return `${q.x},${q.y}`; }).join(" ");
+  return (
+    <svg width={24} height={24} viewBox="0 0 24 24">
+      <polygon points={pts} fill="#05966922" stroke="#059669" strokeWidth={1.3} />
+      {(lines ?? []).map(([a, b], i) => { const p = T(a), q = T(b); return <line key={i} x1={p.x} y1={p.y} x2={q.x} y2={q.y} stroke="#2563eb" strokeWidth={0.8} />; })}
+    </svg>
+  );
 }
 
 const CITY_YIELD: Record<string, number> = {
@@ -548,7 +568,7 @@ function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect
             {SHAPE_TEMPLATES.map((t) => (
               <button key={t.key} type="button" onClick={() => onShape(t.poly)} title={t.label}
                 className="flex flex-col items-center gap-0.5 rounded-md border border-slate-200 p-1.5 text-[10px] font-medium text-slate-600 hover:border-emerald-300 hover:bg-emerald-50/60">
-                <ShapeIcon poly={t.poly} />
+                <ShapeIcon poly={t.poly} lines={TEMPLATE_LINES[t.key]} />
                 {t.label}
               </button>
             ))}

@@ -218,7 +218,7 @@ export default function MassEditor({ mode }: { mode: MassMode }) {
         <div className="absolute right-2 top-2 z-20 flex items-center gap-2 rounded-lg bg-white px-2.5 py-1.5 text-[12px] shadow ring-1 ring-slate-200">
           <span className="font-medium text-slate-600">Nokta yüksekliği</span>
           <input type="number" step="0.1" value={selNodeObj.z}
-            onChange={(e) => { const z = parseFloat(e.target.value) || 0; setRoof((g) => { const n = g.nodes.find((x) => x.id === selNode); if (n) n.z = z; }, false); }}
+            onChange={(e) => { const z = Math.round((parseFloat(e.target.value) || 0) * 10) / 10; setRoof((g) => { const n = g.nodes.find((x) => x.id === selNode); if (n) n.z = z; }, false); }}
             className="h-8 w-20 rounded border border-slate-300 px-2" />
           <span className="text-slate-500">m</span>
         </div>
@@ -274,7 +274,7 @@ export default function MassEditor({ mode }: { mode: MassMode }) {
                       onDragMove={(e) => setRoof((g) => { const t = g.nodes.find((x) => x.id === n.id); if (t) { t.x = e.target.x(); t.y = e.target.y(); } }, false)}
                       onDragEnd={(e) => setRoof((g) => { const t = g.nodes.find((x) => x.id === n.id); if (t) { t.x = e.target.x(); t.y = e.target.y(); } })}
                       onContextMenu={(e) => { e.evt.preventDefault(); if (mode === "edit") { setRoof((g) => { g.nodes = g.nodes.filter((x) => x.id !== n.id); g.edges = g.edges.filter((x) => x.a !== n.id && x.b !== n.id); }); setSelNode(null); } }} />
-                    {n.z ? <Text x={n.x} y={n.y} text={`${n.z} m`} fontSize={10 / scale} fill="#7c3aed" stroke="#fff" strokeWidth={2.2 / scale} fillAfterStrokeEnabled offsetX={-7 / scale} offsetY={13 / scale} listening={false} /> : null}
+                    {n.z ? <Text x={n.x} y={n.y} text={`${n.z.toFixed(1)} m`} fontSize={10 / scale} fill="#7c3aed" stroke="#fff" strokeWidth={2.2 / scale} fillAfterStrokeEnabled offsetX={-7 / scale} offsetY={13 / scale} listening={false} /> : null}
                   </Group>
                 ))}
               </>

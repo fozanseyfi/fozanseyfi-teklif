@@ -278,7 +278,7 @@ export function autoRoofHeights(nodes: RNode[], edges: REdge[], defaultPitch: nu
       const n = byId.get(id); if (!n) continue;
       let d = Infinity;
       for (const [a, b] of segs) { const r = nearestOnSegment(n, a, b); if (r.dist < d) d = r.dist; }
-      const cand = Number.isFinite(d) ? Math.round(d * mpp * tan(pitch) * 100) / 100 : 0;
+      const cand = Number.isFinite(d) ? Math.round(d * mpp * tan(pitch) * 10) / 10 : 0;
       z.set(id, Math.max(z.get(id) ?? 0, cand));
     }
   }
@@ -301,7 +301,7 @@ export function seedRoofGraph(mass: Mass, mpp: number): { nodes: RNode[]; edges:
   const edgeSet = new Set<string>();
   const edges: REdge[] = [];
   for (const pl of model.planes) {
-    const ids = pl.poly.map((p) => getId(p.x, p.y, pl.z(p.x, p.y) - eavesM));
+    const ids = pl.poly.map((p) => getId(p.x, p.y, Math.round((pl.z(p.x, p.y) - eavesM) * 10) / 10));
     for (let i = 0; i < ids.length; i++) {
       const a = ids[i], b = ids[(i + 1) % ids.length];
       if (a === b) continue;
