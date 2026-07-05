@@ -320,9 +320,17 @@ export default function MassEditor({ mode }: { mode: MassMode }) {
             {active.dormers.map((dm) => {
               const hw = dm.widthM / 2 / mpp, hd = dm.depthM / 2 / mpp;
               return (
-                <Group key={dm.id} x={dm.x} y={dm.y} draggable={mode === "edit" || mode === "move"} onDragEnd={(e) => moveDormer(dm.id, e.target.x(), e.target.y())}>
+                <Group key={dm.id} x={dm.x} y={dm.y} rotation={dm.dirDeg || 0} draggable={mode === "edit" || mode === "move"} onDragEnd={(e) => moveDormer(dm.id, e.target.x(), e.target.y())}>
                   <Rect x={-hw} y={-hd} width={hw * 2} height={hd * 2} fill="#7c3aed22" stroke="#7c3aed" strokeWidth={1.6 / scale} />
-                  <Line points={dm.type === "gable" ? [-hw, 0, hw, 0] : [-hw, -hd, hw, -hd]} stroke="#7c3aed" strokeWidth={1.3 / scale} dash={[4 / scale, 3 / scale]} listening={false} />
+                  {dm.type === "hip" ? (
+                    <>
+                      <Line points={[-hw * 0.35, 0, hw * 0.35, 0]} stroke="#7c3aed" strokeWidth={1.3 / scale} dash={[4 / scale, 3 / scale]} listening={false} />
+                      <Line points={[-hw, -hd, -hw * 0.35, 0, -hw, hd]} stroke="#7c3aed" strokeWidth={1 / scale} dash={[3 / scale, 3 / scale]} listening={false} />
+                      <Line points={[hw, -hd, hw * 0.35, 0, hw, hd]} stroke="#7c3aed" strokeWidth={1 / scale} dash={[3 / scale, 3 / scale]} listening={false} />
+                    </>
+                  ) : (
+                    <Line points={dm.type === "gable" ? [-hw, 0, hw, 0] : [-hw, -hd, hw, -hd]} stroke="#7c3aed" strokeWidth={1.3 / scale} dash={[4 / scale, 3 / scale]} listening={false} />
+                  )}
                   <Text text="dormer" fontSize={10 / scale} fill="#5b21b6" stroke="#fff" strokeWidth={2.2 / scale} fillAfterStrokeEnabled offsetX={16 / scale} offsetY={5 / scale} listening={false} />
                 </Group>
               );

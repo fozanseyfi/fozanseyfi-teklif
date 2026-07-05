@@ -127,6 +127,21 @@ export function generateRoof(
     return { planes, heightAtBoundary: (p) => eavesM + relief(p.x, p.y), ridgeM: eavesM + halfPx * risePerPx };
   }
 
+  if (type === "shed") {
+    // Tek eğim (mono-pitch): tek düzlem, ridgeAxisDeg'e dik yönde yükselir.
+    const rad = (ridgeAxisDeg * Math.PI) / 180;
+    const nx = -Math.sin(rad), ny = Math.cos(rad);
+    const ds = poly.map((p) => (p.x - c.x) * nx + (p.y - c.y) * ny);
+    const minD = Math.min(...ds), maxD = Math.max(...ds);
+    const relief = (x: number, y: number) => ((x - c.x) * nx + (y - c.y) * ny - minD) * risePerPx;
+    const zFn = (x: number, y: number) => eavesM + relief(x, y);
+    return {
+      planes: [{ id: "shed", name: "Çatı", poly, z: zFn, tiltDeg: pitchDeg, azimuthDeg: azimuthFromNormal(nx, ny) }],
+      heightAtBoundary: (p) => eavesM + relief(p.x, p.y),
+      ridgeM: eavesM + (maxD - minD) * risePerPx,
+    };
+  }
+
   // hip — her kenar için bir düzlem; bölge = o kenara diğerlerinden daha yakın
   // noktalar (dışbükeyde straight-skeleton yüzü). Yükseklik = kenara dik uzaklık.
   const n = poly.length;

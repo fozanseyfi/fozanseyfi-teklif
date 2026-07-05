@@ -11,7 +11,7 @@ export interface Vec {
 }
 
 /** Parametrik çatı tipi. */
-export type RoofType = "flat" | "gable" | "hip";
+export type RoofType = "flat" | "gable" | "hip" | "shed";
 
 export interface RNode {
   id: string;
@@ -73,7 +73,8 @@ export interface Dormer {
   widthM: number; // sırt yönü genişliği
   depthM: number; // eğim yönü derinliği
   ridgeM: number; // çatı yüzeyinden sırt yüksekliği (m)
-  type: "gable" | "shed";
+  dirDeg: number; // döndürme (derece)
+  type: "gable" | "hip" | "shed";
 }
 
 /**

@@ -60,7 +60,8 @@ const SHAPE_TEMPLATES: { key: string; label: string; poly: Vec[] }[] = [
 /** Dormer'ın çatı plan dörtgeni (px) — panel keepout için. */
 export function dormerPoly(dm: Dormer, mpp: number): Vec[] {
   const hw = dm.widthM / 2 / mpp, hd = dm.depthM / 2 / mpp;
-  return [{ x: dm.x - hw, y: dm.y - hd }, { x: dm.x + hw, y: dm.y - hd }, { x: dm.x + hw, y: dm.y + hd }, { x: dm.x - hw, y: dm.y + hd }];
+  const ang = ((dm.dirDeg || 0) * Math.PI) / 180, ca = Math.cos(ang), sa = Math.sin(ang);
+  return ([[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]] as const).map(([lx, ly]) => ({ x: dm.x + lx * ca - ly * sa, y: dm.y + lx * sa + ly * ca }));
 }
 
 /** Panelin dünya köşeleri (dönmüş dörtgen) — engel çakışma testi için. */
@@ -273,7 +274,7 @@ function Editor() {
       if (!m || m.footprint.length < 3) return;
       const cx = m.footprint.reduce((s, p) => s + p.x, 0) / m.footprint.length;
       const cy = m.footprint.reduce((s, p) => s + p.y, 0) / m.footprint.length;
-      m.dormers.push({ id: newMassId(), x: cx, y: cy, widthM: 2.4, depthM: 1.6, ridgeM: 1, type: "gable" });
+      m.dormers.push({ id: newMassId(), x: cx, y: cy, widthM: 2.4, depthM: 1.6, ridgeM: 1, dirDeg: 0, type: "gable" });
     }, true);
     setTool("move");
     toast.success("Dormer eklendi — 2B'de sürükleyerek konumla");
@@ -532,11 +533,12 @@ function GorselPanel({ mpp, hasImage, onMap, onUpload }: { mpp: number | null; h
 }
 
 const ROOF_TYPES: { v: RoofType; label: string; desc: string }[] = [
+  { v: "gable", label: "Beşik (A-frame)", desc: "İki yöne eğimli, ortada sırt" },
+  { v: "hip", label: "Kırma (Hip)", desc: "Tüm kenarlardan eğimli" },
+  { v: "shed", label: "Tek eğim (Shed)", desc: "Tek yöne eğimli" },
   { v: "flat", label: "Düz", desc: "Yatay teras çatı" },
-  { v: "gable", label: "Beşik", desc: "İki yöne eğimli, ortada sırt" },
-  { v: "hip", label: "Kırma", desc: "Tüm kenarlardan eğimli" },
 ];
-const ROOF_SHORT: Record<RoofType, string> = { flat: "Düz", gable: "Beşik", hip: "Kırma" };
+const ROOF_SHORT: Record<RoofType, string> = { flat: "Düz", gable: "Beşik", hip: "Kırma", shed: "Tek eğim" };
 
 function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect, onRemove, onToggleRoofEdit, onShape, onAutoHeights, faces, onFacePitch, onAddDormer, onUpdateDormer, onRemoveDormer }: {
   updateActive: (mut: (m: Mass) => void) => void;
@@ -637,10 +639,10 @@ function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect
                     <Slider min={5} max={60} step={1} value={[active.pitchDeg]} onValueChange={(v) => updateActive((m) => { m.pitchDeg = v[0]; })} />
                   </div>
                 )}
-                {active.roofType === "gable" && (
+                {(active.roofType === "gable" || active.roofType === "shed") && (
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between"><Label className="text-[11px]">Sırt (ridge) yönü</Label><span className="text-[12px] font-semibold text-emerald-700">{active.ridgeAxisDeg}°</span></div>
-                    <Slider min={0} max={180} step={5} value={[active.ridgeAxisDeg]} onValueChange={(v) => updateActive((m) => { m.ridgeAxisDeg = v[0]; })} />
+                    <div className="flex items-center justify-between"><Label className="text-[11px]">{active.roofType === "shed" ? "Eğim yönü" : "Sırt (ridge) yönü"}</Label><span className="text-[12px] font-semibold text-emerald-700">{active.ridgeAxisDeg}°</span></div>
+                    <Slider min={0} max={active.roofType === "shed" ? 360 : 180} step={5} value={[active.ridgeAxisDeg]} onValueChange={(v) => updateActive((m) => { m.ridgeAxisDeg = v[0]; })} />
                   </div>
                 )}
                 {active.roofType === "flat" && (
@@ -680,9 +682,15 @@ function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect
                       <div><Label className="text-[10px]">Der (m)</Label><Input type="number" step="0.1" className="h-7" value={dm.depthM} onChange={(e) => onUpdateDormer(dm.id, (d) => { d.depthM = parseFloat(e.target.value) || 0.5; })} /></div>
                       <div><Label className="text-[10px]">Yük (m)</Label><Input type="number" step="0.1" className="h-7" value={dm.ridgeM} onChange={(e) => onUpdateDormer(dm.id, (d) => { d.ridgeM = parseFloat(e.target.value) || 0.2; })} /></div>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-[10px] shrink-0">Döndür</Label>
+                      <Slider min={0} max={360} step={5} value={[dm.dirDeg || 0]} onValueChange={(v) => onUpdateDormer(dm.id, (d) => { d.dirDeg = v[0]; })} />
+                      <span className="w-8 text-right text-[10.5px] tabular-nums text-slate-500">{dm.dirDeg || 0}°</span>
+                    </div>
                     <div className="flex gap-1">
-                      <button type="button" onClick={() => onUpdateDormer(dm.id, (d) => { d.type = "gable"; })} className={cn("flex-1 rounded border px-2 py-1 text-[10.5px]", dm.type === "gable" ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "text-slate-500")}>Beşik</button>
-                      <button type="button" onClick={() => onUpdateDormer(dm.id, (d) => { d.type = "shed"; })} className={cn("flex-1 rounded border px-2 py-1 text-[10.5px]", dm.type === "shed" ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "text-slate-500")}>Tek eğim</button>
+                      {(["gable", "hip", "shed"] as const).map((t) => (
+                        <button key={t} type="button" onClick={() => onUpdateDormer(dm.id, (d) => { d.type = t; })} className={cn("flex-1 rounded border px-2 py-1 text-[10.5px]", dm.type === t ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "text-slate-500")}>{t === "gable" ? "Beşik" : t === "hip" ? "Kırma" : "Tek eğim"}</button>
+                      ))}
                     </div>
                   </div>
                 ))}

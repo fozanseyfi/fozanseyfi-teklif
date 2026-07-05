@@ -157,31 +157,44 @@ export default function ThreeView() {
           faceLabels.push({ el, cxp, cyp, z: face.zAbs(cxp, cyp) });
         });
 
-        // Dormerlar (çatı çıkıntısı) — oturdukları yüzeyden yükselen beşik/tek eğim
+        // Dormerlar (çatı çıkıntısı) — tabanı BİNA TABANINA basar; döndürülebilir; beşik/kırma/tek eğim
         mass.dormers.forEach((dm) => {
           if (dm.widthM <= 0 || dm.depthM <= 0) return;
           const face = roof.faces.find((f) => pointInPolygon({ x: dm.x, y: dm.y }, f.poly));
-          const zBase = face ? face.zAbs(dm.x, dm.y) : roof.eavesM;
+          const zTop = face ? face.zAbs(dm.x, dm.y) : roof.eavesM; // çatı yüzeyi kotu
+          const base = mass.baseM; // taban = bina tabanı
           const hw = dm.widthM / 2 / mpp, hd = dm.depthM / 2 / mpp;
-          const x0 = dm.x - hw, x1 = dm.x + hw, y0 = dm.y - hd, y1 = dm.y + hd, yc = dm.y;
-          const P = (px: number, py: number, h: number): number[] => { const w = toWorld(px, py); return [w.x, h, w.z]; };
+          const ang = ((dm.dirDeg || 0) * Math.PI) / 180, ca = Math.cos(ang), sa = Math.sin(ang);
+          // yerel (lx,ly) → döndür → dünya
+          const P = (lx: number, ly: number, h: number): number[] => { const w = toWorld(dm.x + lx * ca - ly * sa, dm.y + lx * sa + ly * ca); return [w.x, h, w.z]; };
           const quad = (a: number[], b: number[], c: number[], d: number[]) => [...a, ...b, ...c, ...a, ...c, ...d];
           const tri = (a: number[], b: number[], c: number[]) => [...a, ...b, ...c];
           const pos: number[] = [];
+          const eaveH = zTop + dm.ridgeM * 0.4, ridgeH = zTop + dm.ridgeM;
           if (dm.type === "gable") {
-            const eaveH = zBase + dm.ridgeM * 0.4, ridgeH = zBase + dm.ridgeM;
-            pos.push(...quad(P(x0, y0, zBase), P(x1, y0, zBase), P(x1, y0, eaveH), P(x0, y0, eaveH)));
-            pos.push(...quad(P(x0, y1, zBase), P(x1, y1, zBase), P(x1, y1, eaveH), P(x0, y1, eaveH)));
-            pos.push(...quad(P(x0, y0, zBase), P(x0, y1, zBase), P(x0, y1, eaveH), P(x0, y0, eaveH)), ...tri(P(x0, y0, eaveH), P(x0, y1, eaveH), P(x0, yc, ridgeH)));
-            pos.push(...quad(P(x1, y0, zBase), P(x1, y1, zBase), P(x1, y1, eaveH), P(x1, y0, eaveH)), ...tri(P(x1, y0, eaveH), P(x1, y1, eaveH), P(x1, yc, ridgeH)));
-            pos.push(...quad(P(x0, y0, eaveH), P(x1, y0, eaveH), P(x1, yc, ridgeH), P(x0, yc, ridgeH)));
-            pos.push(...quad(P(x0, y1, eaveH), P(x1, y1, eaveH), P(x1, yc, ridgeH), P(x0, yc, ridgeH)));
+            pos.push(...quad(P(-hw, -hd, base), P(hw, -hd, base), P(hw, -hd, eaveH), P(-hw, -hd, eaveH)));
+            pos.push(...quad(P(-hw, hd, base), P(hw, hd, base), P(hw, hd, eaveH), P(-hw, hd, eaveH)));
+            pos.push(...quad(P(-hw, -hd, base), P(-hw, hd, base), P(-hw, hd, eaveH), P(-hw, -hd, eaveH)), ...tri(P(-hw, -hd, eaveH), P(-hw, hd, eaveH), P(-hw, 0, ridgeH)));
+            pos.push(...quad(P(hw, -hd, base), P(hw, hd, base), P(hw, hd, eaveH), P(hw, -hd, eaveH)), ...tri(P(hw, -hd, eaveH), P(hw, hd, eaveH), P(hw, 0, ridgeH)));
+            pos.push(...quad(P(-hw, -hd, eaveH), P(hw, -hd, eaveH), P(hw, 0, ridgeH), P(-hw, 0, ridgeH)));
+            pos.push(...quad(P(-hw, hd, eaveH), P(hw, hd, eaveH), P(hw, 0, ridgeH), P(-hw, 0, ridgeH)));
+          } else if (dm.type === "hip") {
+            const rt = hw * 0.35;
+            pos.push(...quad(P(-hw, -hd, base), P(hw, -hd, base), P(hw, -hd, eaveH), P(-hw, -hd, eaveH)));
+            pos.push(...quad(P(-hw, hd, base), P(hw, hd, base), P(hw, hd, eaveH), P(-hw, hd, eaveH)));
+            pos.push(...quad(P(-hw, -hd, base), P(-hw, hd, base), P(-hw, hd, eaveH), P(-hw, -hd, eaveH)));
+            pos.push(...quad(P(hw, -hd, base), P(hw, hd, base), P(hw, hd, eaveH), P(hw, -hd, eaveH)));
+            pos.push(...quad(P(-hw, -hd, eaveH), P(hw, -hd, eaveH), P(rt, 0, ridgeH), P(-rt, 0, ridgeH)));
+            pos.push(...quad(P(-hw, hd, eaveH), P(hw, hd, eaveH), P(rt, 0, ridgeH), P(-rt, 0, ridgeH)));
+            pos.push(...tri(P(-hw, -hd, eaveH), P(-hw, hd, eaveH), P(-rt, 0, ridgeH)));
+            pos.push(...tri(P(hw, -hd, eaveH), P(hw, hd, eaveH), P(rt, 0, ridgeH)));
           } else {
-            const hHi = zBase + dm.ridgeM, hLo = zBase + 0.05;
-            pos.push(...quad(P(x0, y0, zBase), P(x1, y0, zBase), P(x1, y0, hHi), P(x0, y0, hHi)));
-            pos.push(...quad(P(x0, y0, zBase), P(x0, y1, zBase), P(x0, y1, hLo), P(x0, y0, hHi)));
-            pos.push(...quad(P(x1, y0, zBase), P(x1, y1, zBase), P(x1, y1, hLo), P(x1, y0, hHi)));
-            pos.push(...quad(P(x0, y0, hHi), P(x1, y0, hHi), P(x1, y1, hLo), P(x0, y1, hLo)));
+            const hHi = zTop + dm.ridgeM, hLo = zTop + 0.05;
+            pos.push(...quad(P(-hw, -hd, base), P(hw, -hd, base), P(hw, -hd, hHi), P(-hw, -hd, hHi)));
+            pos.push(...quad(P(-hw, hd, base), P(hw, hd, base), P(hw, hd, hLo), P(-hw, hd, hLo)));
+            pos.push(...quad(P(-hw, -hd, base), P(-hw, hd, base), P(-hw, hd, hLo), P(-hw, -hd, hHi)));
+            pos.push(...quad(P(hw, -hd, base), P(hw, hd, base), P(hw, hd, hLo), P(hw, -hd, hHi)));
+            pos.push(...quad(P(-hw, -hd, hHi), P(hw, -hd, hHi), P(hw, hd, hLo), P(-hw, hd, hLo)));
           }
           addMesh(pos, dormerMat);
         });
