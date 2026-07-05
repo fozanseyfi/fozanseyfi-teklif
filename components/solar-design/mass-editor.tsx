@@ -31,7 +31,7 @@ function orthoSnap(from: Vec, to: Vec): { p: Vec; ax: "h" | "v" | null } {
  *  • Elle çatı (roofEditable): çatı grafiğini (sırt/kırma çizgileri) sürükle/
  *    sil/ekle/çiz; köşeye tıklayıp yükseklik ver. Aurora benzeri.
  */
-export default function MassEditor({ mode, dormerDraw }: { mode: MassMode; dormerDraw?: boolean }) {
+export default function MassEditor({ mode, dormerDraw, dormerType }: { mode: MassMode; dormerDraw?: boolean; dormerType?: "gable" | "hip" | "shed" }) {
   const doc = useDesignStore((s) => s.active)!;
   const update = useDesignStore((s) => s.update);
 
@@ -98,6 +98,22 @@ export default function MassEditor({ mode, dormerDraw }: { mode: MassMode; dorme
     if (!active) return;
     update((d) => { const m = d.masses.find((mm) => mm.id === active.id); const dm = m?.dormers.find((x2) => x2.id === id); if (dm) { dm.x = x; dm.y = y; } }, true);
   }
+  // Köşe tutamacını sürükle → dikdörtgeni yeniden boyutlandır (karşı köşe sabit, yön korunur).
+  function resizeDormerCorner(id: string, lx: number, ly: number, nx: number, ny: number) {
+    if (!active || !mpp) return;
+    update((d) => {
+      const m = d.masses.find((mm) => mm.id === active.id);
+      const dm = m?.dormers.find((x2) => x2.id === id);
+      if (!dm) return;
+      const ang = ((dm.dirDeg || 0) * Math.PI) / 180, ca = Math.cos(ang), sa = Math.sin(ang);
+      const ox = dm.x + (-lx) * ca - (-ly) * sa, oy = dm.y + (-lx) * sa + (-ly) * ca; // karşı köşe (sabit)
+      const dx = nx - ox, dy = ny - oy;
+      const lxq = dx * ca + dy * sa, lyq = -dx * sa + dy * ca; // yerel eksene çevir
+      dm.x = (ox + nx) / 2; dm.y = (oy + ny) / 2;
+      dm.widthM = Math.max(0.5, Math.abs(lxq) * mpp);
+      dm.depthM = Math.max(0.5, Math.abs(lyq) * mpp);
+    }, true);
+  }
   // 3 nokta: p1 (arka/tepe) → p2 (ön/oluk) omurga; p3 genişlik. Taban çatıya hizalı.
   function addDormerShape(p1: Vec, p2: Vec, p3: Vec) {
     if (!active || !mpp) return;
@@ -110,7 +126,7 @@ export default function MassEditor({ mode, dormerDraw }: { mode: MassMode; dorme
     const dirDeg = (sAng * 180) / Math.PI - 90;
     update((d) => {
       const m = d.masses.find((mm) => mm.id === active.id);
-      if (m) m.dormers.push({ id: genId(), x: mid.x, y: mid.y, widthM: 2 * perpPx * mpp, depthM: len * mpp, ridgeM: 1, dirDeg, type: "hip" });
+      if (m) m.dormers.push({ id: genId(), x: mid.x, y: mid.y, widthM: 2 * perpPx * mpp, depthM: len * mpp, ridgeM: 1, dirDeg, type: dormerType ?? "hip" });
     }, true);
     setDpts([]);
   }
@@ -345,19 +361,24 @@ export default function MassEditor({ mode, dormerDraw }: { mode: MassMode; dorme
           <Layer>
             {active.dormers.map((dm) => {
               const hw = dm.widthM / 2 / mpp, hd = dm.depthM / 2 / mpp;
+              const ang = ((dm.dirDeg || 0) * Math.PI) / 180, ca = Math.cos(ang), sa = Math.sin(ang);
+              const corner = (lx: number, ly: number) => ({ x: dm.x + lx * ca - ly * sa, y: dm.y + lx * sa + ly * ca });
+              const HC: [number, number][] = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]];
               return (
-                <Group key={dm.id} x={dm.x} y={dm.y} rotation={dm.dirDeg || 0} draggable={mode === "edit" || mode === "move"} onDragEnd={(e) => moveDormer(dm.id, e.target.x(), e.target.y())}>
-                  <Rect x={-hw} y={-hd} width={hw * 2} height={hd * 2} fill="#7c3aed22" stroke="#7c3aed" strokeWidth={1.6 / scale} />
-                  {dm.type === "hip" ? (
-                    <>
-                      <Line points={[-hw * 0.35, 0, hw * 0.35, 0]} stroke="#7c3aed" strokeWidth={1.3 / scale} dash={[4 / scale, 3 / scale]} listening={false} />
-                      <Line points={[-hw, -hd, -hw * 0.35, 0, -hw, hd]} stroke="#7c3aed" strokeWidth={1 / scale} dash={[3 / scale, 3 / scale]} listening={false} />
-                      <Line points={[hw, -hd, hw * 0.35, 0, hw, hd]} stroke="#7c3aed" strokeWidth={1 / scale} dash={[3 / scale, 3 / scale]} listening={false} />
-                    </>
-                  ) : (
-                    <Line points={dm.type === "gable" ? [-hw, 0, hw, 0] : [-hw, -hd, hw, -hd]} stroke="#7c3aed" strokeWidth={1.3 / scale} dash={[4 / scale, 3 / scale]} listening={false} />
-                  )}
-                  <Text text="dormer" fontSize={10 / scale} fill="#5b21b6" stroke="#fff" strokeWidth={2.2 / scale} fillAfterStrokeEnabled offsetX={16 / scale} offsetY={5 / scale} listening={false} />
+                <Group key={dm.id}>
+                  <Group x={dm.x} y={dm.y} rotation={dm.dirDeg || 0} draggable={mode === "edit" || mode === "move"} onDragEnd={(e) => moveDormer(dm.id, e.target.x(), e.target.y())}>
+                    <Rect x={-hw} y={-hd} width={hw * 2} height={hd * 2} fill="#7c3aed22" stroke="#7c3aed" strokeWidth={1.6 / scale} />
+                    {dm.type === "hip" ? (
+                      <>
+                        <Line points={[-hw * 0.35, 0, hw * 0.35, 0]} stroke="#7c3aed" strokeWidth={1.3 / scale} dash={[4 / scale, 3 / scale]} listening={false} />
+                        <Line points={[-hw, -hd, -hw * 0.35, 0, -hw, hd]} stroke="#7c3aed" strokeWidth={1 / scale} dash={[3 / scale, 3 / scale]} listening={false} />
+                        <Line points={[hw, -hd, hw * 0.35, 0, hw, hd]} stroke="#7c3aed" strokeWidth={1 / scale} dash={[3 / scale, 3 / scale]} listening={false} />
+                      </>
+                    ) : (
+                      <Line points={dm.type === "gable" ? [-hw, 0, hw, 0] : [-hw, -hd, hw, -hd]} stroke="#7c3aed" strokeWidth={1.3 / scale} dash={[4 / scale, 3 / scale]} listening={false} />
+                    )}
+                  </Group>
+                  {(mode === "edit" || mode === "move") && HC.map(([lx, ly], k) => { const w = corner(lx, ly); return <Circle key={k} x={w.x} y={w.y} radius={5.5 / scale} fill="#7c3aed" stroke="#fff" strokeWidth={1.6 / scale} draggable onDragEnd={(e) => resizeDormerCorner(dm.id, lx, ly, e.target.x(), e.target.y())} />; })}
                 </Group>
               );
             })}

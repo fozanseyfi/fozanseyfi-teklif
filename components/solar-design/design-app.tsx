@@ -98,6 +98,15 @@ function templateRoofLines(poly: Vec[]): [Vec, Vec][] {
 }
 const TEMPLATE_LINES: Record<string, [Vec, Vec][]> = Object.fromEntries(SHAPE_TEMPLATES.map((t) => [t.key, templateRoofLines(t.poly)]));
 
+/** Dormer tipi görsel ikonu (A-frame / Hip / Shed). */
+function DormerIcon({ type }: { type: "gable" | "hip" | "shed" }) {
+  const d = type === "gable" ? "M4 21 V11 L12 5 L20 11 V21 Z" : type === "hip" ? "M3 21 L7 10 H17 L21 21 Z" : "M4 21 V14 L20 8 V21 Z";
+  return <svg width={26} height={22} viewBox="0 0 24 24"><path d={d} fill="#7c3aed22" stroke="#7c3aed" strokeWidth={1.5} strokeLinejoin="round" /></svg>;
+}
+const DORMER_TYPES: { v: "gable" | "hip" | "shed"; label: string }[] = [
+  { v: "gable", label: "Beşik" }, { v: "hip", label: "Kırma" }, { v: "shed", label: "Tek eğim" },
+];
+
 /** Şablonu 24×24 kutuya sığdırıp çizen küçük ikon (dış hat + kırma çatı çizgileri). */
 function ShapeIcon({ poly, lines }: { poly: Vec[]; lines?: [Vec, Vec][] }) {
   const xs = poly.map((p) => p.x), ys = poly.map((p) => p.y);
@@ -210,6 +219,7 @@ function Editor() {
   const [obstacleMode, setObstacleMode] = useState(false);
   const [addPanelMode, setAddPanelMode] = useState(false);
   const [dormerDraw, setDormerDraw] = useState(false);
+  const [dormerType, setDormerType] = useState<"gable" | "hip" | "shed">("hip");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedFaceSig, setSelectedFaceSig] = useState<string | null>(null);
   const [mapMode, setMapMode] = useState(true); // açılışta uydu haritası standart
@@ -329,6 +339,17 @@ function Editor() {
   const showMap = step === "gorsel" && mapMode && !pending;
   const showCrop = step === "gorsel" && !!pending;
   const showCanvasToolbar = step === "cizim" && cizimView === "2d" && !locked && !!activeMass;
+  const canvasHint = showCanvasToolbar
+    ? (dormerDraw ? "Dormer: köşeleri tıkla — 1) arka/tepe → 2) ön/oluk → 3) genişlik"
+      : activeMass?.roofEditable ? "Çatı: köşe sürükle · çift tık ekle · sağ tık sil · köşeye tıkla → yükseklik"
+      : tool === "draw" ? "Köşeleri tıkla · ilk köşeye dönünce kapanır"
+      : tool === "move" ? "Kütleyi sürükleyerek taşı"
+      : "Köşe sürükle · çizgiye çift tık ekle · sağ tık sil")
+    : step === "panel" && panelView === "2d"
+      ? (obstacleMode ? "Engel: köşeleri tıkla · Enter bitir · sağ tık sil"
+        : addPanelMode ? "Çatı yüzeyine tıkla → panel"
+        : "Panel tıkla/sürükle · boş alanda dikdörtgen çiz = çoklu seç · R döndür · Del sil")
+      : "";
 
   function autoLayout() {
     if (!mpp) { toast.error("Ölçek bulunamadı — altlığı haritadan alın."); return; }
@@ -377,87 +398,81 @@ function Editor() {
       </div>
 
       <div className="grid items-start gap-3 lg:grid-cols-[1fr_340px]">
-        <div className="space-y-2">
-          {/* 2B / 3B geçişi (Bina & Çatı + Panel Yerleşimi) */}
-          {step === "cizim" && (
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex w-fit items-center gap-1 rounded-lg border bg-card p-1">
-                <ToolBtn active={cizimView === "2d"} onClick={() => setCizimView("2d")} icon={PencilRuler} label="2B Plan" />
-                <ToolBtn active={cizimView === "3d"} onClick={() => setCizimView("3d")} icon={Box} label="3B Model" />
-              </div>
-              {locked ? (
-                <Button size="sm" variant="outline" onClick={() => setLocked(false)}><Unlock className="size-4" /> Kilidi Aç (düzenle)</Button>
-              ) : (
-                <Button size="sm" onClick={() => { setLocked(true); setStep("panel"); toast.success("Bina kilitlendi — panel yerleşimine geçildi"); }}><Lock className="size-4" /> Binayı Tamamla ve Kilitle</Button>
-              )}
-            </div>
-          )}
-          {step === "panel" && (
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex w-fit items-center gap-1 rounded-lg border bg-card p-1">
-                <ToolBtn active={panelView === "2d"} onClick={() => setPanelView("2d")} icon={LayoutGrid} label="2B Yerleşim" />
-                <ToolBtn active={panelView === "3d"} onClick={() => setPanelView("3d")} icon={Box} label="3B Önizleme" />
-              </div>
-              {panelView === "2d" && (
-                <>
-                  <Button size="sm" variant={addPanelMode ? "default" : "outline"} className={addPanelMode ? "bg-blue-600 text-white hover:bg-blue-700" : ""} onClick={() => setAddPanelMode((v) => { const n = !v; if (n) setObstacleMode(false); return n; })}>
-                    <Plus className="size-4" /> {addPanelMode ? "Panel Eklemeyi Bitir" : "Panel Ekle (elle)"}
-                  </Button>
-                  <Button size="sm" variant={obstacleMode ? "default" : "outline"} className={obstacleMode ? "bg-rose-600 text-white hover:bg-rose-700" : ""} onClick={() => setObstacleMode((v) => { const n = !v; if (n) setAddPanelMode(false); return n; })}>
-                    <Ban className="size-4" /> {obstacleMode ? "Engel Bitir" : "Engel Ekle (baca)"}
-                  </Button>
-                  <span className="text-[11px] text-muted-foreground">{obstacleMode ? "Köşeleri tıkla → engel · Enter bitir · sağ tık sil" : addPanelMode ? "Çatı yüzeyine tıkla → panel" : "Panel tıkla · sürükle-taşı · R döndür · Del sil · engele tıkla → yükseklik"}</span>
-                </>
-              )}
-            </div>
-          )}
-
-          {showCanvasToolbar && (
-            <div className="flex flex-wrap items-center gap-1.5 rounded-lg border bg-card p-1.5">
-              <ToolBtn active={tool === "draw" && !dormerDraw} onClick={() => { setTool("draw"); setDormerDraw(false); }} icon={PencilRuler} label="Hat Çiz" />
-              <ToolBtn active={tool === "edit" && !dormerDraw} onClick={() => { setTool("edit"); setDormerDraw(false); }} icon={MousePointer2} label="Köşe Düzenle" />
-              <ToolBtn active={tool === "move" && !dormerDraw} onClick={() => { setTool("move"); setDormerDraw(false); }} icon={Move} label="Taşı" />
-              {activeMass && activeMass.footprint.length >= 3 && (
-                activeMass.roofEditable ? (
-                  <Button size="sm" variant="secondary" className="h-8" onClick={toggleRoofEdit}><Spline className="size-4" /> Otomatik Çatıya Dön</Button>
-                ) : (
-                  <Button size="sm" className="h-8 bg-blue-600 text-white hover:bg-blue-700" onClick={toggleRoofEdit}><Spline className="size-4" /> Çatıyı Düzenle</Button>
-                )
-              )}
-              {activeMass && activeMass.footprint.length >= 3 && (
-                <Button size="sm" variant={dormerDraw ? "default" : "outline"} className={cn("h-8", dormerDraw && "bg-violet-600 text-white hover:bg-violet-700")} onClick={() => setDormerDraw((v) => !v)}><Home className="size-4" /> {dormerDraw ? "Dormer Bitir" : "Dormer Çiz"}</Button>
-              )}
-              <span className="ml-auto text-[11px] text-muted-foreground">
-                {dormerDraw
-                  ? "Dormer: köşeleri tıkla — 1) arka/tepe → 2) ön/oluk → 3) genişlik"
-                  : activeMass?.roofEditable
-                    ? "Çatı çizgileri: köşe sürükle · çift tık köşe ekle · sağ tık sil · köşeye tıkla → yükseklik"
-                    : tool === "draw"
-                      ? "Köşeleri tıkla · ilk köşeye dönünce kapanır"
-                      : tool === "move"
-                        ? "Kütleyi sürükleyerek taşı"
-                        : "Köşe sürükle · Çizgiye çift tık: köşe ekle · Sağ tık: köşe sil"}
-              </span>
-            </div>
-          )}
-
-          {step === "cizim" && locked && (
-            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2 text-[12px] text-amber-800">
-              <Lock className="size-4 shrink-0" /> Bina kilitli — düzenlemek için “Kilidi Aç”. Panel için “Panel Yerleşimi” sekmesine geç.
-            </div>
-          )}
-
-          <div className="h-[calc(100vh-16rem)] min-h-[440px]">
+        <div className="min-w-0">
+          <div className="relative h-[calc(100vh-11rem)] min-h-[460px] overflow-hidden rounded-xl border bg-slate-100">
             {showMap ? (
               <MapPicker onCapture={(dataUrl, m) => setPending({ dataUrl, mpp: m })} onCancel={() => setMapMode(false)} />
             ) : showCrop ? (
               <CropStep src={pending!.dataUrl} onConfirm={(cropped) => { update((d) => { d.imageDataUrl = cropped; d.metersPerPixel = pending!.mpp; }); setPending(null); setMapMode(false); toast.success("Altlık hazır — “Bina & Çatı”ya geç"); }} onCancel={() => setPending(null)} />
             ) : is3D ? (
-              mpp ? <ThreeView /> : <div className="flex h-full items-center justify-center rounded-xl border bg-slate-100 text-sm text-slate-400">Önce haritadan ölçekli altlık alın, sonra bina hattını çizin.</div>
+              mpp ? <ThreeView /> : <div className="flex h-full items-center justify-center text-sm text-slate-400">Önce haritadan ölçekli altlık alın, sonra bina hattını çizin.</div>
             ) : step === "panel" ? (
               <CanvasEditor mode="panel-select" obstacleMode={obstacleMode} addPanelMode={addPanelMode} selectedNodeId={selectedNodeId} onSelectNode={setSelectedNodeId} selectedFaceSig={selectedFaceSig} onSelectFace={setSelectedFaceSig} />
             ) : (
-              <MassEditor mode={step === "cizim" ? massMode : "view"} dormerDraw={dormerDraw && step === "cizim" && !locked} />
+              <MassEditor mode={step === "cizim" ? massMode : "view"} dormerDraw={dormerDraw && step === "cizim" && !locked} dormerType={dormerType} />
+            )}
+
+            {/* Yüzen araç çubuğu — çizimin üzerinde, adıma/moda göre */}
+            {!showMap && !showCrop && (step === "cizim" || step === "panel") && (
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-2 p-2">
+                <div className="pointer-events-auto flex flex-wrap items-center gap-1.5">
+                  {showCanvasToolbar && (dormerDraw ? (
+                    <div className="flex items-center gap-1 rounded-xl border bg-card/95 p-1 shadow-md backdrop-blur">
+                      {DORMER_TYPES.map((t) => (
+                        <button key={t.v} type="button" title={t.label} onClick={() => setDormerType(t.v)} className={cn("flex flex-col items-center rounded-lg px-2 py-0.5", dormerType === t.v ? "bg-violet-100 ring-1 ring-violet-400" : "hover:bg-slate-100")}>
+                          <DormerIcon type={t.v} /><span className="text-[9px] text-slate-600">{t.label}</span>
+                        </button>
+                      ))}
+                      <Button size="sm" className="ml-1 h-8 bg-violet-600 text-white hover:bg-violet-700" onClick={() => setDormerDraw(false)}>Bitir</Button>
+                    </div>
+                  ) : activeMass?.roofEditable ? (
+                    <div className="flex items-center gap-1 rounded-xl border bg-card/95 p-1 shadow-md backdrop-blur">
+                      <ToolBtn active={tool === "edit"} onClick={() => setTool("edit")} icon={MousePointer2} label="Köşe" />
+                      <ToolBtn active={tool === "draw"} onClick={() => setTool("draw")} icon={PencilRuler} label="Çizgi" />
+                      <ToolBtn active={tool === "move"} onClick={() => setTool("move")} icon={Move} label="Taşı" />
+                      <Button size="sm" variant="secondary" className="h-8" onClick={toggleRoofEdit}><Spline className="size-4" /> Otomatik</Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 rounded-xl border bg-card/95 p-1 shadow-md backdrop-blur">
+                      <ToolBtn active={tool === "draw"} onClick={() => { setTool("draw"); setDormerDraw(false); }} icon={PencilRuler} label="Hat Çiz" />
+                      <ToolBtn active={tool === "edit"} onClick={() => { setTool("edit"); setDormerDraw(false); }} icon={MousePointer2} label="Köşe" />
+                      <ToolBtn active={tool === "move"} onClick={() => { setTool("move"); setDormerDraw(false); }} icon={Move} label="Taşı" />
+                      {activeMass && activeMass.footprint.length >= 3 && <Button size="sm" className="h-8 bg-blue-600 text-white hover:bg-blue-700" onClick={toggleRoofEdit}><Spline className="size-4" /> Çatı</Button>}
+                      {activeMass && activeMass.footprint.length >= 3 && <Button size="sm" variant="outline" className="h-8" onClick={() => setDormerDraw(true)}><Home className="size-4" /> Dormer</Button>}
+                    </div>
+                  ))}
+                  {step === "panel" && panelView === "2d" && (
+                    <div className="flex items-center gap-1 rounded-xl border bg-card/95 p-1 shadow-md backdrop-blur">
+                      <Button size="sm" variant={addPanelMode ? "default" : "outline"} className={cn("h-8", addPanelMode && "bg-blue-600 text-white hover:bg-blue-700")} onClick={() => setAddPanelMode((v) => { const n = !v; if (n) setObstacleMode(false); return n; })}><Plus className="size-4" /> Panel</Button>
+                      <Button size="sm" variant={obstacleMode ? "default" : "outline"} className={cn("h-8", obstacleMode && "bg-rose-600 text-white hover:bg-rose-700")} onClick={() => setObstacleMode((v) => { const n = !v; if (n) setAddPanelMode(false); return n; })}><Ban className="size-4" /> Engel</Button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pointer-events-auto flex items-center gap-2">
+                  {step === "cizim" && (
+                    <div className="flex items-center gap-1 rounded-xl border bg-card/95 p-1 shadow-md backdrop-blur">
+                      <ToolBtn active={cizimView === "2d"} onClick={() => setCizimView("2d")} icon={PencilRuler} label="2B" />
+                      <ToolBtn active={cizimView === "3d"} onClick={() => setCizimView("3d")} icon={Box} label="3B" />
+                    </div>
+                  )}
+                  {step === "panel" && (
+                    <div className="flex items-center gap-1 rounded-xl border bg-card/95 p-1 shadow-md backdrop-blur">
+                      <ToolBtn active={panelView === "2d"} onClick={() => setPanelView("2d")} icon={LayoutGrid} label="2B" />
+                      <ToolBtn active={panelView === "3d"} onClick={() => setPanelView("3d")} icon={Box} label="3B" />
+                    </div>
+                  )}
+                  {step === "cizim" && (locked ? (
+                    <Button size="sm" variant="outline" className="h-8 shadow-md" onClick={() => setLocked(false)}><Unlock className="size-4" /> Kilidi Aç</Button>
+                  ) : (
+                    <Button size="sm" className="h-8 shadow-md" onClick={() => { setLocked(true); setStep("panel"); toast.success("Bina kilitlendi — panel yerleşimine geçildi"); }}><Lock className="size-4" /> Tamamla & Kilitle</Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!showMap && !showCrop && canvasHint && (
+              <div className="pointer-events-none absolute bottom-2 left-1/2 z-10 -translate-x-1/2 rounded-lg bg-slate-900/80 px-3 py-1 text-[11px] font-medium text-white shadow">{canvasHint}</div>
             )}
           </div>
         </div>
@@ -692,8 +707,10 @@ function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect
                       <span className="w-8 text-right text-[10.5px] tabular-nums text-slate-500">{dm.dirDeg || 0}°</span>
                     </div>
                     <div className="flex gap-1">
-                      {(["gable", "hip", "shed"] as const).map((t) => (
-                        <button key={t} type="button" onClick={() => onUpdateDormer(dm.id, (d) => { d.type = t; })} className={cn("flex-1 rounded border px-2 py-1 text-[10.5px]", dm.type === t ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "text-slate-500")}>{t === "gable" ? "Beşik" : t === "hip" ? "Kırma" : "Tek eğim"}</button>
+                      {DORMER_TYPES.map((t) => (
+                        <button key={t.v} type="button" title={t.label} onClick={() => onUpdateDormer(dm.id, (d) => { d.type = t.v; })} className={cn("flex flex-1 flex-col items-center rounded border py-1", dm.type === t.v ? "border-violet-300 bg-violet-50" : "border-slate-200 text-slate-500 hover:bg-slate-50")}>
+                          <DormerIcon type={t.v} /><span className="text-[9px]">{t.label}</span>
+                        </button>
                       ))}
                     </div>
                   </div>
