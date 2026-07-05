@@ -236,28 +236,11 @@ export default function MassEditor({ mode, dormerDraw, dormerType }: { mode: Mas
   return (
     <div ref={wrapRef} className="relative h-full w-full overflow-hidden rounded-xl border bg-slate-100">
       {!img && <div className="absolute inset-0 z-10 flex items-center justify-center text-center text-sm text-slate-400">Önce “Görüntü &amp; Ölçek” sekmesinden altlık ekleyin.</div>}
-      {!active && <div className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-md bg-slate-800 px-3 py-1.5 text-xs font-medium text-white shadow">Sağdan “Kütle” ile bir bina kütlesi oluşturun.</div>}
-      {mode === "draw" && active && <div className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow">{editingRoof ? "Çatı çizgisi çiz: köşelere/çizgilere tıkla (Esc bitir)" : `Köşeleri tıkla · ilk köşeye dönünce kapanır (${fp.length})`}</div>}
-      {mode === "move" && active && !dormerDraw && <div className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white shadow">Kütleyi sürükleyerek taşı</div>}
-      {dormerDraw && active && <div className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-md bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white shadow">Dormer çiz: 1) arka/tepe → 2) ön/oluk → 3) genişlik ({Math.min(dpts.length, 3)}/3)</div>}
-      {editingRoof && mode !== "move" && (
-        <div className="absolute left-2 top-2 z-20 max-w-[240px] rounded-lg bg-white/95 p-2.5 text-[11px] leading-relaxed text-slate-600 shadow ring-1 ring-slate-200">
-          <p className="mb-1 font-semibold text-blue-700">Çatı çizgilerini düzenle</p>
-          <p>• Köşeyi <b>sürükle</b> → çizgiyi taşı</p>
-          <p>• Köşeye <b>tıkla</b> → sağ üstte <b>yükseklik</b> gir</p>
-          <p>• Çizgiye <b>çift tık</b> → köşe ekle · <b>sağ tık</b> → sil</p>
-          <p>• <b>Hat Çiz</b> aracı → yeni çizgi / fold çiz</p>
-        </div>
-      )}
-      {!editingRoof && active && fp.length >= 3 && mode !== "draw" && (
-        <div className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow">
-          Çatı çizgilerini düzenlemek için üstteki mavi “Çatıyı Düzenle”ye bas
-        </div>
-      )}
+      {!active && <div className="absolute left-1/2 top-14 z-20 -translate-x-1/2 rounded-md bg-slate-800 px-3 py-1.5 text-xs font-medium text-white shadow">Sağdan “Kütle” ile bir bina kütlesi oluşturun.</div>}
 
-      {/* Seçili çatı noktası yükseklik girişi */}
+      {/* Seçili çatı noktası yükseklik girişi — altta (araç çubuğuyla çakışmasın) */}
       {editingRoof && selNodeObj && (
-        <div className="absolute right-2 top-2 z-20 flex items-center gap-2 rounded-lg bg-white px-2.5 py-1.5 text-[12px] shadow ring-1 ring-slate-200">
+        <div className="absolute bottom-11 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-lg bg-white px-2.5 py-1.5 text-[12px] shadow ring-1 ring-slate-200">
           <span className="font-medium text-slate-600">Nokta yüksekliği</span>
           <input type="number" step="0.1" value={selNodeObj.z}
             onChange={(e) => { const z = Math.round((parseFloat(e.target.value) || 0) * 10) / 10; setRoof((g) => { const n = g.nodes.find((x) => x.id === selNode); if (n) n.z = z; }, false); }}
