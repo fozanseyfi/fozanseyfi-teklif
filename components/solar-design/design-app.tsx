@@ -11,7 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import {
   Plus, Trash2, Undo2, Redo2, MousePointer2, PencilRuler, ArrowLeft, ArrowRight,
   LayoutGrid, Sun, Map as MapIcon, ImagePlus, Zap, CheckCircle2, Box, Lock, Unlock,
-  Building2, Layers, Move, Spline, Ban,
+  Building2, Layers, Move, Spline, Ban, Home,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -209,6 +209,7 @@ function Editor() {
   const [panelView, setPanelView] = useState<"2d" | "3d">("2d");
   const [obstacleMode, setObstacleMode] = useState(false);
   const [addPanelMode, setAddPanelMode] = useState(false);
+  const [dormerDraw, setDormerDraw] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedFaceSig, setSelectedFaceSig] = useState<string | null>(null);
   const [mapMode, setMapMode] = useState(true); // açılışta uydu haritası standart
@@ -413,9 +414,9 @@ function Editor() {
 
           {showCanvasToolbar && (
             <div className="flex flex-wrap items-center gap-1.5 rounded-lg border bg-card p-1.5">
-              <ToolBtn active={tool === "draw"} onClick={() => setTool("draw")} icon={PencilRuler} label="Hat Çiz" />
-              <ToolBtn active={tool === "edit"} onClick={() => setTool("edit")} icon={MousePointer2} label="Köşe Düzenle" />
-              <ToolBtn active={tool === "move"} onClick={() => setTool("move")} icon={Move} label="Taşı" />
+              <ToolBtn active={tool === "draw" && !dormerDraw} onClick={() => { setTool("draw"); setDormerDraw(false); }} icon={PencilRuler} label="Hat Çiz" />
+              <ToolBtn active={tool === "edit" && !dormerDraw} onClick={() => { setTool("edit"); setDormerDraw(false); }} icon={MousePointer2} label="Köşe Düzenle" />
+              <ToolBtn active={tool === "move" && !dormerDraw} onClick={() => { setTool("move"); setDormerDraw(false); }} icon={Move} label="Taşı" />
               {activeMass && activeMass.footprint.length >= 3 && (
                 activeMass.roofEditable ? (
                   <Button size="sm" variant="secondary" className="h-8" onClick={toggleRoofEdit}><Spline className="size-4" /> Otomatik Çatıya Dön</Button>
@@ -423,14 +424,19 @@ function Editor() {
                   <Button size="sm" className="h-8 bg-blue-600 text-white hover:bg-blue-700" onClick={toggleRoofEdit}><Spline className="size-4" /> Çatıyı Düzenle</Button>
                 )
               )}
+              {activeMass && activeMass.footprint.length >= 3 && (
+                <Button size="sm" variant={dormerDraw ? "default" : "outline"} className={cn("h-8", dormerDraw && "bg-violet-600 text-white hover:bg-violet-700")} onClick={() => setDormerDraw((v) => !v)}><Home className="size-4" /> {dormerDraw ? "Dormer Bitir" : "Dormer Çiz"}</Button>
+              )}
               <span className="ml-auto text-[11px] text-muted-foreground">
-                {activeMass?.roofEditable
-                  ? "Çatı çizgileri: köşe sürükle · çift tık köşe ekle · sağ tık sil · köşeye tıkla → yükseklik · “Hat Çiz” yeni çizgi"
-                  : tool === "draw"
-                    ? "Köşeleri tıkla · ilk köşeye dönünce kapanır"
-                    : tool === "move"
-                      ? "Kütleyi sürükleyerek taşı (yanlış birleşmeyi düzelt)"
-                      : "Köşe sürükle · Çizgiye çift tık: köşe ekle · Sağ tık: köşe sil"}
+                {dormerDraw
+                  ? "Dormer: köşeleri tıkla — 1) arka/tepe → 2) ön/oluk → 3) genişlik"
+                  : activeMass?.roofEditable
+                    ? "Çatı çizgileri: köşe sürükle · çift tık köşe ekle · sağ tık sil · köşeye tıkla → yükseklik"
+                    : tool === "draw"
+                      ? "Köşeleri tıkla · ilk köşeye dönünce kapanır"
+                      : tool === "move"
+                        ? "Kütleyi sürükleyerek taşı"
+                        : "Köşe sürükle · Çizgiye çift tık: köşe ekle · Sağ tık: köşe sil"}
               </span>
             </div>
           )}
@@ -451,7 +457,7 @@ function Editor() {
             ) : step === "panel" ? (
               <CanvasEditor mode="panel-select" obstacleMode={obstacleMode} addPanelMode={addPanelMode} selectedNodeId={selectedNodeId} onSelectNode={setSelectedNodeId} selectedFaceSig={selectedFaceSig} onSelectFace={setSelectedFaceSig} />
             ) : (
-              <MassEditor mode={step === "cizim" ? massMode : "view"} />
+              <MassEditor mode={step === "cizim" ? massMode : "view"} dormerDraw={dormerDraw && step === "cizim" && !locked} />
             )}
           </div>
         </div>

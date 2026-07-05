@@ -165,7 +165,7 @@ export default function ThreeView() {
           const hw = dm.widthM / 2 / mpp, hd = dm.depthM / 2 / mpp;
           const ang = ((dm.dirDeg || 0) * Math.PI) / 180, ca = Math.cos(ang), sa = Math.sin(ang);
           const cpx = (lx: number, ly: number) => ({ x: dm.x + lx * ca - ly * sa, y: dm.y + lx * sa + ly * ca });
-          // taban kotu: o noktadaki çatı yüzeyi (eğimi izler → dormer çatıya kaynaşır)
+          // taban kotu: o noktadaki çatı yüzeyi (üst ve taban çatıya hizalanır)
           const bz = (lx: number, ly: number) => { const q = cpx(lx, ly); const f = roof.faces.find((ff) => pointInPolygon(q, ff.poly)) || face0; return f ? f.zAbs(q.x, q.y) : roof.eavesM; };
           const P = (lx: number, ly: number, h: number): number[] => { const q = cpx(lx, ly); const w = toWorld(q.x, q.y); return [w.x, h, w.z]; };
           const quad = (a: number[], b: number[], c: number[], d: number[]) => [...a, ...b, ...c, ...a, ...c, ...d];

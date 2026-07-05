@@ -31,7 +31,7 @@ function orthoSnap(from: Vec, to: Vec): { p: Vec; ax: "h" | "v" | null } {
  *  • Elle çatı (roofEditable): çatı grafiğini (sırt/kırma çizgileri) sürükle/
  *    sil/ekle/çiz; köşeye tıklayıp yükseklik ver. Aurora benzeri.
  */
-export default function MassEditor({ mode }: { mode: MassMode }) {
+export default function MassEditor({ mode, dormerDraw }: { mode: MassMode; dormerDraw?: boolean }) {
   const doc = useDesignStore((s) => s.active)!;
   const update = useDesignStore((s) => s.update);
 
@@ -45,6 +45,7 @@ export default function MassEditor({ mode }: { mode: MassMode }) {
   const [selNode, setSelNode] = useState<string | null>(null);
   const [chainId, setChainId] = useState<string | null>(null);
   const [snapAxis, setSnapAxis] = useState<"h" | "v" | null>(null);
+  const [dpts, setDpts] = useState<Vec[]>([]); // dormer 3-nokta çizim
 
   const active = doc.masses.find((m) => m.id === doc.activeMassId) || null;
   const editingRoof = !!active?.roofEditable;
@@ -80,6 +81,8 @@ export default function MassEditor({ mode }: { mode: MassMode }) {
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- mod/kütle değişince seçim sıfırla (dış senkronizasyon)
   useEffect(() => { setChainId(null); setSelNode(null); }, [mode, doc.activeMassId]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- dormer çizim kapanınca yarım noktaları sil
+  useEffect(() => { if (!dormerDraw) setDpts([]); }, [dormerDraw]);
 
   const relPos = (): Vec | null => {
     const p = stageRef.current?.getRelativePointerPosition();
@@ -94,6 +97,22 @@ export default function MassEditor({ mode }: { mode: MassMode }) {
   function moveDormer(id: string, x: number, y: number) {
     if (!active) return;
     update((d) => { const m = d.masses.find((mm) => mm.id === active.id); const dm = m?.dormers.find((x2) => x2.id === id); if (dm) { dm.x = x; dm.y = y; } }, true);
+  }
+  // 3 nokta: p1 (arka/tepe) → p2 (ön/oluk) omurga; p3 genişlik. Taban çatıya hizalı.
+  function addDormerShape(p1: Vec, p2: Vec, p3: Vec) {
+    if (!active || !mpp) return;
+    const sx = p2.x - p1.x, sy = p2.y - p1.y;
+    const len = Math.hypot(sx, sy) || 1;
+    const sAng = Math.atan2(sy, sx);
+    const perpUnit = { x: Math.sin(sAng), y: -Math.cos(sAng) };
+    const mid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+    const perpPx = Math.abs((p3.x - mid.x) * perpUnit.x + (p3.y - mid.y) * perpUnit.y) || len * 0.4;
+    const dirDeg = (sAng * 180) / Math.PI - 90;
+    update((d) => {
+      const m = d.masses.find((mm) => mm.id === active.id);
+      if (m) m.dormers.push({ id: genId(), x: mid.x, y: mid.y, widthM: 2 * perpPx * mpp, depthM: len * mpp, ridgeM: 1, dirDeg, type: "hip" });
+    }, true);
+    setDpts([]);
   }
   // ── Çatı grafiği yazma (planarize ile) ──
   function setRoof(mut: (g: { nodes: typeof rn; edges: typeof re }) => void, history = true) {
@@ -135,6 +154,11 @@ export default function MassEditor({ mode }: { mode: MassMode }) {
     if (!active) return;
     const p = relPos();
     if (!p) return;
+    if (dormerDraw) {
+      if (dpts.length < 2) setDpts([...dpts, p]);
+      else addDormerShape(dpts[0], dpts[1], p);
+      return;
+    }
     if (editingRoof) {
       if (mode !== "draw") return;
       const hit = snap(p);
@@ -158,6 +182,7 @@ export default function MassEditor({ mode }: { mode: MassMode }) {
     setFootprint((arr) => [...arr, sp]);
   }
   function stageMouseMove() {
+    if (dormerDraw) { setCursor(relPos()); return; }
     if (mode !== "draw") { return; }
     const raw = relPos();
     if (!raw) { setCursor(null); return; }
@@ -188,7 +213,7 @@ export default function MassEditor({ mode }: { mode: MassMode }) {
   }, [mode]);
 
   const mLabel = (px: number) => (mpp ? `${(px * mpp).toFixed(2)} m` : `${Math.round(px)} px`);
-  const draggableStage = mode === "edit" || mode === "view";
+  const draggableStage = (mode === "edit" || mode === "view") && !dormerDraw;
   const others = useMemo(() => doc.masses.filter((m) => m.id !== doc.activeMassId), [doc.masses, doc.activeMassId]);
   const selNodeObj = rn.find((n) => n.id === selNode) || null;
 
@@ -197,7 +222,8 @@ export default function MassEditor({ mode }: { mode: MassMode }) {
       {!img && <div className="absolute inset-0 z-10 flex items-center justify-center text-center text-sm text-slate-400">Önce “Görüntü &amp; Ölçek” sekmesinden altlık ekleyin.</div>}
       {!active && <div className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-md bg-slate-800 px-3 py-1.5 text-xs font-medium text-white shadow">Sağdan “Kütle” ile bir bina kütlesi oluşturun.</div>}
       {mode === "draw" && active && <div className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow">{editingRoof ? "Çatı çizgisi çiz: köşelere/çizgilere tıkla (Esc bitir)" : `Köşeleri tıkla · ilk köşeye dönünce kapanır (${fp.length})`}</div>}
-      {mode === "move" && active && <div className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white shadow">Kütleyi sürükleyerek taşı</div>}
+      {mode === "move" && active && !dormerDraw && <div className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white shadow">Kütleyi sürükleyerek taşı</div>}
+      {dormerDraw && active && <div className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-md bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white shadow">Dormer çiz: 1) arka/tepe → 2) ön/oluk → 3) genişlik ({Math.min(dpts.length, 3)}/3)</div>}
       {editingRoof && mode !== "move" && (
         <div className="absolute left-2 top-2 z-20 max-w-[240px] rounded-lg bg-white/95 p-2.5 text-[11px] leading-relaxed text-slate-600 shadow ring-1 ring-slate-200">
           <p className="mb-1 font-semibold text-blue-700">Çatı çizgilerini düzenle</p>
@@ -230,7 +256,7 @@ export default function MassEditor({ mode }: { mode: MassMode }) {
         draggable={draggableStage}
         onDragEnd={(e) => { if (e.target === stageRef.current) setPos({ x: e.target.x(), y: e.target.y() }); }}
         onWheel={onWheel} onClick={stageClick} onTap={stageClick} onMouseMove={stageMouseMove}
-        style={{ background: "#e2e8f0", cursor: mode === "draw" ? "crosshair" : mode === "move" ? "move" : "default" }}
+        style={{ background: "#e2e8f0", cursor: dormerDraw || mode === "draw" ? "crosshair" : mode === "move" ? "move" : "default" }}
       >
         <Layer>{img && <KonvaImage image={img} listening={false} />}</Layer>
 
@@ -335,6 +361,23 @@ export default function MassEditor({ mode }: { mode: MassMode }) {
                 </Group>
               );
             })}
+          </Layer>
+        )}
+
+        {/* Dormer 3-nokta çizim önizleme */}
+        {dormerDraw && (
+          <Layer listening={false}>
+            {dpts.length >= 1 && cursor && <Line points={[...dpts.flatMap((p) => [p.x, p.y]), cursor.x, cursor.y]} stroke="#7c3aed" strokeWidth={1.4 / scale} dash={[5 / scale, 4 / scale]} />}
+            {dpts.length === 2 && cursor && (() => {
+              const p1 = dpts[0], p2 = dpts[1];
+              const sAng = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+              const pu = { x: Math.sin(sAng), y: -Math.cos(sAng) };
+              const mid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+              const perp = (cursor.x - mid.x) * pu.x + (cursor.y - mid.y) * pu.y;
+              const c = [[p1.x + pu.x * perp, p1.y + pu.y * perp], [p2.x + pu.x * perp, p2.y + pu.y * perp], [p2.x - pu.x * perp, p2.y - pu.y * perp], [p1.x - pu.x * perp, p1.y - pu.y * perp]];
+              return <Line points={c.flat()} closed stroke="#7c3aed" strokeWidth={1.4 / scale} fill="#7c3aed22" dash={[5 / scale, 4 / scale]} />;
+            })()}
+            {dpts.map((p, i) => <Circle key={`dp${i}`} x={p.x} y={p.y} radius={5 / scale} fill="#7c3aed" stroke="#fff" strokeWidth={1.5 / scale} />)}
           </Layer>
         )}
 
