@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDesignStore } from "@/lib/solar-design/store";
 import { computeLayout, panelsKwp } from "@/lib/solar-design/layout-engine";
-import { massRoof, faceAreaM2, seedRoofGraph } from "@/lib/solar-design/roof-model";
+import { massRoof, faceAreaM2, seedRoofGraph, autoRoofHeights } from "@/lib/solar-design/roof-model";
 import type { MassRoof } from "@/lib/solar-design/roof-model";
 import { pointInPolygon } from "@/lib/solar-design/geometry";
 import { DEFAULT_MASS } from "@/lib/solar-design/types";
@@ -216,6 +216,14 @@ function Editor() {
     }, true);
     setStep("cizim"); setCizimView("2d"); setTool("edit"); // düzenleme daima 2B'de görünür
   }
+  function applyAutoHeights() {
+    update((d) => {
+      const m = d.masses.find((x) => x.id === doc.activeMassId);
+      if (!m || !m.roofEditable) return;
+      m.roofNodes = autoRoofHeights(m.roofNodes, m.roofEdges, m.pitchDeg, mpp || 0.05);
+    }, true);
+    toast.success("Yükseklikler eğimden hesaplandı");
+  }
 
   function addMass(parentId: string | null) {
     const id = newMassId();
@@ -337,7 +345,7 @@ function Editor() {
                   <Button size="sm" variant={obstacleMode ? "default" : "outline"} className={obstacleMode ? "bg-rose-600 text-white hover:bg-rose-700" : ""} onClick={() => setObstacleMode((v) => { const n = !v; if (n) setAddPanelMode(false); return n; })}>
                     <Ban className="size-4" /> {obstacleMode ? "Engel Bitir" : "Engel Ekle (baca)"}
                   </Button>
-                  <span className="text-[11px] text-muted-foreground">{obstacleMode ? "İki köşe → engel · sağ tık sil" : addPanelMode ? "Çatı yüzeyine tıkla → panel" : "Panel tıkla · sürükle-taşı · R döndür · Del sil · engele tıkla → yükseklik"}</span>
+                  <span className="text-[11px] text-muted-foreground">{obstacleMode ? "Köşeleri tıkla → engel · Enter bitir · sağ tık sil" : addPanelMode ? "Çatı yüzeyine tıkla → panel" : "Panel tıkla · sürükle-taşı · R döndür · Del sil · engele tıkla → yükseklik"}</span>
                 </>
               )}
             </div>
@@ -390,7 +398,7 @@ function Editor() {
 
         <div className="space-y-3">
           {step === "gorsel" && <GorselPanel mpp={mpp} hasImage={!!doc.imageDataUrl} onMap={() => { setPending(null); setMapMode(true); }} onUpload={(url) => update((d) => { d.imageDataUrl = url; })} />}
-          {step === "cizim" && !locked && <MassPanel updateActive={updateActive} active={activeMass} masses={doc.masses} onAdd={() => addMass(null)} onAddRoofTop={() => addMass(activeMass?.id ?? doc.masses[0]?.id ?? null)} onSelect={selectMass} onRemove={removeMass} onToggleRoofEdit={toggleRoofEdit} onShape={addShape} />}
+          {step === "cizim" && !locked && <MassPanel updateActive={updateActive} active={activeMass} masses={doc.masses} onAdd={() => addMass(null)} onAddRoofTop={() => addMass(activeMass?.id ?? doc.masses[0]?.id ?? null)} onSelect={selectMass} onRemove={removeMass} onToggleRoofEdit={toggleRoofEdit} onShape={addShape} onAutoHeights={applyAutoHeights} />}
           {step === "cizim" && locked && <LockPanel onUnlock={() => setLocked(false)} onPanel={() => setStep("panel")} />}
           {step === "panel" && <PanelPanel update={update} onAuto={autoLayout} totalPanels={totalPanels} totalKwp={totalKwp} locked={locked} onEditRoof={() => { setLocked(false); setStep("cizim"); }} />}
           {step === "analiz" && <AnalizPanel built={built} totalPanels={totalPanels} totalKwp={totalKwp} />}
@@ -469,7 +477,7 @@ const ROOF_TYPES: { v: RoofType; label: string; desc: string }[] = [
 ];
 const ROOF_SHORT: Record<RoofType, string> = { flat: "Düz", gable: "Beşik", hip: "Kırma" };
 
-function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect, onRemove, onToggleRoofEdit, onShape }: {
+function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect, onRemove, onToggleRoofEdit, onShape, onAutoHeights }: {
   updateActive: (mut: (m: Mass) => void) => void;
   active: Mass | null;
   masses: Mass[];
@@ -479,6 +487,7 @@ function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect
   onRemove: (id: string) => void;
   onToggleRoofEdit: () => void;
   onShape: (poly: Vec[]) => void;
+  onAutoHeights: () => void;
 }) {
   return (
     <Card>
@@ -525,8 +534,14 @@ function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect
               <Slider min={0} max={20} step={0.5} value={[Math.min(20, active.wallM)]} onValueChange={(v) => updateActive((m) => { m.wallM = v[0]; })} />
             </div>
             {active.roofEditable ? (
-              <div className="space-y-2 rounded-lg border border-blue-200 bg-blue-50/60 p-2.5">
-                <p className="text-[11px] text-blue-800">Çatı <b>elle düzenleniyor</b>. 2B planda: çizgileri/köşeleri sürükle, çizgiye çift tık = köşe ekle, sağ tık = sil, “Hat Çiz” = yeni çizgi. Köşeye tıklayıp <b>yüksekliğini</b> gir.</p>
+              <div className="space-y-2.5 rounded-lg border border-blue-200 bg-blue-50/60 p-2.5">
+                <p className="text-[11px] text-blue-800">Çatı <b>elle düzenleniyor</b>. 2B planda çizgileri sürükle/ekle/sil. Yüksekliği tek tek girmek yerine aşağıdan <b>eğim</b> seç → <b>“Eğimden Yükseklik”</b>.</p>
+                <div className="space-y-1.5 rounded-md bg-white/70 p-2">
+                  <div className="flex items-center justify-between"><Label className="text-[11px]">Eğim</Label><span className="text-[12px] font-semibold text-blue-700">{active.pitchDeg}°</span></div>
+                  <Slider min={5} max={60} step={1} value={[active.pitchDeg]} onValueChange={(v) => updateActive((m) => { m.pitchDeg = v[0]; })} />
+                  <Button size="sm" className="w-full bg-blue-600 text-white hover:bg-blue-700" onClick={onAutoHeights}>Eğimden Yükseklik Hesapla</Button>
+                  <p className="text-[10px] text-slate-500">Saçak 0, iç noktalar (sırt/kırma) eğime göre otomatik yükselir → tutarlı çatı. Sonra istersen köşeleri elle ince ayar yap.</p>
+                </div>
                 <Button size="sm" variant="outline" className="w-full" onClick={onToggleRoofEdit}>Otomatik Çatıya Dön</Button>
               </div>
             ) : (

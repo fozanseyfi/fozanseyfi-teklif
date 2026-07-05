@@ -1,5 +1,5 @@
 import type { Vec, RoofType, Mass, RNode, REdge } from "./types";
-import { polygonAreaPx, centroid } from "./geometry";
+import { polygonAreaPx, centroid, nearestOnSegment } from "./geometry";
 import { detectFaces, faceCoords, detectOuterBoundary } from "./faces";
 
 /**
@@ -240,6 +240,30 @@ export function massRoof(mass: Mass, mpp: number): MassRoof {
     return best;
   };
   return { faces, boundary, boundaryZ, eavesM };
+}
+
+/**
+ * Düzenlenebilir çatı grafiğine EĞİMDEN otomatik yükseklik ver — elle metre
+ * girmeden tutarlı, düzlemsel çatı. Dış hat (saçak) = 0; iç noktalar saçağa
+ * uzaklık × tan(eğim) kadar yükselir (straight-skeleton mantığı).
+ */
+export function autoRoofHeights(nodes: RNode[], edges: REdge[], pitchDeg: number, mpp: number): RNode[] {
+  const boundary = detectOuterBoundary(nodes, edges);
+  if (!boundary || boundary.length < 3) return nodes.map((n) => ({ ...n, z: 0 }));
+  const bset = new Set(boundary);
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const segs: [Vec, Vec][] = [];
+  for (let i = 0; i < boundary.length; i++) {
+    const a = byId.get(boundary[i]), b = byId.get(boundary[(i + 1) % boundary.length]);
+    if (a && b) segs.push([a, b]);
+  }
+  const t = Math.tan((pitchDeg * Math.PI) / 180);
+  return nodes.map((n) => {
+    if (bset.has(n.id)) return { ...n, z: 0 };
+    let dmin = Infinity;
+    for (const [a, b] of segs) { const r = nearestOnSegment(n, a, b); if (r.dist < dmin) dmin = r.dist; }
+    return { ...n, z: Number.isFinite(dmin) ? Math.round(dmin * mpp * t * 100) / 100 : 0 };
+  });
 }
 
 /** Parametrik çatıyı düzenlenebilir grafiğe "tohumla" (elle düzenlemeye geçiş). */

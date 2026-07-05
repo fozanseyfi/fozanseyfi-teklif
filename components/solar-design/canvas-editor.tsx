@@ -97,13 +97,14 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
   // Node sürükleme override
   const [nodeDrag, setNodeDrag] = useState<{ id: string; point: Vec } | null>(null);
 
-  // Engel (baca) çizimi — iki köşe
-  const [obsStart, setObsStart] = useState<Vec | null>(null);
+  // Engel (baca) çizimi — serbest çokgen
+  const [obsPoints, setObsPoints] = useState<Vec[]>([]);
   const [selObstacle, setSelObstacle] = useState<string | null>(null);
 
   // Panel seçim + sürükleme
   const [selPanels, setSelPanels] = useState<Set<string>>(new Set());
   const [panelDelta, setPanelDelta] = useState<Vec | null>(null);
+  const [dragOrig, setDragOrig] = useState<{ id: string; orig: Map<string, Vec> } | null>(null); // render için (ref render'da okunamaz)
   const panelDragRef = useRef<{ id: string; orig: Map<string, Vec> } | null>(null);
 
   const nodeById = useMemo(() => new Map(doc.nodes.map((n) => [n.id, n])), [doc.nodes]);
@@ -123,7 +124,7 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
   // eslint-disable-next-line react-hooks/set-state-in-effect -- mod değişince panel seçimini sıfırla (dış senkronizasyon)
   useEffect(() => { if (mode !== "panel-select") setSelPanels(new Set()); }, [mode]);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- engel modu kapanınca yarım çizimi sıfırla
-  useEffect(() => { if (!obstacleMode) setObsStart(null); }, [obstacleMode]);
+  useEffect(() => { if (!obstacleMode) setObsPoints([]); }, [obstacleMode]);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- engel modu acilinca secimi birak
   useEffect(() => { if (obstacleMode || addPanelMode) setSelObstacle(null); }, [obstacleMode, addPanelMode]);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- mod değişince çizim zincirini sıfırla (dış senkronizasyon)
@@ -231,12 +232,8 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
     if (!p) return;
     if (addPanelMode) { addPanelAt(p); return; }
     if (obstacleMode) {
-      if (!obsStart) { setObsStart(p); return; }
-      const x1 = Math.min(obsStart.x, p.x), y1 = Math.min(obsStart.y, p.y), x2 = Math.max(obsStart.x, p.x), y2 = Math.max(obsStart.y, p.y);
-      if (Math.abs(x2 - x1) > 2 && Math.abs(y2 - y1) > 2) {
-        update((d) => { d.obstacles.push({ id: genId(), poly: [{ x: x1, y: y1 }, { x: x2, y: y1 }, { x: x2, y: y2 }, { x: x1, y: y2 }], heightM: 0.8 }); }, true);
-      }
-      setObsStart(null);
+      if (obsPoints.length >= 3 && dist(p, obsPoints[0]) <= snapPx) { finishObstacle(); return; }
+      setObsPoints((arr) => [...arr, p]);
       return;
     }
     if (mode === "draw") { drawClick(p); return; }
@@ -244,6 +241,10 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
 
   function stageMouseMove() { if (mode === "draw" || mode === "roof-select" || obstacleMode || addPanelMode) setCursor(relPos()); }
   function deleteObstacle(id: string) { update((d) => { d.obstacles = d.obstacles.filter((o) => o.id !== id); }, true); setSelObstacle(null); }
+  function finishObstacle() {
+    if (obsPoints.length >= 3) { const poly = obsPoints.map((p) => ({ ...p })); update((d) => { d.obstacles.push({ id: genId(), poly, heightM: 0.8 }); }, true); }
+    setObsPoints([]);
+  }
 
   function addPanelAt(p: Vec) {
     const face = massFaces.find((f) => pointInPolygon(p, f.poly));
@@ -269,27 +270,6 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
     setScale(next);
     setPos({ x: pointer.x - m.x * next, y: pointer.y - m.y * next });
   }
-
-  // Klavye
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      const t = e.target as HTMLElement;
-      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
-      if (mode === "draw") {
-        if (e.key === "Enter") { e.preventDefault(); finishChain(); }
-        else if (e.key === "Escape") { e.preventDefault(); cancelChain(); }
-        else if (e.key === "Backspace") { e.preventDefault(); if (chainRef.current > 0) { undo(); chainRef.current -= 1; } }
-      }
-      if (mode === "panel-select" && selPanels.size) {
-        if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); deleteSelectedPanels(); }
-        else if (e.key.toLowerCase() === "r") { e.preventDefault(); flipSelectedPanels(); }
-      }
-      if (mode === "roof-select" && selectedNodeId && (e.key === "Delete")) { e.preventDefault(); deleteNode(selectedNodeId); }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, selPanels, selectedNodeId]);
 
   function deleteNode(id: string) {
     update((d) => { d.nodes = d.nodes.filter((n) => n.id !== id); d.edges = d.edges.filter((e) => e.a !== id && e.b !== id); }, true);
@@ -347,13 +327,38 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
     }, true);
   }
 
+  // Klavye — fonksiyon tanımlarından sonra (use-before-declare olmasın)
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const t = e.target as HTMLElement;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+      if (mode === "draw") {
+        if (e.key === "Enter") { e.preventDefault(); finishChain(); }
+        else if (e.key === "Escape") { e.preventDefault(); cancelChain(); }
+        else if (e.key === "Backspace") { e.preventDefault(); if (chainRef.current > 0) { undo(); chainRef.current -= 1; } }
+      }
+      if (mode === "panel-select" && selPanels.size) {
+        if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); deleteSelectedPanels(); }
+        else if (e.key.toLowerCase() === "r") { e.preventDefault(); flipSelectedPanels(); }
+      }
+      if (mode === "roof-select" && selectedNodeId && (e.key === "Delete")) { e.preventDefault(); deleteNode(selectedNodeId); }
+      if (obstacleMode) {
+        if (e.key === "Enter") { e.preventDefault(); finishObstacle(); }
+        else if (e.key === "Escape") { e.preventDefault(); setObsPoints([]); }
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, selPanels, selectedNodeId, obstacleMode, obsPoints]);
+
   const mLabel = (px: number) => (doc.metersPerPixel ? `${(px * doc.metersPerPixel).toFixed(2)} m` : `${Math.round(px)} px`);
 
   // Sürükleme override uygulanan node konumları
   const nodePos = (n: RNode): Vec => (nodeDrag && nodeDrag.id === n.id ? nodeDrag.point : { x: n.x, y: n.y });
   const panelPos = (p: { id: string; x: number; y: number }): Vec =>
-    panelDelta && selPanels.has(p.id) && panelDragRef.current?.id !== p.id
-      ? { x: (panelDragRef.current!.orig.get(p.id)?.x ?? p.x) + panelDelta.x, y: (panelDragRef.current!.orig.get(p.id)?.y ?? p.y) + panelDelta.y }
+    panelDelta && dragOrig && selPanels.has(p.id) && dragOrig.id !== p.id
+      ? { x: (dragOrig.orig.get(p.id)?.x ?? p.x) + panelDelta.x, y: (dragOrig.orig.get(p.id)?.y ?? p.y) + panelDelta.y }
       : { x: p.x, y: p.y };
 
   const draggableStage = (mode === "roof-select" || mode === "panel-select" || mode === "view") && !obstacleMode && !addPanelMode;
@@ -383,7 +388,7 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
       {/* Engel modu bilgi */}
       {obstacleMode && (
         <div className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white shadow">
-          Baca/engel: iki köşeye tıkla (dikdörtgen) · engele sağ tık: sil · varsayılan 80 cm
+          Baca/engel: köşeleri tıkla, ilk köşeye dönünce kapanır · Enter bitir · Esc iptal · varsayılan 80 cm
         </div>
       )}
       {addPanelMode && (
@@ -420,7 +425,7 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
         scaleY={scale}
         x={pos.x}
         y={pos.y}
-        draggable={draggableStage && !nodeDrag && !panelDragRef.current}
+        draggable={draggableStage && !nodeDrag && !dragOrig}
         onDragEnd={(e) => { if (e.target === stageRef.current) setPos({ x: e.target.x(), y: e.target.y() }); }}
         onWheel={onWheel}
         onMouseDown={(e) => {
@@ -514,6 +519,7 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
                   const orig = new Map<string, Vec>();
                   doc.placed.forEach((q) => { if (ids.has(q.id)) orig.set(q.id, { x: q.x, y: q.y }); });
                   panelDragRef.current = { id: p.id, orig };
+                  setDragOrig({ id: p.id, orig });
                   setPanelDelta({ x: 0, y: 0 });
                 }}
                 onDragMove={(e) => {
@@ -536,6 +542,7 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
                   const clash = proposed.some((m) => movedIds.has(m.id) && others.some((q) => polysOverlap(panelCorners(m), panelCorners(q))));
                   const clashObs = proposed.some((m) => movedIds.has(m.id) && doc.obstacles.some((ob) => polysOverlap(panelCorners(m), ob.poly)));
                   panelDragRef.current = null;
+                  setDragOrig(null);
                   setPanelDelta(null);
                   if (clash || clashObs) { toast.error(clashObs ? "Engel üzerine panel konmaz" : "Paneller üst üste gelemez"); return; }
                   update((d) => { d.placed = proposed; }, true);
@@ -575,8 +582,14 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
               </Group>
             );
           })}
-          {obstacleMode && obsStart && cursor && (
-            <Line points={[obsStart.x, obsStart.y, cursor.x, obsStart.y, cursor.x, cursor.y, obsStart.x, cursor.y]} closed fill="#ef444433" stroke="#dc2626" strokeWidth={1.4 / scale} dash={[6 / scale, 4 / scale]} listening={false} />
+          {obstacleMode && obsPoints.length > 0 && (
+            <>
+              <Line points={[...obsPoints.flatMap((p) => [p.x, p.y]), ...(cursor ? [cursor.x, cursor.y] : [])]} stroke="#dc2626" strokeWidth={1.5 / scale} dash={[6 / scale, 4 / scale]} listening={false} />
+              {obsPoints.map((p, i) => <Circle key={`op${i}`} x={p.x} y={p.y} radius={4 / scale} fill="#dc2626" listening={false} />)}
+              {obsPoints.length >= 3 && cursor && dist(cursor, obsPoints[0]) <= snapPx && (
+                <Circle x={obsPoints[0].x} y={obsPoints[0].y} radius={9 / scale} stroke="#dc2626" strokeWidth={2 / scale} listening={false} />
+              )}
+            </>
           )}
         </Layer>
 
