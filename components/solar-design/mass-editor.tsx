@@ -133,7 +133,7 @@ export default function MassEditor({ mode, dormerDraw, dormerType, onDormerPlace
     if (!active || !mpp) return;
     update((d) => {
       const m = d.masses.find((mm) => mm.id === active.id);
-      if (m) m.dormers.push({ id: genId(), x: p.x, y: p.y, widthM: 4, depthM: 3, ridgeM: 1.2, ridgeYM: 0, dirDeg: 0, type: dormerType ?? "gable" });
+      if (m) m.dormers.push({ id: genId(), x: p.x, y: p.y, widthM: 3, depthM: 2, ridgeM: 1.2, ridgeYM: 0, dirDeg: 0, type: dormerType ?? "gable" });
     }, true);
     onDormerPlaced?.();
   }

@@ -179,6 +179,11 @@ export default function ThreeView() {
           pos.push(...tri(P(-hw, hd, eaveH), P(-hw, -hd, eaveH), P(-hw, ry, ridgeH))); // sol alınlık
           pos.push(...tri(P(hw, hd, eaveH), P(hw, -hd, eaveH), P(hw, ry, ridgeH))); // sağ alınlık
           addMesh(pos, dormerMat);
+          // sırt + saçak çizgileri (beşik olduğu net görünsün)
+          const dl = (a: number[], b: number[]) => scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a[0], a[1], a[2]), new THREE.Vector3(b[0], b[1], b[2])]), lineMat));
+          dl(P(-hw, ry, ridgeH), P(hw, ry, ridgeH));
+          dl(P(-hw, hd, eaveH), P(hw, hd, eaveH));
+          dl(P(-hw, -hd, eaveH), P(hw, -hd, eaveH));
         });
       });
 
