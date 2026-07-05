@@ -167,33 +167,17 @@ export default function ThreeView() {
           const cpx = (lx: number, ly: number) => ({ x: dm.x + lx * ca - ly * sa, y: dm.y + lx * sa + ly * ca });
           const P = (lx: number, ly: number, h: number): number[] => { const q = cpx(lx, ly); const w = toWorld(q.x, q.y); return [w.x, h, w.z]; };
           const quad = (a: number[], b: number[], c: number[], d: number[]) => [...a, ...b, ...c, ...a, ...c, ...d];
-          const tri = (a: number[], b: number[], c: number[]) => [...a, ...b, ...c];
           const pos: number[] = [];
           const base = mass.baseM; // taban = zemin (sıfır kot)
-          const eaveH = zc + Math.max(0.2, dm.ridgeM * 0.3), ridgeH = zc + dm.ridgeM;
-          // arka yüz (-hd) AÇIK bırakılır → ayrı kutu değil, ana binaya çıkıntı gibi combine
-          if (dm.type === "gable") {
-            pos.push(...quad(P(-hw, hd, base), P(hw, hd, base), P(hw, hd, eaveH), P(-hw, hd, eaveH)));
-            pos.push(...quad(P(-hw, -hd, base), P(-hw, hd, base), P(-hw, hd, eaveH), P(-hw, -hd, eaveH)), ...tri(P(-hw, -hd, eaveH), P(-hw, hd, eaveH), P(-hw, 0, ridgeH)));
-            pos.push(...quad(P(hw, -hd, base), P(hw, hd, base), P(hw, hd, eaveH), P(hw, -hd, eaveH)), ...tri(P(hw, -hd, eaveH), P(hw, hd, eaveH), P(hw, 0, ridgeH)));
-            pos.push(...quad(P(-hw, -hd, eaveH), P(hw, -hd, eaveH), P(hw, 0, ridgeH), P(-hw, 0, ridgeH)));
-            pos.push(...quad(P(-hw, hd, eaveH), P(hw, hd, eaveH), P(hw, 0, ridgeH), P(-hw, 0, ridgeH)));
-          } else if (dm.type === "hip") {
-            const rt = hw * 0.35;
-            pos.push(...quad(P(-hw, hd, base), P(hw, hd, base), P(hw, hd, eaveH), P(-hw, hd, eaveH)));
-            pos.push(...quad(P(-hw, -hd, base), P(-hw, hd, base), P(-hw, hd, eaveH), P(-hw, -hd, eaveH)));
-            pos.push(...quad(P(hw, -hd, base), P(hw, hd, base), P(hw, hd, eaveH), P(hw, -hd, eaveH)));
-            pos.push(...quad(P(-hw, -hd, eaveH), P(hw, -hd, eaveH), P(rt, 0, ridgeH), P(-rt, 0, ridgeH)));
-            pos.push(...quad(P(-hw, hd, eaveH), P(hw, hd, eaveH), P(rt, 0, ridgeH), P(-rt, 0, ridgeH)));
-            pos.push(...tri(P(-hw, -hd, eaveH), P(-hw, hd, eaveH), P(-rt, 0, ridgeH)));
-            pos.push(...tri(P(hw, -hd, eaveH), P(hw, hd, eaveH), P(rt, 0, ridgeH)));
-          } else {
-            const hHi = zc + dm.ridgeM, hLo = eaveH;
-            pos.push(...quad(P(-hw, hd, base), P(hw, hd, base), P(hw, hd, hLo), P(-hw, hd, hLo)));
-            pos.push(...quad(P(-hw, -hd, base), P(-hw, hd, base), P(-hw, hd, hLo), P(-hw, -hd, hHi)));
-            pos.push(...quad(P(hw, -hd, base), P(hw, hd, base), P(hw, hd, hLo), P(hw, -hd, hHi)));
-            pos.push(...quad(P(-hw, -hd, hHi), P(hw, -hd, hHi), P(hw, hd, hLo), P(-hw, hd, hLo)));
-          }
+          const ridgeH = zc + dm.ridgeM;
+          // YARIM dormer: ön kenar (+hd) = çizilen yüz; arka (y=0) sırt, çatıya gömülür (açık).
+          // ön duvar (alınlık) — tabandan sırt yüksekliğine üçgen/dikdörtgen
+          pos.push(...quad(P(-hw, hd, base), P(hw, hd, base), P(hw, hd, ridgeH), P(-hw, hd, ridgeH)));
+          // tek eğim çatı: ön üst (+hd, ridgeH) → arka sırt (0, ridgeH)  (düz üst) + öne eğim
+          pos.push(...quad(P(-hw, hd, ridgeH), P(hw, hd, ridgeH), P(hw, 0, ridgeH), P(-hw, 0, ridgeH)));
+          // yan duvarlar (sol/sağ) — ön kenardan arka sırta üçgen kama
+          pos.push(...quad(P(-hw, hd, base), P(-hw, 0, base), P(-hw, 0, ridgeH), P(-hw, hd, ridgeH)));
+          pos.push(...quad(P(hw, hd, base), P(hw, 0, base), P(hw, 0, ridgeH), P(hw, hd, ridgeH)));
           addMesh(pos, dormerMat);
         });
       });
