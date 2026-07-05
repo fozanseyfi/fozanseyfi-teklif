@@ -21,7 +21,7 @@ import { massRoof, faceAreaM2, seedRoofGraph } from "@/lib/solar-design/roof-mod
 import type { MassRoof } from "@/lib/solar-design/roof-model";
 import { pointInPolygon } from "@/lib/solar-design/geometry";
 import { DEFAULT_MASS } from "@/lib/solar-design/types";
-import type { Mass, RoofType, PlacedPanel } from "@/lib/solar-design/types";
+import type { Mass, RoofType, PlacedPanel, Vec } from "@/lib/solar-design/types";
 
 const CanvasEditor = dynamic(() => import("./canvas-editor"), { ssr: false });
 const MassEditor = dynamic(() => import("./mass-editor"), { ssr: false });
@@ -40,6 +40,23 @@ const STEPS: { key: StepKey; label: string; icon: React.ComponentType<{ classNam
 function newMassId(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
   return `m${Date.now()}${Math.floor(Math.random() * 1e6)}`;
+}
+
+/** Hazır bina/çatı taban şekilleri (birim koordinat; 1 birim ≈ 8 m). Tıkla-ekle. */
+const SHAPE_TEMPLATES: { key: string; label: string; poly: Vec[] }[] = [
+  { key: "rect", label: "Dikdörtgen", poly: [{ x: 0, y: 0 }, { x: 1.6, y: 0 }, { x: 1.6, y: 1 }, { x: 0, y: 1 }] },
+  { key: "L", label: "L", poly: [{ x: 0, y: 0 }, { x: 1.5, y: 0 }, { x: 1.5, y: 0.6 }, { x: 0.6, y: 0.6 }, { x: 0.6, y: 1.4 }, { x: 0, y: 1.4 }] },
+  { key: "T", label: "T", poly: [{ x: 0, y: 0 }, { x: 1.5, y: 0 }, { x: 1.5, y: 0.55 }, { x: 1, y: 0.55 }, { x: 1, y: 1.4 }, { x: 0.5, y: 1.4 }, { x: 0.5, y: 0.55 }, { x: 0, y: 0.55 }] },
+  { key: "U", label: "U", poly: [{ x: 0, y: 0 }, { x: 0.5, y: 0 }, { x: 0.5, y: 0.85 }, { x: 1, y: 0.85 }, { x: 1, y: 0 }, { x: 1.5, y: 0 }, { x: 1.5, y: 1.4 }, { x: 0, y: 1.4 }] },
+];
+
+/** Şablonu 24×24 kutuya sığdırıp çizen küçük ikon. */
+function ShapeIcon({ poly }: { poly: Vec[] }) {
+  const xs = poly.map((p) => p.x), ys = poly.map((p) => p.y);
+  const minx = Math.min(...xs), maxx = Math.max(...xs), miny = Math.min(...ys), maxy = Math.max(...ys);
+  const w = maxx - minx || 1, h = maxy - miny || 1, s = 16 / Math.max(w, h);
+  const pts = poly.map((p) => `${4 + (p.x - minx) * s},${4 + (p.y - miny) * s}`).join(" ");
+  return <svg width={24} height={24} viewBox="0 0 24 24"><polygon points={pts} fill="#05966922" stroke="#059669" strokeWidth={1.3} /></svg>;
 }
 
 const CITY_YIELD: Record<string, number> = {
@@ -139,8 +156,9 @@ function Editor() {
   const [obstacleMode, setObstacleMode] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedFaceSig, setSelectedFaceSig] = useState<string | null>(null);
-  const [mapMode, setMapMode] = useState(false);
+  const [mapMode, setMapMode] = useState(true); // açılışta uydu haritası standart
   const [pending, setPending] = useState<{ dataUrl: string; mpp: number } | null>(null);
+  const [imgSize, setImgSize] = useState<{ w: number; h: number } | null>(null);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- adım değişince aracı sıfırla (dış senkronizasyon)
   useEffect(() => { if (step !== "cizim") setTool("edit"); }, [step]);
@@ -156,6 +174,14 @@ function Editor() {
     () => doc.masses.map((m) => ({ mass: m, roof: massRoof(m, mpp || 0.05) })),
     [doc.masses, mpp],
   );
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- altlık boyutunu yükle + görüntü varsa haritayı kapat
+    if (!doc.imageDataUrl) { setImgSize(null); return; }
+    const im = new window.Image();
+    im.onload = () => { setImgSize({ w: im.width, h: im.height }); setMapMode(false); };
+    im.src = doc.imageDataUrl;
+  }, [doc.imageDataUrl]);
 
   const setLocked = (v: boolean) => update((d) => { d.locked = v; });
   const updateActive = (mut: (m: Mass) => void) => update((d) => { const m = d.masses.find((x) => x.id === doc.activeMassId); if (m) mut(m); });
@@ -183,6 +209,19 @@ function Editor() {
       d.activeMassId = id;
     }, true);
     setStep("cizim"); setCizimView("2d"); setTool("draw");
+  }
+  function addShape(tmpl: Vec[]) {
+    const per = 8 / (mpp || 0.05); // 1 birim ≈ 8 m
+    const cx = imgSize ? imgSize.w / 2 : 500, cy = imgSize ? imgSize.h / 2 : 350;
+    const xs = tmpl.map((p) => p.x), ys = tmpl.map((p) => p.y);
+    const bcx = (Math.min(...xs) + Math.max(...xs)) / 2, bcy = (Math.min(...ys) + Math.max(...ys)) / 2;
+    const fp = tmpl.map((p) => ({ x: cx + (p.x - bcx) * per, y: cy + (p.y - bcy) * per }));
+    const id = newMassId();
+    update((d) => {
+      d.masses.push({ ...DEFAULT_MASS, id, footprint: fp, name: d.masses.length === 0 ? "Ana Bina" : `Kütle ${d.masses.length + 1}` });
+      d.activeMassId = id;
+    }, true);
+    setStep("cizim"); setCizimView("2d"); setTool("move");
   }
   function selectMass(id: string) { update((d) => { d.activeMassId = id; }); setTool("edit"); }
   function removeMass(id: string) {
@@ -326,7 +365,7 @@ function Editor() {
 
         <div className="space-y-3">
           {step === "gorsel" && <GorselPanel mpp={mpp} hasImage={!!doc.imageDataUrl} onMap={() => { setPending(null); setMapMode(true); }} onUpload={(url) => update((d) => { d.imageDataUrl = url; })} />}
-          {step === "cizim" && !locked && <MassPanel updateActive={updateActive} active={activeMass} masses={doc.masses} onAdd={() => addMass(null)} onAddRoofTop={() => addMass(activeMass?.id ?? doc.masses[0]?.id ?? null)} onSelect={selectMass} onRemove={removeMass} onToggleRoofEdit={toggleRoofEdit} />}
+          {step === "cizim" && !locked && <MassPanel updateActive={updateActive} active={activeMass} masses={doc.masses} onAdd={() => addMass(null)} onAddRoofTop={() => addMass(activeMass?.id ?? doc.masses[0]?.id ?? null)} onSelect={selectMass} onRemove={removeMass} onToggleRoofEdit={toggleRoofEdit} onShape={addShape} />}
           {step === "cizim" && locked && <LockPanel onUnlock={() => setLocked(false)} onPanel={() => setStep("panel")} />}
           {step === "panel" && <PanelPanel update={update} onAuto={autoLayout} totalPanels={totalPanels} totalKwp={totalKwp} locked={locked} onEditRoof={() => { setLocked(false); setStep("cizim"); }} />}
           {step === "analiz" && <AnalizPanel built={built} totalPanels={totalPanels} totalKwp={totalKwp} />}
@@ -405,7 +444,7 @@ const ROOF_TYPES: { v: RoofType; label: string; desc: string }[] = [
 ];
 const ROOF_SHORT: Record<RoofType, string> = { flat: "Düz", gable: "Beşik", hip: "Kırma" };
 
-function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect, onRemove, onToggleRoofEdit }: {
+function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect, onRemove, onToggleRoofEdit, onShape }: {
   updateActive: (mut: (m: Mass) => void) => void;
   active: Mass | null;
   masses: Mass[];
@@ -414,13 +453,26 @@ function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect
   onSelect: (id: string) => void;
   onRemove: (id: string) => void;
   onToggleRoofEdit: () => void;
+  onShape: (poly: Vec[]) => void;
 }) {
   return (
     <Card>
       <CardContent className="space-y-3 p-4">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold text-slate-800">Bina Kütleleri ({masses.length})</p>
-          <Button size="sm" variant="outline" onClick={onAdd}><Plus className="size-4" /> Kütle</Button>
+          <Button size="sm" variant="outline" onClick={onAdd}><Plus className="size-4" /> Boş Çiz</Button>
+        </div>
+        <div>
+          <Label className="text-[11px] text-muted-foreground">Hazır şekil ekle (sonra “Taşı” ile yerleştir)</Label>
+          <div className="mt-1 grid grid-cols-4 gap-1.5">
+            {SHAPE_TEMPLATES.map((t) => (
+              <button key={t.key} type="button" onClick={() => onShape(t.poly)} title={t.label}
+                className="flex flex-col items-center gap-0.5 rounded-md border border-slate-200 p-1.5 text-[10px] font-medium text-slate-600 hover:border-emerald-300 hover:bg-emerald-50/60">
+                <ShapeIcon poly={t.poly} />
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
         {masses.length === 0 ? (
           <p className="text-[12px] text-muted-foreground">“Kütle” ile başla, sonra binanın <b>dış hattını</b> tıklaya tıklaya çiz ve kapat. Çatı otomatik üretilir.</p>
