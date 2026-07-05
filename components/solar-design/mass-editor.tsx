@@ -355,12 +355,18 @@ export default function MassEditor({ mode, dormerDraw, dormerType, onDormerPlace
                 <Group key={dm.id}>
                   <Group x={dm.x} y={dm.y} rotation={dm.dirDeg || 0} draggable={mode === "edit" || mode === "move"} onDragEnd={(e) => moveDormer(dm.id, e.target.x(), e.target.y())}>
                     <Rect x={-hw} y={-hd} width={hw * 2} height={hd * 2} fill="#7c3aed1f" stroke="#7c3aed" strokeWidth={1.6 / scale} />
-                    {/* iç çizgiler — 3B ile birebir: sırt (genişlik ekseni, y=ry) + iki eğim */}
-                    <Line points={[-hw, ry, hw, ry]} stroke="#7c3aed" strokeWidth={1.8 / scale} listening={false} />
-                    <Line points={[-hw, ry, -hw, hd]} stroke="#7c3aed" strokeWidth={0.9 / scale} dash={[3 / scale, 3 / scale]} listening={false} />
-                    <Line points={[hw, ry, hw, hd]} stroke="#7c3aed" strokeWidth={0.9 / scale} dash={[3 / scale, 3 / scale]} listening={false} />
-                    <Line points={[-hw, ry, -hw, -hd]} stroke="#7c3aed" strokeWidth={0.9 / scale} dash={[3 / scale, 3 / scale]} listening={false} />
-                    <Line points={[hw, ry, hw, -hd]} stroke="#7c3aed" strokeWidth={0.9 / scale} dash={[3 / scale, 3 / scale]} listening={false} />
+                    {/* iç çizgiler — 3B ile birebir (tip'e göre) */}
+                    {(() => {
+                      if (dm.type === "shed") return <Line points={[-hw, -hd, hw, -hd]} stroke="#7c3aed" strokeWidth={1.8 / scale} listening={false} />;
+                      const rt = dm.type === "hip" ? hw * 0.3 : hw;
+                      return (<>
+                        <Line points={[-rt, ry, rt, ry]} stroke="#7c3aed" strokeWidth={1.8 / scale} listening={false} />
+                        <Line points={[-hw, hd, -rt, ry]} stroke="#7c3aed" strokeWidth={1 / scale} dash={[3 / scale, 3 / scale]} listening={false} />
+                        <Line points={[hw, hd, rt, ry]} stroke="#7c3aed" strokeWidth={1 / scale} dash={[3 / scale, 3 / scale]} listening={false} />
+                        <Line points={[-hw, -hd, -rt, ry]} stroke="#7c3aed" strokeWidth={1 / scale} dash={[3 / scale, 3 / scale]} listening={false} />
+                        <Line points={[hw, -hd, rt, ry]} stroke="#7c3aed" strokeWidth={1 / scale} dash={[3 / scale, 3 / scale]} listening={false} />
+                      </>);
+                    })()}
                   </Group>
                   {(mode === "edit" || mode === "move") && HC.map(([lx, ly], k) => { const w = corner(lx, ly); return <Circle key={k} x={w.x} y={w.y} radius={5.5 / scale} fill="#7c3aed" stroke="#fff" strokeWidth={1.6 / scale} draggable onDragEnd={(e) => resizeDormerCorner(dm.id, lx, ly, e.target.x(), e.target.y())} />; })}
                   {(mode === "edit" || mode === "move") && (() => { const h = corner(0, -(hd + 20 / scale)); const c0 = corner(0, -hd); return <><Line points={[c0.x, c0.y, h.x, h.y]} stroke="#f59e0b" strokeWidth={1.2 / scale} listening={false} /><Circle x={h.x} y={h.y} radius={6 / scale} fill="#f59e0b" stroke="#fff" strokeWidth={1.6 / scale} draggable onDragMove={(e) => rotateDormer(dm.id, e.target.x(), e.target.y())} onDragEnd={(e) => rotateDormer(dm.id, e.target.x(), e.target.y())} /></>; })()}
