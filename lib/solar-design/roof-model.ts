@@ -1,5 +1,6 @@
-import type { Vec, RoofType } from "./types";
+import type { Vec, RoofType, Mass, RNode, REdge } from "./types";
 import { polygonAreaPx, centroid } from "./geometry";
+import { detectFaces, faceCoords, detectOuterBoundary } from "./faces";
 
 /**
  * Parametrik çatı üretimi — bina ayak izi (footprint) + çatı tipi + eğim'den
@@ -157,4 +158,115 @@ export function generateRoof(
 export function planeAreaM2(plane: RoofPlane, mpp: number): number {
   const projected = polygonAreaPx(plane.poly) * mpp * mpp;
   return projected / Math.cos((plane.tiltDeg * Math.PI) / 180);
+}
+
+export function faceAreaM2(poly: Vec[], mpp: number): number {
+  return polygonAreaPx(poly) * mpp * mpp;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Birleşik çatı arayüzü — hem parametrik hem düzenlenebilir (grafik) kütleyi
+// aynı "yüzey" listesi olarak verir. 3B, panel ve analiz bunu kullanır.
+// ─────────────────────────────────────────────────────────────────────────
+
+export interface RoofFace {
+  id: string;
+  name: string;
+  poly: Vec[]; // px
+  zAbs: (x: number, y: number) => number; // mutlak yükseklik (m)
+}
+export interface MassRoof {
+  faces: RoofFace[];
+  boundary: Vec[]; // duvar/cephe için dış hat (px)
+  boundaryZ: (p: Vec) => number; // sınırdaki çatı yüksekliği (m)
+  eavesM: number;
+}
+
+function genId(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return `r${Date.now()}${Math.floor(Math.random() * 1e6)}`;
+}
+
+function bary(px: number, py: number, ax: number, ay: number, bx: number, by: number, cx: number, cy: number) {
+  const v0x = bx - ax, v0y = by - ay, v1x = cx - ax, v1y = cy - ay, v2x = px - ax, v2y = py - ay;
+  const den = v0x * v1y - v1x * v0y;
+  if (Math.abs(den) < 1e-9) return null;
+  const v = (v2x * v1y - v1x * v2y) / den;
+  const w = (v0x * v2y - v2x * v0y) / den;
+  return { u: 1 - v - w, v, w };
+}
+
+/** Fan-üçgen yükseklik örnekleyici — düzlemsel olmasa da sürekli yükseklik verir. */
+function fanSampler(pts: { x: number; y: number; z: number }[]): (x: number, y: number) => number {
+  const avg = pts.reduce((s, p) => s + p.z, 0) / (pts.length || 1);
+  if (pts.length < 3) return () => avg;
+  const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+  const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+  const cz = pts.reduce((s, p) => s + p.z, 0) / pts.length;
+  return (x, y) => {
+    for (let k = 0; k < pts.length; k++) {
+      const a = pts[k], b = pts[(k + 1) % pts.length];
+      const bc = bary(x, y, cx, cy, a.x, a.y, b.x, b.y);
+      if (bc && bc.u >= -0.02 && bc.v >= -0.02 && bc.w >= -0.02) return bc.u * cz + bc.v * a.z + bc.w * b.z;
+    }
+    return cz;
+  };
+}
+
+export function massRoof(mass: Mass, mpp: number): MassRoof {
+  const eavesM = mass.baseM + mass.wallM;
+  if (!mass.roofEditable) {
+    const m = generateRoof(mass.footprint, mass.roofType, mass.pitchDeg, mass.ridgeAxisDeg, eavesM, mpp);
+    return {
+      faces: m.planes.map((p) => ({ id: p.id, name: p.name, poly: p.poly, zAbs: p.z })),
+      boundary: mass.footprint,
+      boundaryZ: m.heightAtBoundary,
+      eavesM,
+    };
+  }
+  const nodeById = new Map(mass.roofNodes.map((n) => [n.id, n]));
+  const faces = detectFaces(mass.roofNodes, mass.roofEdges).map((f, i) => {
+    const poly = faceCoords(f, mass.roofNodes);
+    const p3 = f.nodes.map((id) => { const n = nodeById.get(id)!; return { x: n.x, y: n.y, z: eavesM + (n.z || 0) }; });
+    return { id: f.sig, name: `Çatı ${i + 1}`, poly, zAbs: fanSampler(p3) };
+  });
+  const bIds = detectOuterBoundary(mass.roofNodes, mass.roofEdges);
+  const boundary = bIds
+    ? (bIds.map((id) => nodeById.get(id)).filter(Boolean).map((n) => ({ x: n!.x, y: n!.y })))
+    : mass.footprint;
+  const boundaryZ = (p: Vec) => {
+    let best = eavesM, bd = Infinity;
+    for (const n of mass.roofNodes) { const d = Math.hypot(n.x - p.x, n.y - p.y); if (d < bd) { bd = d; best = eavesM + (n.z || 0); } }
+    return best;
+  };
+  return { faces, boundary, boundaryZ, eavesM };
+}
+
+/** Parametrik çatıyı düzenlenebilir grafiğe "tohumla" (elle düzenlemeye geçiş). */
+export function seedRoofGraph(mass: Mass, mpp: number): { nodes: RNode[]; edges: REdge[] } {
+  const eavesM = mass.baseM + mass.wallM;
+  const model = generateRoof(mass.footprint, mass.roofType, mass.pitchDeg, mass.ridgeAxisDeg, eavesM, mpp);
+  const nodes: RNode[] = [];
+  const key2id = new Map<string, string>();
+  const r = (v: number) => Math.round(v * 2) / 2;
+  const getId = (x: number, y: number, z: number) => {
+    const k = `${r(x)},${r(y)}`;
+    let id = key2id.get(k);
+    if (!id) { id = genId(); key2id.set(k, id); nodes.push({ id, x, y, z }); }
+    return id;
+  };
+  const edgeSet = new Set<string>();
+  const edges: REdge[] = [];
+  for (const pl of model.planes) {
+    const ids = pl.poly.map((p) => getId(p.x, p.y, pl.z(p.x, p.y) - eavesM));
+    for (let i = 0; i < ids.length; i++) {
+      const a = ids[i], b = ids[(i + 1) % ids.length];
+      if (a === b) continue;
+      const ek = [a, b].sort().join("|");
+      if (edgeSet.has(ek)) continue;
+      edgeSet.add(ek);
+      edges.push({ id: genId(), a, b });
+    }
+  }
+  return { nodes, edges };
 }

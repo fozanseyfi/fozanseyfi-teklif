@@ -17,7 +17,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDesignStore } from "@/lib/solar-design/store";
 import { computeLayout, panelsKwp } from "@/lib/solar-design/layout-engine";
-import { generateRoof, planeAreaM2 } from "@/lib/solar-design/roof-model";
+import { massRoof, faceAreaM2, seedRoofGraph } from "@/lib/solar-design/roof-model";
+import type { MassRoof } from "@/lib/solar-design/roof-model";
 import { DEFAULT_MASS } from "@/lib/solar-design/types";
 import type { Mass, RoofType } from "@/lib/solar-design/types";
 
@@ -148,14 +149,23 @@ function Editor() {
   const totalKwp = panelsKwp(totalPanels, doc.panelConfig.watt);
   const activeMass = doc.masses.find((m) => m.id === doc.activeMassId) || null;
 
-  // Her kütle için parametrik çatı düzlemleri.
+  // Her kütle için çatı (parametrik ya da düzenlenebilir grafik) — birleşik.
   const built = useMemo(
-    () => doc.masses.map((m) => ({ mass: m, model: generateRoof(m.footprint, m.roofType, m.pitchDeg, m.ridgeAxisDeg, m.baseM + m.wallM, mpp || 0.05) })),
+    () => doc.masses.map((m) => ({ mass: m, roof: massRoof(m, mpp || 0.05) })),
     [doc.masses, mpp],
   );
 
   const setLocked = (v: boolean) => update((d) => { d.locked = v; });
   const updateActive = (mut: (m: Mass) => void) => update((d) => { const m = d.masses.find((x) => x.id === doc.activeMassId); if (m) mut(m); });
+  function toggleRoofEdit() {
+    update((d) => {
+      const m = d.masses.find((x) => x.id === doc.activeMassId);
+      if (!m) return;
+      if (m.roofEditable) { m.roofEditable = false; m.roofNodes = []; m.roofEdges = []; }
+      else { const g = seedRoofGraph(m, mpp || 0.05); m.roofNodes = g.nodes; m.roofEdges = g.edges; m.roofEditable = true; }
+    }, true);
+    setTool("edit");
+  }
 
   function addMass(parentId: string | null) {
     const id = newMassId();
@@ -190,7 +200,7 @@ function Editor() {
 
   function autoLayout() {
     if (!mpp) { toast.error("Ölçek bulunamadı — altlığı haritadan alın."); return; }
-    const placed = built.flatMap(({ mass, model }) => model.planes.flatMap((pl) => computeLayout(pl.poly, `${mass.id}:${pl.id}`, doc.panelConfig, mpp)));
+    const placed = built.flatMap(({ mass, roof }) => roof.faces.flatMap((f) => computeLayout(f.poly, `${mass.id}:${f.id}`, doc.panelConfig, mpp)));
     if (!placed.length) { toast.error("Çatı düzlemi yok — önce bina hattını çizin."); return; }
     update((d) => { d.placed = placed; }, true);
     toast.success(`${placed.length} panel yerleştirildi`);
@@ -290,7 +300,7 @@ function Editor() {
 
         <div className="space-y-3">
           {step === "gorsel" && <GorselPanel mpp={mpp} hasImage={!!doc.imageDataUrl} onMap={() => { setPending(null); setMapMode(true); }} onUpload={(url) => update((d) => { d.imageDataUrl = url; })} />}
-          {step === "cizim" && !locked && <MassPanel updateActive={updateActive} active={activeMass} masses={doc.masses} onAdd={() => addMass(null)} onAddRoofTop={() => addMass(activeMass?.id ?? doc.masses[0]?.id ?? null)} onSelect={selectMass} onRemove={removeMass} />}
+          {step === "cizim" && !locked && <MassPanel updateActive={updateActive} active={activeMass} masses={doc.masses} onAdd={() => addMass(null)} onAddRoofTop={() => addMass(activeMass?.id ?? doc.masses[0]?.id ?? null)} onSelect={selectMass} onRemove={removeMass} onToggleRoofEdit={toggleRoofEdit} />}
           {step === "cizim" && locked && <LockPanel onUnlock={() => setLocked(false)} onPanel={() => setStep("panel")} />}
           {step === "panel" && <PanelPanel update={update} onAuto={autoLayout} totalPanels={totalPanels} totalKwp={totalKwp} locked={locked} onEditRoof={() => { setLocked(false); setStep("cizim"); }} />}
           {step === "analiz" && <AnalizPanel built={built} totalPanels={totalPanels} totalKwp={totalKwp} />}
@@ -366,7 +376,7 @@ const ROOF_TYPES: { v: RoofType; label: string; desc: string }[] = [
 ];
 const ROOF_SHORT: Record<RoofType, string> = { flat: "Düz", gable: "Beşik", hip: "Kırma" };
 
-function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect, onRemove }: {
+function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect, onRemove, onToggleRoofEdit }: {
   updateActive: (mut: (m: Mass) => void) => void;
   active: Mass | null;
   masses: Mass[];
@@ -374,6 +384,7 @@ function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect
   onAddRoofTop: () => void;
   onSelect: (id: string) => void;
   onRemove: (id: string) => void;
+  onToggleRoofEdit: () => void;
 }) {
   return (
     <Card>
@@ -403,42 +414,54 @@ function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect
           <div className="space-y-3 border-t pt-3">
             <p className="text-[12px] font-semibold text-slate-700">Seçili: {active.name}</p>
             <div className="space-y-1"><Label className="text-[11px]">Ad</Label><Input value={active.name} onChange={(e) => updateActive((m) => { m.name = e.target.value; })} className="h-9" /></div>
-            <div className="space-y-1">
-              <Label className="text-[11px]">Çatı tipi</Label>
-              <Select value={active.roofType} onValueChange={(v) => updateActive((m) => { m.roofType = v as RoofType; })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{ROOF_TYPES.map((t) => <SelectItem key={t.v} value={t.v}>{t.label} — {t.desc}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between"><Label className="text-[11px]">Duvar yüksekliği</Label><span className="text-[12px] font-semibold text-emerald-700">{fmt(active.wallM, 1)} m</span></div>
               <Slider min={0} max={20} step={0.5} value={[Math.min(20, active.wallM)]} onValueChange={(v) => updateActive((m) => { m.wallM = v[0]; })} />
             </div>
-            {active.roofType !== "flat" && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between"><Label className="text-[11px]">Eğim</Label><span className="text-[12px] font-semibold text-emerald-700">{active.pitchDeg}°</span></div>
-                <Slider min={5} max={60} step={1} value={[active.pitchDeg]} onValueChange={(v) => updateActive((m) => { m.pitchDeg = v[0]; })} />
+            {active.roofEditable ? (
+              <div className="space-y-2 rounded-lg border border-blue-200 bg-blue-50/60 p-2.5">
+                <p className="text-[11px] text-blue-800">Çatı <b>elle düzenleniyor</b>. 2B planda: çizgileri/köşeleri sürükle, çizgiye çift tık = köşe ekle, sağ tık = sil, “Hat Çiz” = yeni çizgi. Köşeye tıklayıp <b>yüksekliğini</b> gir.</p>
+                <Button size="sm" variant="outline" className="w-full" onClick={onToggleRoofEdit}>Otomatik Çatıya Dön</Button>
               </div>
-            )}
-            {active.roofType === "gable" && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between"><Label className="text-[11px]">Sırt (ridge) yönü</Label><span className="text-[12px] font-semibold text-emerald-700">{active.ridgeAxisDeg}°</span></div>
-                <Slider min={0} max={180} step={5} value={[active.ridgeAxisDeg]} onValueChange={(v) => updateActive((m) => { m.ridgeAxisDeg = v[0]; })} />
-              </div>
-            )}
-            {active.roofType === "flat" && (
-              <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50/60 p-2.5">
-                <button type="button" onClick={() => updateActive((m) => { m.parapet = !m.parapet; })} className="flex w-full items-center justify-between">
-                  <Label className="text-[11px] cursor-pointer">Parapet (kenar duvarı)</Label>
-                  <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", active.parapet ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-500")}>{active.parapet ? "Açık" : "Kapalı"}</span>
-                </button>
-                {active.parapet && (
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between"><Label className="text-[11px]">Parapet yüksekliği</Label><span className="text-[12px] font-semibold text-emerald-700">{fmt(active.parapetM, 2)} m</span></div>
-                    <Slider min={0.2} max={2} step={0.1} value={[active.parapetM]} onValueChange={(v) => updateActive((m) => { m.parapetM = v[0]; })} />
+            ) : (
+              <>
+                <div className="space-y-1">
+                  <Label className="text-[11px]">Çatı tipi</Label>
+                  <Select value={active.roofType} onValueChange={(v) => updateActive((m) => { m.roofType = v as RoofType; })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{ROOF_TYPES.map((t) => <SelectItem key={t.v} value={t.v}>{t.label} — {t.desc}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                {active.roofType !== "flat" && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between"><Label className="text-[11px]">Eğim</Label><span className="text-[12px] font-semibold text-emerald-700">{active.pitchDeg}°</span></div>
+                    <Slider min={5} max={60} step={1} value={[active.pitchDeg]} onValueChange={(v) => updateActive((m) => { m.pitchDeg = v[0]; })} />
                   </div>
                 )}
-              </div>
+                {active.roofType === "gable" && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between"><Label className="text-[11px]">Sırt (ridge) yönü</Label><span className="text-[12px] font-semibold text-emerald-700">{active.ridgeAxisDeg}°</span></div>
+                    <Slider min={0} max={180} step={5} value={[active.ridgeAxisDeg]} onValueChange={(v) => updateActive((m) => { m.ridgeAxisDeg = v[0]; })} />
+                  </div>
+                )}
+                {active.roofType === "flat" && (
+                  <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50/60 p-2.5">
+                    <button type="button" onClick={() => updateActive((m) => { m.parapet = !m.parapet; })} className="flex w-full items-center justify-between">
+                      <Label className="text-[11px] cursor-pointer">Parapet (kenar duvarı)</Label>
+                      <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", active.parapet ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-500")}>{active.parapet ? "Açık" : "Kapalı"}</span>
+                    </button>
+                    {active.parapet && (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between"><Label className="text-[11px]">Parapet yüksekliği</Label><span className="text-[12px] font-semibold text-emerald-700">{fmt(active.parapetM, 2)} m</span></div>
+                        <Slider min={0.2} max={2} step={0.1} value={[active.parapetM]} onValueChange={(v) => updateActive((m) => { m.parapetM = v[0]; })} />
+                      </div>
+                    )}
+                  </div>
+                )}
+                {active.footprint.length >= 3 && (
+                  <Button size="sm" variant="outline" className="w-full" onClick={onToggleRoofEdit}><PencilRuler className="size-4" /> Çatıyı Elle Düzenle</Button>
+                )}
+              </>
             )}
           </div>
         )}
@@ -513,16 +536,16 @@ function NumF({ label, value, onChange }: { label: string; value: number; onChan
   return (<div className="space-y-1"><Label className="text-[11px]">{label}</Label><Input type="number" value={value} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} /></div>);
 }
 
-function AnalizPanel({ built, totalPanels, totalKwp }: { built: { mass: Mass; model: ReturnType<typeof generateRoof> }[]; totalPanels: number; totalKwp: number }) {
+function AnalizPanel({ built, totalPanels, totalKwp }: { built: { mass: Mass; roof: MassRoof }[]; totalPanels: number; totalKwp: number }) {
   const doc = useDesignStore((s) => s.active)!;
   const mpp = doc.metersPerPixel;
   const yieldKwhKwp = CITY_YIELD[doc.city] ?? 1500;
   const annual = totalKwp * yieldKwhKwp;
-  const roofAreaM2 = mpp ? built.reduce((s, b) => s + b.model.planes.reduce((a, pl) => a + planeAreaM2(pl, mpp), 0), 0) : null;
+  const roofAreaM2 = mpp ? built.reduce((s, b) => s + b.roof.faces.reduce((a, f) => a + faceAreaM2(f.poly, mpp), 0), 0) : null;
   const usedAreaM2 = mpp ? doc.placed.reduce((s, p) => s + p.w * p.h, 0) * mpp ** 2 : null;
-  const perFace = built.flatMap(({ mass, model }) => model.planes.map((pl) => {
-    const n = doc.placed.filter((p) => p.face === `${mass.id}:${pl.id}`).length;
-    return { name: built.length > 1 ? `${mass.name} · ${pl.name}` : pl.name, n, kwp: panelsKwp(n, doc.panelConfig.watt) };
+  const perFace = built.flatMap(({ mass, roof }) => roof.faces.map((f) => {
+    const n = doc.placed.filter((p) => p.face === `${mass.id}:${f.id}`).length;
+    return { name: built.length > 1 ? `${mass.name} · ${f.name}` : f.name, n, kwp: panelsKwp(n, doc.panelConfig.watt) };
   }));
   return (
     <Card>

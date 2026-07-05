@@ -75,6 +75,11 @@ export interface Mass {
   parapet: boolean; // düz çatıda kenar duvarı
   parapetM: number; // parapet yüksekliği (m)
   parentId: string | null; // üstüne oturduğu kütle (çatı üstü yapı)
+  /** Çatı elle mi düzenleniyor — false: parametrik; true: aşağıdaki grafik kullanılır. */
+  roofEditable: boolean;
+  /** Düzenlenebilir çatı grafiği — noktalar (x,y px; z = saçaktan metre yükseklik). */
+  roofNodes: RNode[];
+  roofEdges: REdge[];
 }
 
 export interface DesignDoc {
@@ -113,6 +118,9 @@ export const DEFAULT_MASS: Omit<Mass, "id" | "footprint"> = {
   parapet: false,
   parapetM: 0.8,
   parentId: null,
+  roofEditable: false,
+  roofNodes: [],
+  roofEdges: [],
 };
 
 export function normalizeMass(m: Partial<Mass>): Mass {
@@ -128,6 +136,9 @@ export function normalizeMass(m: Partial<Mass>): Mass {
     parapet: !!m.parapet,
     parapetM: typeof m.parapetM === "number" ? m.parapetM : 0.8,
     parentId: m.parentId ?? null,
+    roofEditable: !!m.roofEditable,
+    roofNodes: Array.isArray(m.roofNodes) ? m.roofNodes : [],
+    roofEdges: Array.isArray(m.roofEdges) ? m.roofEdges : [],
   };
 }
 

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { useDesignStore } from "@/lib/solar-design/store";
-import { generateRoof } from "@/lib/solar-design/roof-model";
+import { massRoof } from "@/lib/solar-design/roof-model";
 import { pointInPolygon } from "@/lib/solar-design/geometry";
 import { FACE_COLORS } from "@/lib/solar-design/types";
 
@@ -23,7 +23,7 @@ export default function ThreeView() {
 
   const mpp = doc.metersPerPixel || 0.05;
   const built = useMemo(
-    () => doc.masses.map((m) => ({ mass: m, model: generateRoof(m.footprint, m.roofType, m.pitchDeg, m.ridgeAxisDeg, m.baseM + m.wallM, mpp) })),
+    () => doc.masses.map((m) => ({ mass: m, roof: massRoof(m, mpp) })),
     [doc.masses, mpp],
   );
 
@@ -85,46 +85,46 @@ export default function ThreeView() {
       const uvOf = (x: number, y: number) => [x / imgW, 1 - y / imgH];
 
       let colorI = 0;
-      built.forEach(({ mass, model }) => {
-        const eavesM = mass.baseM + mass.wallM;
-        const fp = mass.footprint;
+      built.forEach(({ mass, roof }) => {
+        const eavesM = roof.eavesM;
+        const bnd = roof.boundary;
         const siblings = built.filter((b) => (b.mass.parentId ?? null) === (mass.parentId ?? null) && b.mass.id !== mass.id).map((b) => b.mass);
         const isInternal = (a: { x: number; y: number }, b: { x: number; y: number }) => {
           const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
           return siblings.some((s) => pointInPolygon(mid, s.footprint));
         };
         // Duvarlar (iç/paylaşılan kenarlar gizlenir → combine)
-        if (fp.length >= 2) {
+        if (bnd.length >= 2) {
           const wp: number[] = [];
-          for (let i = 0; i < fp.length; i++) {
-            const a = fp[i], b = fp[(i + 1) % fp.length];
+          for (let i = 0; i < bnd.length; i++) {
+            const a = bnd[i], b = bnd[(i + 1) % bnd.length];
             if (isInternal(a, b)) continue;
             const wa = toWorld(a.x, a.y), wb = toWorld(b.x, b.y);
-            const za = model.heightAtBoundary(a), zb = model.heightAtBoundary(b);
+            const za = roof.boundaryZ(a), zb = roof.boundaryZ(b);
             wp.push(wa.x, mass.baseM, wa.z, wb.x, mass.baseM, wb.z, wb.x, zb, wb.z, wa.x, mass.baseM, wa.z, wb.x, zb, wb.z, wa.x, za, wa.z);
           }
           if (wp.length) addMesh(wp, wallMat);
         }
         // Parapet (düz çatı kenar duvarı)
-        if (mass.parapet && mass.roofType === "flat" && mass.parapetM > 0 && fp.length >= 2) {
+        if (mass.parapet && mass.roofType === "flat" && !mass.roofEditable && mass.parapetM > 0 && bnd.length >= 2) {
           const pp: number[] = [];
-          for (let i = 0; i < fp.length; i++) {
-            const a = fp[i], b = fp[(i + 1) % fp.length];
+          for (let i = 0; i < bnd.length; i++) {
+            const a = bnd[i], b = bnd[(i + 1) % bnd.length];
             if (isInternal(a, b)) continue;
             const wa = toWorld(a.x, a.y), wb = toWorld(b.x, b.y), top = eavesM + mass.parapetM;
             pp.push(wa.x, eavesM, wa.z, wb.x, eavesM, wb.z, wb.x, top, wb.z, wa.x, eavesM, wa.z, wb.x, top, wb.z, wa.x, top, wa.z);
           }
           if (pp.length) addMesh(pp, parapetMat);
         }
-        // Çatı düzlemleri — uydu dokusu (ya da renk) + kenar çizgisi + etiket
-        model.planes.forEach((plane) => {
-          const pts = plane.poly;
+        // Çatı yüzeyleri — uydu dokusu (ya da renk) + kenar çizgisi + etiket
+        roof.faces.forEach((face) => {
+          const pts = face.poly;
           if (pts.length < 3) return;
           const cxp = pts.reduce((s, p) => s + p.x, 0) / pts.length;
           const cyp = pts.reduce((s, p) => s + p.y, 0) / pts.length;
-          const w3 = pts.map((p) => { const w = toWorld(p.x, p.y); return new THREE.Vector3(w.x, plane.z(p.x, p.y) + 0.02, w.z); });
+          const w3 = pts.map((p) => { const w = toWorld(p.x, p.y); return new THREE.Vector3(w.x, face.zAbs(p.x, p.y) + 0.02, w.z); });
           const wc = toWorld(cxp, cyp);
-          const center = new THREE.Vector3(wc.x, plane.z(cxp, cyp) + 0.02, wc.z);
+          const center = new THREE.Vector3(wc.x, face.zAbs(cxp, cyp) + 0.02, wc.z);
           const positions: number[] = [];
           const uvs: number[] = [];
           for (let k = 0; k < w3.length; k++) {
@@ -139,12 +139,12 @@ export default function ThreeView() {
           addMesh(positions, mat, roofTexMat ? uvs : undefined);
           const loop = [...w3.map((v) => v.clone().setY(v.y + 0.03)), w3[0].clone().setY(w3[0].y + 0.03)];
           scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(loop), lineMat));
-          planeIndex.set(`${mass.id}:${plane.id}`, { z: plane.z, poly: plane.poly });
+          planeIndex.set(`${mass.id}:${face.id}`, { z: face.zAbs, poly: face.poly });
           const el = document.createElement("div");
           el.className = "pointer-events-none absolute left-0 top-0 whitespace-nowrap rounded-md bg-slate-900/85 px-2 py-0.5 text-[11px] font-semibold text-white shadow-sm ring-1 ring-white/10";
-          el.textContent = built.length > 1 ? `${mass.name} · ${plane.name}` : plane.name;
+          el.textContent = built.length > 1 ? `${mass.name} · ${face.name}` : face.name;
           labelsRef.current?.appendChild(el);
-          faceLabels.push({ el, cxp, cyp, z: plane.z(cxp, cyp) });
+          faceLabels.push({ el, cxp, cyp, z: face.zAbs(cxp, cyp) });
         });
       });
 
