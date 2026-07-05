@@ -156,6 +156,35 @@ export default function ThreeView() {
         });
       });
 
+      // Engeller (baca/pencere) — kırmızı bloklar; oturdukları çatı yüzeyinden yükselir
+      if (doc.obstacles.length) {
+        const obsMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.85, transparent: true, opacity: 0.85, side: THREE.DoubleSide });
+        disposables.push(obsMat);
+        doc.obstacles.forEach((o) => {
+          if (o.poly.length < 3) return;
+          const ox = o.poly.reduce((s, p) => s + p.x, 0) / o.poly.length;
+          const oy = o.poly.reduce((s, p) => s + p.y, 0) / o.poly.length;
+          let zBase = 0;
+          for (const b of built) { const f = b.roof.faces.find((ff) => pointInPolygon({ x: ox, y: oy }, ff.poly)); if (f) { zBase = f.zAbs(ox, oy); break; } }
+          const top = zBase + (o.heightM || 1);
+          const wp: number[] = [];
+          for (let i = 0; i < o.poly.length; i++) {
+            const a = o.poly[i], b = o.poly[(i + 1) % o.poly.length];
+            const wa = toWorld(a.x, a.y), wb = toWorld(b.x, b.y);
+            wp.push(wa.x, zBase, wa.z, wb.x, zBase, wb.z, wb.x, top, wb.z, wa.x, zBase, wa.z, wb.x, top, wb.z, wa.x, top, wa.z);
+          }
+          addMesh(wp, obsMat);
+          const capC = toWorld(ox, oy);
+          const cap: number[] = [];
+          for (let i = 0; i < o.poly.length; i++) {
+            const a = o.poly[i], b = o.poly[(i + 1) % o.poly.length];
+            const wa = toWorld(a.x, a.y), wb = toWorld(b.x, b.y);
+            cap.push(capC.x, top, capC.z, wa.x, top, wa.z, wb.x, top, wb.z);
+          }
+          addMesh(cap, obsMat);
+        });
+      }
+
       // Paneller — düzleme oturur; poligon dışına taşan köşe varsa çizme
       doc.placed.forEach((p) => {
         const pl = planeIndex.get(p.face);

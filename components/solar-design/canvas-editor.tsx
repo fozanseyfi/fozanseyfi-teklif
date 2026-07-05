@@ -42,6 +42,7 @@ interface Props {
   onSelectNode: (id: string | null) => void;
   selectedFaceSig: string | null;
   onSelectFace: (sig: string | null) => void;
+  obstacleMode?: boolean;
 }
 
 const SNAP_SCREEN = 12;
@@ -53,7 +54,7 @@ function genId(): string {
 
 type Hit = { kind: "node"; id: string } | { kind: "edge"; edgeId: string; point: Vec } | { kind: "free"; point: Vec };
 
-export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selectedFaceSig, onSelectFace }: Props) {
+export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selectedFaceSig, onSelectFace, obstacleMode }: Props) {
   const doc = useDesignStore((s) => s.active) as DesignDoc;
   const update = useDesignStore((s) => s.update);
   const undo = useDesignStore((s) => s.undo);
@@ -74,6 +75,9 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
 
   // Node sürükleme override
   const [nodeDrag, setNodeDrag] = useState<{ id: string; point: Vec } | null>(null);
+
+  // Engel (baca) çizimi — iki köşe
+  const [obsStart, setObsStart] = useState<Vec | null>(null);
 
   // Panel seçim + sürükleme
   const [selPanels, setSelPanels] = useState<Set<string>>(new Set());
@@ -96,6 +100,8 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- mod değişince panel seçimini sıfırla (dış senkronizasyon)
   useEffect(() => { if (mode !== "panel-select") setSelPanels(new Set()); }, [mode]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- engel modu kapanınca yarım çizimi sıfırla
+  useEffect(() => { if (!obstacleMode) setObsStart(null); }, [obstacleMode]);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- mod değişince çizim zincirini sıfırla (dış senkronizasyon)
   useEffect(() => { if (mode !== "draw") { setActiveNode(null); chainRef.current = 0; } }, [mode]);
 
@@ -196,10 +202,20 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
   function stageClick() {
     const p = relPos();
     if (!p) return;
+    if (obstacleMode) {
+      if (!obsStart) { setObsStart(p); return; }
+      const x1 = Math.min(obsStart.x, p.x), y1 = Math.min(obsStart.y, p.y), x2 = Math.max(obsStart.x, p.x), y2 = Math.max(obsStart.y, p.y);
+      if (Math.abs(x2 - x1) > 2 && Math.abs(y2 - y1) > 2) {
+        update((d) => { d.obstacles.push({ id: genId(), poly: [{ x: x1, y: y1 }, { x: x2, y: y1 }, { x: x2, y: y2 }, { x: x1, y: y2 }], heightM: 1 }); }, true);
+      }
+      setObsStart(null);
+      return;
+    }
     if (mode === "draw") { drawClick(p); return; }
   }
 
-  function stageMouseMove() { if (mode === "draw" || mode === "roof-select") setCursor(relPos()); }
+  function stageMouseMove() { if (mode === "draw" || mode === "roof-select" || obstacleMode) setCursor(relPos()); }
+  function deleteObstacle(id: string) { update((d) => { d.obstacles = d.obstacles.filter((o) => o.id !== id); }, true); }
 
   function onWheel(e: Konva.KonvaEventObject<WheelEvent>) {
     e.evt.preventDefault();
@@ -300,8 +316,8 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
       ? { x: (panelDragRef.current!.orig.get(p.id)?.x ?? p.x) + panelDelta.x, y: (panelDragRef.current!.orig.get(p.id)?.y ?? p.y) + panelDelta.y }
       : { x: p.x, y: p.y };
 
-  const draggableStage = mode === "roof-select" || mode === "panel-select" || mode === "view";
-  const cursorStyle = mode === "draw" ? "crosshair" : "default";
+  const draggableStage = (mode === "roof-select" || mode === "panel-select" || mode === "view") && !obstacleMode;
+  const cursorStyle = mode === "draw" || obstacleMode ? "crosshair" : "default";
 
   // Çizgi üstü hayalet nokta — imleç bir kenara yakınken (nokta değil) göster.
   const edgeGhost =
@@ -322,6 +338,12 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
         <div className="absolute left-1/2 top-2 z-20 flex -translate-x-1/2 gap-2">
           <button type="button" onClick={finishChain} className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-emerald-700">Bitir (Enter)</button>
           <button type="button" onClick={cancelChain} className="rounded-md bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow hover:bg-slate-50">İptal (Esc)</button>
+        </div>
+      )}
+      {/* Engel modu bilgi */}
+      {obstacleMode && (
+        <div className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white shadow">
+          Baca/engel: iki köşeye tıkla (dikdörtgen) · engele sağ tık: sil
         </div>
       )}
       {/* Panel seçim aksiyonları */}
@@ -473,6 +495,24 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
               </Group>
             );
           })}
+        </Layer>
+
+        {/* Engeller (baca/pencere) */}
+        <Layer>
+          {doc.obstacles.map((o) => {
+            const cx = o.poly.reduce((s, p) => s + p.x, 0) / o.poly.length;
+            const cy = o.poly.reduce((s, p) => s + p.y, 0) / o.poly.length;
+            return (
+              <Group key={o.id}>
+                <Line points={o.poly.flatMap((p) => [p.x, p.y])} closed fill="#ef444455" stroke="#dc2626" strokeWidth={1.6 / scale}
+                  onContextMenu={(e) => { e.evt.preventDefault(); deleteObstacle(o.id); }} />
+                <Text x={cx} y={cy} text="engel" fontSize={10.5 / scale} fill="#991b1b" stroke="#fff" strokeWidth={2.4 / scale} fillAfterStrokeEnabled offsetX={13 / scale} offsetY={5 / scale} listening={false} />
+              </Group>
+            );
+          })}
+          {obstacleMode && obsStart && cursor && (
+            <Line points={[obsStart.x, obsStart.y, cursor.x, obsStart.y, cursor.x, cursor.y, obsStart.x, cursor.y]} closed fill="#ef444433" stroke="#dc2626" strokeWidth={1.4 / scale} dash={[6 / scale, 4 / scale]} listening={false} />
+          )}
         </Layer>
 
         {/* Noktalar */}

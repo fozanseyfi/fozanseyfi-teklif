@@ -82,6 +82,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       metersPerPixel: null,
       panelConfig: { ...DEFAULT_PANEL_CONFIG },
       placed: [],
+      obstacles: [],
       masses: [],
       activeMassId: null,
       locked: false,

@@ -11,7 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import {
   Plus, Trash2, Undo2, Redo2, MousePointer2, PencilRuler, ArrowLeft, ArrowRight,
   LayoutGrid, Sun, Map as MapIcon, ImagePlus, Zap, CheckCircle2, Box, Lock, Unlock,
-  Building2, Layers, Move, Spline,
+  Building2, Layers, Move, Spline, Ban,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -136,6 +136,7 @@ function Editor() {
   const [tool, setTool] = useState<"edit" | "draw" | "move">("edit"); // footprint: köşe düzenle / çiz / taşı
   const [cizimView, setCizimView] = useState<"2d" | "3d">("2d");
   const [panelView, setPanelView] = useState<"2d" | "3d">("2d");
+  const [obstacleMode, setObstacleMode] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedFaceSig, setSelectedFaceSig] = useState<string | null>(null);
   const [mapMode, setMapMode] = useState(false);
@@ -206,7 +207,8 @@ function Editor() {
       const covered = (p: PlacedPanel) => {
         const rad = (p.rotationDeg * Math.PI) / 180, c = Math.cos(rad), s = Math.sin(rad);
         const cx = p.x + (p.w / 2) * c - (p.h / 2) * s, cy = p.y + (p.w / 2) * s + (p.h / 2) * c;
-        return children.some((ch) => pointInPolygon({ x: cx, y: cy }, ch.footprint));
+        return children.some((ch) => pointInPolygon({ x: cx, y: cy }, ch.footprint))
+          || doc.obstacles.some((o) => pointInPolygon({ x: cx, y: cy }, o.poly));
       };
       return roof.faces.flatMap((f) => computeLayout(f.poly, `${mass.id}:${f.id}`, doc.panelConfig, mpp)).filter((p) => !covered(p));
     });
@@ -267,7 +269,12 @@ function Editor() {
                 <ToolBtn active={panelView === "3d"} onClick={() => setPanelView("3d")} icon={Box} label="3B Önizleme" />
               </div>
               {panelView === "2d" && (
-                <span className="text-[11px] text-muted-foreground">Panel tıkla (Shift çoklu) · sürükle-taşı · <b>R</b> döndür · <b>Del</b> sil · üst üste gelemez</span>
+                <Button size="sm" variant={obstacleMode ? "default" : "outline"} className={obstacleMode ? "bg-rose-600 text-white hover:bg-rose-700" : ""} onClick={() => setObstacleMode((v) => !v)}>
+                  <Ban className="size-4" /> {obstacleMode ? "Engel Çizimini Bitir" : "Engel Ekle (baca)"}
+                </Button>
+              )}
+              {panelView === "2d" && (
+                <span className="text-[11px] text-muted-foreground">{obstacleMode ? "İki köşeye tıkla → engel · sağ tık: sil · sonra Otomatik Yerleştir" : "Panel tıkla (Shift çoklu) · sürükle-taşı · R döndür · Del sil"}</span>
               )}
             </div>
           )}
@@ -310,7 +317,7 @@ function Editor() {
             ) : is3D ? (
               mpp ? <ThreeView /> : <div className="flex h-full items-center justify-center rounded-xl border bg-slate-100 text-sm text-slate-400">Önce haritadan ölçekli altlık alın, sonra bina hattını çizin.</div>
             ) : step === "panel" ? (
-              <CanvasEditor mode="panel-select" selectedNodeId={selectedNodeId} onSelectNode={setSelectedNodeId} selectedFaceSig={selectedFaceSig} onSelectFace={setSelectedFaceSig} />
+              <CanvasEditor mode="panel-select" obstacleMode={obstacleMode} selectedNodeId={selectedNodeId} onSelectNode={setSelectedNodeId} selectedFaceSig={selectedFaceSig} onSelectFace={setSelectedFaceSig} />
             ) : (
               <MassEditor mode={step === "cizim" ? massMode : "view"} />
             )}

@@ -58,6 +58,13 @@ export interface PlacedPanel {
   rotationDeg: number;
 }
 
+/** Çatı engeli (baca, havalandırma, çatı penceresi) — panel bu alana konmaz. */
+export interface Obstacle {
+  id: string;
+  poly: Vec[]; // görüntü px çokgeni (genelde dikdörtgen)
+  heightM: number; // 3B'de görsel yükseklik (m)
+}
+
 /**
  * Bina kütlesi (mass) — SketchUp benzeri kompoze modellemenin birimi. Her kütle
  * kendi ayak izi + duvar yüksekliği + çatısı olan bir hacim. Bir kütle başka bir
@@ -91,6 +98,8 @@ export interface DesignDoc {
   metersPerPixel: number | null;
   panelConfig: PanelConfig;
   placed: PlacedPanel[];
+  /** Çatı engelleri (baca/pencere) — panel yerleşiminde kaçınılır. */
+  obstacles: Obstacle[];
   /** Bina kütleleri (kompoze model). masses[0] ana bina; diğerleri kanat/çatı-üstü. */
   masses: Mass[];
   /** Düzenlenen aktif kütle. */
@@ -168,6 +177,7 @@ export function normalizeDoc(d: Partial<DesignDoc>): DesignDoc {
     metersPerPixel: d.metersPerPixel ?? null,
     panelConfig: { ...DEFAULT_PANEL_CONFIG, ...(d.panelConfig || {}) },
     placed: Array.isArray(d.placed) ? d.placed : [],
+    obstacles: Array.isArray(d.obstacles) ? d.obstacles : [],
     masses: Array.isArray(d.masses) ? d.masses.map(normalizeMass) : [],
     activeMassId: d.activeMassId ?? null,
     locked: !!d.locked,
