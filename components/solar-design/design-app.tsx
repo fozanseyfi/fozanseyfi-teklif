@@ -349,7 +349,7 @@ function Editor() {
   }
 
   return (
-    <div className="mx-auto max-w-[1400px] space-y-3">
+    <div className="mx-auto max-w-[1400px] space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={close}><ArrowLeft className="size-4" /> Tasarımlar</Button>
@@ -377,7 +377,7 @@ function Editor() {
         })}
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-[1fr_320px]">
+      <div className="grid items-start gap-3 lg:grid-cols-[1fr_340px]">
         <div className="space-y-2">
           {/* 2B / 3B geçişi (Bina & Çatı + Panel Yerleşimi) */}
           {step === "cizim" && (
@@ -458,7 +458,7 @@ function Editor() {
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2 lg:max-h-[calc(100vh-15rem)] lg:overflow-y-auto lg:pr-1">
           {step === "gorsel" && <GorselPanel mpp={mpp} hasImage={!!doc.imageDataUrl} onMap={() => { setPending(null); setMapMode(true); }} onUpload={(url) => update((d) => { d.imageDataUrl = url; })} />}
           {step === "cizim" && !locked && <MassPanel updateActive={updateActive} active={activeMass} masses={doc.masses} onAdd={() => addMass(null)} onAddRoofTop={() => addMass(activeMass?.id ?? doc.masses[0]?.id ?? null)} onSelect={selectMass} onRemove={removeMass} onToggleRoofEdit={toggleRoofEdit} onShape={addShape} onAutoHeights={applyAutoHeights} faces={activeFaces} onFacePitch={setFacePitch} onAddDormer={addDormer} onUpdateDormer={updateDormer} onRemoveDormer={removeDormer} />}
           {step === "cizim" && locked && <LockPanel onUnlock={() => setLocked(false)} onPanel={() => setStep("panel")} />}
