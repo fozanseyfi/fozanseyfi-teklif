@@ -177,6 +177,20 @@ export default function MassEditor({ mode }: { mode: MassMode }) {
       {!active && <div className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-md bg-slate-800 px-3 py-1.5 text-xs font-medium text-white shadow">Sağdan “Kütle” ile bir bina kütlesi oluşturun.</div>}
       {mode === "draw" && active && <div className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow">{editingRoof ? "Çatı çizgisi çiz: köşelere/çizgilere tıkla (Esc bitir)" : `Köşeleri tıkla · ilk köşeye dönünce kapanır (${fp.length})`}</div>}
       {mode === "move" && active && <div className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white shadow">Kütleyi sürükleyerek taşı</div>}
+      {editingRoof && mode !== "move" && (
+        <div className="absolute left-2 top-2 z-20 max-w-[240px] rounded-lg bg-white/95 p-2.5 text-[11px] leading-relaxed text-slate-600 shadow ring-1 ring-slate-200">
+          <p className="mb-1 font-semibold text-blue-700">Çatı çizgilerini düzenle</p>
+          <p>• Köşeyi <b>sürükle</b> → çizgiyi taşı</p>
+          <p>• Köşeye <b>tıkla</b> → sağ üstte <b>yükseklik</b> gir</p>
+          <p>• Çizgiye <b>çift tık</b> → köşe ekle · <b>sağ tık</b> → sil</p>
+          <p>• <b>Hat Çiz</b> aracı → yeni çizgi / fold çiz</p>
+        </div>
+      )}
+      {!editingRoof && active && fp.length >= 3 && mode !== "draw" && (
+        <div className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow">
+          Çatı çizgilerini düzenlemek için üstteki mavi “Çatıyı Düzenle”ye bas
+        </div>
+      )}
 
       {/* Seçili çatı noktası yükseklik girişi */}
       {editingRoof && selNodeObj && (

@@ -11,7 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import {
   Plus, Trash2, Undo2, Redo2, MousePointer2, PencilRuler, ArrowLeft, ArrowRight,
   LayoutGrid, Sun, Map as MapIcon, ImagePlus, Zap, CheckCircle2, Box, Lock, Unlock,
-  Building2, Layers, Move,
+  Building2, Layers, Move, Spline,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -164,7 +164,7 @@ function Editor() {
       if (m.roofEditable) { m.roofEditable = false; m.roofNodes = []; m.roofEdges = []; }
       else { const g = seedRoofGraph(m, mpp || 0.05); m.roofNodes = g.nodes; m.roofEdges = g.edges; m.roofEditable = true; }
     }, true);
-    setTool("edit");
+    setStep("cizim"); setCizimView("2d"); setTool("edit"); // düzenleme daima 2B'de görünür
   }
 
   function addMass(parentId: string | null) {
@@ -267,12 +267,21 @@ function Editor() {
               <ToolBtn active={tool === "draw"} onClick={() => setTool("draw")} icon={PencilRuler} label="Hat Çiz" />
               <ToolBtn active={tool === "edit"} onClick={() => setTool("edit")} icon={MousePointer2} label="Köşe Düzenle" />
               <ToolBtn active={tool === "move"} onClick={() => setTool("move")} icon={Move} label="Taşı" />
+              {activeMass && activeMass.footprint.length >= 3 && (
+                activeMass.roofEditable ? (
+                  <Button size="sm" variant="secondary" className="h-8" onClick={toggleRoofEdit}><Spline className="size-4" /> Otomatik Çatıya Dön</Button>
+                ) : (
+                  <Button size="sm" className="h-8 bg-blue-600 text-white hover:bg-blue-700" onClick={toggleRoofEdit}><Spline className="size-4" /> Çatıyı Düzenle</Button>
+                )
+              )}
               <span className="ml-auto text-[11px] text-muted-foreground">
-                {tool === "draw"
-                  ? "Köşeleri tıkla · ilk köşeye dönünce kapanır"
-                  : tool === "move"
-                    ? "Kütleyi sürükleyerek taşı (yanlış birleşmeyi düzelt)"
-                    : "Köşe sürükle · Çizgiye çift tık: köşe ekle · Sağ tık: köşe sil"}
+                {activeMass?.roofEditable
+                  ? "Çatı çizgileri: köşe sürükle · çift tık köşe ekle · sağ tık sil · köşeye tıkla → yükseklik · “Hat Çiz” yeni çizgi"
+                  : tool === "draw"
+                    ? "Köşeleri tıkla · ilk köşeye dönünce kapanır"
+                    : tool === "move"
+                      ? "Kütleyi sürükleyerek taşı (yanlış birleşmeyi düzelt)"
+                      : "Köşe sürükle · Çizgiye çift tık: köşe ekle · Sağ tık: köşe sil"}
               </span>
             </div>
           )}
