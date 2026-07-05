@@ -50,6 +50,27 @@ const SHAPE_TEMPLATES: { key: string; label: string; poly: Vec[] }[] = [
   { key: "U", label: "U", poly: [{ x: 0, y: 0 }, { x: 0.5, y: 0 }, { x: 0.5, y: 0.85 }, { x: 1, y: 0.85 }, { x: 1, y: 0 }, { x: 1.5, y: 0 }, { x: 1.5, y: 1.4 }, { x: 0, y: 1.4 }] },
 ];
 
+/** Panelin dünya köşeleri (dönmüş dörtgen) — engel çakışma testi için. */
+function panelCornersD(p: { x: number; y: number; w: number; h: number; rotationDeg: number }): Vec[] {
+  const rad = (p.rotationDeg * Math.PI) / 180, c = Math.cos(rad), s = Math.sin(rad);
+  return ([[0, 0], [p.w, 0], [p.w, p.h], [0, p.h]] as const).map(([lx, ly]) => ({ x: p.x + lx * c - ly * s, y: p.y + lx * s + ly * c }));
+}
+/** İki dışbükey çokgen üst üste mi (SAT). */
+function polysOverlapD(A: Vec[], B: Vec[]): boolean {
+  const EPS = 0.5;
+  for (const poly of [A, B]) {
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i], b = poly[(i + 1) % poly.length];
+      const nx = -(b.y - a.y), ny = b.x - a.x;
+      let minA = Infinity, maxA = -Infinity, minB = Infinity, maxB = -Infinity;
+      for (const q of A) { const d = q.x * nx + q.y * ny; if (d < minA) minA = d; if (d > maxA) maxA = d; }
+      for (const q of B) { const d = q.x * nx + q.y * ny; if (d < minB) minB = d; if (d > maxB) maxB = d; }
+      if (maxA <= minB + EPS || maxB <= minA + EPS) return false;
+    }
+  }
+  return true;
+}
+
 /** Şablonu 24×24 kutuya sığdırıp çizen küçük ikon. */
 function ShapeIcon({ poly }: { poly: Vec[] }) {
   const xs = poly.map((p) => p.x), ys = poly.map((p) => p.y);
@@ -154,6 +175,7 @@ function Editor() {
   const [cizimView, setCizimView] = useState<"2d" | "3d">("2d");
   const [panelView, setPanelView] = useState<"2d" | "3d">("2d");
   const [obstacleMode, setObstacleMode] = useState(false);
+  const [addPanelMode, setAddPanelMode] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedFaceSig, setSelectedFaceSig] = useState<string | null>(null);
   const [mapMode, setMapMode] = useState(true); // açılışta uydu haritası standart
@@ -247,7 +269,7 @@ function Editor() {
         const rad = (p.rotationDeg * Math.PI) / 180, c = Math.cos(rad), s = Math.sin(rad);
         const cx = p.x + (p.w / 2) * c - (p.h / 2) * s, cy = p.y + (p.w / 2) * s + (p.h / 2) * c;
         return children.some((ch) => pointInPolygon({ x: cx, y: cy }, ch.footprint))
-          || doc.obstacles.some((o) => pointInPolygon({ x: cx, y: cy }, o.poly));
+          || doc.obstacles.some((o) => polysOverlapD(panelCornersD(p), o.poly));
       };
       return roof.faces.flatMap((f) => computeLayout(f.poly, `${mass.id}:${f.id}`, doc.panelConfig, mpp)).filter((p) => !covered(p));
     });
@@ -308,12 +330,15 @@ function Editor() {
                 <ToolBtn active={panelView === "3d"} onClick={() => setPanelView("3d")} icon={Box} label="3B Önizleme" />
               </div>
               {panelView === "2d" && (
-                <Button size="sm" variant={obstacleMode ? "default" : "outline"} className={obstacleMode ? "bg-rose-600 text-white hover:bg-rose-700" : ""} onClick={() => setObstacleMode((v) => !v)}>
-                  <Ban className="size-4" /> {obstacleMode ? "Engel Çizimini Bitir" : "Engel Ekle (baca)"}
-                </Button>
-              )}
-              {panelView === "2d" && (
-                <span className="text-[11px] text-muted-foreground">{obstacleMode ? "İki köşeye tıkla → engel · sağ tık: sil · sonra Otomatik Yerleştir" : "Panel tıkla (Shift çoklu) · sürükle-taşı · R döndür · Del sil"}</span>
+                <>
+                  <Button size="sm" variant={addPanelMode ? "default" : "outline"} className={addPanelMode ? "bg-blue-600 text-white hover:bg-blue-700" : ""} onClick={() => setAddPanelMode((v) => { const n = !v; if (n) setObstacleMode(false); return n; })}>
+                    <Plus className="size-4" /> {addPanelMode ? "Panel Eklemeyi Bitir" : "Panel Ekle (elle)"}
+                  </Button>
+                  <Button size="sm" variant={obstacleMode ? "default" : "outline"} className={obstacleMode ? "bg-rose-600 text-white hover:bg-rose-700" : ""} onClick={() => setObstacleMode((v) => { const n = !v; if (n) setAddPanelMode(false); return n; })}>
+                    <Ban className="size-4" /> {obstacleMode ? "Engel Bitir" : "Engel Ekle (baca)"}
+                  </Button>
+                  <span className="text-[11px] text-muted-foreground">{obstacleMode ? "İki köşe → engel · sağ tık sil" : addPanelMode ? "Çatı yüzeyine tıkla → panel" : "Panel tıkla · sürükle-taşı · R döndür · Del sil · engele tıkla → yükseklik"}</span>
+                </>
               )}
             </div>
           )}
@@ -356,7 +381,7 @@ function Editor() {
             ) : is3D ? (
               mpp ? <ThreeView /> : <div className="flex h-full items-center justify-center rounded-xl border bg-slate-100 text-sm text-slate-400">Önce haritadan ölçekli altlık alın, sonra bina hattını çizin.</div>
             ) : step === "panel" ? (
-              <CanvasEditor mode="panel-select" obstacleMode={obstacleMode} selectedNodeId={selectedNodeId} onSelectNode={setSelectedNodeId} selectedFaceSig={selectedFaceSig} onSelectFace={setSelectedFaceSig} />
+              <CanvasEditor mode="panel-select" obstacleMode={obstacleMode} addPanelMode={addPanelMode} selectedNodeId={selectedNodeId} onSelectNode={setSelectedNodeId} selectedFaceSig={selectedFaceSig} onSelectFace={setSelectedFaceSig} />
             ) : (
               <MassEditor mode={step === "cizim" ? massMode : "view"} />
             )}

@@ -6,7 +6,7 @@ import type Konva from "konva";
 import { useDesignStore } from "@/lib/solar-design/store";
 import type { Vec, RNode, DesignDoc } from "@/lib/solar-design/types";
 import { FACE_COLORS } from "@/lib/solar-design/types";
-import { dist, nearestOnSegment } from "@/lib/solar-design/geometry";
+import { dist, nearestOnSegment, pointInPolygon } from "@/lib/solar-design/geometry";
 import { detectFaces } from "@/lib/solar-design/faces";
 import { planarize } from "@/lib/solar-design/planarize";
 import { massRoof } from "@/lib/solar-design/roof-model";
@@ -43,6 +43,27 @@ interface Props {
   selectedFaceSig: string | null;
   onSelectFace: (sig: string | null) => void;
   obstacleMode?: boolean;
+  addPanelMode?: boolean;
+}
+
+/** Panelin ekran (px) boyutu — oryantasyona göre. */
+function panelPx(config: { widthMm: number; heightMm: number; orientation: string }, mpp: number): { w: number; h: number } {
+  const a = config.widthMm / 1000 / mpp, b = config.heightMm / 1000 / mpp;
+  return config.orientation === "portrait" ? { w: a, h: b } : { w: b, h: a };
+}
+/** Eksen-hizalı paneli komşularına gap (2cm) mesafesinde yapıştır. */
+function snapPanel(cand: { x: number; y: number; w: number; h: number }, others: { x: number; y: number; w: number; h: number; rotationDeg: number }[], gap: number, thr: number): { x: number; y: number } {
+  let bx = cand.x, by = cand.y, sx = false, sy = false;
+  for (const q of others) {
+    if (q.rotationDeg) continue;
+    if (!sy && Math.abs(cand.y - q.y) <= thr) { by = q.y; sy = true; }
+    else if (!sy && Math.abs(cand.y - (q.y + q.h + gap)) <= thr) { by = q.y + q.h + gap; sy = true; }
+    else if (!sy && Math.abs((cand.y + cand.h + gap) - q.y) <= thr) { by = q.y - cand.h - gap; sy = true; }
+    if (!sx && Math.abs(cand.x - q.x) <= thr) { bx = q.x; sx = true; }
+    else if (!sx && Math.abs(cand.x - (q.x + q.w + gap)) <= thr) { bx = q.x + q.w + gap; sx = true; }
+    else if (!sx && Math.abs((cand.x + cand.w + gap) - q.x) <= thr) { bx = q.x - cand.w - gap; sx = true; }
+  }
+  return { x: bx, y: by };
 }
 
 const SNAP_SCREEN = 12;
@@ -54,7 +75,7 @@ function genId(): string {
 
 type Hit = { kind: "node"; id: string } | { kind: "edge"; edgeId: string; point: Vec } | { kind: "free"; point: Vec };
 
-export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selectedFaceSig, onSelectFace, obstacleMode }: Props) {
+export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selectedFaceSig, onSelectFace, obstacleMode, addPanelMode }: Props) {
   const doc = useDesignStore((s) => s.active) as DesignDoc;
   const update = useDesignStore((s) => s.update);
   const undo = useDesignStore((s) => s.undo);
@@ -78,6 +99,7 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
 
   // Engel (baca) çizimi — iki köşe
   const [obsStart, setObsStart] = useState<Vec | null>(null);
+  const [selObstacle, setSelObstacle] = useState<string | null>(null);
 
   // Panel seçim + sürükleme
   const [selPanels, setSelPanels] = useState<Set<string>>(new Set());
@@ -102,6 +124,8 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
   useEffect(() => { if (mode !== "panel-select") setSelPanels(new Set()); }, [mode]);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- engel modu kapanınca yarım çizimi sıfırla
   useEffect(() => { if (!obstacleMode) setObsStart(null); }, [obstacleMode]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- engel modu acilinca secimi birak
+  useEffect(() => { if (obstacleMode || addPanelMode) setSelObstacle(null); }, [obstacleMode, addPanelMode]);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- mod değişince çizim zincirini sıfırla (dış senkronizasyon)
   useEffect(() => { if (mode !== "draw") { setActiveNode(null); chainRef.current = 0; } }, [mode]);
 
@@ -199,14 +223,18 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
     chainRef.current = 0;
   }
 
+  const mppVal = doc.metersPerPixel || 0.05;
+  const gapPx = doc.panelConfig.gapMm / 1000 / mppVal;
+
   function stageClick() {
     const p = relPos();
     if (!p) return;
+    if (addPanelMode) { addPanelAt(p); return; }
     if (obstacleMode) {
       if (!obsStart) { setObsStart(p); return; }
       const x1 = Math.min(obsStart.x, p.x), y1 = Math.min(obsStart.y, p.y), x2 = Math.max(obsStart.x, p.x), y2 = Math.max(obsStart.y, p.y);
       if (Math.abs(x2 - x1) > 2 && Math.abs(y2 - y1) > 2) {
-        update((d) => { d.obstacles.push({ id: genId(), poly: [{ x: x1, y: y1 }, { x: x2, y: y1 }, { x: x2, y: y2 }, { x: x1, y: y2 }], heightM: 1 }); }, true);
+        update((d) => { d.obstacles.push({ id: genId(), poly: [{ x: x1, y: y1 }, { x: x2, y: y1 }, { x: x2, y: y2 }, { x: x1, y: y2 }], heightM: 0.8 }); }, true);
       }
       setObsStart(null);
       return;
@@ -214,8 +242,20 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
     if (mode === "draw") { drawClick(p); return; }
   }
 
-  function stageMouseMove() { if (mode === "draw" || mode === "roof-select" || obstacleMode) setCursor(relPos()); }
-  function deleteObstacle(id: string) { update((d) => { d.obstacles = d.obstacles.filter((o) => o.id !== id); }, true); }
+  function stageMouseMove() { if (mode === "draw" || mode === "roof-select" || obstacleMode || addPanelMode) setCursor(relPos()); }
+  function deleteObstacle(id: string) { update((d) => { d.obstacles = d.obstacles.filter((o) => o.id !== id); }, true); setSelObstacle(null); }
+
+  function addPanelAt(p: Vec) {
+    const face = massFaces.find((f) => pointInPolygon(p, f.poly));
+    if (!face) { toast.error("Paneli çatı yüzeyine koy"); return; }
+    const { w, h } = panelPx(doc.panelConfig, mppVal);
+    const sp = snapPanel({ x: p.x - w / 2, y: p.y - h / 2, w, h }, doc.placed, gapPx, Math.max(gapPx * 4, 0.4 / mppVal));
+    const cand = { id: genId(), face: face.id, x: sp.x, y: sp.y, w, h, rotationDeg: 0 };
+    const corners = panelCorners(cand);
+    if (doc.placed.some((q) => polysOverlap(corners, panelCorners(q)))) { toast.error("Panel üst üste gelemez"); return; }
+    if (doc.obstacles.some((o) => polysOverlap(corners, o.poly))) { toast.error("Engel üzerine panel konmaz"); return; }
+    update((d) => { d.placed.push(cand); }, true);
+  }
 
   function onWheel(e: Konva.KonvaEventObject<WheelEvent>) {
     e.evt.preventDefault();
@@ -316,8 +356,8 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
       ? { x: (panelDragRef.current!.orig.get(p.id)?.x ?? p.x) + panelDelta.x, y: (panelDragRef.current!.orig.get(p.id)?.y ?? p.y) + panelDelta.y }
       : { x: p.x, y: p.y };
 
-  const draggableStage = (mode === "roof-select" || mode === "panel-select" || mode === "view") && !obstacleMode;
-  const cursorStyle = mode === "draw" || obstacleMode ? "crosshair" : "default";
+  const draggableStage = (mode === "roof-select" || mode === "panel-select" || mode === "view") && !obstacleMode && !addPanelMode;
+  const cursorStyle = mode === "draw" || obstacleMode || addPanelMode ? "crosshair" : "default";
 
   // Çizgi üstü hayalet nokta — imleç bir kenara yakınken (nokta değil) göster.
   const edgeGhost =
@@ -343,9 +383,26 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
       {/* Engel modu bilgi */}
       {obstacleMode && (
         <div className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white shadow">
-          Baca/engel: iki köşeye tıkla (dikdörtgen) · engele sağ tık: sil
+          Baca/engel: iki köşeye tıkla (dikdörtgen) · engele sağ tık: sil · varsayılan 80 cm
         </div>
       )}
+      {addPanelMode && (
+        <div className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow">
+          Elle panel: çatı yüzeyine tıkla (komşuya 2 cm boşlukla yapışır)
+        </div>
+      )}
+      {selObstacle && !obstacleMode && !addPanelMode && (() => {
+        const o = doc.obstacles.find((x) => x.id === selObstacle);
+        if (!o) return null;
+        return (
+          <div className="absolute right-2 top-2 z-20 flex items-center gap-2 rounded-lg bg-white px-2.5 py-1.5 text-[12px] shadow ring-1 ring-slate-200">
+            <span className="font-medium text-slate-600">Engel yüksekliği</span>
+            <input type="number" step="0.1" value={o.heightM} onChange={(e) => { const h = parseFloat(e.target.value) || 0; update((d) => { const t = d.obstacles.find((x) => x.id === selObstacle); if (t) t.heightM = h; }, false); }} className="h-8 w-20 rounded border border-slate-300 px-2" />
+            <span className="text-slate-500">m</span>
+            <button type="button" onClick={() => deleteObstacle(selObstacle)} className="rounded bg-rose-50 px-2 py-1 font-medium text-rose-600 hover:bg-rose-100">Sil</button>
+          </div>
+        );
+      })()}
       {/* Panel seçim aksiyonları */}
       {mode === "panel-select" && selPanels.size > 0 && (
         <div className="absolute left-1/2 top-2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-lg bg-white px-2 py-1.5 shadow">
@@ -370,6 +427,7 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
           if (e.target === e.target.getStage()) {
             if (mode === "roof-select") { onSelectNode(null); onSelectFace(null); }
             if (mode === "panel-select") setSelPanels(new Set());
+            setSelObstacle(null);
           }
         }}
         onClick={stageClick}
@@ -465,15 +523,21 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
                 onDragEnd={(e) => {
                   const ref = panelDragRef.current;
                   const o = ref?.orig.get(p.id);
-                  const delta = o ? { x: e.target.x() - o.x, y: e.target.y() - o.y } : { x: 0, y: 0 };
+                  let delta = o ? { x: e.target.x() - o.x, y: e.target.y() - o.y } : { x: 0, y: 0 };
                   const movedIds = ref ? new Set(ref.orig.keys()) : new Set([p.id]);
+                  // Tek panel taşındıysa komşuya gap (2cm) mesafesinde/hizasında yapıştır.
+                  if (movedIds.size === 1 && p.rotationDeg === 0) {
+                    const base = { x: (o?.x ?? p.x) + delta.x, y: (o?.y ?? p.y) + delta.y, w: p.w, h: p.h };
+                    const sp = snapPanel(base, doc.placed.filter((q) => q.id !== p.id), gapPx, Math.max(gapPx * 4, 0.4 / mppVal));
+                    delta = { x: sp.x - (o?.x ?? p.x), y: sp.y - (o?.y ?? p.y) };
+                  }
                   const proposed = doc.placed.map((q) => (ref?.orig.has(q.id) ? { ...q, x: (ref.orig.get(q.id)!.x) + delta.x, y: (ref.orig.get(q.id)!.y) + delta.y } : q));
-                  // Üst üste binme kontrolü: taşınan paneller diğerleriyle çakışırsa reddet.
                   const others = proposed.filter((q) => !movedIds.has(q.id));
                   const clash = proposed.some((m) => movedIds.has(m.id) && others.some((q) => polysOverlap(panelCorners(m), panelCorners(q))));
+                  const clashObs = proposed.some((m) => movedIds.has(m.id) && doc.obstacles.some((ob) => polysOverlap(panelCorners(m), ob.poly)));
                   panelDragRef.current = null;
                   setPanelDelta(null);
-                  if (clash) { toast.error("Paneller üst üste gelemez"); return; } // update yok → eski konuma döner
+                  if (clash || clashObs) { toast.error(clashObs ? "Engel üzerine panel konmaz" : "Paneller üst üste gelemez"); return; }
                   update((d) => { d.placed = proposed; }, true);
                 }}
               >
@@ -504,7 +568,8 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
             const cy = o.poly.reduce((s, p) => s + p.y, 0) / o.poly.length;
             return (
               <Group key={o.id}>
-                <Line points={o.poly.flatMap((p) => [p.x, p.y])} closed fill="#ef444455" stroke="#dc2626" strokeWidth={1.6 / scale}
+                <Line points={o.poly.flatMap((p) => [p.x, p.y])} closed fill={o.id === selObstacle ? "#ef444466" : "#ef444455"} stroke={o.id === selObstacle ? "#b91c1c" : "#dc2626"} strokeWidth={(o.id === selObstacle ? 2.4 : 1.6) / scale}
+                  onClick={() => { if (!obstacleMode && !addPanelMode) setSelObstacle(o.id); }} onTap={() => { if (!obstacleMode && !addPanelMode) setSelObstacle(o.id); }}
                   onContextMenu={(e) => { e.evt.preventDefault(); deleteObstacle(o.id); }} />
                 <Text x={cx} y={cy} text="engel" fontSize={10.5 / scale} fill="#991b1b" stroke="#fff" strokeWidth={2.4 / scale} fillAfterStrokeEnabled offsetX={13 / scale} offsetY={5 / scale} listening={false} />
               </Group>
