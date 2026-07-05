@@ -166,26 +166,17 @@ export default function ThreeView() {
           const hw = dm.widthM / 2 / mpp, hd = dm.depthM / 2 / mpp;
           const ang = ((dm.dirDeg || 0) * Math.PI) / 180, ca = Math.cos(ang), sa = Math.sin(ang);
           const cpx = (lx: number, ly: number) => ({ x: dm.x + lx * ca - ly * sa, y: dm.y + lx * sa + ly * ca });
-          const bz = (lx: number, ly: number) => { const q = cpx(lx, ly); const f = roof.faces.find((ff) => pointInPolygon(q, ff.poly)) || face0; return f ? f.zAbs(q.x, q.y) : roof.eavesM; };
           const P = (lx: number, ly: number, h: number): number[] => { const q = cpx(lx, ly); const w = toWorld(q.x, q.y); return [w.x, h, w.z]; };
           const quad = (a: number[], b: number[], c: number[], d: number[]) => [...a, ...b, ...c, ...a, ...c, ...d];
           const tri = (a: number[], b: number[], c: number[]) => [...a, ...b, ...c];
           const pos: number[] = [];
-          const zc = face0 ? face0.zAbs(dm.x, dm.y) : roof.eavesM;
-          const rH = zc + dm.ridgeM; // sırt yüksekliği
-          const FL = bz(-hw, hd), FR = bz(hw, hd), BL = bz(-hw, -hd), BR = bz(hw, -hd); // köşe taban kotları (çatı yüzeyi)
-          if (dm.type === "shed") {
-            // tek eğim: arka (-hd) yüksek, ön (+hd) çatı yüzeyinde
-            pos.push(...quad(P(-hw, hd, FL), P(hw, hd, FR), P(hw, -hd, rH), P(-hw, -hd, rH)));
-            pos.push(...tri(P(-hw, hd, FL), P(-hw, -hd, BL), P(-hw, -hd, rH)));
-            pos.push(...tri(P(hw, hd, FR), P(hw, -hd, BR), P(hw, -hd, rH)));
-          } else {
-            // beşik/kırma: sırt x=0, önde alınlık; iki yana eğim; arka açık
-            const ry = dm.type === "hip" ? hd * 0.2 : hd; // hip: sırt önde içeri çekilir
-            pos.push(...quad(P(-hw, hd, FL), P(-hw, -hd, BL), P(0, -hd, rH), P(0, ry, rH))); // sol eğim
-            pos.push(...quad(P(hw, hd, FR), P(hw, -hd, BR), P(0, -hd, rH), P(0, ry, rH))); // sağ eğim
-            pos.push(...tri(P(-hw, hd, FL), P(hw, hd, FR), P(0, ry, rH))); // ön alınlık / hip yüzü
-          }
+          const zc = face0 ? face0.zAbs(dm.x, dm.y) : roof.eavesM; // düz taban (çatı yüzeyi kotu)
+          const eaveH = zc + 0.05, ridgeH = zc + dm.ridgeM;
+          // Simetrik beşik: sırt genişlik ekseni (x) boyunca, y=0'da. İki eğim + iki alınlık.
+          pos.push(...quad(P(-hw, hd, eaveH), P(hw, hd, eaveH), P(hw, 0, ridgeH), P(-hw, 0, ridgeH))); // ön eğim
+          pos.push(...quad(P(-hw, -hd, eaveH), P(hw, -hd, eaveH), P(hw, 0, ridgeH), P(-hw, 0, ridgeH))); // arka eğim
+          pos.push(...tri(P(-hw, hd, eaveH), P(-hw, -hd, eaveH), P(-hw, 0, ridgeH))); // sol alınlık
+          pos.push(...tri(P(hw, hd, eaveH), P(hw, -hd, eaveH), P(hw, 0, ridgeH))); // sağ alınlık
           addMesh(pos, dormerMat);
         });
       });
