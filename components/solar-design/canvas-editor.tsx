@@ -100,6 +100,7 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
   // Engel (baca) çizimi — serbest çokgen
   const [obsPoints, setObsPoints] = useState<Vec[]>([]);
   const [selObstacle, setSelObstacle] = useState<string | null>(null);
+  const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
 
   // Panel seçim + sürükleme
   const [selPanels, setSelPanels] = useState<Set<string>>(new Set());
@@ -114,6 +115,8 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
     () => doc.masses.flatMap((m) => massRoof(m, doc.metersPerPixel || 0.05).faces.map((f) => ({ id: `${m.id}:${f.id}`, name: f.name, poly: f.poly }))),
     [doc.masses, doc.metersPerPixel],
   );
+  const facePolyById = useMemo(() => new Map(massFaces.map((f) => [f.id, f.poly])), [massFaces]);
+  const insideFace = (corners: Vec[], faceId: string) => { const poly = facePolyById.get(faceId); return !poly || corners.every((c) => pointInPolygon(c, poly)); };
 
   useEffect(() => {
     activeRef.current = activeNode;
@@ -239,7 +242,10 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
     if (mode === "draw") { drawClick(p); return; }
   }
 
-  function stageMouseMove() { if (mode === "draw" || mode === "roof-select" || obstacleMode || addPanelMode) setCursor(relPos()); }
+  function stageMouseMove() {
+    if (mode === "draw" || mode === "roof-select" || obstacleMode || addPanelMode) setCursor(relPos());
+    if (marquee) { const p = relPos(); if (p) setMarquee((m) => (m ? { ...m, x1: p.x, y1: p.y } : m)); }
+  }
   function deleteObstacle(id: string) { update((d) => { d.obstacles = d.obstacles.filter((o) => o.id !== id); }, true); setSelObstacle(null); }
   function finishObstacle() {
     if (obsPoints.length >= 3) { const poly = obsPoints.map((p) => ({ ...p })); update((d) => { d.obstacles.push({ id: genId(), poly, heightM: 0.8 }); }, true); }
@@ -253,8 +259,9 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
     const sp = snapPanel({ x: p.x - w / 2, y: p.y - h / 2, w, h }, doc.placed, gapPx, Math.max(gapPx * 4, 0.4 / mppVal));
     const cand = { id: genId(), face: face.id, x: sp.x, y: sp.y, w, h, rotationDeg: 0 };
     const corners = panelCorners(cand);
-    if (doc.placed.some((q) => polysOverlap(corners, panelCorners(q)))) { toast.error("Panel üst üste gelemez"); return; }
-    if (doc.obstacles.some((o) => polysOverlap(corners, o.poly))) { toast.error("Engel üzerine panel konmaz"); return; }
+    if (!insideFace(corners, face.id)) return; // çatı sınırı dışına konmaz (sessiz)
+    if (doc.placed.some((q) => polysOverlap(corners, panelCorners(q)))) return; // üst üste konmaz (sessiz)
+    if (doc.obstacles.some((o) => polysOverlap(corners, o.poly))) return; // engel üstüne konmaz
     update((d) => { d.placed.push(cand); }, true);
   }
 
@@ -361,7 +368,7 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
       ? { x: (dragOrig.orig.get(p.id)?.x ?? p.x) + panelDelta.x, y: (dragOrig.orig.get(p.id)?.y ?? p.y) + panelDelta.y }
       : { x: p.x, y: p.y };
 
-  const draggableStage = (mode === "roof-select" || mode === "panel-select" || mode === "view") && !obstacleMode && !addPanelMode;
+  const draggableStage = (mode === "roof-select" || mode === "view") && !obstacleMode && !addPanelMode;
   const cursorStyle = mode === "draw" || obstacleMode || addPanelMode ? "crosshair" : "default";
 
   // Çizgi üstü hayalet nokta — imleç bir kenara yakınken (nokta değil) göster.
@@ -431,9 +438,19 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
         onMouseDown={(e) => {
           if (e.target === e.target.getStage()) {
             if (mode === "roof-select") { onSelectNode(null); onSelectFace(null); }
-            if (mode === "panel-select") setSelPanels(new Set());
+            if (mode === "panel-select" && !obstacleMode && !addPanelMode) { setSelPanels(new Set()); const p = relPos(); if (p) setMarquee({ x0: p.x, y0: p.y, x1: p.x, y1: p.y }); }
             setSelObstacle(null);
           }
+        }}
+        onMouseUp={() => {
+          if (!marquee) return;
+          const x0 = Math.min(marquee.x0, marquee.x1), x1 = Math.max(marquee.x0, marquee.x1);
+          const y0 = Math.min(marquee.y0, marquee.y1), y1 = Math.max(marquee.y0, marquee.y1);
+          setMarquee(null);
+          if (x1 - x0 < 3 && y1 - y0 < 3) return;
+          const sel = new Set<string>();
+          for (const p of doc.placed) { const c = panelCorners(p); const cx = (c[0].x + c[2].x) / 2, cy = (c[0].y + c[2].y) / 2; if (cx >= x0 && cx <= x1 && cy >= y0 && cy <= y1) sel.add(p.id); }
+          setSelPanels(sel);
         }}
         onClick={stageClick}
         onTap={stageClick}
@@ -541,10 +558,11 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
                   const others = proposed.filter((q) => !movedIds.has(q.id));
                   const clash = proposed.some((m) => movedIds.has(m.id) && others.some((q) => polysOverlap(panelCorners(m), panelCorners(q))));
                   const clashObs = proposed.some((m) => movedIds.has(m.id) && doc.obstacles.some((ob) => polysOverlap(panelCorners(m), ob.poly)));
+                  const outBound = proposed.some((m) => movedIds.has(m.id) && !insideFace(panelCorners(m), m.face));
                   panelDragRef.current = null;
                   setDragOrig(null);
                   setPanelDelta(null);
-                  if (clash || clashObs) { toast.error(clashObs ? "Engel üzerine panel konmaz" : "Paneller üst üste gelemez"); return; }
+                  if (clash || clashObs || outBound) return; // sessiz: eski konuma döner
                   update((d) => { d.placed = proposed; }, true);
                 }}
               >
@@ -640,6 +658,9 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
               <Circle x={edgeGhost.x} y={edgeGhost.y} radius={8 / scale} stroke="#059669" strokeWidth={1.5 / scale} dash={[3 / scale, 3 / scale]} />
               <Circle x={edgeGhost.x} y={edgeGhost.y} radius={4 / scale} fill="#059669" opacity={0.85} />
             </>
+          )}
+          {marquee && (
+            <Rect x={Math.min(marquee.x0, marquee.x1)} y={Math.min(marquee.y0, marquee.y1)} width={Math.abs(marquee.x1 - marquee.x0)} height={Math.abs(marquee.y1 - marquee.y0)} fill="#2563eb18" stroke="#2563eb" strokeWidth={1.2 / scale} dash={[5 / scale, 4 / scale]} />
           )}
         </Layer>
       </Stage>

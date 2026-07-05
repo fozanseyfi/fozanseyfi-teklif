@@ -19,7 +19,6 @@ import { useDesignStore } from "@/lib/solar-design/store";
 import { computeLayout, panelsKwp } from "@/lib/solar-design/layout-engine";
 import { massRoof, faceAreaM2, seedRoofGraph, autoRoofHeights, generateRoof } from "@/lib/solar-design/roof-model";
 import type { MassRoof } from "@/lib/solar-design/roof-model";
-import { pointInPolygon } from "@/lib/solar-design/geometry";
 import { DEFAULT_MASS } from "@/lib/solar-design/types";
 import type { Mass, RoofType, PlacedPanel, Vec, Dormer } from "@/lib/solar-design/types";
 
@@ -335,11 +334,10 @@ function Editor() {
     const placed = built.flatMap(({ mass, roof }) => {
       const children = doc.masses.filter((mm) => mm.parentId === mass.id && mm.footprint.length >= 3);
       const covered = (p: PlacedPanel) => {
-        const rad = (p.rotationDeg * Math.PI) / 180, c = Math.cos(rad), s = Math.sin(rad);
-        const cx = p.x + (p.w / 2) * c - (p.h / 2) * s, cy = p.y + (p.w / 2) * s + (p.h / 2) * c;
-        return children.some((ch) => pointInPolygon({ x: cx, y: cy }, ch.footprint))
-          || doc.obstacles.some((o) => polysOverlapD(panelCornersD(p), o.poly))
-          || mass.dormers.some((dm) => polysOverlapD(panelCornersD(p), dormerPoly(dm, mpp)));
+        const c = panelCornersD(p);
+        return children.some((ch) => polysOverlapD(c, ch.footprint))
+          || doc.obstacles.some((o) => polysOverlapD(c, o.poly))
+          || mass.dormers.some((dm) => polysOverlapD(c, dormerPoly(dm, mpp)));
       };
       return roof.faces.flatMap((f) => computeLayout(f.poly, `${mass.id}:${f.id}`, doc.panelConfig, mpp)).filter((p) => !covered(p));
     });
