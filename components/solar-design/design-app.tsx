@@ -340,7 +340,7 @@ function Editor() {
   const showCrop = step === "gorsel" && !!pending;
   const showCanvasToolbar = step === "cizim" && cizimView === "2d" && !locked && !!activeMass;
   const canvasHint = showCanvasToolbar
-    ? (dormerDraw ? "Dormer: köşeleri tıkla — 1) arka/tepe → 2) ön/oluk → 3) genişlik"
+    ? (dormerDraw ? "Dormer: tipini seç ve çatıya tıkla → yerleşir; sonra köşelerden sürükle, sağ panelden döndür"
       : activeMass?.roofEditable ? "Çatı: köşe sürükle · çift tık ekle · sağ tık sil · köşeye tıkla → yükseklik"
       : tool === "draw" ? "Köşeleri tıkla · ilk köşeye dönünce kapanır"
       : tool === "move" ? "Kütleyi sürükleyerek taşı"
@@ -409,7 +409,7 @@ function Editor() {
             ) : step === "panel" ? (
               <CanvasEditor mode="panel-select" obstacleMode={obstacleMode} addPanelMode={addPanelMode} selectedNodeId={selectedNodeId} onSelectNode={setSelectedNodeId} selectedFaceSig={selectedFaceSig} onSelectFace={setSelectedFaceSig} />
             ) : (
-              <MassEditor mode={step === "cizim" ? massMode : "view"} dormerDraw={dormerDraw && step === "cizim" && !locked} dormerType={dormerType} />
+              <MassEditor mode={step === "cizim" ? massMode : "view"} dormerDraw={dormerDraw && step === "cizim" && !locked} dormerType={dormerType} onDormerPlaced={() => { setDormerDraw(false); setTool("move"); }} />
             )}
 
             {/* Yüzen araç çubuğu — çizimin üzerinde, adıma/moda göre */}
