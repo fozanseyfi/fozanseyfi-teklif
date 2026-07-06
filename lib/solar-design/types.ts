@@ -65,17 +65,18 @@ export interface Obstacle {
   heightM: number; // 3B'de görsel yükseklik (m)
 }
 
-/** Çatı çıkıntısı (dormer) — çatıya oturan parametrik beşik/tek eğim yapı. */
+/**
+ * Çatı eklentisi (dormer) — bina DEĞİL, çatı çıkıntısı. Saçağı (çatı başlangıcı)
+ * ana bina saçağıyla aynı kotta; zemine inmez. Yalnız footprint + yön + tip.
+ * Yükseklik/eğim binadan otomatik.
+ */
 export interface Dormer {
   id: string;
-  x: number; // roof plan merkezi (px)
+  x: number; // plan merkezi (px)
   y: number;
-  widthM: number; // sırt yönü genişliği
-  depthM: number; // eğim yönü derinliği
-  ridgeM: number; // (kullanım dışı) eski sırt yüksekliği
-  ridgeYM: number; // sırt orta noktasının yerel y kayması (m; 0=merkez) → asimetrik çatı
-  ridgeHalfM: number; // sırt yarı-uzunluğu (m) → beşik (=genişlik/2) ↔ kırma (kısa)
-  dirDeg: number; // döndürme (derece)
+  widthM: number; // gable genişliği (alınlık yönü)
+  depthM: number; // çıkıntı derinliği (öne)
+  dirDeg: number; // yön (derece); +y ön/dışa
   type: "gable" | "hip" | "shed";
 }
 
