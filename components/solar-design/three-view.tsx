@@ -82,8 +82,6 @@ export default function ThreeView() {
       }
       const roofTexMat = tex ? new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }) : null;
       if (roofTexMat) disposables.push(roofTexMat);
-      const dormerMat = new THREE.MeshStandardMaterial({ color: 0xeef2f6, roughness: 0.9, side: THREE.DoubleSide });
-      disposables.push(dormerMat);
       const uvOf = (x: number, y: number) => [x / imgW, 1 - y / imgH];
 
       let colorI = 0;
@@ -167,40 +165,25 @@ export default function ThreeView() {
           const ang = ((dm.dirDeg || 0) * Math.PI) / 180, ca = Math.cos(ang), sa = Math.sin(ang);
           const cpx = (lx: number, ly: number) => ({ x: dm.x + lx * ca - ly * sa, y: dm.y + lx * sa + ly * ca });
           const P = (lx: number, ly: number, h: number): number[] => { const q = cpx(lx, ly); const w = toWorld(q.x, q.y); return [w.x, h, w.z]; };
-          const quad = (a: number[], b: number[], c: number[], d: number[]) => [...a, ...b, ...c, ...a, ...c, ...d];
-          const tri = (a: number[], b: number[], c: number[]) => [...a, ...b, ...c];
-          const pos: number[] = [];
           const zc = face0 ? face0.zAbs(dm.x, dm.y) : roof.eavesM; // saçak = çatı yüzeyi kotu
-          const base = mass.baseM; // taban = zemin kotu → duvarlar zeminden yükselir
-          const eaveH = zc;
+          const base = mass.baseM; // taban = zemin kotu
           const rise = hd * mpp * Math.tan(((mass.pitchDeg || 25) * Math.PI) / 180); // eğim = bina eğimi
           const ridgeH = zc + rise;
           const ry = Math.max(-hd, Math.min(hd, (dm.ridgeYM || 0) / mpp)); // sırt orta noktası (y)
+          const rt = Math.max(0, Math.min(hw, (dm.ridgeHalfM ?? hw * mpp) / mpp)); // sırt yarı-uzunluğu
           const dl = (a: number[], b: number[]) => scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a[0], a[1], a[2]), new THREE.Vector3(b[0], b[1], b[2])]), lineMat));
+          // Tel-kafes: saçak çokgeni (zc) + zemine dik duvar kenarları + çatı çizgileri
+          const cs: [number, number][] = [[-hw, hd], [hw, hd], [hw, -hd], [-hw, -hd]];
+          for (let i = 0; i < 4; i++) { dl(P(cs[i][0], cs[i][1], zc), P(cs[(i + 1) % 4][0], cs[(i + 1) % 4][1], zc)); dl(P(cs[i][0], cs[i][1], base), P(cs[i][0], cs[i][1], zc)); }
           if (dm.type === "shed") {
-            pos.push(...quad(P(-hw, hd, eaveH), P(hw, hd, eaveH), P(hw, -hd, ridgeH), P(-hw, -hd, ridgeH))); // tek eğim çatı
-            pos.push(...quad(P(-hw, hd, base), P(hw, hd, base), P(hw, hd, eaveH), P(-hw, hd, eaveH))); // ön duvar
-            pos.push(...quad(P(-hw, -hd, base), P(hw, -hd, base), P(hw, -hd, ridgeH), P(-hw, -hd, ridgeH))); // arka duvar (yüksek)
-            pos.push(...quad(P(-hw, hd, base), P(-hw, -hd, base), P(-hw, -hd, ridgeH), P(-hw, hd, eaveH))); // sol
-            pos.push(...quad(P(hw, hd, base), P(hw, -hd, base), P(hw, -hd, ridgeH), P(hw, hd, eaveH))); // sağ
+            dl(P(-hw, -hd, zc), P(-hw, -hd, ridgeH)); dl(P(hw, -hd, zc), P(hw, -hd, ridgeH));
             dl(P(-hw, -hd, ridgeH), P(hw, -hd, ridgeH));
+            dl(P(-hw, hd, zc), P(-hw, -hd, ridgeH)); dl(P(hw, hd, zc), P(hw, -hd, ridgeH));
           } else {
-            // 4 duvar (zeminden saçağa)
-            pos.push(...quad(P(-hw, hd, base), P(hw, hd, base), P(hw, hd, eaveH), P(-hw, hd, eaveH)));
-            pos.push(...quad(P(-hw, -hd, base), P(hw, -hd, base), P(hw, -hd, eaveH), P(-hw, -hd, eaveH)));
-            pos.push(...quad(P(-hw, hd, base), P(-hw, -hd, base), P(-hw, -hd, eaveH), P(-hw, hd, eaveH)));
-            pos.push(...quad(P(hw, hd, base), P(hw, -hd, base), P(hw, -hd, eaveH), P(hw, hd, eaveH)));
-            const rt = Math.max(0, Math.min(hw, (dm.ridgeHalfM ?? hw * mpp) / mpp)); // sırt yarı-uzunluğu
-            pos.push(...quad(P(-hw, hd, eaveH), P(hw, hd, eaveH), P(rt, ry, ridgeH), P(-rt, ry, ridgeH))); // ön eğim
-            pos.push(...quad(P(-hw, -hd, eaveH), P(hw, -hd, eaveH), P(rt, ry, ridgeH), P(-rt, ry, ridgeH))); // arka eğim
-            pos.push(...tri(P(-hw, hd, eaveH), P(-hw, -hd, eaveH), P(-rt, ry, ridgeH))); // sol (beşik alınlık / kırma hip yüzü)
-            pos.push(...tri(P(hw, hd, eaveH), P(hw, -hd, eaveH), P(rt, ry, ridgeH))); // sağ
             dl(P(-rt, ry, ridgeH), P(rt, ry, ridgeH)); // sırt
-            if (dm.type === "hip") { dl(P(-hw, hd, eaveH), P(-rt, ry, ridgeH)); dl(P(hw, hd, eaveH), P(rt, ry, ridgeH)); dl(P(-hw, -hd, eaveH), P(-rt, ry, ridgeH)); dl(P(hw, -hd, eaveH), P(rt, ry, ridgeH)); }
+            dl(P(-hw, hd, zc), P(-rt, ry, ridgeH)); dl(P(hw, hd, zc), P(rt, ry, ridgeH));
+            dl(P(-hw, -hd, zc), P(-rt, ry, ridgeH)); dl(P(hw, -hd, zc), P(rt, ry, ridgeH));
           }
-          addMesh(pos, dormerMat);
-          dl(P(-hw, hd, eaveH), P(hw, hd, eaveH));
-          dl(P(-hw, -hd, eaveH), P(hw, -hd, eaveH));
         });
       });
 
