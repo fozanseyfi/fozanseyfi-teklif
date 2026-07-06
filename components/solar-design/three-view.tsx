@@ -181,7 +181,8 @@ export default function ThreeView() {
             wq(P(-hw, hd, base), P(-hw, -hd, base), P(-hw, -hd, hi), P(-hw, hd, eave)); // sol
             wq(P(hw, hd, base), P(hw, -hd, base), P(hw, -hd, hi), P(hw, hd, eave)); // sağ
             rq([-hw, hd, eave], [hw, hd, eave], [hw, -hd, hi], [-hw, -hd, hi]);
-            dl(P(-hw, -hd, hi), P(hw, -hd, hi));
+            dl(P(-hw, -hd, hi), P(hw, -hd, hi)); // üst kenar
+            dl(P(-hw, hd, eave), P(-hw, -hd, hi)); dl(P(hw, hd, eave), P(hw, -hd, hi)); // yan eğim kenarları
           } else {
             const rl = dm.type === "hip" ? (dm.ridgeHalfM != null ? Math.max(0, Math.min(hd * 0.95, dm.ridgeHalfM / mpp)) : hd * 0.6) : hd;
             const rf = rl, rb = -rl;
@@ -199,7 +200,10 @@ export default function ThreeView() {
               rt([-hw, hd, eave], [hw, hd, eave], [0, rf, ridgeH]); // ön hip
               rt([-hw, -hd, eave], [hw, -hd, eave], [0, rb, ridgeH]); // arka hip
             }
-            dl(P(0, rf, ridgeH), P(0, rb, ridgeH));
+            dl(P(0, rf, ridgeH), P(0, rb, ridgeH)); // sırt
+            // kırma/mahya kenarları (tüm eğim kırılımları) — mahya uçlarından köşelere
+            dl(P(0, rf, ridgeH), P(-hw, hd, eave)); dl(P(0, rf, ridgeH), P(hw, hd, eave));
+            dl(P(0, rb, ridgeH), P(-hw, -hd, eave)); dl(P(0, rb, ridgeH), P(hw, -hd, eave));
           }
           addMesh(wpos, wallMat);
           addMesh(rpos, roofTexMat ?? dormerMat, roofTexMat ? ruv : undefined);
