@@ -76,7 +76,6 @@ export interface Dormer {
   y: number;
   widthM: number; // gable genişliği (alınlık yönü)
   depthM: number; // çıkıntı derinliği (öne)
-  ridgeHalfM: number; // hip sırtı yarı-uzunluğu (m; derinlik ekseni) — sürüklenebilir
   dirDeg: number; // yön (derece); +y ön/dışa
   type: "gable" | "hip" | "shed";
 }
