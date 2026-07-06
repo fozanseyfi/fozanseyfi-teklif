@@ -157,43 +157,53 @@ export default function ThreeView() {
           faceLabels.push({ el, cxp, cyp, z: face.zAbs(cxp, cyp) });
         });
 
-        // Dormer (çatı eklentisi) — bina değil. Saçağı ana bina saçağıyla AYNI kotta.
-        // Yerel: x=genişlik (alınlık), y=derinlik (+y ön/dışa). Sırt x=0'da, ön→arka.
-        // Gable: ön alınlık üçgeni + iki eğim, arka AÇIK (ana çatıya girer) → yarım bina.
+        // Dormer — bina yüksekliğinde çıkıntı: duvarlar (bina rengi) + gable/hip çatı (bina dokusu).
+        // Yükseklik = bina duvar yüksekliği (base→eave). Yerel: x=genişlik, y=derinlik (+y ön).
         mass.dormers.forEach((dm) => {
           if (dm.widthM <= 0 || dm.depthM <= 0) return;
           const hw = dm.widthM / 2 / mpp, hd = dm.depthM / 2 / mpp;
           const ang = ((dm.dirDeg || 0) * Math.PI) / 180, ca = Math.cos(ang), sa = Math.sin(ang);
           const P = (lx: number, ly: number, h: number): number[] => { const wx = dm.x + lx * ca - ly * sa, wy = dm.y + lx * sa + ly * ca; const w = toWorld(wx, wy); return [w.x, h, w.z]; };
-          const quad = (a: number[], b: number[], c: number[], d: number[]) => [...a, ...b, ...c, ...a, ...c, ...d];
-          const tri = (a: number[], b: number[], c: number[]) => [...a, ...b, ...c];
+          const UV = (lx: number, ly: number): number[] => uvOf(dm.x + lx * ca - ly * sa, dm.y + lx * sa + ly * ca);
           const dl = (a: number[], b: number[]) => scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a[0], a[1], a[2]), new THREE.Vector3(b[0], b[1], b[2])]), lineMat));
-          // Saçak her köşede ÇATI YÜZEYİ kotunu izler → basamak yok, çatıya tam oturur.
-          const ez = (lx: number, ly: number) => { const wx = dm.x + lx * ca - ly * sa, wy = dm.y + lx * sa + ly * ca; const f = roof.faces.find((ff) => pointInPolygon({ x: wx, y: wy }, ff.poly)); return f ? f.zAbs(wx, wy) : (mass.baseM + mass.wallM); };
-          const rise = hw * mpp * Math.tan(((mass.pitchDeg || 25) * Math.PI) / 180); // eğim = bina; genişlik boyunca
-          const FLh = ez(-hw, hd), FRh = ez(hw, hd), BLh = ez(-hw, -hd), BRh = ez(hw, -hd); // köşe saçak kotları
-          const ridgeH = ez(0, 0) + rise;
-          const pos: number[] = [];
+          const base = mass.baseM, eave = mass.baseM + mass.wallM; // yükseklik = bina duvarı
+          const rise = hw * mpp * Math.tan(((mass.pitchDeg || 25) * Math.PI) / 180); // eğim = bina
+          const ridgeH = eave + rise;
+          const wpos: number[] = [], rpos: number[] = [], ruv: number[] = [];
+          const wq = (a: number[], b: number[], c: number[], d: number[]) => wpos.push(...a, ...b, ...c, ...a, ...c, ...d);
+          const wt = (a: number[], b: number[], c: number[]) => wpos.push(...a, ...b, ...c);
+          const rq = (c1: number[], c2: number[], c3: number[], c4: number[]) => { const V = (c: number[]) => P(c[0], c[1], c[2]); const U = (c: number[]) => UV(c[0], c[1]); rpos.push(...V(c1), ...V(c2), ...V(c3), ...V(c1), ...V(c3), ...V(c4)); ruv.push(...U(c1), ...U(c2), ...U(c3), ...U(c1), ...U(c3), ...U(c4)); };
+          const rt = (c1: number[], c2: number[], c3: number[]) => { const V = (c: number[]) => P(c[0], c[1], c[2]); const U = (c: number[]) => UV(c[0], c[1]); rpos.push(...V(c1), ...V(c2), ...V(c3)); ruv.push(...U(c1), ...U(c2), ...U(c3)); };
           if (dm.type === "shed") {
-            pos.push(...quad(P(-hw, hd, FLh + 2 * rise), P(hw, hd, FRh), P(hw, -hd, BRh), P(-hw, -hd, BLh + 2 * rise))); // çatı
-            pos.push(...quad(P(-hw, hd, FLh), P(-hw, -hd, BLh), P(-hw, -hd, BLh + 2 * rise), P(-hw, hd, FLh + 2 * rise))); // yüksek duvar
-            pos.push(...tri(P(-hw, hd, FLh), P(hw, hd, FRh), P(-hw, hd, FLh + 2 * rise))); // ön yan
-            pos.push(...tri(P(-hw, -hd, BLh), P(hw, -hd, BRh), P(-hw, -hd, BLh + 2 * rise))); // arka yan
-            dl(P(-hw, hd, FLh + 2 * rise), P(-hw, -hd, BLh + 2 * rise));
+            const hi = eave + 2 * rise;
+            wq(P(-hw, hd, base), P(hw, hd, base), P(hw, hd, eave), P(-hw, hd, eave)); // ön (alçak)
+            wq(P(-hw, -hd, base), P(hw, -hd, base), P(hw, -hd, hi), P(-hw, -hd, hi)); // arka (yüksek)
+            wq(P(-hw, hd, base), P(-hw, -hd, base), P(-hw, -hd, hi), P(-hw, hd, eave)); // sol
+            wq(P(hw, hd, base), P(hw, -hd, base), P(hw, -hd, hi), P(hw, hd, eave)); // sağ
+            rq([-hw, hd, eave], [hw, hd, eave], [hw, -hd, hi], [-hw, -hd, hi]);
+            dl(P(-hw, -hd, hi), P(hw, -hd, hi));
           } else {
-            const inset = dm.type === "hip" ? hd * 0.35 : 0;
-            const rfy = hd - inset, rby = -hd + inset; // sırt uçları (y)
-            pos.push(...quad(P(-hw, hd, FLh), P(-hw, -hd, BLh), P(0, rby, ridgeH), P(0, rfy, ridgeH))); // sol eğim
-            pos.push(...quad(P(hw, hd, FRh), P(hw, -hd, BRh), P(0, rby, ridgeH), P(0, rfy, ridgeH))); // sağ eğim
-            pos.push(...tri(P(-hw, hd, FLh), P(hw, hd, FRh), P(0, rfy, ridgeH))); // ön alınlık / hip yüzü
-            if (dm.type === "hip") pos.push(...tri(P(-hw, -hd, BLh), P(hw, -hd, BRh), P(0, rby, ridgeH))); // arka hip
-            dl(P(0, rfy, ridgeH), P(0, rby, ridgeH)); // sırt
+            const inset = dm.type === "hip" ? hd * 0.4 : 0;
+            const rf = hd - inset, rb = -hd + inset;
+            wq(P(-hw, hd, base), P(hw, hd, base), P(hw, hd, eave), P(-hw, hd, eave)); // ön
+            wq(P(-hw, -hd, base), P(hw, -hd, base), P(hw, -hd, eave), P(-hw, -hd, eave)); // arka
+            wq(P(-hw, hd, base), P(-hw, -hd, base), P(-hw, -hd, eave), P(-hw, hd, eave)); // sol
+            wq(P(hw, hd, base), P(hw, -hd, base), P(hw, -hd, eave), P(hw, hd, eave)); // sağ
+            if (dm.type === "gable") {
+              wt(P(-hw, hd, eave), P(hw, hd, eave), P(0, hd, ridgeH)); // ön alınlık
+              wt(P(-hw, -hd, eave), P(hw, -hd, eave), P(0, -hd, ridgeH)); // arka alınlık
+            }
+            rq([-hw, hd, eave], [-hw, -hd, eave], [0, rb, ridgeH], [0, rf, ridgeH]); // sol eğim
+            rq([hw, hd, eave], [hw, -hd, eave], [0, rb, ridgeH], [0, rf, ridgeH]); // sağ eğim
+            if (dm.type === "hip") {
+              rt([-hw, hd, eave], [hw, hd, eave], [0, rf, ridgeH]); // ön hip
+              rt([-hw, -hd, eave], [hw, -hd, eave], [0, rb, ridgeH]); // arka hip
+            }
+            dl(P(0, rf, ridgeH), P(0, rb, ridgeH));
           }
-          addMesh(pos, dormerMat);
-          dl(P(-hw, hd, FLh), P(hw, hd, FRh));
-          dl(P(-hw, -hd, BLh), P(hw, -hd, BRh));
-          dl(P(-hw, hd, FLh), P(-hw, -hd, BLh));
-          dl(P(hw, hd, FRh), P(hw, -hd, BRh));
+          addMesh(wpos, wallMat);
+          addMesh(rpos, roofTexMat ?? dormerMat, roofTexMat ? ruv : undefined);
+          dl(P(-hw, hd, eave), P(hw, hd, eave)); dl(P(hw, hd, eave), P(hw, -hd, eave)); dl(P(hw, -hd, eave), P(-hw, -hd, eave)); dl(P(-hw, -hd, eave), P(-hw, hd, eave));
         });
       });
 

@@ -343,7 +343,7 @@ export default function MassEditor({ mode, dormerDraw, dormerType, onDormerPlace
                     <Rect x={-hw} y={-hd} width={hw * 2} height={hd * 2} fill="#7c3aed1f" stroke="#7c3aed" strokeWidth={1.6 / scale} />
                     {/* iç çizgiler — 3B ile birebir: sırt x=0 (ön→arka), ön alınlık +hd */}
                     {(() => {
-                      if (dm.type === "shed") return <Line points={[-hw, hd, -hw, -hd]} stroke="#7c3aed" strokeWidth={1.8 / scale} listening={false} />;
+                      if (dm.type === "shed") return <Line points={[-hw, -hd, hw, -hd]} stroke="#7c3aed" strokeWidth={1.8 / scale} listening={false} />;
                       if (dm.type === "hip") { const inset = hd * 0.35, rfy = hd - inset, rby = -hd + inset; return (<>
                         <Line points={[0, rfy, 0, rby]} stroke="#7c3aed" strokeWidth={1.8 / scale} listening={false} />
                         <Line points={[-hw, hd, 0, rfy]} stroke="#7c3aed" strokeWidth={1 / scale} dash={[3 / scale, 3 / scale]} listening={false} />
