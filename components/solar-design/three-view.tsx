@@ -183,8 +183,8 @@ export default function ThreeView() {
             rq([-hw, hd, eave], [hw, hd, eave], [hw, -hd, hi], [-hw, -hd, hi]);
             dl(P(-hw, -hd, hi), P(hw, -hd, hi));
           } else {
-            const inset = dm.type === "hip" ? hd * 0.4 : 0;
-            const rf = hd - inset, rb = -hd + inset;
+            const rl = dm.type === "hip" ? Math.max(0, Math.min(hd * 0.95, (dm.ridgeHalfM ?? hd * mpp * 0.3) / mpp)) : hd;
+            const rf = rl, rb = -rl;
             wq(P(-hw, hd, base), P(hw, hd, base), P(hw, hd, eave), P(-hw, hd, eave)); // ön
             wq(P(-hw, -hd, base), P(hw, -hd, base), P(hw, -hd, eave), P(-hw, -hd, eave)); // arka
             wq(P(-hw, hd, base), P(-hw, -hd, base), P(-hw, -hd, eave), P(-hw, hd, eave)); // sol
