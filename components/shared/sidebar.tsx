@@ -26,7 +26,6 @@ import {
   Menu,
   X,
   UserCircle2,
-  Upload,
   Package,
   Wallet,
   Truck,
@@ -70,8 +69,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Çalışma Alanı",
     items: [
-      { href: "/projects", icon: FolderOpen, label: "Projeler" },
-      { href: "/projects/import", icon: Upload, label: "Proje Yükle" },
+      { href: "/projects", icon: FolderOpen, label: "Teklifler" },
       { href: "/templates", icon: LayoutTemplate, label: "Şablonlar" },
       { href: "/materials", icon: Package, label: "Malzemeler" },
       { href: "/customers", icon: Users, label: "Müşteriler" },
