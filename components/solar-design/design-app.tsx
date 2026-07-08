@@ -386,20 +386,28 @@ function Editor() {
 
   function autoLayout() {
     if (!mpp) { toast.error("Ölçek bulunamadı — altlığı haritadan alın."); return; }
+    let faceCount = 0;
     const placed = built.flatMap(({ mass, roof }) => {
-      const children = doc.masses.filter((mm) => mm.parentId === mass.id && mm.footprint.length >= 3);
-      const covered = (p: PlacedPanel) => {
-        const c = panelCornersD(p);
-        return children.some((ch) => polysOverlapD(c, ch.footprint))
-          || doc.obstacles.some((o) => polysOverlapD(c, o.poly))
-          || mass.dormers.some((dm) => polysOverlapD(c, dormerPoly(dm, mpp)));
-      };
-      return [
-        ...roof.faces.flatMap((f) => computeLayout(f.poly, `${mass.id}:${f.id}`, doc.panelConfig, mpp)).filter((p) => !covered(p)),
-        ...mass.dormers.flatMap((dm) => dormerRoofFaces(dm, roof.eavesM, mass.pitchDeg, mpp).flatMap((f) => computeLayout(f.poly, `${mass.id}:${f.id}`, doc.panelConfig, mpp))),
-      ];
+      try {
+        const children = doc.masses.filter((mm) => mm.parentId === mass.id && mm.footprint.length >= 3);
+        const covered = (p: PlacedPanel) => {
+          const c = panelCornersD(p);
+          return children.some((ch) => polysOverlapD(c, ch.footprint))
+            || doc.obstacles.some((o) => polysOverlapD(c, o.poly))
+            || mass.dormers.some((dm) => polysOverlapD(c, dormerPoly(dm, mpp)));
+        };
+        const dfaces = mass.dormers.flatMap((dm) => dormerRoofFaces(dm, roof.eavesM, mass.pitchDeg, mpp));
+        faceCount += roof.faces.length + dfaces.length;
+        return [
+          ...roof.faces.flatMap((f) => computeLayout(f.poly, `${mass.id}:${f.id}`, doc.panelConfig, mpp)).filter((p) => !covered(p)),
+          ...dfaces.flatMap((f) => computeLayout(f.poly, `${mass.id}:${f.id}`, doc.panelConfig, mpp)),
+        ];
+      } catch { return []; }
     });
-    if (!placed.length) { toast.error("Çatı düzlemi yok — önce bina hattını çizin."); return; }
+    if (!placed.length) {
+      toast.error(faceCount ? `${faceCount} çatı yüzeyi var ama panel sığmadı — panel boyutu/kenar payı/ölçeğe bakın` : "Çatı düzlemi yok — önce çatıyı çizin");
+      return;
+    }
     update((d) => { d.placed = placed; }, true);
     toast.success(`${placed.length} panel yerleştirildi`);
   }
