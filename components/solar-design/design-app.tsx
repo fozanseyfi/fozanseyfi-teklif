@@ -11,7 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import {
   Plus, Trash2, Undo2, Redo2, MousePointer2, PencilRuler, ArrowLeft, ArrowRight,
   LayoutGrid, Sun, Map as MapIcon, ImagePlus, Zap, CheckCircle2, Box, Lock, Unlock,
-  Building2, Layers, Move, Spline, Ban, Home,
+  Building2, Layers, Move, Spline, Ban, Home, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -19,12 +19,14 @@ import { useDesignStore } from "@/lib/solar-design/store";
 import { computeLayout, panelsKwp } from "@/lib/solar-design/layout-engine";
 import { massRoof, faceAreaM2, seedRoofGraph, autoRoofHeights, generateRoof } from "@/lib/solar-design/roof-model";
 import type { MassRoof } from "@/lib/solar-design/roof-model";
+import { enhanceImage } from "@/lib/solar-design/enhance";
 import { DEFAULT_MASS } from "@/lib/solar-design/types";
 import type { Mass, RoofType, PlacedPanel, Vec, Dormer } from "@/lib/solar-design/types";
 
 const CanvasEditor = dynamic(() => import("./canvas-editor"), { ssr: false });
 const MassEditor = dynamic(() => import("./mass-editor"), { ssr: false });
 const MapPicker = dynamic(() => import("./map-picker"), { ssr: false });
+const EnhanceModal = dynamic(() => import("./enhance-modal"), { ssr: false });
 const CropStep = dynamic(() => import("./crop-step"), { ssr: false });
 const ThreeView = dynamic(() => import("./three-view"), { ssr: false });
 
@@ -225,6 +227,8 @@ function Editor() {
   const [mapMode, setMapMode] = useState(true); // açılışta uydu haritası standart
   const [pending, setPending] = useState<{ dataUrl: string; mpp: number } | null>(null);
   const [imgSize, setImgSize] = useState<{ w: number; h: number } | null>(null);
+  const [enhance, setEnhance] = useState<{ original: string; enhanced: string; ms: number; scale: number } | null>(null);
+  const [enhancing, setEnhancing] = useState(false);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- adım değişince aracı sıfırla (dış senkronizasyon)
   useEffect(() => { if (step !== "cizim") setTool("edit"); }, [step]);
@@ -294,6 +298,35 @@ function Editor() {
   }
   function removeDormer(id: string) {
     update((d) => { const m = d.masses.find((x) => x.id === doc.activeMassId); if (m) m.dormers = m.dormers.filter((x) => x.id !== id); }, true);
+  }
+
+  async function runEnhance() {
+    if (!doc.imageDataUrl || enhancing) return;
+    setEnhancing(true);
+    try {
+      const res = await enhanceImage(doc.imageDataUrl);
+      setEnhance({ original: doc.imageDataUrl, enhanced: res.dataUrl, ms: res.ms, scale: res.scale });
+    } catch { toast.error("Görüntü iyileştirilemedi"); }
+    setEnhancing(false);
+  }
+  function useEnhanced() {
+    if (!enhance) return;
+    const s = enhance.scale, url = enhance.enhanced;
+    update((d) => {
+      if (s !== 1) {
+        d.masses.forEach((m) => {
+          m.footprint = m.footprint.map((p) => ({ x: p.x * s, y: p.y * s }));
+          m.roofNodes = m.roofNodes.map((n) => ({ ...n, x: n.x * s, y: n.y * s }));
+          m.dormers.forEach((dm) => { dm.x *= s; dm.y *= s; });
+        });
+        d.obstacles.forEach((o) => { o.poly = o.poly.map((p) => ({ x: p.x * s, y: p.y * s })); });
+        d.placed = d.placed.map((p) => ({ ...p, x: p.x * s, y: p.y * s, w: p.w * s, h: p.h * s }));
+        if (d.metersPerPixel) d.metersPerPixel = d.metersPerPixel / s;
+      }
+      d.imageDataUrl = url;
+    }, true);
+    setEnhance(null);
+    toast.success("Görüntü iyileştirildi");
   }
 
   function addMass(parentId: string | null) {
@@ -478,7 +511,7 @@ function Editor() {
         </div>
 
         <div className="space-y-2 lg:max-h-[calc(100vh-15rem)] lg:overflow-y-auto lg:pr-1">
-          {step === "gorsel" && <GorselPanel mpp={mpp} hasImage={!!doc.imageDataUrl} onMap={() => { setPending(null); setMapMode(true); }} onUpload={(url) => update((d) => { d.imageDataUrl = url; })} />}
+          {step === "gorsel" && <GorselPanel mpp={mpp} hasImage={!!doc.imageDataUrl} onMap={() => { setPending(null); setMapMode(true); }} onUpload={(url) => update((d) => { d.imageDataUrl = url; })} onEnhance={runEnhance} enhancing={enhancing} />}
           {step === "cizim" && !locked && <MassPanel updateActive={updateActive} active={activeMass} masses={doc.masses} onAdd={() => addMass(null)} onAddRoofTop={() => addMass(activeMass?.id ?? doc.masses[0]?.id ?? null)} onSelect={selectMass} onRemove={removeMass} onToggleRoofEdit={toggleRoofEdit} onShape={addShape} onAutoHeights={applyAutoHeights} faces={activeFaces} onFacePitch={setFacePitch} onAddDormer={addDormer} onUpdateDormer={updateDormer} onRemoveDormer={removeDormer} />}
           {step === "cizim" && locked && <LockPanel onUnlock={() => setLocked(false)} onPanel={() => setStep("panel")} />}
           {step === "panel" && <PanelPanel update={update} onAuto={autoLayout} totalPanels={totalPanels} totalKwp={totalKwp} locked={locked} onEditRoof={() => { setLocked(false); setStep("cizim"); }} />}
@@ -486,6 +519,7 @@ function Editor() {
           <StepNav step={step} setStep={setStep} locked={locked} />
         </div>
       </div>
+      {enhance && <EnhanceModal original={enhance.original} enhanced={enhance.enhanced} ms={enhance.ms} scale={enhance.scale} onUseOriginal={() => setEnhance(null)} onUseEnhanced={useEnhanced} />}
     </div>
   );
 }
@@ -524,7 +558,7 @@ function StepNav({ step, setStep, locked }: { step: StepKey; setStep: (s: StepKe
   );
 }
 
-function GorselPanel({ mpp, hasImage, onMap, onUpload }: { mpp: number | null; hasImage: boolean; onMap: () => void; onUpload: (dataUrl: string) => void }) {
+function GorselPanel({ mpp, hasImage, onMap, onUpload, onEnhance, enhancing }: { mpp: number | null; hasImage: boolean; onMap: () => void; onUpload: (dataUrl: string) => void; onEnhance: () => void; enhancing: boolean }) {
   function pick(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]; if (!f) return;
     if (f.size > 12 * 1024 * 1024) { toast.error("Görüntü 12 MB'den küçük olmalı"); return; }
@@ -540,6 +574,11 @@ function GorselPanel({ mpp, hasImage, onMap, onUpload }: { mpp: number | null; h
           <ImagePlus className="size-4" /> {hasImage ? "Bunun yerine görüntü yükle" : "veya drone/ekran görüntüsü yükle"}
           <input type="file" accept="image/*" onChange={pick} className="hidden" />
         </label>
+        {hasImage && (
+          <Button variant="outline" className="w-full" onClick={onEnhance} disabled={enhancing}>
+            <Sparkles className="size-4" /> {enhancing ? "İyileştiriliyor…" : "AI ile Netleştir"}
+          </Button>
+        )}
         <div className="border-t pt-3">
           <p className="text-sm font-semibold text-slate-800">2) Ölçek</p>
           {mpp
