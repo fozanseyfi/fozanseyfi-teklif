@@ -115,6 +115,16 @@ export default function ThreeView() {
           }
           if (wp.length) addMesh(wp, wallMat);
         }
+        // Alt kapak (bina tabanı kapalı — altından bakınca içi boş görünmesin)
+        if (bnd.length >= 3) {
+          const fc: number[] = [];
+          const c0 = toWorld(bnd[0].x, bnd[0].y);
+          for (let i = 1; i < bnd.length - 1; i++) {
+            const a = toWorld(bnd[i].x, bnd[i].y), b = toWorld(bnd[i + 1].x, bnd[i + 1].y);
+            fc.push(c0.x, mass.baseM, c0.z, a.x, mass.baseM, a.z, b.x, mass.baseM, b.z);
+          }
+          if (fc.length) addMesh(fc, wallMat);
+        }
         // Parapet (düz çatı kenar duvarı)
         if (mass.parapet && mass.roofType === "flat" && !mass.roofEditable && mass.parapetM > 0 && bnd.length >= 2) {
           const pp: number[] = [];
