@@ -129,12 +129,16 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
 
   const nodeById = useMemo(() => new Map(doc.nodes.map((n) => [n.id, n])), [doc.nodes]);
   const faces = useMemo(() => detectFaces(doc.nodes, doc.edges), [doc.nodes, doc.edges]);
-  // Kütle çatı yüzeyleri — panel yerleşiminde bağlam (bina hattı) göstermek için.
+  // Kütle çatı yüzeyleri — dormer dahil TEK bina; hepsi "Çatı N" olarak birleşik numaralanır.
   const massFaces = useMemo(
-    () => doc.masses.flatMap((m) => [
-      ...massRoof(m, doc.metersPerPixel || 0.05).faces.map((f) => ({ id: `${m.id}:${f.id}`, name: f.name, poly: f.poly })),
-      ...m.dormers.flatMap((dm) => dormerRoofFaces(dm, m.baseM + m.wallM, m.pitchDeg, doc.metersPerPixel || 0.05).map((f) => ({ id: `${m.id}:${f.id}`, name: "Dormer", poly: f.poly }))),
-    ]),
+    () => doc.masses.flatMap((m) => {
+      const mppv = doc.metersPerPixel || 0.05;
+      const all = [
+        ...massRoof(m, mppv).faces,
+        ...m.dormers.flatMap((dm) => dormerRoofFaces(dm, m.baseM + m.wallM, m.pitchDeg, mppv)),
+      ];
+      return all.map((f, i) => ({ id: `${m.id}:${f.id}`, name: `Çatı ${i + 1}`, poly: f.poly }));
+    }),
     [doc.masses, doc.metersPerPixel],
   );
   const facePolyById = useMemo(() => new Map(massFaces.map((f) => [f.id, f.poly])), [massFaces]);
@@ -499,19 +503,18 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
           </Layer>
         )}
 
-        {/* Dormer'lar — dış hat + eğim (sırt/mahya) çizgileri; ana çatının parçası (kırmızı) */}
+        {/* Dormer eğim/kırılım çizgileri — ana çatının parçası (ayrı obje değil, çatı stilinde) */}
         <Layer listening={false}>
           {doc.masses.flatMap((m) =>
             m.dormers.map((dm) => {
               if (dm.widthM <= 0 || dm.depthM <= 0) return null;
-              const { outline, creases, center } = dormerLines2D(dm, doc.metersPerPixel || 0.05);
+              const { outline, creases } = dormerLines2D(dm, doc.metersPerPixel || 0.05);
               return (
                 <Group key={`${m.id}:${dm.id}`}>
-                  <Line points={outline.flatMap((p) => [p.x, p.y])} closed stroke="#dc2626" strokeWidth={1.8 / scale} fill="#dc26260d" />
+                  <Line points={outline.flatMap((p) => [p.x, p.y])} closed stroke="#1e293b" strokeWidth={1.4 / scale} />
                   {creases.map((seg, i) => (
-                    <Line key={i} points={[seg[0].x, seg[0].y, seg[1].x, seg[1].y]} stroke="#dc2626" strokeWidth={1.4 / scale} />
+                    <Line key={i} points={[seg[0].x, seg[0].y, seg[1].x, seg[1].y]} stroke="#1e293b" strokeWidth={1.2 / scale} />
                   ))}
-                  <Text x={center.x} y={center.y} text={`Dormer (${dm.type})`} fontSize={11 / scale} fill="#991b1b" stroke="#fff" strokeWidth={2.4 / scale} fillAfterStrokeEnabled offsetX={28 / scale} offsetY={5 / scale} />
                 </Group>
               );
             }),
