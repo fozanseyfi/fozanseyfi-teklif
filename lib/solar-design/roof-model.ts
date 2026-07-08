@@ -1,4 +1,4 @@
-import type { Vec, RoofType, Mass, RNode, REdge } from "./types";
+import type { Vec, RoofType, Mass, RNode, REdge, Dormer } from "./types";
 import { polygonAreaPx, centroid, nearestOnSegment } from "./geometry";
 import { detectFaces, faceCoords, detectOuterBoundary } from "./faces";
 
@@ -255,6 +255,32 @@ export function massRoof(mass: Mass, mpp: number): MassRoof {
     return best;
   };
   return { faces, boundary, boundaryZ, eavesM };
+}
+
+/** Dormer'ın çatı yüzeyleri (panel yerleşimi + 3B panel için) — three-view geometrisiyle aynı. */
+export function dormerRoofFaces(dm: Dormer, eavesM: number, pitchDeg: number, mpp: number): RoofFace[] {
+  const hw = dm.widthM / 2 / mpp, hd = dm.depthM / 2 / mpp;
+  if (hw <= 0 || hd <= 0) return [];
+  const ang = ((dm.dirDeg || 0) * Math.PI) / 180, ca = Math.cos(ang), sa = Math.sin(ang);
+  const W = (lx: number, ly: number) => ({ x: dm.x + lx * ca - ly * sa, y: dm.y + lx * sa + ly * ca });
+  const rise = hw * mpp * Math.tan((Math.max(5, Math.min(60, pitchDeg)) * Math.PI) / 180);
+  const eave = eavesM, ridgeH = eavesM + rise;
+  const P3 = (lx: number, ly: number, z: number) => { const w = W(lx, ly); return { x: w.x, y: w.y, z }; };
+  const faces: RoofFace[] = [];
+  const mk = (id: string, pts: { x: number; y: number; z: number }[]) => faces.push({ id, name: "Dormer", poly: pts.map((p) => ({ x: p.x, y: p.y })), zAbs: fanSampler(pts) });
+  if (dm.type === "shed") {
+    const hi = eave + 2 * rise;
+    mk(`dm${dm.id}s`, [P3(-hw, hd, eave), P3(hw, hd, eave), P3(hw, -hd, hi), P3(-hw, -hd, hi)]);
+  } else {
+    const rl = dm.type === "hip" ? (dm.ridgeHalfM != null ? Math.max(0, Math.min(hd * 0.95, dm.ridgeHalfM / mpp)) : hd * 0.6) : hd;
+    mk(`dm${dm.id}l`, [P3(-hw, hd, eave), P3(-hw, -hd, eave), P3(0, -rl, ridgeH), P3(0, rl, ridgeH)]);
+    mk(`dm${dm.id}r`, [P3(hw, hd, eave), P3(hw, -hd, eave), P3(0, -rl, ridgeH), P3(0, rl, ridgeH)]);
+    if (dm.type === "hip") {
+      mk(`dm${dm.id}f`, [P3(-hw, hd, eave), P3(hw, hd, eave), P3(0, rl, ridgeH)]);
+      mk(`dm${dm.id}b`, [P3(-hw, -hd, eave), P3(hw, -hd, eave), P3(0, -rl, ridgeH)]);
+    }
+  }
+  return faces;
 }
 
 /**

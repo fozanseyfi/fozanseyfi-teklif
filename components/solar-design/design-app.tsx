@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDesignStore } from "@/lib/solar-design/store";
 import { computeLayout, panelsKwp } from "@/lib/solar-design/layout-engine";
-import { massRoof, faceAreaM2, seedRoofGraph, autoRoofHeights, generateRoof } from "@/lib/solar-design/roof-model";
+import { massRoof, faceAreaM2, seedRoofGraph, autoRoofHeights, generateRoof, dormerRoofFaces } from "@/lib/solar-design/roof-model";
 import type { MassRoof } from "@/lib/solar-design/roof-model";
 import { enhanceImage } from "@/lib/solar-design/enhance";
 import { DEFAULT_MASS } from "@/lib/solar-design/types";
@@ -394,7 +394,10 @@ function Editor() {
           || doc.obstacles.some((o) => polysOverlapD(c, o.poly))
           || mass.dormers.some((dm) => polysOverlapD(c, dormerPoly(dm, mpp)));
       };
-      return roof.faces.flatMap((f) => computeLayout(f.poly, `${mass.id}:${f.id}`, doc.panelConfig, mpp)).filter((p) => !covered(p));
+      return [
+        ...roof.faces.flatMap((f) => computeLayout(f.poly, `${mass.id}:${f.id}`, doc.panelConfig, mpp)).filter((p) => !covered(p)),
+        ...mass.dormers.flatMap((dm) => dormerRoofFaces(dm, roof.eavesM, mass.pitchDeg, mpp).flatMap((f) => computeLayout(f.poly, `${mass.id}:${f.id}`, doc.panelConfig, mpp))),
+      ];
     });
     if (!placed.length) { toast.error("Çatı düzlemi yok — önce bina hattını çizin."); return; }
     update((d) => { d.placed = placed; }, true);

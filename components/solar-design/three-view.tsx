@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { useDesignStore } from "@/lib/solar-design/store";
-import { massRoof } from "@/lib/solar-design/roof-model";
+import { massRoof, dormerRoofFaces } from "@/lib/solar-design/roof-model";
 import { pointInPolygon } from "@/lib/solar-design/geometry";
 import { FACE_COLORS } from "@/lib/solar-design/types";
 
@@ -161,6 +161,7 @@ export default function ThreeView() {
         // Yükseklik = bina duvar yüksekliği (base→eave). Yerel: x=genişlik, y=derinlik (+y ön).
         mass.dormers.forEach((dm) => {
           if (dm.widthM <= 0 || dm.depthM <= 0) return;
+          dormerRoofFaces(dm, roof.eavesM, mass.pitchDeg, mpp).forEach((f) => planeIndex.set(`${mass.id}:${f.id}`, { z: f.zAbs, poly: f.poly })); // panel yüzeyleri
           const hw = dm.widthM / 2 / mpp, hd = dm.depthM / 2 / mpp;
           const ang = ((dm.dirDeg || 0) * Math.PI) / 180, ca = Math.cos(ang), sa = Math.sin(ang);
           const P = (lx: number, ly: number, h: number): number[] => { const wx = dm.x + lx * ca - ly * sa, wy = dm.y + lx * sa + ly * ca; const w = toWorld(wx, wy); return [w.x, h, w.z]; };
@@ -174,6 +175,7 @@ export default function ThreeView() {
           const wt = (a: number[], b: number[], c: number[]) => wpos.push(...a, ...b, ...c);
           const rq = (c1: number[], c2: number[], c3: number[], c4: number[]) => { const V = (c: number[]) => P(c[0], c[1], c[2]); const U = (c: number[]) => UV(c[0], c[1]); rpos.push(...V(c1), ...V(c2), ...V(c3), ...V(c1), ...V(c3), ...V(c4)); ruv.push(...U(c1), ...U(c2), ...U(c3), ...U(c1), ...U(c3), ...U(c4)); };
           const rt = (c1: number[], c2: number[], c3: number[]) => { const V = (c: number[]) => P(c[0], c[1], c[2]); const U = (c: number[]) => UV(c[0], c[1]); rpos.push(...V(c1), ...V(c2), ...V(c3)); ruv.push(...U(c1), ...U(c2), ...U(c3)); };
+          wq(P(-hw, -hd, base), P(hw, -hd, base), P(hw, hd, base), P(-hw, hd, base)); // alt kapak (kapalı)
           if (dm.type === "shed") {
             const hi = eave + 2 * rise;
             wq(P(-hw, hd, base), P(hw, hd, base), P(hw, hd, eave), P(-hw, hd, eave)); // ön (alçak)
