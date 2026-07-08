@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer, Image as KonvaImage, Line, Circle, Rect, Text, Group } from "react-konva";
 import type Konva from "konva";
 import { useDesignStore } from "@/lib/solar-design/store";
-import type { Vec, RNode, DesignDoc } from "@/lib/solar-design/types";
+import type { Vec, RNode, DesignDoc, Dormer } from "@/lib/solar-design/types";
 import { FACE_COLORS } from "@/lib/solar-design/types";
 import { dist, nearestOnSegment, pointInPolygon } from "@/lib/solar-design/geometry";
 import { detectFaces } from "@/lib/solar-design/faces";
@@ -18,6 +18,25 @@ export type EditorMode = "draw" | "roof-select" | "panel-select" | "view";
 function panelCorners(p: { x: number; y: number; w: number; h: number; rotationDeg: number }): Vec[] {
   const rad = (p.rotationDeg * Math.PI) / 180, c = Math.cos(rad), s = Math.sin(rad);
   return ([[0, 0], [p.w, 0], [p.w, p.h], [0, p.h]] as const).map(([lx, ly]) => ({ x: p.x + lx * c - ly * s, y: p.y + lx * s + ly * c }));
+}
+
+/** Dormer'ın 2B görünümü: dış hat + iç sırt/mahya (eğim) çizgileri (px). */
+function dormerLines2D(dm: Dormer, mpp: number): { outline: Vec[]; creases: [Vec, Vec][]; center: Vec } {
+  const hw = dm.widthM / 2 / mpp, hd = dm.depthM / 2 / mpp;
+  const ang = ((dm.dirDeg || 0) * Math.PI) / 180, ca = Math.cos(ang), sa = Math.sin(ang);
+  const W = (lx: number, ly: number): Vec => ({ x: dm.x + lx * ca - ly * sa, y: dm.y + lx * sa + ly * ca });
+  const outline = [W(-hw, hd), W(hw, hd), W(hw, -hd), W(-hw, -hd)];
+  const creases: [Vec, Vec][] = [];
+  if (dm.type === "gable") {
+    creases.push([W(0, hd), W(0, -hd)]); // sırt (tam boy)
+  } else if (dm.type === "hip") {
+    const rl = dm.ridgeHalfM != null ? Math.max(0, Math.min(hd * 0.95, dm.ridgeHalfM / mpp)) : hd * 0.6;
+    creases.push([W(0, rl), W(0, -rl)]); // sırt
+    creases.push([W(0, rl), W(-hw, hd)], [W(0, rl), W(hw, hd)], [W(0, -rl), W(-hw, -hd)], [W(0, -rl), W(hw, -hd)]); // mahyalar
+  } else {
+    creases.push([W(-hw, -hd), W(hw, -hd)]); // shed: yüksek kenar
+  }
+  return { outline, creases, center: { x: dm.x, y: dm.y } };
 }
 
 /** İki dışbükey dörtgen üst üste mi (SAT). Sadece temas ediyorsa (bitişik) üst üste sayılmaz. */
@@ -479,6 +498,25 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
             })}
           </Layer>
         )}
+
+        {/* Dormer'lar — dış hat + eğim (sırt/mahya) çizgileri; ana çatının parçası (kırmızı) */}
+        <Layer listening={false}>
+          {doc.masses.flatMap((m) =>
+            m.dormers.map((dm) => {
+              if (dm.widthM <= 0 || dm.depthM <= 0) return null;
+              const { outline, creases, center } = dormerLines2D(dm, doc.metersPerPixel || 0.05);
+              return (
+                <Group key={`${m.id}:${dm.id}`}>
+                  <Line points={outline.flatMap((p) => [p.x, p.y])} closed stroke="#dc2626" strokeWidth={1.8 / scale} fill="#dc26260d" />
+                  {creases.map((seg, i) => (
+                    <Line key={i} points={[seg[0].x, seg[0].y, seg[1].x, seg[1].y]} stroke="#dc2626" strokeWidth={1.4 / scale} />
+                  ))}
+                  <Text x={center.x} y={center.y} text={`Dormer (${dm.type})`} fontSize={11 / scale} fill="#991b1b" stroke="#fff" strokeWidth={2.4 / scale} fillAfterStrokeEnabled offsetX={28 / scale} offsetY={5 / scale} />
+                </Group>
+              );
+            }),
+          )}
+        </Layer>
 
         {/* Yüzeyler (çatı bölümleri) */}
         <Layer>
