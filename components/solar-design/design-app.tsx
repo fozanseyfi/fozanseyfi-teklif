@@ -17,11 +17,11 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDesignStore } from "@/lib/solar-design/store";
 import { computeLayout, panelsKwp } from "@/lib/solar-design/layout-engine";
-import { massRoof, faceAreaM2, seedRoofGraph, autoRoofHeights, generateRoof, dormerRoofFaces } from "@/lib/solar-design/roof-model";
+import { massRoof, faceAreaM2, seedRoofGraph, autoRoofHeights, generateRoof, dormerRoofFaces, bakeDormers } from "@/lib/solar-design/roof-model";
 import type { MassRoof } from "@/lib/solar-design/roof-model";
 import { enhanceImage } from "@/lib/solar-design/enhance";
 import { DEFAULT_MASS } from "@/lib/solar-design/types";
-import type { Mass, RoofType, PlacedPanel, Vec, Dormer } from "@/lib/solar-design/types";
+import type { Mass, RoofType, PlacedPanel, Vec, Dormer, DesignDoc } from "@/lib/solar-design/types";
 
 const CanvasEditor = dynamic(() => import("./canvas-editor"), { ssr: false });
 const MassEditor = dynamic(() => import("./mass-editor"), { ssr: false });
@@ -299,6 +299,20 @@ function Editor() {
   function removeDormer(id: string) {
     update((d) => { const m = d.masses.find((x) => x.id === doc.activeMassId); if (m) m.dormers = m.dormers.filter((x) => x.id !== id); }, true);
   }
+  /** Tüm dormer'ları çatı kırılım grafiğine göm → ayrı yapı değil, TEK bina. */
+  function bakeAllDormers(d: DesignDoc) {
+    const m = mpp || 0.05;
+    for (const mass of d.masses) {
+      if (!mass.dormers.length) continue;
+      const r = bakeDormers(mass, m);
+      mass.roofNodes = r.nodes; mass.roofEdges = r.edges; mass.roofEditable = true; mass.dormers = r.dormers;
+    }
+  }
+  function mergeDormersToRoof() {
+    if (!doc.masses.some((m) => m.dormers.length)) { toast.info("Birleştirilecek dormer yok"); return; }
+    update((d) => bakeAllDormers(d), true);
+    toast.success("Dormer binaya birleştirildi — tek yapı (çatı kırılımları düzenlenebilir)");
+  }
 
   async function runEnhance() {
     if (!doc.imageDataUrl || enhancing) return;
@@ -509,7 +523,7 @@ function Editor() {
                   {step === "cizim" && (locked ? (
                     <Button size="sm" variant="outline" className="h-8 shadow-md" onClick={() => setLocked(false)}><Unlock className="size-4" /> Kilidi Aç</Button>
                   ) : (
-                    <Button size="sm" className="h-8 shadow-md" onClick={() => { setLocked(true); setStep("panel"); toast.success("Bina kilitlendi — panel yerleşimine geçildi"); }}><Lock className="size-4" /> Tamamla & Kilitle</Button>
+                    <Button size="sm" className="h-8 shadow-md" onClick={() => { update((d) => { bakeAllDormers(d); d.locked = true; }, true); setStep("panel"); toast.success("Bina kilitlendi — dormer'lar binaya birleşti, panel yerleşimine geçildi"); }}><Lock className="size-4" /> Tamamla & Kilitle</Button>
                   ))}
                 </div>
               </div>
@@ -523,7 +537,7 @@ function Editor() {
 
         <div className="space-y-2 lg:max-h-[calc(100vh-15rem)] lg:overflow-y-auto lg:pr-1">
           {step === "gorsel" && <GorselPanel mpp={mpp} hasImage={!!doc.imageDataUrl} onMap={() => { setPending(null); setMapMode(true); }} onUpload={(url) => update((d) => { d.imageDataUrl = url; })} onEnhance={runEnhance} enhancing={enhancing} />}
-          {step === "cizim" && !locked && <MassPanel updateActive={updateActive} active={activeMass} masses={doc.masses} onAdd={() => addMass(null)} onAddRoofTop={() => addMass(activeMass?.id ?? doc.masses[0]?.id ?? null)} onSelect={selectMass} onRemove={removeMass} onToggleRoofEdit={toggleRoofEdit} onShape={addShape} onAutoHeights={applyAutoHeights} faces={activeFaces} onFacePitch={setFacePitch} onAddDormer={addDormer} onUpdateDormer={updateDormer} onRemoveDormer={removeDormer} />}
+          {step === "cizim" && !locked && <MassPanel updateActive={updateActive} active={activeMass} masses={doc.masses} onAdd={() => addMass(null)} onAddRoofTop={() => addMass(activeMass?.id ?? doc.masses[0]?.id ?? null)} onSelect={selectMass} onRemove={removeMass} onToggleRoofEdit={toggleRoofEdit} onShape={addShape} onAutoHeights={applyAutoHeights} faces={activeFaces} onFacePitch={setFacePitch} onAddDormer={addDormer} onUpdateDormer={updateDormer} onRemoveDormer={removeDormer} onMergeDormers={mergeDormersToRoof} />}
           {step === "cizim" && locked && <LockPanel onUnlock={() => setLocked(false)} onPanel={() => setStep("panel")} />}
           {step === "panel" && <PanelPanel update={update} onAuto={autoLayout} totalPanels={totalPanels} totalKwp={totalKwp} locked={locked} onEditRoof={() => { setLocked(false); setStep("cizim"); }} />}
           {step === "analiz" && <AnalizPanel built={built} totalPanels={totalPanels} totalKwp={totalKwp} />}
@@ -609,7 +623,7 @@ const ROOF_TYPES: { v: RoofType; label: string; desc: string }[] = [
 ];
 const ROOF_SHORT: Record<RoofType, string> = { flat: "Düz", gable: "Beşik", hip: "Kırma", shed: "Tek eğim" };
 
-function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect, onRemove, onToggleRoofEdit, onShape, onAutoHeights, faces, onFacePitch, onAddDormer, onUpdateDormer, onRemoveDormer }: {
+function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect, onRemove, onToggleRoofEdit, onShape, onAutoHeights, faces, onFacePitch, onAddDormer, onUpdateDormer, onRemoveDormer, onMergeDormers }: {
   updateActive: (mut: (m: Mass) => void) => void;
   active: Mass | null;
   masses: Mass[];
@@ -625,6 +639,7 @@ function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect
   onAddDormer: () => void;
   onUpdateDormer: (id: string, mut: (dm: Dormer) => void) => void;
   onRemoveDormer: (id: string) => void;
+  onMergeDormers: () => void;
 }) {
   return (
     <Card>
@@ -765,6 +780,11 @@ function MassPanel({ updateActive, active, masses, onAdd, onAddRoofTop, onSelect
                     </div>
                   </div>
                 ))}
+                {active.dormers.length > 0 && (
+                  <Button size="sm" className="w-full bg-violet-600 text-white hover:bg-violet-700" onClick={onMergeDormers}>
+                    <Spline className="size-4" /> Dormer’ı Binaya Birleştir (tek yapı)
+                  </Button>
+                )}
               </div>
             )}
           </div>
