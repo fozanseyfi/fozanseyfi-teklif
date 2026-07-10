@@ -167,61 +167,59 @@ export default function ThreeView() {
           faceLabels.push({ el, cxp, cyp, z: face.zAbs(cxp, cyp) });
         });
 
-        // Dormer — ana çatıya OTURAN birleşik eklenti (ayrı bina DEĞİL). Saçak köşeleri ana çatı
-        // yüzeyinin yüksekliğine oturur; sırt üzerine çıkar. Zemine inen duvar/kutu YOK.
-        // Yerel: x=genişlik, y=derinlik (+y ön). Tüm kırılımlar siyah çizgi.
-        const roofZAt = (x: number, y: number): number => {
-          for (const f of roof.faces) if (pointInPolygon({ x, y }, f.poly)) return f.zAbs(x, y);
-          return roof.boundaryZ({ x, y });
-        };
+        // Dormer — bina yüksekliğinde çıkıntı: duvarlar (bina rengi) + gable/hip çatı (bina dokusu).
+        // Yükseklik = bina duvar yüksekliği (base→eave). Yerel: x=genişlik, y=derinlik (+y ön).
         mass.dormers.forEach((dm) => {
           if (dm.widthM <= 0 || dm.depthM <= 0) return;
-          dormerRoofFaces(dm, roofZAt, mass.pitchDeg, mpp).forEach((f) => planeIndex.set(`${mass.id}:${f.id}`, { z: f.zAbs, poly: f.poly })); // panel yüzeyleri
+          dormerRoofFaces(dm, roof.eavesM, mass.pitchDeg, mpp).forEach((f) => planeIndex.set(`${mass.id}:${f.id}`, { z: f.zAbs, poly: f.poly })); // panel yüzeyleri
           const hw = dm.widthM / 2 / mpp, hd = dm.depthM / 2 / mpp;
           const ang = ((dm.dirDeg || 0) * Math.PI) / 180, ca = Math.cos(ang), sa = Math.sin(ang);
-          const WL = (lx: number, ly: number) => ({ wx: dm.x + lx * ca - ly * sa, wy: dm.y + lx * sa + ly * ca });
-          const P = (lx: number, ly: number, h: number): number[] => { const { wx, wy } = WL(lx, ly); const w = toWorld(wx, wy); return [w.x, h, w.z]; };
-          const rz = (lx: number, ly: number): number => { const { wx, wy } = WL(lx, ly); return roofZAt(wx, wy); }; // saçak = ana çatı yüzeyi
-          const Pe = (lx: number, ly: number): number[] => P(lx, ly, rz(lx, ly)); // çatıya oturan köşe
+          const P = (lx: number, ly: number, h: number): number[] => { const wx = dm.x + lx * ca - ly * sa, wy = dm.y + lx * sa + ly * ca; const w = toWorld(wx, wy); return [w.x, h, w.z]; };
           const UV = (lx: number, ly: number): number[] => uvOf(dm.x + lx * ca - ly * sa, dm.y + lx * sa + ly * ca);
           const dl = (a: number[], b: number[]) => scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a[0], a[1], a[2]), new THREE.Vector3(b[0], b[1], b[2])]), lineMat));
+          const base = mass.baseM, eave = mass.baseM + mass.wallM; // yükseklik = bina duvarı
           const rise = hw * mpp * Math.tan(((mass.pitchDeg || 25) * Math.PI) / 180); // eğim = bina
-          const ridgeBase = Math.max(rz(-hw, hd), rz(hw, hd), rz(-hw, -hd), rz(hw, -hd));
-          const ridgeH = ridgeBase + rise;
+          const ridgeH = eave + rise;
           const wpos: number[] = [], rpos: number[] = [], ruv: number[] = [];
+          const wq = (a: number[], b: number[], c: number[], d: number[]) => wpos.push(...a, ...b, ...c, ...a, ...c, ...d);
           const wt = (a: number[], b: number[], c: number[]) => wpos.push(...a, ...b, ...c);
-          // [lx,ly,h] köşeleri — h verilmezse çatı yüzeyine oturur
-          const V = (c: number[]) => (c.length === 3 ? P(c[0], c[1], c[2]) : Pe(c[0], c[1]));
-          const U = (c: number[]) => UV(c[0], c[1]);
-          const rq = (c1: number[], c2: number[], c3: number[], c4: number[]) => { rpos.push(...V(c1), ...V(c2), ...V(c3), ...V(c1), ...V(c3), ...V(c4)); ruv.push(...U(c1), ...U(c2), ...U(c3), ...U(c1), ...U(c3), ...U(c4)); };
-          const rt = (c1: number[], c2: number[], c3: number[]) => { rpos.push(...V(c1), ...V(c2), ...V(c3)); ruv.push(...U(c1), ...U(c2), ...U(c3)); };
+          const rq = (c1: number[], c2: number[], c3: number[], c4: number[]) => { const V = (c: number[]) => P(c[0], c[1], c[2]); const U = (c: number[]) => UV(c[0], c[1]); rpos.push(...V(c1), ...V(c2), ...V(c3), ...V(c1), ...V(c3), ...V(c4)); ruv.push(...U(c1), ...U(c2), ...U(c3), ...U(c1), ...U(c3), ...U(c4)); };
+          const rt = (c1: number[], c2: number[], c3: number[]) => { const V = (c: number[]) => P(c[0], c[1], c[2]); const U = (c: number[]) => UV(c[0], c[1]); rpos.push(...V(c1), ...V(c2), ...V(c3)); ruv.push(...U(c1), ...U(c2), ...U(c3)); };
+          wq(P(-hw, -hd, base), P(hw, -hd, base), P(hw, hd, base), P(-hw, hd, base)); // alt kapak (kapalı)
           if (dm.type === "shed") {
-            const hi = ridgeBase + 2 * rise;
-            rq([-hw, hd], [hw, hd], [hw, -hd, hi], [-hw, -hd, hi]); // tek eğim
-            wt(Pe(-hw, hd), Pe(-hw, -hd), P(-hw, -hd, hi)); // sol üçgen alınlık
-            wt(Pe(hw, hd), Pe(hw, -hd), P(hw, -hd, hi)); // sağ üçgen alınlık
-            wpos.push(...P(-hw, -hd, hi), ...P(hw, -hd, hi), ...Pe(hw, -hd), ...P(-hw, -hd, hi), ...Pe(hw, -hd), ...Pe(-hw, -hd)); // arka yüksek yüz
-            dl(P(-hw, -hd, hi), P(hw, -hd, hi)); dl(Pe(-hw, hd), P(-hw, -hd, hi)); dl(Pe(hw, hd), P(hw, -hd, hi));
+            const hi = eave + 2 * rise;
+            wq(P(-hw, hd, base), P(hw, hd, base), P(hw, hd, eave), P(-hw, hd, eave)); // ön (alçak)
+            wq(P(-hw, -hd, base), P(hw, -hd, base), P(hw, -hd, hi), P(-hw, -hd, hi)); // arka (yüksek)
+            wq(P(-hw, hd, base), P(-hw, -hd, base), P(-hw, -hd, hi), P(-hw, hd, eave)); // sol
+            wq(P(hw, hd, base), P(hw, -hd, base), P(hw, -hd, hi), P(hw, hd, eave)); // sağ
+            rq([-hw, hd, eave], [hw, hd, eave], [hw, -hd, hi], [-hw, -hd, hi]);
+            dl(P(-hw, -hd, hi), P(hw, -hd, hi)); // üst kenar
+            dl(P(-hw, hd, eave), P(-hw, -hd, hi)); dl(P(hw, hd, eave), P(hw, -hd, hi)); // yan eğim kenarları
           } else {
             const rl = dm.type === "hip" ? (dm.ridgeHalfM != null ? Math.max(0, Math.min(hd * 0.95, dm.ridgeHalfM / mpp)) : hd * 0.6) : hd;
             const rf = rl, rb = -rl;
-            rq([-hw, hd], [-hw, -hd], [0, rb, ridgeH], [0, rf, ridgeH]); // sol eğim
-            rq([hw, hd], [hw, -hd], [0, rb, ridgeH], [0, rf, ridgeH]); // sağ eğim
+            wq(P(-hw, hd, base), P(hw, hd, base), P(hw, hd, eave), P(-hw, hd, eave)); // ön
+            wq(P(-hw, -hd, base), P(hw, -hd, base), P(hw, -hd, eave), P(-hw, -hd, eave)); // arka
+            wq(P(-hw, hd, base), P(-hw, -hd, base), P(-hw, -hd, eave), P(-hw, hd, eave)); // sol
+            wq(P(hw, hd, base), P(hw, -hd, base), P(hw, -hd, eave), P(hw, hd, eave)); // sağ
             if (dm.type === "gable") {
-              wt(Pe(-hw, hd), Pe(hw, hd), P(0, hd, ridgeH)); // ön alınlık (dikey üçgen yüz)
-              wt(Pe(-hw, -hd), Pe(hw, -hd), P(0, -hd, ridgeH)); // arka alınlık
-            } else {
-              rt([-hw, hd], [hw, hd], [0, rf, ridgeH]); // ön hip
-              rt([-hw, -hd], [hw, -hd], [0, rb, ridgeH]); // arka hip
+              wt(P(-hw, hd, eave), P(hw, hd, eave), P(0, hd, ridgeH)); // ön alınlık
+              wt(P(-hw, -hd, eave), P(hw, -hd, eave), P(0, -hd, ridgeH)); // arka alınlık
+            }
+            rq([-hw, hd, eave], [-hw, -hd, eave], [0, rb, ridgeH], [0, rf, ridgeH]); // sol eğim
+            rq([hw, hd, eave], [hw, -hd, eave], [0, rb, ridgeH], [0, rf, ridgeH]); // sağ eğim
+            if (dm.type === "hip") {
+              rt([-hw, hd, eave], [hw, hd, eave], [0, rf, ridgeH]); // ön hip
+              rt([-hw, -hd, eave], [hw, -hd, eave], [0, rb, ridgeH]); // arka hip
             }
             dl(P(0, rf, ridgeH), P(0, rb, ridgeH)); // sırt
-            dl(P(0, rf, ridgeH), Pe(-hw, hd)); dl(P(0, rf, ridgeH), Pe(hw, hd)); // ön mahyalar
-            dl(P(0, rb, ridgeH), Pe(-hw, -hd)); dl(P(0, rb, ridgeH), Pe(hw, -hd)); // arka mahyalar
+            // kırma/mahya kenarları (tüm eğim kırılımları) — mahya uçlarından köşelere
+            dl(P(0, rf, ridgeH), P(-hw, hd, eave)); dl(P(0, rf, ridgeH), P(hw, hd, eave));
+            dl(P(0, rb, ridgeH), P(-hw, -hd, eave)); dl(P(0, rb, ridgeH), P(hw, -hd, eave));
           }
-          if (wpos.length) addMesh(wpos, wallMat);
+          addMesh(wpos, wallMat);
           addMesh(rpos, roofTexMat ?? dormerMat, roofTexMat ? ruv : undefined);
-          // saçak (dormer ↔ ana çatı birleşim/dere hattı) — siyah
-          dl(Pe(-hw, hd), Pe(hw, hd)); dl(Pe(hw, hd), Pe(hw, -hd)); dl(Pe(hw, -hd), Pe(-hw, -hd)); dl(Pe(-hw, -hd), Pe(-hw, hd));
+          dl(P(-hw, hd, eave), P(hw, hd, eave)); dl(P(hw, hd, eave), P(hw, -hd, eave)); dl(P(hw, -hd, eave), P(-hw, -hd, eave)); dl(P(-hw, -hd, eave), P(-hw, hd, eave));
         });
       });
 

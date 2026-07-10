@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer, Image as KonvaImage, Line, Circle, Rect, Text, Group } from "react-konva";
 import type Konva from "konva";
 import { useDesignStore } from "@/lib/solar-design/store";
-import type { Vec, RNode, DesignDoc, Dormer } from "@/lib/solar-design/types";
+import type { Vec, RNode, DesignDoc } from "@/lib/solar-design/types";
 import { FACE_COLORS } from "@/lib/solar-design/types";
 import { dist, nearestOnSegment, pointInPolygon } from "@/lib/solar-design/geometry";
 import { detectFaces } from "@/lib/solar-design/faces";
@@ -18,25 +18,6 @@ export type EditorMode = "draw" | "roof-select" | "panel-select" | "view";
 function panelCorners(p: { x: number; y: number; w: number; h: number; rotationDeg: number }): Vec[] {
   const rad = (p.rotationDeg * Math.PI) / 180, c = Math.cos(rad), s = Math.sin(rad);
   return ([[0, 0], [p.w, 0], [p.w, p.h], [0, p.h]] as const).map(([lx, ly]) => ({ x: p.x + lx * c - ly * s, y: p.y + lx * s + ly * c }));
-}
-
-/** Dormer'ın 2B görünümü: dış hat + iç sırt/mahya (eğim) çizgileri (px). */
-function dormerLines2D(dm: Dormer, mpp: number): { outline: Vec[]; creases: [Vec, Vec][]; center: Vec } {
-  const hw = dm.widthM / 2 / mpp, hd = dm.depthM / 2 / mpp;
-  const ang = ((dm.dirDeg || 0) * Math.PI) / 180, ca = Math.cos(ang), sa = Math.sin(ang);
-  const W = (lx: number, ly: number): Vec => ({ x: dm.x + lx * ca - ly * sa, y: dm.y + lx * sa + ly * ca });
-  const outline = [W(-hw, hd), W(hw, hd), W(hw, -hd), W(-hw, -hd)];
-  const creases: [Vec, Vec][] = [];
-  if (dm.type === "gable") {
-    creases.push([W(0, hd), W(0, -hd)]); // sırt (tam boy)
-  } else if (dm.type === "hip") {
-    const rl = dm.ridgeHalfM != null ? Math.max(0, Math.min(hd * 0.95, dm.ridgeHalfM / mpp)) : hd * 0.6;
-    creases.push([W(0, rl), W(0, -rl)]); // sırt
-    creases.push([W(0, rl), W(-hw, hd)], [W(0, rl), W(hw, hd)], [W(0, -rl), W(-hw, -hd)], [W(0, -rl), W(hw, -hd)]); // mahyalar
-  } else {
-    creases.push([W(-hw, -hd), W(hw, -hd)]); // shed: yüksek kenar
-  }
-  return { outline, creases, center: { x: dm.x, y: dm.y } };
 }
 
 /** İki dışbükey dörtgen üst üste mi (SAT). Sadece temas ediyorsa (bitişik) üst üste sayılmaz. */
@@ -129,19 +110,12 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
 
   const nodeById = useMemo(() => new Map(doc.nodes.map((n) => [n.id, n])), [doc.nodes]);
   const faces = useMemo(() => detectFaces(doc.nodes, doc.edges), [doc.nodes, doc.edges]);
-  // Kütle çatı yüzeyleri — dormer dahil TEK bina; hepsi "Çatı N" olarak birleşik numaralanır.
+  // Kütle çatı yüzeyleri — panel yerleşiminde bağlam (bina hattı) göstermek için.
   const massFaces = useMemo(
-    () => doc.masses.flatMap((m) => {
-      const mppv = doc.metersPerPixel || 0.05;
-      const roofF = massRoof(m, mppv).faces;
-      const dormF = m.dormers.flatMap((dm) => dormerRoofFaces(dm, m.baseM + m.wallM, m.pitchDeg, mppv));
-      return [...roofF, ...dormF].map((f, i) => ({ id: `${m.id}:${f.id}`, name: `Çatı ${i + 1}`, poly: f.poly, isDormer: i >= roofF.length }));
-    }),
-    [doc.masses, doc.metersPerPixel],
-  );
-  // Dormer taban çokgenleri — 2B'de dormer ALTINDAKİ ana çatı çizgilerini gizlemek (clip) için.
-  const dormerFoots = useMemo(
-    () => doc.masses.flatMap((m) => m.dormers.filter((d) => d.widthM > 0 && d.depthM > 0).map((dm) => dormerLines2D(dm, doc.metersPerPixel || 0.05).outline)),
+    () => doc.masses.flatMap((m) => [
+      ...massRoof(m, doc.metersPerPixel || 0.05).faces.map((f) => ({ id: `${m.id}:${f.id}`, name: f.name, poly: f.poly })),
+      ...m.dormers.flatMap((dm) => dormerRoofFaces(dm, m.baseM + m.wallM, m.pitchDeg, doc.metersPerPixel || 0.05).map((f) => ({ id: `${m.id}:${f.id}`, name: "Dormer", poly: f.poly }))),
+    ]),
     [doc.masses, doc.metersPerPixel],
   );
   const facePolyById = useMemo(() => new Map(massFaces.map((f) => [f.id, f.poly])), [massFaces]);
@@ -397,31 +371,6 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
       ? { x: (dragOrig.orig.get(p.id)?.x ?? p.x) + panelDelta.x, y: (dragOrig.orig.get(p.id)?.y ?? p.y) + panelDelta.y }
       : { x: p.x, y: p.y };
 
-  // Tek çatı yüzeyi çizimi (panel adımı) — yeşil kesikli + "Çatı N · k panel".
-  const renderMassFace = (f: { id: string; name: string; poly: Vec[] }) => {
-    if (f.poly.length < 3) return null;
-    const cx = f.poly.reduce((s, p) => s + p.x, 0) / f.poly.length;
-    const cy = f.poly.reduce((s, p) => s + p.y, 0) / f.poly.length;
-    const n = doc.placed.filter((pp) => pp.face === f.id).length;
-    return (
-      <Group key={f.id}>
-        <Line points={f.poly.flatMap((p) => [p.x, p.y])} closed fill="#0596690f" stroke="#059669" strokeWidth={1.3 / scale} dash={[7 / scale, 4 / scale]} />
-        <Text x={cx} y={cy} text={`${f.name} · ${n} panel`} fontSize={12 / scale} fill="#065f46" stroke="#fff" strokeWidth={2.8 / scale} fillAfterStrokeEnabled offsetX={34 / scale} offsetY={6 / scale} />
-      </Group>
-    );
-  };
-  // Ana çatı katmanı clip'i: tüm alan EKSİ dormer footprint'leri (delik). Dormer altındaki
-  // ana-çatı çizgileri böylece görünmez → görsel olarak tek yüzey.
-  const clipExcludeDormers = (ctx: Konva.Context) => {
-    ctx.rect(-1e5, -1e5, 2e5, 2e5); // dış (CW)
-    for (const fp of dormerFoots) {
-      if (fp.length < 3) continue;
-      ctx.moveTo(fp[0].x, fp[0].y); // delik = ters sarım (CCW)
-      for (let i = fp.length - 1; i >= 1; i--) ctx.lineTo(fp[i].x, fp[i].y);
-      ctx.closePath();
-    }
-  };
-
   const draggableStage = (mode === "roof-select" || mode === "view") && !obstacleMode && !addPanelMode;
   const cursorStyle = mode === "draw" || obstacleMode || addPanelMode ? "crosshair" : "default";
 
@@ -513,37 +462,23 @@ export default function CanvasEditor({ mode, selectedNodeId, onSelectNode, selec
       >
         <Layer>{img && <KonvaImage image={img} listening={false} />}</Layer>
 
-        {/* Kütle çatı yüzeyleri — panel yerleşiminde bina bağlamı (salt görsel).
-            Ana çatı yüzeyleri dormer footprint'leri HARİÇ çizilir → dormer altındaki
-            ana-çatı çizgileri gizlenir, TEK yüzey gibi görünür (görsel birleştirme). */}
+        {/* Kütle çatı yüzeyleri — panel yerleşiminde bina bağlamı (salt görsel) */}
         {mode === "panel-select" && (
-          <>
-            <Layer listening={false} clipFunc={dormerFoots.length ? clipExcludeDormers : undefined}>
-              {massFaces.filter((f) => !f.isDormer).map(renderMassFace)}
-            </Layer>
-            <Layer listening={false}>
-              {massFaces.filter((f) => f.isDormer).map(renderMassFace)}
-            </Layer>
-          </>
-        )}
-
-        {/* Dormer eğim/kırılım çizgileri — ana çatının parçası (ayrı obje değil, çatı stilinde) */}
-        <Layer listening={false}>
-          {doc.masses.flatMap((m) =>
-            m.dormers.map((dm) => {
-              if (dm.widthM <= 0 || dm.depthM <= 0) return null;
-              const { outline, creases } = dormerLines2D(dm, doc.metersPerPixel || 0.05);
+          <Layer listening={false}>
+            {massFaces.map((f) => {
+              if (f.poly.length < 3) return null;
+              const cx = f.poly.reduce((s, p) => s + p.x, 0) / f.poly.length;
+              const cy = f.poly.reduce((s, p) => s + p.y, 0) / f.poly.length;
+              const n = doc.placed.filter((pp) => pp.face === f.id).length;
               return (
-                <Group key={`${m.id}:${dm.id}`}>
-                  <Line points={outline.flatMap((p) => [p.x, p.y])} closed stroke="#1e293b" strokeWidth={1.4 / scale} />
-                  {creases.map((seg, i) => (
-                    <Line key={i} points={[seg[0].x, seg[0].y, seg[1].x, seg[1].y]} stroke="#1e293b" strokeWidth={1.2 / scale} />
-                  ))}
+                <Group key={f.id}>
+                  <Line points={f.poly.flatMap((p) => [p.x, p.y])} closed fill="#0596690f" stroke="#059669" strokeWidth={1.3 / scale} dash={[7 / scale, 4 / scale]} />
+                  <Text x={cx} y={cy} text={`${f.name} · ${n} panel`} fontSize={12 / scale} fill="#065f46" stroke="#fff" strokeWidth={2.8 / scale} fillAfterStrokeEnabled offsetX={34 / scale} offsetY={6 / scale} />
                 </Group>
               );
-            }),
-          )}
-        </Layer>
+            })}
+          </Layer>
+        )}
 
         {/* Yüzeyler (çatı bölümleri) */}
         <Layer>
