@@ -25,6 +25,8 @@ export interface SozlesmeField {
 export interface SozlesmeSection {
   title: string;
   fields: SozlesmeField[];
+  /** Tekrarlayan grup düzeni: "pairs" (2'li, ör. EK-3) / "triples" (3'lü, ör. EK-2 ödeme). */
+  layout?: "pairs" | "triples";
 }
 
 /** Doldurulabilir belge (form). */
@@ -376,18 +378,18 @@ function svcTemplate(opts: {
   ek3ColB: string; // EK-3 liste sağ sütun başlığı
 }): SozlesmeTemplate {
   const { tur, label, klasor, cp, ek2Title, ek3Title, kapsam, ek3ColA, ek3ColB } = opts;
-  // EK-2 Ödeme Planı — tablo: No | Yüzde | Ödeme Tutarı | Açıklama (satır bazlı doldurulur)
+  // EK-2 Ödeme Planı — her satır: Açıklama | Yüzde | Tutar (yan yana, 3'lü grup)
   const ek2Fields: SozlesmeField[] = [];
   for (let i = 1; i <= 8; i++) {
-    ek2Fields.push({ key: `aciklama${i}`, label: `${i}. Ödeme — Açıklama`, full: true });
-    ek2Fields.push({ key: `yuzde${i}`, label: `${i}. Ödeme — Yüzde`, type: "number", suffix: "%" });
-    ek2Fields.push({ key: `tutar${i}`, label: `${i}. Ödeme — Tutar`, type: "number" });
+    ek2Fields.push({ key: `aciklama${i}`, label: `${i}. Ödeme — Açıklama`, type: "textarea" });
+    ek2Fields.push({ key: `yuzde${i}`, label: "Yüzde", type: "number", suffix: "%" });
+    ek2Fields.push({ key: `tutar${i}`, label: "Tutar", type: "number" });
   }
-  // EK-3 Liste — satır bazlı (sol: kalem/hizmet, sağ: miktar/detay)
+  // EK-3 Liste — her satır: Kalem/Hizmet | Miktar/Detay (yan yana, 2'li grup)
   const ek3Fields: SozlesmeField[] = [];
   for (let i = 1; i <= 8; i++) {
-    ek3Fields.push({ key: `i${i}a`, label: `${i}) ${ek3ColA}`, full: true });
-    ek3Fields.push({ key: `i${i}b`, label: `${i}) ${ek3ColB}` });
+    ek3Fields.push({ key: `i${i}a`, label: `${i}) ${ek3ColA}`, type: "textarea" });
+    ek3Fields.push({ key: `i${i}b`, label: `${i}) ${ek3ColB}`, type: "textarea" });
   }
   const tpl: SozlesmeTemplate = {
     tur,
@@ -443,14 +445,14 @@ function svcTemplate(opts: {
     ek: "EK-2",
     title: ek2Title,
     sourceFile: "ek2.docx",
-    sections: [{ title: "Ödeme Planı (satır bazlı — boş satırları atlayın)", fields: ek2Fields }],
+    sections: [{ title: "Ödeme Planı (boş satırları atlayın)", fields: ek2Fields, layout: "triples" }],
   });
   tpl.docs.push({
     id: "ek3",
     ek: "EK-3",
     title: ek3Title,
     sourceFile: "ek3.docx",
-    sections: [{ title: ek3Title, fields: ek3Fields }],
+    sections: [{ title: ek3Title, fields: ek3Fields, layout: "pairs" }],
   });
   return tpl;
 }

@@ -82,6 +82,12 @@ const TUR_META: { tur: SozlesmeTur; label: string; icon: typeof Sun }[] = [
   { tur: "iscilik", label: "İşçilik", icon: Wrench },
 ];
 
+function chunk<T>(arr: T[], n: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
+  return out;
+}
+
 function buildInitialValues(saved: SozlesmeData | null, autofill: Record<string, string>): Record<string, string> {
   const values: Record<string, string> = { ...(saved?.values || {}) };
   SOZLESME_TURS.forEach((t) => {
@@ -243,6 +249,33 @@ export function SozlesmeEditor({ projectId, projectName, canEdit, tur, autofill,
 
   const isImzali = activeId === "imzali";
 
+  function renderField(doc: SozlesmeDoc, f: SozlesmeField) {
+    const amount = computedAmount(doc, f, values);
+    const required = doc.id === "ek1" && !isOptionalField(f);
+    const invalid = isReqEmpty(doc.id, f);
+    const inputCls = cn(
+      "w-full rounded-md border bg-background px-2.5 py-1.5 text-[13px] outline-none focus:border-primary disabled:opacity-60",
+      invalid ? "border-rose-400 ring-1 ring-rose-200" : "border-border",
+    );
+    return (
+      <>
+        <label className="mb-1 block text-[11.5px] font-medium text-muted-foreground">
+          {f.label}{f.suffix ? ` (${f.suffix})` : ""}{required && <span className="ml-0.5 text-rose-500">*</span>}
+        </label>
+        {f.type === "textarea" ? (
+          <textarea value={getVal(doc.id, f.key)} onChange={(e) => setVal(doc.id, f.key, e.target.value)} disabled={!canEdit} rows={2} className={cn(inputCls, "resize-y min-h-[40px]")} />
+        ) : f.type === "select" ? (
+          <select value={getVal(doc.id, f.key)} onChange={(e) => setVal(doc.id, f.key, e.target.value)} disabled={!canEdit} className={inputCls}>
+            {(f.options ?? []).map((o) => (<option key={o} value={o}>{o || "—"}</option>))}
+          </select>
+        ) : (
+          <input type={f.type === "date" ? "date" : f.type === "number" ? "number" : "text"} value={getVal(doc.id, f.key)} onChange={(e) => setVal(doc.id, f.key, e.target.value)} disabled={!canEdit} className={inputCls} />
+        )}
+        {amount && <p className="mt-0.5 text-[11px] text-primary">Tutar ≈ {amount}</p>}
+      </>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -380,34 +413,24 @@ export function SozlesmeEditor({ projectId, projectName, canEdit, tur, autofill,
                 {formDoc.sections.map((sec) => (
                   <div key={sec.title}>
                     <h3 className="mb-2 text-[13px] font-semibold text-foreground">{sec.title}</h3>
-                    <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
-                      {sec.fields.map((f: SozlesmeField) => {
-                        const amount = computedAmount(formDoc, f, values);
-                        const required = formDoc.id === "ek1" && !isOptionalField(f);
-                        const invalid = isReqEmpty(formDoc.id, f);
-                        const inputCls = cn(
-                          "w-full rounded-md border bg-background px-2.5 py-1.5 text-[13px] outline-none focus:border-primary disabled:opacity-60",
-                          invalid ? "border-rose-400 ring-1 ring-rose-200" : "border-border",
-                        );
-                        return (
-                          <div key={f.key} className={cn("min-w-0", f.full && "sm:col-span-2")}>
-                            <label className="mb-1 block text-[11.5px] font-medium text-muted-foreground">
-                              {f.label}{f.suffix ? ` (${f.suffix})` : ""}{required && <span className="ml-0.5 text-rose-500">*</span>}
-                            </label>
-                            {f.type === "textarea" ? (
-                              <textarea value={getVal(formDoc.id, f.key)} onChange={(e) => setVal(formDoc.id, f.key, e.target.value)} disabled={!canEdit} rows={2} className={cn(inputCls, "resize-y")} />
-                            ) : f.type === "select" ? (
-                              <select value={getVal(formDoc.id, f.key)} onChange={(e) => setVal(formDoc.id, f.key, e.target.value)} disabled={!canEdit} className={inputCls}>
-                                {(f.options ?? []).map((o) => (<option key={o} value={o}>{o || "—"}</option>))}
-                              </select>
-                            ) : (
-                              <input type={f.type === "date" ? "date" : f.type === "number" ? "number" : "text"} value={getVal(formDoc.id, f.key)} onChange={(e) => setVal(formDoc.id, f.key, e.target.value)} disabled={!canEdit} className={inputCls} />
-                            )}
-                            {amount && <p className="mt-0.5 text-[11px] text-primary">Tutar ≈ {amount}</p>}
+                    {sec.layout ? (
+                      // Tekrarlayan gruplar — her madde ayrı kutuda, yan yana alanlar (karışmaz)
+                      <div className="space-y-2.5">
+                        {chunk(sec.fields, sec.layout === "triples" ? 3 : 2).map((grp, gi) => (
+                          <div key={gi} className="rounded-lg border border-border/60 bg-muted/20 p-2.5">
+                            <div className={cn("grid gap-3", sec.layout === "triples" ? "grid-cols-1 sm:grid-cols-[2fr_1fr_1fr]" : "grid-cols-1 sm:grid-cols-2")}>
+                              {grp.map((f) => (<div key={f.key} className="min-w-0">{renderField(formDoc, f)}</div>))}
+                            </div>
                           </div>
-                        );
-                      })}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+                        {sec.fields.map((f: SozlesmeField) => (
+                          <div key={f.key} className={cn("min-w-0", f.full && "sm:col-span-2")}>{renderField(formDoc, f)}</div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
