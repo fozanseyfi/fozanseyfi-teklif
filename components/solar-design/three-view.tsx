@@ -185,7 +185,6 @@ export default function ThreeView() {
           const wt = (a: number[], b: number[], c: number[]) => wpos.push(...a, ...b, ...c);
           const rq = (c1: number[], c2: number[], c3: number[], c4: number[]) => { const V = (c: number[]) => P(c[0], c[1], c[2]); const U = (c: number[]) => UV(c[0], c[1]); rpos.push(...V(c1), ...V(c2), ...V(c3), ...V(c1), ...V(c3), ...V(c4)); ruv.push(...U(c1), ...U(c2), ...U(c3), ...U(c1), ...U(c3), ...U(c4)); };
           const rt = (c1: number[], c2: number[], c3: number[]) => { const V = (c: number[]) => P(c[0], c[1], c[2]); const U = (c: number[]) => UV(c[0], c[1]); rpos.push(...V(c1), ...V(c2), ...V(c3)); ruv.push(...U(c1), ...U(c2), ...U(c3)); };
-          wq(P(-hw, -hd, base), P(hw, -hd, base), P(hw, hd, base), P(-hw, hd, base)); // alt kapak (kapalı)
           if (dm.type === "shed") {
             const hi = eave + 2 * rise;
             wq(P(-hw, hd, base), P(hw, hd, base), P(hw, hd, eave), P(-hw, hd, eave)); // ön (alçak)
