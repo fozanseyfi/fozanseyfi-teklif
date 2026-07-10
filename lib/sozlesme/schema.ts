@@ -17,6 +17,7 @@ export interface SozlesmeField {
   options?: string[]; // select için
   suffix?: string; // "kWp", "%", "gün" vb.
   autofill?: string; // page'in ürettiği autofill haritasındaki anahtar
+  default?: string; // kayıt/autofill yoksa varsayılan değer
   hint?: string;
   full?: boolean; // form ızgarasında tam satır kapla
 }
@@ -432,18 +433,21 @@ function svcTemplate(opts: {
     statik: [],
   };
 
-  // EK-2 (ödeme planı) ve EK-3 (liste) de doldurulabilir form olarak eklenir.
+  // EK-2 Ödeme Planı — her aşama için Açıklama + Oran(%) + Tutar ayrı doldurulur.
+  const ek2Fields: SozlesmeField[] = [];
+  milestones.forEach((m, i) => {
+    const n = i + 1;
+    const desc = m.replace(/^\d+\.\s*/, "");
+    ek2Fields.push({ key: `asama${n}`, label: `Aşama ${n} — Açıklama`, full: true, default: desc });
+    ek2Fields.push({ key: `oran${n}`, label: `Aşama ${n} — Oran`, type: "number", suffix: "%" });
+    ek2Fields.push({ key: `fiyat${n}`, label: `Aşama ${n} — Tutar`, type: "number" });
+  });
   tpl.docs.push({
     id: "ek2",
     ek: "EK-2",
     title: ek2Title,
     sourceFile: "ek2.docx",
-    sections: [
-      {
-        title: "Ödeme Planı — kilometre taşı oranları (%)",
-        fields: milestones.map((m, i) => ({ key: `oran${i + 1}`, label: m, type: "number" as FieldType, suffix: "%" })),
-      },
-    ],
+    sections: [{ title: "Ödeme Planı", fields: ek2Fields }],
   });
   tpl.docs.push({
     id: "ek3",

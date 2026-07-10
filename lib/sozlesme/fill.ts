@@ -310,17 +310,28 @@ const SVC_EK1: Record<string, Fmt> = {
   "Yetkili mahkeme / icra dairesi": F("mahkeme"),
 };
 
-/** SVC EK-2 — varsayılan plan satırlarında (cell0 "N. ...") yüzdeyi kullanıcı oranıyla değiştir. */
+/**
+ * SVC EK-2 — Varsayılan plan tablosu KALDIRILIR; "ÖZEL PLAN" başlığı "ÖDEME PLANI"
+ * olur; Aşama satırları (Açıklama / %Oran / Tutar) doldurulur.
+ */
 function fillSvcEk2(xml: string, values: Vals): string {
   const g = (k: string) => values[fieldKey("ek2", k)] ?? "";
+  // 1) İlk tabloyu (varsayılan plan) kaldır
+  xml = xml.replace(/<w:tbl>[\s\S]*?<\/w:tbl>/, "");
+  // 2) "VARSAYILAN PLAN..." başlık paragrafını kaldır
+  xml = xml.replace(/<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])*?VARSAYILAN PLAN(?:(?!<\/w:p>)[\s\S])*?<\/w:p>/g, "");
+  // 3) "ÖZEL PLAN (...)" başlığını "ÖDEME PLANI" yap
+  xml = xml.replace(/ÖZEL PLAN[^<]*/g, "ÖDEME PLANI");
+  // 4) Aşama satırlarını doldur (cell0 "Aşama N: ...", cell1 "%.. — tutar")
   return mapRows(xml, (texts, row) => {
-    const m = (texts[0] || "").match(/^(\d+)\./);
+    const m = (texts[0] || "").match(/^Aşama\s*(\d+)/);
     if (!m || texts.length < 2) return row;
-    const oran = g("oran" + m[1]);
-    if (!oran) return row;
-    const cur = texts[1] || "";
-    const next = /%\s*\d+/.test(cur) ? cur.replace(/%\s*\d+/, "%" + oran) : `%${oran} — ${cur}`;
-    return setRowCell(row, 1, next);
+    const i = m[1];
+    const as = g("asama" + i), or = g("oran" + i), fi = g("fiyat" + i);
+    let r = row;
+    if (as) r = setRowCell(r, 0, `Aşama ${i}: ${as}`);
+    if (or || fi) r = setRowCell(r, 1, `%${or || "…"}${fi ? "  —  " + trNum(fi) : ""}`);
+    return r;
   });
 }
 

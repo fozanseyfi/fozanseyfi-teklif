@@ -90,6 +90,7 @@ function buildInitialValues(saved: SozlesmeData | null, autofill: Record<string,
         sec.fields.forEach((f) => {
           const k = fieldKey(doc.id, f.key);
           if (f.autofill && !values[k] && autofill[f.autofill]) values[k] = autofill[f.autofill];
+          if (f.default && !values[k]) values[k] = f.default;
         });
       });
     });
