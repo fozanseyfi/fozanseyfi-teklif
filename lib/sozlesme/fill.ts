@@ -310,6 +310,45 @@ const SVC_EK1: Record<string, Fmt> = {
   "Yetkili mahkeme / icra dairesi": F("mahkeme"),
 };
 
+/** SVC EK-2 — varsayılan plan satırlarında (cell0 "N. ...") yüzdeyi kullanıcı oranıyla değiştir. */
+function fillSvcEk2(xml: string, values: Vals): string {
+  const g = (k: string) => values[fieldKey("ek2", k)] ?? "";
+  return mapRows(xml, (texts, row) => {
+    const m = (texts[0] || "").match(/^(\d+)\./);
+    if (!m || texts.length < 2) return row;
+    const oran = g("oran" + m[1]);
+    if (!oran) return row;
+    const cur = texts[1] || "";
+    const next = /%\s*\d+/.test(cur) ? cur.replace(/%\s*\d+/, "%" + oran) : `%${oran} — ${cur}`;
+    return setRowCell(row, 1, next);
+  });
+}
+
+/** SVC EK-3 — boş liste satırlarını (her iki hücre "……") sırayla kalemlerle doldur. */
+function fillSvcEk3(xml: string, values: Vals): string {
+  const g = (k: string) => values[fieldKey("ek3", k)] ?? "";
+  const items: [string, string][] = [];
+  for (let i = 1; i <= 5; i++) { const a = g(`i${i}a`), b = g(`i${i}b`); if (a || b) items.push([a, b]); }
+  const sarf = g("sarf");
+  let idx = 0;
+  return mapRows(xml, (texts, row) => {
+    if (texts.length < 2) return row;
+    // "sarf malzemeleri" satırı (işçilik) — sabit sol etiket, sağı doldur
+    if (/sarf malzemeleri/i.test(texts[0] || "")) return sarf ? setRowCell(row, 1, sarf) : row;
+    // jenerik boş satır: her iki hücre de yalnız nokta/boşluk
+    const empty = (s: string) => /^[…\.\s]*$/.test(s || "") && /[…]/.test(s || "");
+    if (empty(texts[0]) && empty(texts[1])) {
+      if (idx >= items.length) return row;
+      const [a, b] = items[idx++];
+      let r = row;
+      if (a) r = setRowCell(r, 0, a);
+      if (b) r = setRowCell(r, 1, b);
+      return r;
+    }
+    return row;
+  });
+}
+
 function applyFill(tur: SozlesmeTur, docId: string, xml: string, values: Vals): string {
   if (tur === "cati") {
     if (docId === "ek1") return fillCatiEk1Sigorta(fill2Col(xml, "ek1", values, CATI_EK1), values);
@@ -319,8 +358,10 @@ function applyFill(tur: SozlesmeTur, docId: string, xml: string, values: Vals): 
     if (docId === "ek1") return fill2Col(xml, "ek1", values, ARAZI_EK1);
     if (docId === "ek5") return fillAraziEk5(xml, values);
   } else {
-    // malzeme / hizmet / iscilik — sadece EK-1 doldurulur (sabit hücreler korunur)
+    // malzeme / hizmet / iscilik — EK-1 form, EK-2 ödeme oranları, EK-3 liste
     if (docId === "ek1") return fill2Col(xml, "ek1", values, SVC_EK1, true);
+    if (docId === "ek2") return fillSvcEk2(xml, values);
+    if (docId === "ek3") return fillSvcEk3(xml, values);
   }
   return xml;
 }
