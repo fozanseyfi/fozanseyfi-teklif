@@ -1,30 +1,32 @@
 EK-2
 ÖDEME PLANI
-ŞABLON — Varsayılan plan yazılıdır; oranları Taraflar değiştirebilir veya özel planı doldurur
 Projelendirme ve Mühendislik Hizmetleri Sözleşmesi'nin (Madde 4.1) ayrılmaz parçasıdır. Sözleşme No: EK-1 (A) bölümüne bakınız.
-Aşağıdaki plan varsayılandır; Taraflar oranları değiştirebilir. Toplam %100 olmalıdır. Her aşamanın ödenmesi, karşısındaki belgenin sunulmasına bağlıdır (Sözleşme Madde 6.2).
-VARSAYILAN PLAN — PROJELENDİRME / MÜHENDİSLİK HİZMETİ
-1. Sözleşme imzası (avans)
-%25 — (varsa) avans teminat mektubu karşılığı
 
-2. Taslak / avan proje teslimi
-%25 — teslim yazısı + dosyalar
+Toplam %100 olmalıdır. Her aşamanın ödenmesi, karşısındaki belgenin sunulmasına bağlıdır (Sözleşme Madde 6.2).
+Ödeme Planı
+No
+Yüzde
+Ödeme Tutarı
+Açıklama
 
-3. Nihai Teslimatların teslimi
-%30 — teslim yazısı + EK-3'teki tüm çıktılar
+1 
+% 
 
-4. İŞVEREN onayı ve (öngörülmüşse) kurum onayı
-%20 — onay yazısı / kurum onaylı proje
+2 
+% 
 
-ÖZEL PLAN (varsayılan yerine kullanılacaksa doldurunuz)
-Aşama 1: ……………………………………
-%…………… — belge: ……………………………………
+3
 
-Aşama 2: ……………………………………
-%…………… — belge: ……………………………………
+4
 
-Aşama 3: ……………………………………
-%…………… — belge: ……………………………………
+5
 
-Aşama 4: ……………………………………
-%…………… — belge: ……………………………………
+6
+
+7
+
+8
+
+9
+
+10

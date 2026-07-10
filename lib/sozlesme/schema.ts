@@ -372,18 +372,23 @@ function svcTemplate(opts: {
   ek2Title: string;
   ek3Title: string;
   kapsam: SozlesmeSection; // türe özgü iş/kapsam & süre bölümü
-  milestones: [string, string, string, string]; // EK-2 varsayılan ödeme kilometre taşları
   ek3ColA: string; // EK-3 liste sol sütun başlığı
   ek3ColB: string; // EK-3 liste sağ sütun başlığı
-  ek3Sarf?: boolean; // EK-3'te "sarf malzemeleri" satırı (işçilik)
 }): SozlesmeTemplate {
-  const { tur, label, klasor, cp, ek2Title, ek3Title, kapsam, milestones, ek3ColA, ek3ColB, ek3Sarf } = opts;
+  const { tur, label, klasor, cp, ek2Title, ek3Title, kapsam, ek3ColA, ek3ColB } = opts;
+  // EK-2 Ödeme Planı — tablo: No | Yüzde | Ödeme Tutarı | Açıklama (satır bazlı doldurulur)
+  const ek2Fields: SozlesmeField[] = [];
+  for (let i = 1; i <= 8; i++) {
+    ek2Fields.push({ key: `aciklama${i}`, label: `${i}. Ödeme — Açıklama`, full: true });
+    ek2Fields.push({ key: `yuzde${i}`, label: `${i}. Ödeme — Yüzde`, type: "number", suffix: "%" });
+    ek2Fields.push({ key: `tutar${i}`, label: `${i}. Ödeme — Tutar`, type: "number" });
+  }
+  // EK-3 Liste — satır bazlı (sol: kalem/hizmet, sağ: miktar/detay)
   const ek3Fields: SozlesmeField[] = [];
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 1; i <= 8; i++) {
     ek3Fields.push({ key: `i${i}a`, label: `${i}) ${ek3ColA}`, full: true });
     ek3Fields.push({ key: `i${i}b`, label: `${i}) ${ek3ColB}` });
   }
-  if (ek3Sarf) ek3Fields.push({ key: "sarf", label: "YÜKLENİCİ sarf malzemeleri ve fire oranları (varsa)", type: "textarea", full: true });
   const tpl: SozlesmeTemplate = {
     tur,
     label,
@@ -433,21 +438,12 @@ function svcTemplate(opts: {
     statik: [],
   };
 
-  // EK-2 Ödeme Planı — her aşama için Açıklama + Oran(%) + Tutar ayrı doldurulur.
-  const ek2Fields: SozlesmeField[] = [];
-  milestones.forEach((m, i) => {
-    const n = i + 1;
-    const desc = m.replace(/^\d+\.\s*/, "");
-    ek2Fields.push({ key: `asama${n}`, label: `Aşama ${n} — Açıklama`, full: true, default: desc });
-    ek2Fields.push({ key: `oran${n}`, label: `Aşama ${n} — Oran`, type: "number", suffix: "%" });
-    ek2Fields.push({ key: `fiyat${n}`, label: `Aşama ${n} — Tutar`, type: "number" });
-  });
   tpl.docs.push({
     id: "ek2",
     ek: "EK-2",
     title: ek2Title,
     sourceFile: "ek2.docx",
-    sections: [{ title: "Ödeme Planı", fields: ek2Fields }],
+    sections: [{ title: "Ödeme Planı (satır bazlı — boş satırları atlayın)", fields: ek2Fields }],
   });
   tpl.docs.push({
     id: "ek3",
@@ -462,8 +458,7 @@ function svcTemplate(opts: {
 const MALZEME = svcTemplate({
   tur: "malzeme", label: "Malzeme Tedarik", klasor: "1_Malzeme_Tedarik", cp: "TEDARİKÇİ",
   ek2Title: "Ödeme Planı", ek3Title: "Malzeme Listesi",
-  milestones: ["1. Sipariş / Sözleşme imzası (avans)", "2. Malzemenin sevke hazır bildirimi", "3. Teslim yerine teslim", "4. Muayene ve Kabul"],
-  ek3ColA: "Kalem / marka-model / teknik özellik", ek3ColB: "Miktar / birim / birim fiyat",
+  ek3ColA: "Kalem / marka-model", ek3ColB: "Miktar / birim / birim fiyat",
   kapsam: {
     title: "İş / Kapsam ve Teslimat",
     fields: [
@@ -477,8 +472,7 @@ const MALZEME = svcTemplate({
 const HIZMET = svcTemplate({
   tur: "hizmet", label: "Hizmet / Projelendirme", klasor: "2_Hizmet_Projelendirme", cp: "HİZMET VEREN",
   ek2Title: "Ödeme Planı", ek3Title: "Hizmet Teslimatları Listesi",
-  milestones: ["1. Sözleşme imzası (avans)", "2. Taslak / avan proje teslimi", "3. Nihai Teslimatların teslimi", "4. İŞVEREN onayı ve kurum onayı"],
-  ek3ColA: "Teslimat (proje / rapor / metraj)", ek3ColB: "Format / adet / teslim süresi",
+  ek3ColA: "Hizmet / teslimat", ek3ColB: "Format / adet / teslim süresi",
   kapsam: {
     title: "Hizmet Kapsamı ve Süre",
     fields: [
@@ -492,8 +486,7 @@ const HIZMET = svcTemplate({
 const ISCILIK = svcTemplate({
   tur: "iscilik", label: "İşçilik / Montaj", klasor: "3_Iscilik_Montaj", cp: "YÜKLENİCİ",
   ek2Title: "Ödeme Planı", ek3Title: "İşçilik Kalemleri ve Mahal Listesi",
-  milestones: ["1. İşe başlama (mobilizasyon)", "2. Aylık ara hakedişler", "3. İmalatın tamamlanması ve testler", "4. Kabul"],
-  ek3ColA: "İşçilik kalemi / mahal", ek3ColB: "Miktar-metraj / birim / birim fiyat", ek3Sarf: true,
+  ek3ColA: "İşçilik kalemi / mahal", ek3ColB: "Miktar-metraj / birim / birim fiyat",
   kapsam: {
     title: "İş Kapsamı ve Süre",
     fields: [

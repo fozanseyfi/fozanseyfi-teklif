@@ -6,10 +6,32 @@ YÜKLENİCİ:  EK-1 (A)
 İşin Tanımı:  EK-1 (B) / EK-3
 Sözleşme No / Tarihi:  EK-1 (A)
 
-MATBU ANA SÖZLEŞME — Ekler (EK-1, EK-2, EK-3) ayrı dosyalardadır; siparişe özgü tüm bilgiler eklerde düzenlenir, ana metin değiştirilmez.
+Ekler (EK-1, EK-2, EK-3) ayrı dosyalardadır; siparişe özgü tüm bilgiler eklerde düzenlenir.
 
 İÇİNDEKİLER
-TOC \h \o "1-1"
+	TOC \h \o "1-1"MADDE 1 – TARAFLAR	 PAGEREF _Toc234621695 \h 3
+	MADDE 2 – TANIMLAR	 PAGEREF _Toc234621696 \h 3
+	MADDE 3 – KONU VE KAPSAM	 PAGEREF _Toc234621697 \h 3
+	MADDE 4 – SÖZLEŞME DOKÜMANLARI VE ÖNCELİK SIRASI	 PAGEREF _Toc234621698 \h 3
+	MADDE 5 – SÖZLEŞME BEDELİ	 PAGEREF _Toc234621699 \h 3
+	MADDE 6 – ÖDEMELER	 PAGEREF _Toc234621700 \h 3
+	MADDE 7 – TEMİNATLAR	 PAGEREF _Toc234621701 \h 4
+	MADDE 8 – SÜRE VE İŞ PROGRAMI	 PAGEREF _Toc234621702 \h 4
+	MADDE 9 – PERSONEL, İSG VE SAHA KURALLARI	 PAGEREF _Toc234621703 \h 4
+	MADDE 10 – İMALAT ESASLARI VE İŞVEREN MALZEMESİ	 PAGEREF _Toc234621704 \h 4
+	MADDE 11 – MUAYENE VE KABUL	 PAGEREF _Toc234621705 \h 5
+	MADDE 12 – GECİKME CEZASI	 PAGEREF _Toc234621706 \h 5
+	MADDE 13 – GARANTİ VE AYIPTAN SORUMLULUK	 PAGEREF _Toc234621707 \h 5
+	MADDE 14 – MÜCBİR SEBEP	 PAGEREF _Toc234621708 \h 5
+	MADDE 15 – FESİH	 PAGEREF _Toc234621709 \h 5
+	MADDE 16 – SORUMLULUK	 PAGEREF _Toc234621710 \h 6
+	MADDE 17 – GİZLİLİK VE KİŞİSEL VERİLER	 PAGEREF _Toc234621711 \h 6
+	MADDE 18 – DEVİR VE ALT YÜKLENİCİ	 PAGEREF _Toc234621712 \h 6
+	MADDE 19 – VERGİLER	 PAGEREF _Toc234621713 \h 6
+	MADDE 20 – BİLDİRİMLER	 PAGEREF _Toc234621714 \h 6
+	MADDE 21 – UYGULANACAK HUKUK VE UYUŞMAZLIK ÇÖZÜMÜ	 PAGEREF _Toc234621715 \h 6
+	MADDE 22 – DİĞER HÜKÜMLER	 PAGEREF _Toc234621716 \h 6
+	MADDE 23 – İMZA VE YÜRÜRLÜK	 PAGEREF _Toc234621717 \h 6
 
 MADDE 1 – TARAFLAR
 1.1  İşbu İşçilik ve Montaj İşleri Sözleşmesi ("Sözleşme"); EK-1 İş Bilgi Formu'nun (A) bölümünde bilgileri belirtilen İŞVEREN ile aynı bölümde bilgileri belirtilen YÜKLENİCİ arasında, EK-1'de belirtilen tarihte akdedilmiştir. Taraflar münferiden "Taraf", birlikte "Taraflar" olarak anılır.

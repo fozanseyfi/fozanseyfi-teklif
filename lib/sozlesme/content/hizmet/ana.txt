@@ -7,10 +7,31 @@ HİZMET VEREN:  EK-1 (A)
 İşin Tanımı:  EK-1 (B) / EK-3
 Sözleşme No / Tarihi:  EK-1 (A)
 
-MATBU ANA SÖZLEŞME — Ekler (EK-1, EK-2, EK-3) ayrı dosyalardadır; siparişe özgü tüm bilgiler eklerde düzenlenir, ana metin değiştirilmez.
+Ekler (EK-1, EK-2, EK-3) ayrı dosyalardadır; siparişe özgü tüm bilgiler eklerde düzenlenir.
 
 İÇİNDEKİLER
-TOC \h \o "1-1"
+	TOC \h \o "1-1"MADDE 1 – TARAFLAR	 PAGEREF _Toc234621752 \h 3
+	MADDE 2 – TANIMLAR	 PAGEREF _Toc234621753 \h 3
+	MADDE 3 – KONU VE KAPSAM	 PAGEREF _Toc234621754 \h 3
+	MADDE 4 – SÖZLEŞME DOKÜMANLARI VE ÖNCELİK SIRASI	 PAGEREF _Toc234621755 \h 3
+	MADDE 5 – SÖZLEŞME BEDELİ	 PAGEREF _Toc234621756 \h 3
+	MADDE 6 – ÖDEMELER	 PAGEREF _Toc234621757 \h 3
+	MADDE 7 – TEMİNATLAR	 PAGEREF _Toc234621758 \h 4
+	MADDE 8 – SÜRE VE TESLİMLER	 PAGEREF _Toc234621759 \h 4
+	MADDE 9 – HİZMETLERE İLİŞKİN HÜKÜMLER	 PAGEREF _Toc234621760 \h 4
+	MADDE 10 – KABUL	 PAGEREF _Toc234621761 \h 4
+	MADDE 11 – GECİKME CEZASI	 PAGEREF _Toc234621762 \h 5
+	MADDE 12 – GARANTİ VE AYIPTAN SORUMLULUK	 PAGEREF _Toc234621763 \h 5
+	MADDE 13 – MÜCBİR SEBEP	 PAGEREF _Toc234621764 \h 5
+	MADDE 14 – FESİH	 PAGEREF _Toc234621765 \h 5
+	MADDE 15 – SORUMLULUK	 PAGEREF _Toc234621766 \h 5
+	MADDE 16 – GİZLİLİK VE KİŞİSEL VERİLER	 PAGEREF _Toc234621767 \h 5
+	MADDE 17 – DEVİR VE ALT HİZMET	 PAGEREF _Toc234621768 \h 6
+	MADDE 18 – VERGİLER	 PAGEREF _Toc234621769 \h 6
+	MADDE 19 – BİLDİRİMLER	 PAGEREF _Toc234621770 \h 6
+	MADDE 20 – UYGULANACAK HUKUK VE UYUŞMAZLIK ÇÖZÜMÜ	 PAGEREF _Toc234621771 \h 6
+	MADDE 21 – DİĞER HÜKÜMLER	 PAGEREF _Toc234621772 \h 6
+	MADDE 22 – İMZA VE YÜRÜRLÜK	 PAGEREF _Toc234621773 \h 6
 
 MADDE 1 – TARAFLAR
 1.1  İşbu Projelendirme ve Mühendislik Hizmetleri Sözleşmesi ("Sözleşme"); EK-1 Hizmet Bilgi Formu'nun (A) bölümünde bilgileri belirtilen İŞVEREN ile aynı bölümde bilgileri belirtilen HİZMET VEREN arasında, EK-1'de belirtilen tarihte akdedilmiştir. Taraflar münferiden "Taraf", birlikte "Taraflar" olarak anılır.

@@ -1,30 +1,30 @@
 EK-2
 ÖDEME PLANI
-ŞABLON — Varsayılan plan yazılıdır; oranları Taraflar değiştirebilir veya özel planı doldurur
 Malzeme Tedarik Sözleşmesi'nin (Madde 4.1) ayrılmaz parçasıdır. Sözleşme No: EK-1 (A) bölümüne bakınız.
-Aşağıdaki plan varsayılandır; Taraflar oranları değiştirebilir. Toplam %100 olmalıdır. Her aşamanın ödenmesi, karşısındaki belgenin sunulmasına bağlıdır (Sözleşme Madde 6.2).
-VARSAYILAN PLAN — MALZEME TEDARİKİ
-1. Sipariş / Sözleşme imzası (avans)
-%30 — (varsa) avans teminat mektubu karşılığı
+ Toplam %100 olmalıdır. Her aşamanın ödenmesi, karşısındaki belgenin sunulmasına bağlıdır (Sözleşme Madde 6.2).
+Ödeme Planı
+No
+Yüzde
+Ödeme Tutarı
+Açıklama
 
-2. Malzemenin sevke hazır bildirimi
-%30 — sevk öncesi fotoğraf / paket listesi + (öngörülmüşse) fabrika test raporu
+1 
+% 
 
-3. Teslim yerine teslim
-%30 — imzalı irsaliye ve teslim tutanağı
+2 
 
-4. Muayene ve Kabul (Madde 10)
-%10 — Kabul tutanağı + garanti ve uygunluk belgeleri
+3
 
-ÖZEL PLAN (varsayılan yerine kullanılacaksa doldurunuz)
-Aşama 1: ……………………………………
-%…………… — belge: ……………………………………
+4
 
-Aşama 2: ……………………………………
-%…………… — belge: ……………………………………
+5
 
-Aşama 3: ……………………………………
-%…………… — belge: ……………………………………
+6
 
-Aşama 4: ……………………………………
-%…………… — belge: ……………………………………
+7
+
+8
+
+9
+
+10

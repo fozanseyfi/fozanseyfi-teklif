@@ -310,45 +310,33 @@ const SVC_EK1: Record<string, Fmt> = {
   "Yetkili mahkeme / icra dairesi": F("mahkeme"),
 };
 
-/**
- * SVC EK-2 — Varsayılan plan tablosu KALDIRILIR; "ÖZEL PLAN" başlığı "ÖDEME PLANI"
- * olur; Aşama satırları (Açıklama / %Oran / Tutar) doldurulur.
- */
+/** SVC EK-2 — Ödeme Planı tablosu (No | Yüzde | Ödeme Tutarı | Açıklama); satır No'ya göre doldur. */
 function fillSvcEk2(xml: string, values: Vals): string {
   const g = (k: string) => values[fieldKey("ek2", k)] ?? "";
-  // 1) İlk tabloyu (varsayılan plan) kaldır
-  xml = xml.replace(/<w:tbl>[\s\S]*?<\/w:tbl>/, "");
-  // 2) "VARSAYILAN PLAN..." başlık paragrafını kaldır
-  xml = xml.replace(/<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])*?VARSAYILAN PLAN(?:(?!<\/w:p>)[\s\S])*?<\/w:p>/g, "");
-  // 3) "ÖZEL PLAN (...)" başlığını "ÖDEME PLANI" yap
-  xml = xml.replace(/ÖZEL PLAN[^<]*/g, "ÖDEME PLANI");
-  // 4) Aşama satırlarını doldur (cell0 "Aşama N: ...", cell1 "%.. — tutar")
   return mapRows(xml, (texts, row) => {
-    const m = (texts[0] || "").match(/^Aşama\s*(\d+)/);
-    if (!m || texts.length < 2) return row;
+    const m = (texts[0] || "").trim().match(/^(\d+)$/); // col0 = "1".."10"
+    if (!m || texts.length < 4) return row;
     const i = m[1];
-    const as = g("asama" + i), or = g("oran" + i), fi = g("fiyat" + i);
+    const y = g("yuzde" + i), t = g("tutar" + i), a = g("aciklama" + i);
+    if (!y && !t && !a) return row;
     let r = row;
-    if (as) r = setRowCell(r, 0, `Aşama ${i}: ${as}`);
-    if (or || fi) r = setRowCell(r, 1, `%${or || "…"}${fi ? "  —  " + trNum(fi) : ""}`);
+    if (y) r = setRowCell(r, 1, "%" + y);
+    if (t) r = setRowCell(r, 2, trNum(t));
+    if (a) r = setRowCell(r, 3, a);
     return r;
   });
 }
 
-/** SVC EK-3 — boş liste satırlarını (her iki hücre "……") sırayla kalemlerle doldur. */
+/** SVC EK-3 — boş liste satırlarını (her iki hücre boş) sırayla kalemlerle doldur. */
 function fillSvcEk3(xml: string, values: Vals): string {
   const g = (k: string) => values[fieldKey("ek3", k)] ?? "";
   const items: [string, string][] = [];
-  for (let i = 1; i <= 5; i++) { const a = g(`i${i}a`), b = g(`i${i}b`); if (a || b) items.push([a, b]); }
-  const sarf = g("sarf");
+  for (let i = 1; i <= 8; i++) { const a = g(`i${i}a`), b = g(`i${i}b`); if (a || b) items.push([a, b]); }
   let idx = 0;
   return mapRows(xml, (texts, row) => {
     if (texts.length < 2) return row;
-    // "sarf malzemeleri" satırı (işçilik) — sabit sol etiket, sağı doldur
-    if (/sarf malzemeleri/i.test(texts[0] || "")) return sarf ? setRowCell(row, 1, sarf) : row;
-    // jenerik boş satır: her iki hücre de yalnız nokta/boşluk
-    const empty = (s: string) => /^[…\.\s]*$/.test(s || "") && /[…]/.test(s || "");
-    if (empty(texts[0]) && empty(texts[1])) {
+    const isEmpty = (s: string) => !(s || "").trim();
+    if (isEmpty(texts[0]) && isEmpty(texts[1])) {
       if (idx >= items.length) return row;
       const [a, b] = items[idx++];
       let r = row;
