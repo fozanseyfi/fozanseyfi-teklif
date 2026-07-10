@@ -1,7 +1,6 @@
-import type { Vec, RoofType, Mass, RNode, REdge, Dormer, DesignDoc } from "./types";
-import { polygonAreaPx, centroid, nearestOnSegment, pointInPolygon } from "./geometry";
+import type { Vec, RoofType, Mass, RNode, REdge, Dormer } from "./types";
+import { polygonAreaPx, centroid, nearestOnSegment } from "./geometry";
 import { detectFaces, faceCoords, detectOuterBoundary } from "./faces";
-import { planarize } from "./planarize";
 
 /**
  * Parametrik çatı üretimi — bina ayak izi (footprint) + çatı tipi + eğim'den
@@ -331,97 +330,6 @@ export function autoRoofHeights(nodes: RNode[], edges: REdge[], defaultPitch: nu
     }
   }
   return nodes.map((n) => ({ ...n, z: z.get(n.id) ?? 0 }));
-}
-
-/** Poligonu centroid'e doğru küçült (iç/dış ayrımı için, k=oran). */
-function insetPoly(poly: Vec[], k: number): Vec[] {
-  const c = centroid(poly);
-  return poly.map((p) => ({ x: c.x + (p.x - c.x) * (1 - k), y: c.y + (p.y - c.y) * (1 - k) }));
-}
-
-/**
- * Dormer'ı çatı KIRILIM GRAFİĞİNE gömer → ayrı yapı değil, TEK bina. Dormer footprint'i
- * altındaki eski ana-çatı çizgileri silinir; yerine dormer'ın sırt+mahya (kırma) çizgileri
- * eklenir. Tüm tipler 2.5B grafikte temsil edilebilir kırma (hip) olarak gömülür (gable
- * için sırt uca çok yakın alınır). Sonuç: detectFaces tüm yüzeyleri tek ağ olarak sınıflar.
- */
-export function bakeDormerIntoGraph(nodesIn: RNode[], edgesIn: REdge[], dm: Dormer, pitchDeg: number, mpp: number): { nodes: RNode[]; edges: REdge[] } {
-  const hw = dm.widthM / 2 / mpp, hd = dm.depthM / 2 / mpp;
-  if (hw <= 0 || hd <= 0 || !mpp) return { nodes: nodesIn, edges: edgesIn };
-  const ang = ((dm.dirDeg || 0) * Math.PI) / 180, ca = Math.cos(ang), sa = Math.sin(ang);
-  const W = (lx: number, ly: number): Vec => ({ x: dm.x + lx * ca - ly * sa, y: dm.y + lx * sa + ly * ca });
-  const foot = [W(-hw, hd), W(hw, hd), W(hw, -hd), W(-hw, -hd)];
-
-  let N: RNode[] = nodesIn.map((n) => ({ ...n }));
-  let E: REdge[] = edgesIn.map((e) => ({ ...e }));
-
-  // Orijinal çatı yüzeyi yüksekliği (saçağa göre, m) — dormer köşe sürekliliği için.
-  const origFaces = detectFaces(N, E).map((f) => {
-    const by = new Map(N.map((n) => [n.id, n]));
-    const p3 = f.nodes.map((id) => { const n = by.get(id)!; return { x: n.x, y: n.y, z: n.z || 0 }; });
-    return { poly: faceCoords(f, N), s: fanSampler(p3) };
-  });
-  const hAt = (x: number, y: number): number => {
-    for (const f of origFaces) if (pointInPolygon({ x, y }, f.poly)) return f.s(x, y);
-    let best = 0, bd = Infinity;
-    for (const n of N) { const d = Math.hypot(n.x - x, n.y - y); if (d < bd) { bd = d; best = n.z || 0; } }
-    return best;
-  };
-  const rise = hw * mpp * Math.tan((Math.max(5, Math.min(60, pitchDeg || 25)) * Math.PI) / 180);
-  const ridgeRel = Math.max(...foot.map((p) => hAt(p.x, p.y))) + rise;
-  const addRaw = (p: Vec, z: number): string => { const id = genId(); N.push({ id, x: p.x, y: p.y, z }); return id; };
-  const runPlanarize = () => { const sh = { nodes: N, edges: E } as unknown as DesignDoc; planarize(sh); N = sh.nodes; E = sh.edges; };
-
-  // FAZ A: dormer footprint kenarlarını ekle + planarize (ana çatı çizgilerini sınırda böl).
-  const fids = foot.map((p) => addRaw(p, hAt(p.x, p.y)));
-  for (let i = 0; i < 4; i++) E.push({ id: genId(), a: fids[i], b: fids[(i + 1) % 4] });
-  runPlanarize();
-
-  // FAZ B: footprint İÇİNDE kalan eski kenarları sil (dormer altındaki ana çatı çizgileri).
-  const inset = insetPoly(foot, 0.03);
-  {
-    const by = new Map(N.map((n) => [n.id, n]));
-    E = E.filter((e) => {
-      const a = by.get(e.a), b = by.get(e.b); if (!a || !b) return false;
-      const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-      return !pointInPolygon(mid, inset); // içteki (dormer altı) kenarı at
-    });
-  }
-
-  // FAZ C: dormer sırt+mahya çizgilerini ekle; köşe/sırt yüksekliklerini ata.
-  const find = (p: Vec): string => { let id = "", bd = 1.5; for (const n of N) { const d = Math.hypot(n.x - p.x, n.y - p.y); if (d < bd) { bd = d; id = n.id; } } return id; };
-  const setZ = (id: string, z: number) => { const n = N.find((x) => x.id === id); if (n) n.z = z; };
-  const addEdge = (a: string, b: string) => { if (a && b && a !== b && !E.some((e) => (e.a === a && e.b === b) || (e.a === b && e.b === a))) E.push({ id: genId(), a, b }); };
-  foot.forEach((p) => setZ(find(p), hAt(p.x, p.y)));
-  if (dm.type === "shed") {
-    setZ(find(W(-hw, -hd)), ridgeRel + rise); setZ(find(W(hw, -hd)), ridgeRel + rise); // arka kenar yüksek (tek eğim)
-  } else {
-    const insetM = Math.min(hd * 0.4, Math.max(2, hd * 0.05));
-    const rl = dm.type === "hip"
-      ? (dm.ridgeHalfM != null ? Math.max(insetM, Math.min(hd * 0.95, dm.ridgeHalfM / mpp)) : hd * 0.6)
-      : hd - insetM; // gable ≈ sırt uca yakın (2.5B temsil)
-    const rf = addRaw(W(0, rl), ridgeRel), rb = addRaw(W(0, -rl), ridgeRel);
-    addEdge(rf, rb); // sırt
-    addEdge(rf, find(W(hw, hd))); addEdge(rf, find(W(-hw, hd))); // ön mahyalar
-    addEdge(rb, find(W(hw, -hd))); addEdge(rb, find(W(-hw, -hd))); // arka mahyalar
-  }
-  runPlanarize();
-
-  // Kenarsız (orphan) node temizle.
-  const used = new Set<string>(); E.forEach((e) => { used.add(e.a); used.add(e.b); });
-  N = N.filter((n) => used.has(n.id));
-  return { nodes: N, edges: E };
-}
-
-/** Kütlenin tüm dormer'larını çatı grafiğine gömer; grafik yoksa parametrikten tohumlar. */
-export function bakeDormers(mass: Mass, mpp: number): { nodes: RNode[]; edges: REdge[]; dormers: Dormer[] } {
-  const dms = (mass.dormers || []).filter((dm) => dm.widthM > 0 && dm.depthM > 0);
-  if (!dms.length) return { nodes: mass.roofNodes, edges: mass.roofEdges, dormers: mass.dormers };
-  let nodes: RNode[], edges: REdge[];
-  if (mass.roofEditable && mass.roofNodes.length >= 3) { nodes = mass.roofNodes; edges = mass.roofEdges; }
-  else { const g = seedRoofGraph(mass, mpp); nodes = g.nodes; edges = g.edges; }
-  for (const dm of dms) { const r = bakeDormerIntoGraph(nodes, edges, dm, mass.pitchDeg, mpp); nodes = r.nodes; edges = r.edges; }
-  return { nodes, edges, dormers: [] };
 }
 
 /** Parametrik çatıyı düzenlenebilir grafiğe "tohumla" (elle düzenlemeye geçiş). */
