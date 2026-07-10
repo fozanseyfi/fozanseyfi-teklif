@@ -1,0 +1,37 @@
+EK-3
+İŞ SAĞLIĞI, GÜVENLİĞİ VE ÇEVRE ŞARTNAMESİ
+HAZIR (MATBU) — İhlal ceza tutarları EK-1 Proje Bilgi Formu (F) bölümünde belirlenir
+Arazi Tipi GES Anahtar Teslim EPC Sözleşmesi'nin (Madde 4.1) ayrılmaz parçasıdır. Proje kimliği: EK-1 Proje Bilgi Formu.
+1. GENEL ESASLAR
+1.1  YÜKLENİCİ; 6331 sayılı İş Sağlığı ve Güvenliği Kanunu ve ikincil mevzuatı ile işbu Şartname'ye eksiksiz uyar. Santral şantiyesi, ilgili mevzuat uyarınca YÜKLENİCİ'nin işvereni olduğu bir işyeri olarak SGK'ya bildirilir.
+1.2  İşe başlamadan önce YÜKLENİCİ; işyeri tehlike sınıfına uygun İSG uzmanı görevlendirmesini, işyeri hekimi hizmetini, risk değerlendirmesini, acil durum planını ve sağlık gözetimi kayıtlarını tamamlar ve İŞ SAHİBİ'ne sunar.
+1.3  Tüm çalışanlara işe başlamadan önce; işe giriş sağlık raporu, mesleki eğitim belgeleri, temel İSG eğitimi ve saha oryantasyon eğitimi verilmiş olur; kayıtları şantiyede hazır bulundurulur.
+2. SAHA KURALLARI
+2.1  Kişisel koruyucu donanım: Sahada baret, iş ayakkabısı (elektrikçiler için yalıtımlı), reflektif yelek zorunludur; işin niteliğine göre emniyet kemeri, eldiven, göz ve yüz koruyucu, ark koruyucu kıyafet kullanılır.
+2.2  Yüksekte çalışma: 1,5 m üzeri çalışmalarda toplu koruma önceliklidir; kişisel bağlantı noktaları ve yaşam hatları projelendirilir. Yüksekte çalışma eğitim belgeleri zorunludur.
+2.3  Elektriksel güvenlik: Gerilim altında çalışma yasaktır; kesme-ayırma-kilitleme-etiketleme (LOTO) prosedürü uygulanır. OG işlemleri yalnızca yetkilendirilmiş personelce, çalışma izni formuyla yapılır. DC tarafın gün ışığında enerjili olduğu tüm personele eğitimle bildirilir.
+2.4  İş makineleri ve kaldırma: Operatör belgesi, periyodik kontrol raporları ve sapancı/işaretçi görevlendirmesi zorunludur. Kaldırma planı gerektiren işlerde plan İŞ SAHİBİ'ne sunulur.
+2.5  Şantiye düzeni: Malzeme istifleri devrilmeye karşı sabitlenir; kazı kenarları korkulukla korunur; yangın söndürücüler trafo, pano, yakıt ve depolama alanlarında bulundurulur; sahada sigara içme alanları sınırlandırılır; alkol ve uyuşturucu kesinlikle yasaktır.
+2.6  Sağlık ve hijyen: İçme suyu, tuvalet, soyunma ve dinlenme alanları mevzuata uygun sağlanır; ilk yardım dolabı ve sertifikalı ilk yardımcı bulundurulur; en yakın sağlık kuruluşuna ulaşım planı acil durum planında yer alır.
+3. RAPORLAMA, DENETİM VE KAZA BİLDİRİMİ
+3.1  YÜKLENİCİ İSG uzmanı; aylık İSG raporunu (eğitimler, denetim bulguları, ramak kala olaylar, düzeltici faaliyetler) İŞ SAHİBİ'ne sunar. İŞ SAHİBİ ve Müşavir habersiz İSG denetimi yapabilir.
+3.2  İş kazaları; mevzuattaki sürelerde SGK'ya, eş zamanlı olarak İŞ SAHİBİ'ne bildirilir; kök neden analizi 5 (beş) iş günü içinde sunulur. Ölümlü veya uzuv kayıplı kazalarda saha, inceleme tamamlanana kadar İŞ SAHİBİ talimatıyla durdurulabilir; bu duruş için süre uzatımı verilmez.
+4. ÇEVRE YÖNETİMİ
+4.1  Atık yönetimi: Tehlikeli ve tehlikesiz atıklar ayrıştırılır, lisanslı taşıyıcı/bertaraf firmalarıyla uzaklaştırılır ve ulusal atık yönetim kayıtları tutulur. Atık yağ, boya, ambalaj atıkları ve hafriyat için ilgili yönetmeliklere uyulur.
+4.2  Toprak ve su koruması: Yakıt ve kimyasal depolama alanlarında sızdırmaz taban ve döküntü kiti bulundurulur; araç bakımı sahada yapılmaz; doğal drenaj hatları tıkanmaz.
+4.3  Toz ve gürültü: Kuru dönemlerde yol sulaması yapılır; çalışma saatleri ve gürültü sınırlarında yerel düzenlemelere uyulur. ÇED kararı/eki taahhütler (varsa) aynen uygulanır.
+5. İHLAL YAPTIRIMLARI
+5.1  Aşağıdaki ihlal kategorilerinde, EK-1 Proje Bilgi Formu'nun (F) bölümünde tutarları belirlenen cezalar, Sözleşme Madde 13.4 ve 17.5 uyarınca uygulanır; ihlalin tekrarında tutarlar iki katına çıkarılabilir ve ilgili personel sahadan uzaklaştırılır:
+Kategori A — Hayati risk
+KKD'siz yüksekte çalışma, LOTO ihlali, gerilim altında çalışma, emniyetsiz kaldırma (olay başına ceza + işin durdurulması)
+
+Kategori B — Ciddi ihlal
+Belgesiz operatör/personel çalıştırma, periyodik kontrolsüz ekipman, risk değerlendirmesi dışı iş (olay başına ceza)
+
+Kategori C — Genel ihlal
+KKD eksikliği, düzensiz istif, uyarı levhası eksikliği, hijyen ihlalleri (olay başına ceza)
+
+Kategori D — Çevre ihlali
+İzinsiz atık dökümü, sızıntı/döküntü bildirmeme, ÇED taahhüdü ihlali (olay başına ceza + yasal sorumluluk YÜKLENİCİ'de)
+
+5.2  Cezaların uygulanması, İŞ SAHİBİ'nin işi durdurma (Madde 13.4), fesih (Madde 24.1) ve tazminat haklarını ortadan kaldırmaz.

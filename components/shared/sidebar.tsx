@@ -18,6 +18,7 @@ import {
   Check,
   ChevronDown,
   ScrollText,
+  FileSignature,
   Share2,
   Search,
   BarChart3,
@@ -70,6 +71,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Çalışma Alanı",
     items: [
       { href: "/projects", icon: FolderOpen, label: "Teklifler" },
+      { href: "/sozlesmeler", icon: FileSignature, label: "Sözleşmeler" },
       { href: "/templates", icon: LayoutTemplate, label: "Şablonlar" },
       { href: "/materials", icon: Package, label: "Malzemeler" },
       { href: "/customers", icon: Users, label: "Müşteriler" },

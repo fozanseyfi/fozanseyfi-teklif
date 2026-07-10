@@ -1,0 +1,57 @@
+EK-2
+ARAZİ TİPİ GES TEKNİK ŞARTNAMESİ
+HAZIR (MATBU) — Projeye özgü onaylı projeler, tek hat şemaları ve mahal listeleri İŞ SAHİBİ tarafından bu ekin devamına ilave edilir
+Arazi Tipi GES Anahtar Teslim EPC Sözleşmesi'nin (Madde 4.1) ayrılmaz parçasıdır. Proje kimliği: EK-1 Proje Bilgi Formu.
+1. AMAÇ VE KAPSAM
+1.1  İşbu Teknik Şartname; EK-1 Proje Bilgi Formu'nun (B) bölümünde tanımlanan arazi tipi güneş enerjisi santralinin anahtar teslim esasıyla projelendirilmesi, tedariki, inşası, montajı, test edilmesi ve devreye alınmasına ilişkin asgari teknik gereklilikleri düzenler.
+1.2  Burada yazılmış olsun veya olmasın; Santral sistemini oluşturan bütün bileşenlerin temini, montajı, devreye alınması ve İşler'in bir bütün olarak tamamlanması esastır. Şartnamede belirtilmeyen hususlarda YÜKLENİCİ, İŞ SAHİBİ ve Müşavir'in yazılı görüşünü alır.
+1.3  Bütün sistem bileşenleri yeni, kullanılmamış, hasarsız ve orijinal ambalajında olacaktır. Tüm malzeme seçimleri EK-12 Onaylı Marka / Tedarikçi Listesi'ne uygun yapılacaktır.
+2. UYULACAK STANDARTLAR VE YÖNETMELİKLER
+2.1  Tasarım, malzeme ve uygulamada asgari olarak aşağıdaki mevzuat ve standartlara uyulacaktır: Elektrik Piyasasında Lisanssız Elektrik Üretim Yönetmeliği ve ekleri; Elektrik Kuvvetli Akım Tesisleri Yönetmeliği; Elektrik Tesislerinde Topraklamalar Yönetmeliği; Elektrik İç Tesisleri Yönetmeliği; TEDAŞ şartname ve montaj usulleri (MYD dâhil); ilgili dağıtım şirketi teknik kriterleri; IEC 62548 (PV dizileri tasarım gereklilikleri); IEC 62446-1 (şebeke bağlantılı PV sistemleri – test, dokümantasyon ve bakım); IEC 61215 / IEC 61730 (PV modül kalifikasyon ve güvenlik); IEC 62109 (inverter güvenliği); IEC 60364; TS EN ve TSE ilgili standartları; yapı ve deprem yönetmelikleri (TBDY); çelik yapılar yönetmeliği.
+2.2  Ana kalem malzemelerde TSE, IEC, EN, ISO uygunluğu ve CE işareti aranır. YÜKLENİCİ; her malzemenin montajından önce standartlara uygunluk belgelerini, tip test raporlarını, orijinal ürün föylerini ve yetkili satıcı belgelerini içeren malzeme onay dosyalarını İŞ SAHİBİ onayına sunar; onay alınmadan montaj yapılmaz.
+3. PROJELENDİRME VE MÜHENDİSLİK
+3.1  YÜKLENİCİ; arazi topoğrafyasını dikkate alarak 3 boyutlu yerleşim tasarımını yapar; genel yerleşim planı, tek hat şemaları, DC/AC dizilim projeleri, topraklama ve yıldırımdan korunma projeleri, aydınlatma, CCTV ve zayıf akım projeleri, statik hesap raporları ve drenaj projelerini hazırlayarak İŞ SAHİBİ, Müşavir ve ilgili Kurum onaylarına sunar.
+3.2  Tasarım, IEC 62548 esas alınarak yapılır. Yerleşim; yılın 12 ayı dikkate alınarak paneller arası gölgelenme oluşmayacak şekilde tasarlanır ve lisanslı bir simülasyon programı (PVsyst vb.) ile 3D gölgelenme analizi içeren üretim raporu hazırlanır.
+3.3  As-built projeler; uygulamanın tasarımdan farklılaştığı hâllerde tüm hesap ve simülasyonlar as-built verilerle tekrarlanmak suretiyle Geçici Kabul öncesinde İŞ SAHİBİ'ne teslim edilir. Kurum (TEDAŞ) proje onay süreçleri YÜKLENİCİ tarafından yürütülür.
+4. İNŞAAT VE ALTYAPI İŞLERİ
+4.1  Arazi hazırlığı: Bitkisel toprak sıyırma, tesviye, dolgu-kazı (siyah/kırmızı kot planı İŞ SAHİBİ onayına sunulur), hafriyat atıklarının izinli döküm sahalarına nakli YÜKLENİCİ sorumluluğundadır. Hafriyat sonrası zemine göre yerleşim 3D olarak revize edilir.
+4.2  Zemin testleri: Kazık çakma öncesinde, her 1 MWp için asgari 20 adet olmak üzere sahaya homojen dağılmış çakma-çekme (pull-out) testleri, kalibrasyonlu ekipmanla ve İŞ SAHİBİ/Müşavir nezaretinde yapılır ve raporlanır. Statik tasarım bu test sonuçlarına dayandırılır.
+4.3  İç yollar: Santral içi servis yolları; bakım araçlarının tüm dizilere erişimini sağlayacak genişlikte, uygun stabilize serilerek ve drenajı sağlanarak yapılır.
+4.4  Drenaj: Saha yüzey suları, yağış debisi hesabına dayalı kanal ve menfezlerle santral dışına tahliye edilir; erozyon önleyici tedbirler alınır.
+4.5  Çevre çiti ve kapılar: Saha çevresi asgari 2 m yüksekliğinde galvanizli panel/örgü tel çit ile çevrilir; araç ve yaya kapıları kilitlenebilir olur.
+4.6  Trafo ve dağıtım merkezi binaları: Kurum tip projelerine veya onaylı projelere uygun betonarme/prefabrik olarak inşa edilir; kablo kanalları, havalandırma, yangın ve kemirgen bariyerleri dâhildir.
+5. TAŞIYICI KONSTRÜKSİYON
+5.1  Konstrüksiyon; sıcak daldırma galvanizli çelik ve/veya alaşımlı alüminyum olacak, korozyon koruması saha koşullarına (zemin agresifliği, atmosferik sınıf) göre seçilecek ve EK-1 (F) bölümünde belirtilen süre boyunca üretici garantisi kapsamında olacaktır.
+5.2  Statik tasarım; TBDY ve ilgili rüzgâr/kar yükü standartlarına göre, sahaya özgü meteorolojik veriler ve çakma-çekme test sonuçları esas alınarak yapılır ve yetkin inşaat mühendisince imzalı hesap raporu sunulur.
+5.3  Panel montaj klempleri üretici montaj kılavuzuna uygun tork değerleriyle sıkılır; tork kontrolleri kayıt altına alınır. Farklı metallerin temasında galvanik korozyon önleyici ayırıcılar kullanılır.
+6. PV MODÜLLER
+6.1  Modüller; IEC 61215 ve IEC 61730 sertifikalı, Tier-1 sınıfı üreticilerden, EK-12 listesine uygun olarak temin edilir. Pozitif güç toleranslı olacaktır. Modül tip, güç ve adetleri onaylı projelerde belirtilir.
+6.2  Üretici garantileri (ürün ve doğrusal performans) EK-1 (F) bölümünde belirtilen asgari süreleri karşılar ve garanti belgeleri Geçici Kabul'de İŞ SAHİBİ'ne devredilir.
+6.3  Modüller; flash test raporlarıyla eşleştirilmiş seri numaralarıyla teslim edilir; nakliye, depolama ve montajda üretici elleçleme talimatlarına uyulur. Montaj sonrası örneklemeli EL (elektrolüminesans) testi İŞ SAHİBİ tarafından talep edilebilir; mikro çatlak tespit edilen modüller YÜKLENİCİ tarafından bedelsiz değiştirilir.
+7. İNVERTERLER
+7.1  İnverterler; IEC 62109 sertifikalı, şebeke yönetmeliği uyum belgelerine sahip, dizi (string) tipi ve EK-12 listesine uygun olacaktır. Koruma sınıfı asgari IP65, çalışma sıcaklık aralığı saha koşullarına uygun olacaktır.
+7.2  İnverter yerleşimi; üretici havalandırma ve gölgeleme gerekliliklerine uygun yapılır. Haberleşme (RS485/Ethernet) altyapısı SCADA sistemine tam entegre edilir.
+8. TRAFOLAR VE OG SİSTEMİ
+8.1  Trafolar; TEDAŞ şartnamelerine uygun, kayıp değerleri ilgili tebliğe uygun, ISO 9001/14001 belgeli üreticilerden temin edilir. OG hücreleri; metal mahfazalı, ark dayanımlı ve Kurum onaylı tipte olur.
+8.2  OG kabloları XLPE izoleli olacak; ekleri ve başlıkları yetkili/sertifikalı personelce yapılacak; güzergâh derinlik, yataklama ve ikaz bandı uygulamaları TEDAŞ usullerine uygun olacaktır.
+8.3  Koruma koordinasyonu; röle ayar hesaplarıyla birlikte dağıtım şirketi onayına sunulur. Sayaç ve ölçü sistemleri ilgili mevzuata uygun tesis edilir.
+9. DC/AC KABLOLAMA VE PANOLAR
+9.1  DC kabloları; H1Z2Z2-K tipi (veya muadili PV sertifikalı), UV dayanımlı, çift izoleli olacak; gerilim düşümü DC tarafta %1,5'i, AC tarafta %2'yi aşmayacak şekilde kesit hesabı yapılacaktır.
+9.2  Konnektörler aynı üretici/aynı seri olacak; sahada uygun pens ile sonlandırılacaktır. Kablo taşıma; UV dayanımlı siyah klips, spiral ve etiket malzemeleriyle, kabloların zeminle temas etmeyeceği şekilde yapılacaktır.
+9.3  AC toplama panoları; IP65, çift yalıtımlı, uygun sigorta/kesici ve parafudr korumalı olacak; tüm panolarda güncel devre şeması cebi bulunacaktır. Etiketleme; dizi, pano ve kablo bazında kalıcı ve projeyle uyumlu yapılacaktır.
+10. TOPRAKLAMA VE YILDIRIMDAN KORUNMA
+10.1  Topraklama; Elektrik Tesislerinde Topraklamalar Yönetmeliği'ne uygun projelendirilir; konstrüksiyon, pano, çit ve bina topraklamaları eş potansiyel barada birleştirilir. Ölçüm raporları yetkili mühendis imzasıyla sunulur.
+10.2  Yıldırımdan korunma; risk analizine dayalı olarak TS EN 62305 serisine uygun tasarlanır; DC ve AC taraflarda uygun tip parafudrlar tesis edilir. Veri ve haberleşme hatları da aşırı gerilime karşı korunur.
+11. SCADA, İZLEME VE METEOROLOJİ İSTASYONU
+11.1  Santral; inverter, sayaç, trafo koruma ve meteoroloji verilerini toplayan, uzaktan erişilebilir bir izleme/SCADA sistemi ile donatılır. Dağıtım şirketi SCADA'sına bağlantı için gerekli tüm ekipman, haberleşme ve konfigürasyon YÜKLENİCİ kapsamındadır.
+11.2  Meteoroloji istasyonu asgari; düzlem ışınım (POA) ve yatay ışınım (GHI) sensörleri (ISO 9060 uygun piranometre), modül sıcaklığı, ortam sıcaklığı, rüzgâr hız ve yön sensörlerini içerir. Sensör sayısı ve yerleşimi EK-10 ölçüm gerekliliklerini karşılar.
+11.3  Sahaya kalıcı internet altyapısı YÜKLENİCİ tarafından tesis edilir. Veri kayıt aralığı azami 15 dakika olur; veriler asgari 2 yıl saklanabilir kapasitede tutulur.
+12. GÜVENLİK SİSTEMLERİ VE AYDINLATMA
+12.1  CCTV; saha çevresini ve kritik ekipman alanlarını kesintisiz kapsayan, gece görüşlü kameralar ve asgari 30 gün kayıt kapasiteli NVR ile kurulur; uzaktan izlenebilir olur.
+12.2  Çevre aydınlatması ve trafo/DM bina iç tesisatı ilgili yönetmeliklere uygun yapılır. Uyarı ve bilgilendirme levhaları TEDAŞ standartlarına uygun tesis edilir.
+13. TEST, DEVREYE ALMA VE KABUL
+13.1  Saha testleri; EK-4 Tamamlanma Testleri ve Kabul Kriterleri'ne uygun olarak, IEC 62446-1 kapsamındaki muayene ve ölçümleri içerecek şekilde yapılır ve raporlanır.
+13.2  Kurum kabulleri (TEDAŞ geçici kabulü dâhil) YÜKLENİCİ tarafından organize edilir; kabullerde çıkan eksiklikler YÜKLENİCİ tarafından bedelsiz giderilir.
+14. DOKÜMANTASYON VE EĞİTİM
+14.1  Geçici Kabul'de teslim edilecek asgari doküman seti: as-built proje takımı (dwg+pdf), tüm test ve ölçüm raporları, malzeme sertifika ve garanti belgeleri, modül seri no/flash listeleri, işletme-bakım el kitapları, yedek parça listesi, SCADA kullanıcı bilgileri ve eğitim tutanakları.
+14.2  YÜKLENİCİ; İŞ SAHİBİ'nin işletme personeline, santralin işletilmesi ve temel bakımı konusunda asgari 1 (bir) iş günü uygulamalı eğitim verir ve belgelendirir.

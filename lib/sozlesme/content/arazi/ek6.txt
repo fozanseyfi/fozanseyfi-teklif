@@ -1,0 +1,16 @@
+EK-6
+İŞ PROGRAMI VE ZAMAN ÇİZELGESİ
+PROJE BAZINDA HAZIRLANIR — İÇERİĞİ BU SETTE YAZILAMAZ: YÜKLENİCİ SUNAR, İŞ SAHİBİ ONAYLAR (Sözleşme Madde 8.4)
+Arazi Tipi GES Anahtar Teslim EPC Sözleşmesi'nin (Madde 4.1) ayrılmaz parçasıdır. Proje kimliği: EK-1 Proje Bilgi Formu.
+İşbu ekin içeriği (Gantt şeması ve faaliyet tablosu) projeye, yer teslim tarihine ve YÜKLENİCİ'nin kaynak planına bağlı olduğundan matbu olarak hazırlanamaz. YÜKLENİCİ; Sözleşme'nin imzalanmasından itibaren 15 gün içinde, aşağıdaki asgari gereklilikleri karşılayan İş Programı'nı İŞ SAHİBİ onayına sunar. Onaylanan program, imzalı olarak bu ekin yerine geçer.
+ASGARİ İÇERİK GEREKLİLİKLERİ
+(i) Tüm ana iş kalemlerini (mühendislik, tedarik, lojistik, inşaat, montaj, elektrifikasyon, test, kabul) kapsayan faaliyet listesi ve Gantt şeması,
+(ii) Kritik yol (CPM) analizi ve faaliyetler arası bağımlılıklar,
+(iii) EK-5 ödeme kilometre taşlarıyla eşleştirilmiş ara hedef tarihleri,
+(iv) Haftalık bazda insan gücü (adam-gün) ve ana ekipman/makine histogramı,
+(v) Ana malzeme sipariş, üretim ve sevkiyat tarihleri (modül, inverter, trafo, konstrüksiyon),
+(vi) Kurum başvuru ve kabul süreçlerine ayrılan süreler,
+(vii) Nakit akış projeksiyonu (aylık),
+(viii) Program yazılımı kaynak dosyası (MS Project / Primavera vb.) ve PDF çıktısı.
+
+Onay kaydı:  İş Programı Rev. …… , …… tarihinde İŞ SAHİBİ tarafından onaylanmıştır.   İmzalar: İŞ SAHİBİ ………………   YÜKLENİCİ ………………

@@ -1,0 +1,51 @@
+EK-14
+ALT YÜKLENİCİ LİSTESİ VE YÜKLENİCİ KURUMSAL BELGELERİ
+PROJE BAZINDA HAZIRLANIR — İÇERİĞİ BU SETTE YAZILAMAZ: YÜKLENİCİ SUNAR (Sözleşme Madde 4.1/xiii, 9.4, 26.1). Kontrol listesi ve şablon aşağıdadır
+Arazi Tipi GES Anahtar Teslim EPC Sözleşmesi'nin (Madde 4.1) ayrılmaz parçasıdır. Proje kimliği: EK-1 Proje Bilgi Formu.
+1. SUNULACAK KURUMSAL BELGELER (KONTROL LİSTESİ)
+İmza sirküleri (güncel, noter onaylı)
+Sunuldu ☐
+
+Yüklenici Vekili vekâletnamesi (noter onaylı — Madde 11.2)
+Sunuldu ☐
+
+Ticaret sicil gazetesi (kuruluş + son durum)
+Sunuldu ☐
+
+Faaliyet belgesi (son 3 ay içinde alınmış)
+Sunuldu ☐
+
+Vergi borcu yoktur yazısı
+Sunuldu ☐
+
+SGK borcu yoktur yazısı
+Sunuldu ☐
+
+Vergi levhası
+Sunuldu ☐
+
+Sigorta poliçeleri (Madde 14 — işe başlamadan önce)
+Sunuldu ☐
+
+Kilit personel özgeçmiş ve belgeleri (EK-1/C nitelikleri)
+Sunuldu ☐
+
+Üretici garanti belgeleri listesi (Geçici Kabul'de)
+Sunulacak ☐
+
+2. ONAYLI ALT YÜKLENİCİ LİSTESİ (Madde 26)
+Her Alt Yüklenici için aşağıdaki satır seti doldurulur; İŞ SAHİBİ onayı olmadan Alt Yüklenici sahaya alınmaz.
+Alt Yüklenici unvanı
+……………………………………
+
+İş kapsamı
+……………………………………
+
+Vergi no / MERSİS
+……………………………………
+
+İSG ve mesleki yeterlilik belgeleri
+Sunuldu ☐
+
+İŞ SAHİBİ onayı (tarih / imza)
+……………

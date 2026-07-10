@@ -1,0 +1,38 @@
+EK-4
+TAMAMLANMA TESTLERİ VE KABUL KRİTERLERİ
+HAZIR (MATBU) — IEC 62446-1 esaslıdır; akredite muayene kuruluşu öngörülmüşse EK-1 (G) bölümünde belirtilir
+Arazi Tipi GES Anahtar Teslim EPC Sözleşmesi'nin (Madde 4.1) ayrılmaz parçasıdır. Proje kimliği: EK-1 Proje Bilgi Formu.
+1. GENEL
+1.1  Tüm testler; kalibrasyon sertifikalı cihazlarla, YÜKLENİCİ tarafından, İŞ SAHİBİ/Müşavir nezaretinde yapılır ve imzalı raporlanır (Sözleşme Madde 15). Test tarihleri asgari 7 gün önceden bildirilir.
+1.2  Testler üç aşamada yürütülür: (A) Mekanik/İnşaat tamamlama testleri, (B) Elektriksel testler ve devreye alma, (C) Performans doğrulama. Her aşamanın sonunda EK-13'teki şablona uygun Tamamlama Sertifikası düzenlenir.
+2. (A) MEKANİK / İNŞAAT TAMAMLAMA KONTROLLERİ
+A.1 Kazık çakma kayıtları ve çakma-çekme test raporlarının (EK-2 Md. 4.2) projeyle uyumu,
+A.2 Konstrüksiyon tork kontrol kayıtları (örnekleme asgari %10) ve galvaniz hasar kontrolü,
+A.3 Panel montaj kontrolü: klemp konumları, sıra hizaları, modül hasar taraması (görsel + örneklemeli EL),
+A.4 İç yol, drenaj, çit, kapı ve bina imalatlarının onaylı projeye uygunluğu,
+A.5 Kablo kanal/galeri derinlik ve yataklama kontrolleri (kapatma öncesi ara kontroller tutanaklı).
+3. (B) ELEKTRİKSEL TESTLER (IEC 62446-1)
+B.1 Görsel muayene: etiketleme, pano düzeni, sonlandırmalar, parafudrlar, uyarı levhaları,
+B.2 DC devre süreklilik ve polarite testleri (tüm diziler),
+B.3 Dizi açık devre gerilimi (Voc) ve kısa devre/işletme akımı (Isc/Iop) ölçümleri — beklenen değerden sapma toleransı: ±%5,
+B.4 DC izolasyon direnci testleri (tüm diziler) — asgari IEC 62446-1 sınır değerleri,
+B.5 Örneklemeli I-V eğrisi ölçümü (asgari dizilerin %10'u) — STC'ye normalize sapma toleransı: ±%5,
+B.6 Topraklama süreklilik ve yayılma direnci ölçümleri (yetkili mühendis raporu),
+B.7 AC taraf: izolasyon, faz sırası, gerilim/frekans, kaçak akım koruma testleri,
+B.8 OG testleri: kablo VLF/izolasyon testleri, röle fonksiyon ve enjeksiyon testleri, trafo devreye alma testleri (Kurum prosedürlerine uygun),
+B.9 Termal kamera taraması (asgari %20 örnekleme; panolar ve konnektörler dâhil) — sıcak nokta tespitinde giderme sonrası tekrar,
+B.10 SCADA/izleme: tüm inverter ve sayaç verilerinin, meteoroloji sensörlerinin ve alarmların doğrulanması; dağıtım şirketi SCADA sinyal testleri.
+4. (C) PERFORMANS DOĞRULAMA
+4.1  Deneme işletmesi: Santral, kesintisiz asgari 7 (yedi) gün deneme işletmesinde tutulur; bu sürede YÜKLENİCİ kusurundan kaynaklanan duruş olması hâlinde süre yeniden başlatılır.
+4.2  Geçici PR testi: Deneme işletmesi süresince EK-10'daki yönteme göre hesaplanan performans oranının, EK-1 (G) bölümündeki hedefin altında kalmaması esastır; iklim düzeltme ve veri doğrulama EK-10'a tabidir.
+5. EKSİK İŞ SINIFLANDIRMASI VE KABUL KRİTERLERİ
+Tip A — Engelleyici
+Güvenliği, şebeke bağlantısını veya üretimi engelleyen eksikler. Geçici Kabul YAPILAMAZ; giderilmeden ilgili Tamamlama Sertifikası düzenlenmez.
+
+Tip B — Önemli
+Üretimi kısmen etkileyen veya kısa vadede risk oluşturan eksikler. Geçici Kabul, giderme süresi tutanağa yazılmak kaydıyla yapılabilir (azami 15 gün — Sözleşme Md. 16.1/b).
+
+Tip C — Küçük
+Estetik/dokümantasyon eksikleri. Geçici Kabul'e engel değildir; Kesin Kabul'e kadar giderilir.
+
+5.1  Geçici Kabul kontrol listesi; işbu ekin 2, 3 ve 4. bölümlerindeki tüm kalemlerin raporlanmış ve Tip A eksik bulunmadığının doğrulanmış olmasından ibarettir (Sözleşme Madde 16.1/a).

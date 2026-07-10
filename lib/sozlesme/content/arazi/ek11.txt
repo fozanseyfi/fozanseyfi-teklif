@@ -1,0 +1,69 @@
+EK-11
+SORUMLULUK MATRİSİ
+HAZIR (MATBU) — Tipik dağılım yazılmıştır; Taraflar proje bazında satır ekleyip revize edebilir. Matriste İŞ SAHİBİ'ne tahsis edilmeyen her kalem YÜKLENİCİ sorumluluğundadır (Sözleşme Madde 3.3)
+Arazi Tipi GES Anahtar Teslim EPC Sözleşmesi'nin (Madde 4.1) ayrılmaz parçasıdır. Proje kimliği: EK-1 Proje Bilgi Formu.
+Çağrı mektubu / bağlantı anlaşması ve lisans süreçleri
+İŞ SAHİBİ
+
+Arazi mülkiyeti / kullanım hakkı, imar ve tapu işlemleri
+İŞ SAHİBİ
+
+ÇED ve arazi izinleri (tarım dışı kullanım vb.)
+İŞ SAHİBİ
+
+Yer teslimi (Madde 8.2)
+İŞ SAHİBİ
+
+Zemin etüdü (mevcutsa paylaşım; ilave etüt ve çakma-çekme testleri)
+İŞ SAHİBİ (mevcut) / YÜKLENİCİ (ilave + testler)
+
+Uygulama projeleri, statik hesaplar, TEDAŞ proje onayları
+YÜKLENİCİ
+
+Tüm malzeme ve ekipman tedariki, nakliye, gümrükleme, depolama
+YÜKLENİCİ
+
+Arazi hazırlığı, hafriyat, iç yollar, drenaj, çit
+YÜKLENİCİ
+
+Konstrüksiyon, panel montajı, DC/AC elektrifikasyon, OG işleri
+YÜKLENİCİ
+
+Trafo / dağıtım merkezi binaları
+YÜKLENİCİ
+
+SCADA, izleme, meteoroloji istasyonu, CCTV, internet altyapısı
+YÜKLENİCİ
+
+Şantiye elektriği ve suyu, şantiye tesisleri ve güvenliği
+YÜKLENİCİ
+
+İSG organizasyonu ve tüm İSG/çevre yükümlülükleri (EK-3)
+YÜKLENİCİ
+
+Sigortalar (Madde 14)
+YÜKLENİCİ
+
+Tamamlanma Testleri (EK-4) ve raporlama
+YÜKLENİCİ
+
+Kurum kabulleri (TEDAŞ geçici kabul vb.) organizasyon ve masrafları
+YÜKLENİCİ
+
+Kabul komisyonlarının oluşturulması (Madde 16)
+İŞ SAHİBİ
+
+Müşavir / Kontrolör görevlendirmesi ve ücreti
+İŞ SAHİBİ
+
+Sayaç ve ölçü sistemi başvuruları
+YÜKLENİCİ (İŞ SAHİBİ adına)
+
+As-built dokümantasyon, eğitim, işletme-bakım el kitapları
+YÜKLENİCİ
+
+Garanti Süresi arıza müdahaleleri (Madde 19)
+YÜKLENİCİ
+
+Santral işletmesi (Geçici Kabul sonrası)
+İŞ SAHİBİ (Madde 19.4 saklıdır)

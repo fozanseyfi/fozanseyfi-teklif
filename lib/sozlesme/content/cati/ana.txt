@@ -1,0 +1,182 @@
+ÇATI ÜZERİ GÜNEŞ ENERJİSİ SANTRALİ (GES)
+ANAHTAR TESLİM KURULUM (EPC) SÖZLEŞMESİ
+
+EK-1 Proje Bilgi Formu'nda belirtilen
+İŞVEREN
+ile
+YÜKLENİCİ
+arasında akdedilmiştir.
+
+Sözleşme No: EK-1'de belirtilmiştir.
+Sözleşme Tarihi: EK-1'de belirtilmiştir.
+Proje: EK-1'de belirtilmiştir.
+
+MADDE 1 – TARAFLAR
+1.1. İşbu Çatı Üzeri GES Anahtar Teslim Kurulum Sözleşmesi ("Sözleşme"); unvanı, adresi, vergi dairesi/numarası ve iletişim bilgileri EK-1 Proje Bilgi Formu'nda belirtilen iş sahibi ("İŞVEREN") ile unvanı, adresi, vergi dairesi/numarası ve iletişim bilgileri yine EK-1'de belirtilen yüklenici firma ("YÜKLENİCİ") arasında, EK-1'de belirtilen tarihte ("İmza Tarihi") akdedilmiştir. İŞVEREN ve YÜKLENİCİ ayrı ayrı "Taraf", birlikte "Taraflar" olarak anılacaktır.
+1.2. Taraflar, EK-1'de yazılı adreslerinin tebligata elverişli adresleri olduğunu; adres değişikliğini diğer Tarafa yazılı olarak bildirmedikçe bu adreslere yapılacak tebligatların geçerli ve usulüne uygun sayılacağını kabul ve taahhüt ederler.
+1.3. Türk Ticaret Kanunu m.18/3'te sayılan (temerrüt, fesih, sözleşmeden dönme gibi) bildirimler noter, iadeli taahhütlü posta, telgraf veya kayıtlı elektronik posta (KEP) yoluyla yapılır. Bunlar dışındaki günlük yazışmalar EK-1'de belirtilen e-posta adresleri üzerinden geçerli olarak yapılabilir.
+MADDE 2 – TANIMLAR
+2.1. Sözleşme'de geçen aşağıdaki terimler karşılarındaki anlamları taşır:
+"GES" / "Santral" EK-1'de kurulu gücü belirtilen çatı üzeri güneş enerjisi santralini,
+"İş" GES'in Madde 4'te tanımlanan kapsam dahilinde tedariki, montajı, testleri ve devreye alınması işini,
+"İş Sahası" / "Saha" EK-1'de adresi belirtilen, GES'in kurulacağı çatı ve tesisi,
+"Sözleşme Bedeli" EK-2'de belirtilen götürü bedeli,
+"Ödeme Planı" EK-2'de belirtilen ödeme takvimini,
+"İşin Süresi" EK-1'de belirtilen işe başlama ve iş bitim tarihleri arasındaki süreyi,
+"Geçici Kabul" Madde 12 uyarınca İş'in İŞVEREN tarafından teslim alınmasını,
+"Garanti Süresi" Madde 13'te belirtilen süreleri,
+"Dağıtım Şirketi" Saha'nın bağlı olduğu elektrik dağıtım şirketini,
+"Gün" aksi belirtilmedikçe takvim gününü
+2.2. Başlıklar yalnızca kolaylık amaçlıdır; hükümlerin yorumunda esas alınmaz. Tekil ifadeler çoğulu, çoğul ifadeler tekili de kapsar.
+MADDE 3 – SÖZLEŞME DOKÜMANLARI VE ÖNCELİK SIRASI
+3.1. Aşağıdaki ekler Sözleşme'nin ayrılmaz parçasıdır. Dokümanlar arasında çelişki bulunması hâlinde aşağıdaki öncelik sırası uygulanır:
+Sıra
+Doküman
+
+1
+İşbu Sözleşme Metni
+
+2
+EK-1 Proje Bilgi Formu
+
+3
+EK-2 Sözleşme Bedeli ve Ödeme Planı
+
+4
+EK-3 Geçici Kabul Tutanağı (kabul aşamasında düzenlenir)
+
+3.2. Proje bazında değişen tüm ticari bilgiler (Taraflar, proje, güç, bedel, ödeme planı, tarihler, yetkili mahkeme ili) yalnızca eklerde yer alır; Sözleşme Metni bu bilgilere atıf yolu ile bağlanır. Eklerin doldurulmuş ve Taraflarca paraflanmış olması, Sözleşme Metni'nin değiştirilmesine gerek olmaksızın yeterlidir.
+MADDE 4 – SÖZLEŞMENİN KONUSU VE İŞİN KAPSAMI
+4.1. Sözleşme'nin konusu; EK-1'de tanımlanan Saha üzerine, EK-1'de kurulu gücü belirtilen GES'in, "anahtar teslim" usulüyle ve yürürlükteki mevzuata uygun olarak tedarik, montaj, test ve devreye alma işlerinin YÜKLENİCİ tarafından ifasıdır. İş; yürürlükteki elektrik tesisleri mevzuatı, TEDAŞ şartnameleri, ilgili TSE/IEC standartları ve üretici montaj talimatlarına uygun olarak ifa edilir.
+4.2 Kapsam Dahili İşler
+4.2.1. İş'in kapsamı münhasıran aşağıda sayılan iş kalemlerinden ibarettir:
+a) Sistem tasarımı, tek hat şeması ve uygulama projelerinin hazırlanması,
+b) Dağıtım Şirketi çağrı mektubu başvurusu ve TEDAŞ proje onay sürecinin (İŞVEREN'in belge/vekâlet desteğiyle) yürütülmesi,
+c) Güneş panelleri, inverter(ler), montaj konstrüksiyonu, DC/AC kablolar ile AC/DC pano ve koruma elemanlarının tedariki ve sahaya nakliyesi,
+d) Konstrüksiyon, panel, inverter ve pano montajı; DC/AC kablolama,
+e) Topraklama sisteminin mevcut tesise irtibatlandırılması,
+f) Devreye alma, test ve geçici kabul işlemleri,
+g) Montaj artıklarının sahadan uzaklaştırılması, temiz teslim,
+h) As-built (son durum) projesinin teslimi.
+4.3 Kapsam Dışı İşler
+4.3.1. Aşağıdaki işler Sözleşme Bedeli'ne dahil değildir; İŞVEREN tarafından talep edilmesi hâlinde Madde 11 (Değişiklikler) uyarınca ayrıca fiyatlandırılır:
+a) Çatı statik raporu, çatı güçlendirme, aşık/mertek takviyesi,
+b) Mevcut çatı kaplamasının/membranının yenilenmesi, tamiri ve su yalıtımı işleri,
+c) Trafo, ana dağıtım panosu, kompanzasyon ve iç tesisat tadilatları,
+d) Yıldırımdan korunma (paratoner) tesisatı kurulumu veya yenilenmesi,
+e) Sayaç, abonelik ve Dağıtım Şirketi/TEDAŞ harç ve bedelleri (Madde 5.3),
+f) Enerji nakil hattı, ring hattı ve orta gerilim işleri,
+g) Çatıya erişim altyapısı (sabit merdiven, korkuluk, yaşam hattı vb.) imalatı,
+h) Geçici kabul sonrası periyodik bakım, temizlik ve işletme hizmetleri,
+i) Sözleşme ve eklerinde açıkça yazmayan diğer tüm iş, imalat ve hizmetler.
+4.4. Çatının ve taşıyıcı sistemin statik yeterliliği, mevcut çatı kaplamasının/membranının durumu ve su yalıtımının mevcut hâli, binanın yapı ruhsatı/iskân durumu ve tesisin iç elektrik tesisatının mevzuata uygunluğu İŞVEREN'in sorumluluğundadır. YÜKLENİCİ, İŞVEREN'in beyanına ve EK-1'de yer alan bilgilere güvenerek Sözleşme'yi akdetmiştir.
+MADDE 5 – SÖZLEŞME BEDELİ
+5.1. İş, EK-2'de belirtilen tutar üzerinden "götürü bedel" esasıyla YÜKLENİCİ'ye verilmiştir. Bedele KDV'nin dahil olup olmadığı EK-2'de belirtilir.
+5.2. Sözleşme Bedeli'ne yalnızca Madde 4.2'de Kapsam Dahili sayılan iş kalemleri için gerekli malzeme, ekipman, nakliye, işçilik, montaj ve devreye alma giderleri dahildir.
+5.3. Damga vergisi, noter masrafları, Dağıtım Şirketi ve TEDAŞ nezdindeki proje onay harçları, bağlantı anlaşması ücretleri, sayaç ve abonelik bedelleri ile her türlü resmî harç ve ücret, EK-2'de aksi açıkça belirtilmedikçe İŞVEREN'e aittir. YÜKLENİCİ'nin bu tür bir ödemeyi İŞVEREN adına yapması hâlinde, tutar belgesi karşılığında 5 (beş) gün içinde YÜKLENİCİ'ye iade edilir.
+5.4. Fiyat geçerliliği ve uyarlama: Sözleşme Bedeli, EK-2'de belirtilen döviz kuru ve fiyatlandırma varsayımları esas alınarak oluşturulmuştur. (i) İmza Tarihi'nden ilk ekipman sipariş avansının YÜKLENİCİ hesabına geçmesine kadar EK-2'de belirtilen kurun %5'ten fazla artması veya (ii) İŞVEREN'den kaynaklanan sebeplerle işe başlamanın 30 (otuz) günden fazla gecikmesi hâlinde, YÜKLENİCİ ekipman kalemlerine isabet eden bedeli kur/piyasa artışı oranında güncelleme hakkına sahiptir. Güncelleme, belgeye dayalı olarak ve yazılı bildirimle yapılır.
+MADDE 6 – ÖDEME PLANI VE ÖDEMEDE TEMERRÜT
+6.1. İŞVEREN, Sözleşme Bedeli'ni EK-2'deki Ödeme Planı'na uygun olarak, YÜKLENİCİ'nin EK-1'de belirtilen banka hesabına nakden ve defaten öder. Ödeme Planı'ndaki her bir dilim, karşılık geldiği hakediş/aşama gerçekleştiğinde başkaca bir ihtara gerek olmaksızın muaccel olur.
+6.2. Gecikme faizi: Vadesinde ödenmeyen tutarlara, vade tarihinden fiili ödeme tarihine kadar 3095 sayılı Kanun uyarınca ticari işlerde uygulanan avans faizi oranında temerrüt faizi işler; ayrıca ihtara gerek yoktur.
+6.3. İşi durdurma hakkı: Herhangi bir ödemenin vadesini 7 (yedi) günden fazla aşması hâlinde YÜKLENİCİ, yazılı bildirimle İş'i kısmen veya tamamen durdurma hakkına sahiptir. Durma süresi İşin Süresi'ne aynen eklenir; bu süre boyunca YÜKLENİCİ'ye gecikme cezası uygulanamaz. Durdurma nedeniyle oluşan şantiye bekleme, mobilizasyon/demobilizasyon ve depolama maliyetleri İŞVEREN'e aittir.
+6.4. Ödeme gecikmesinin 15 (on beş) günü aşması hâlinde YÜKLENİCİ, Madde 16 uyarınca Sözleşme'yi haklı nedenle feshedebilir.
+6.5. İŞVEREN, YÜKLENİCİ'nin hakedişlerinden ve alacaklarından, Sözleşme'de açıkça yazılı hâller dışında hiçbir ad altında kesinti, takas veya mahsup yapamaz.
+MADDE 7 – MÜLKİYETİN MUHAFAZASI
+7.1. Sözleşme kapsamında Saha'ya getirilen ve/veya monte edilen tüm panel, inverter, konstrüksiyon ve sair ekipmanın mülkiyeti, Sözleşme Bedeli'nin tamamı YÜKLENİCİ'ye ödeninceye kadar YÜKLENİCİ'de kalır. İŞVEREN, bedelin tamamı ödenmeden bu ekipman üzerinde üçüncü kişiler lehine rehin, hapis, devir veya benzeri tasarruflarda bulunamaz.
+7.2. Sözleşme'nin İŞVEREN'in temerrüdü nedeniyle feshi hâlinde YÜKLENİCİ, bedeli ödenmemiş ekipmanı sökerek geri alma hakkına sahiptir; sökme ve nakliye masrafları İŞVEREN'e aittir. YÜKLENİCİ'nin fazlaya ilişkin talep ve tazminat hakları saklıdır.
+MADDE 8 – YER TESLİMİ, İŞİN SÜRESİ VE SÜRE UZATIMI
+8.1. İş Sahası, ayrıca bir yer teslim tutanağı düzenlenmesine gerek olmaksızın, EK-1'de belirtilen işe başlama tarihinde YÜKLENİCİ'ye teslim edilmiş sayılır. İŞVEREN, bu tarihte Saha'nın çalışmaya hazır ve erişilebilir olmasını sağlar.
+8.2. YÜKLENİCİ, İş'i EK-1'de belirtilen iş bitim tarihine kadar tamamlamayı hedefler. İşin Süresi'nin başlaması, EK-2'deki avans ödemesinin YÜKLENİCİ hesabına geçmiş olması şartına bağlıdır; avans gecikirse süre, gecikme kadar ertelenir.
+8.3. Aşağıdaki hâllerde İşin Süresi, gecikmeye neden olan süre kadar ve YÜKLENİCİ'nin ilave maliyetleri karşılanmak suretiyle kendiliğinden uzar:
+a) İŞVEREN'in herhangi bir ödemeyi geciktirmesi,
+b) Saha'ya erişimin sağlanamaması, çatının çalışmaya uygun/güvenli teslim edilmemesi veya İŞVEREN'in işletme faaliyeti nedeniyle çalışmaya ara verilmesi,
+c) İŞVEREN'in sağlaması gereken bilgi, belge, imza, vekâlet veya onayların geciktirilmesi,
+d) Dağıtım Şirketi, TEDAŞ veya diğer resmî kurumların YÜKLENİCİ'nin kusuru dışındaki işlem süreleri ve gecikmeleri,
+e) Madde 15'te sayılan mücbir sebepler ve olumsuz hava koşulları nedeniyle çatıda güvenli çalışmanın mümkün olmadığı günler,
+f) Madde 11 uyarınca talep edilen değişiklik ve ilave işler.
+8.4. İŞVEREN kaynaklı gecikmelerin yazılı tutanağa bağlanması esastır; ancak e-posta ve mesaj yazışmaları ile fotoğraf/rapor kayıtları da ispat vasıtası olarak geçerlidir.
+MADDE 9 – İŞVERENİN YÜKÜMLÜLÜKLERİ
+9.1. İŞVEREN, masrafları kendisine ait olmak üzere aşağıdakileri sağlamakla yükümlüdür:
+a) Çatının ve taşıyıcı sistemin GES yükünü taşımaya elverişli olduğunun teyidi; gerekli görülmesi hâlinde statik raporun ve çatı güçlendirmesinin temini,
+b) Mevcut çatı kaplaması ve su yalıtımının sağlam olması; montaj öncesinde mevcut hasar, korozyon ve sızıntıların giderilmesi,
+c) Saha'ya, çatıya ve elektrik odalarına kesintisiz ve güvenli erişim; vinç/platform kurulumuna uygun alan tahsisi,
+d) Şantiye elektriği ve suyu ile YÜKLENİCİ malzemeleri için kilitlenebilir depolama alanı,
+e) Tesisin iç elektrik tesisatının, trafo ve ana dağıtım panosunun bağlantıya uygunluğu; uygun değilse gerekli tadilatların yaptırılması,
+f) Başvurular için gerekli tapu, kira sözleşmesi, ruhsat, abonelik, imza sirküleri ve vekâletname gibi belgelerin gecikmeksizin temini,
+g) Devreye alma ve testler için gerekli enerji kesintilerine izin verilmesi,
+h) Çatıda YÜKLENİCİ personeli dışındaki kişilerin (İŞVEREN personeli, üçüncü kişiler) bulunmamasının sağlanması.
+9.2. Bu yükümlülüklerin ihlalinden veya geç yerine getirilmesinden doğan süre uzaması, ilave maliyet ve zararlar İŞVEREN'e aittir.
+MADDE 10 – YÜKLENİCİNİN YÜKÜMLÜLÜKLERİ
+10.1. YÜKLENİCİ, İş'i Madde 4'e, yürürlükteki mevzuata ve iyi mühendislik uygulamalarına uygun olarak ifa eder. Kullanılacak ekipman yeni, kullanılmamış ve ilgili standartlara uygun sertifikalı olur. Ekipman marka ve modellerinin seçimi, teknik yeterlilik ve tedarik koşulları çerçevesinde YÜKLENİCİ'nin takdirindedir.
+10.2. YÜKLENİCİ, kendi personelinin SGK, ücret ve İSG yükümlülüklerinden sorumludur; kendi personeline gerekli kişisel koruyucu donanımı temin eder.
+10.3. YÜKLENİCİ, TEDAŞ onaylı proje üzerinde, Sözleşme şartları dışına çıkmamak kaydıyla kendi tasarım tercihine göre revizyon yapma hakkına sahiptir.
+10.4. YÜKLENİCİ, montaj sonrası şantiyeyi temiz ve düzenli şekilde teslim eder; kendi çalışması sırasında kendi kusuruyla çatı kaplamasına verdiği delik/hasarları giderir. Mevcut kaplamanın eskiliğinden, gizli ayıplarından veya montajdan bağımsız nedenlerden kaynaklanan sızıntı ve hasarlardan YÜKLENİCİ sorumlu değildir.
+MADDE 11 – DEĞİŞİKLİKLER VE İLAVE İŞLER
+11.1. Madde 4.2 kapsamı dışındaki her türlü ilave iş, kapsam artışı veya değişiklik, Taraflarca yazılı olarak (e-posta dahil) mutabık kalınacak ek bedel ve ek süreye bağlıdır. Yazılı mutabakat olmadan YÜKLENİCİ ilave iş yapmakla yükümlü değildir.
+11.2. İŞVEREN'in talebi olmaksızın resmî kurum veya Dağıtım Şirketi zorunluluklarından doğan ve İmza Tarihi'nde öngörülemeyen kapsam artışları da (örn. mevzuat değişikliği ile zorunlu hâle gelen ilave ekipman) ilave iş sayılır ve bedeli İŞVEREN'e aittir.
+MADDE 12 – TESTLER, GEÇİCİ KABUL VE KABUL KARİNESİ
+12.1. YÜKLENİCİ, montaj ve devreye alma testlerinin tamamlanmasını müteakip İŞVEREN'i yazılı olarak (e-posta dahil) Geçici Kabul'e davet eder. Geçici Kabul, EK-3 formatındaki tutanağın imzalanması ile gerçekleşir.
+12.2. Kabul karinesi: İŞVEREN, davet tarihinden itibaren 5 (beş) iş günü içinde kabule katılmaz veya esaslı eksiklikleri yazılı olarak bildirmezse, İş kabul edilmiş sayılır. Ayrıca Santral'in şebekeye bağlanarak enerji üretmeye başlaması ve İŞVEREN'in Santral'i kullanmaya başlaması da kabul hükmündedir.
+12.3. Kabul sırasında tespit edilen ve Santral'in çalışmasına engel olmayan küçük eksiklikler kabule engel teşkil etmez; bunlar tutanağa yazılır ve YÜKLENİCİ tarafından makul sürede giderilir. Bu eksiklikler ödeme dilimlerinin bekletilmesine gerekçe yapılamaz.
+12.4. Geçici Kabul (veya kabul karinesinin gerçekleşmesi) ile birlikte Santral'in zilyetliği, muhafazası ve hasar riski İŞVEREN'e geçer.
+MADDE 13 – GARANTİ
+13.1. İşçilik garantisi: YÜKLENİCİ'nin montaj işçiliğine ilişkin garanti süresi, Geçici Kabul tarihinden itibaren 2 (iki) yıldır.
+13.2. Ekipman garantisi: Panel, inverter ve diğer ekipmanlara ilişkin garanti, ilgili üreticinin garanti şart ve süreleriyle sınırlı olup YÜKLENİCİ bu garantileri İŞVEREN'e aktarır ve garanti süreçlerinin yürütülmesinde İŞVEREN'e destek olur. Üretici garanti süreçlerindeki onarım/değişim süreleri YÜKLENİCİ'nin sorumluluğunda değildir.
+13.3. Aşağıdaki hâller garanti kapsamı dışındadır:
+a) İŞVEREN veya üçüncü kişilerce yapılan müdahale, tadilat, tamirat ve ilave işler,
+b) Yıldırım, aşırı gerilim, şebeke kaynaklı arızalar, doğal afet, yangın, hırsızlık ve vandalizm,
+c) Periyodik bakım ve temizliğin yaptırılmaması, uygunsuz kullanım,
+d) İŞVEREN iç tesisatından veya trafosundan kaynaklanan arızalar.
+13.4. Garanti kapsamındaki bildirimler yazılı yapılır. YÜKLENİCİ'nin incelemesi sonucunda kusurun kendi işçiliğinden kaynaklandığı anlaşılırsa, kusur makul sürede ve bedelsiz giderilir; aksi hâlde inceleme ve müdahale bedeli İŞVEREN'e aittir.
+MADDE 14 – GECİKME, CEZAİ ŞART VE SORUMLULUĞUN SINIRLANDIRILMASI
+14.1. YÜKLENİCİ'nin münhasıran kendi kusurundan kaynaklanan gecikmelerde, iş bitim tarihini takip eden 14 (on dört) günlük cezasız süreden sonra, geciken her gün için Sözleşme Bedeli'nin on binde 5'i (0,05%) oranında gecikme cezası uygulanır. Toplam gecikme cezası hiçbir hâlde Sözleşme Bedeli'nin %5'ini aşamaz. Madde 8.3'te sayılan hâllerden kaynaklanan gecikmeler için ceza uygulanmaz.
+14.2. Sorumluluk sınırı: YÜKLENİCİ'nin Sözleşme'den doğan toplam sorumluluğu (cezai şart dahil), her hâlükârda kendisine fiilen ödenmiş Sözleşme Bedeli ile sınırlıdır. YÜKLENİCİ; kâr kaybı, üretim/gelir kaybı, elektrik tasarrufu kaybı, itibar kaybı gibi dolaylı ve yansıma zararlardan sorumlu tutulamaz. Kast ve ağır kusur hâlleri saklıdır.
+14.3. Sözleşme öncesinde veya sırasında paylaşılan simülasyon, fizibilite ve üretim tahminleri yalnızca bilgilendirme amaçlıdır; ışınım, gölgelenme, sıcaklık ve şebeke koşullarına bağlı olarak değişebilir ve YÜKLENİCİ açısından hiçbir surette üretim garantisi veya taahhüdü teşkil etmez.
+MADDE 15 – MÜCBİR SEBEPLER
+15.1. Savaş, seferberlik, terör, isyan, halk hareketleri; deprem, sel, fırtına, yangın ve benzeri doğal afetler; salgın hastalıklar; genel grev ve lokavt; ithalat/ihracat kısıtlamaları, gümrük ve lojistik krizleri; resmî makam karar ve yasakları ile Tarafların kontrolü dışında gelişen ve ifayı imkânsızlaştıran veya önemli ölçüde güçleştiren benzeri hâller mücbir sebep sayılır. Küresel tedarik krizleri nedeniyle ekipman teslimlerindeki üretici/lojistik kaynaklı gecikmeler de YÜKLENİCİ yönünden mücbir sebep hükmündedir.
+15.2. Mücbir sebep süresince Tarafların yükümlülükleri askıya alınır ve İşin Süresi bu süre kadar uzar. Mücbir sebebin 60 (altmış) günden fazla sürmesi hâlinde her iki Taraf da Sözleşme'yi feshedebilir; bu hâlde YÜKLENİCİ'ye o ana kadar yaptığı iş, temin ettiği malzeme ve verdiği siparişlerin bedeli ödenir.
+MADDE 16 – SÖZLEŞMENİN FESHİ
+16.1 Yüklenicinin Fesih Hakkı
+16.1.1. Aşağıdaki hâllerde YÜKLENİCİ, yazılı ihtarında tanıdığı 10 (on) günlük sürede ihlal giderilmezse Sözleşme'yi derhal ve tazminatsız feshedebilir:
+a) Herhangi bir ödemenin vadesinin 15 (on beş) günden fazla geçirilmesi,
+b) İŞVEREN'in Madde 9'daki yükümlülüklerini ihlal etmesi ve bu nedenle İş'in ifasının engellenmesi,
+c) İŞVEREN hakkında iflas, konkordato veya haciz sürecinin başlaması,
+d) Mücbir sebebin 60 (altmış) günü aşması.
+16.1.2. Bu hâllerde İŞVEREN; fesih tarihine kadar yapılan iş ve imalatın bedelini, sipariş edilmiş/temin edilmiş malzeme ve ekipman bedellerini, iptal ve iade masraflarını ve bunlara ilaveten kalan iş bedelinin %10'u (yüzde on) tutarında yoksun kalınan kâr tazminatını YÜKLENİCİ'ye öder. YÜKLENİCİ'nin Madde 7'deki mülkiyeti muhafaza hakları saklıdır.
+16.2 İşverenin Fesih Hakkı
+16.2.1. YÜKLENİCİ'nin, Madde 8.3'teki hâller dışında kalan kusuruyla İş'i, iş bitim tarihini 45 (kırk beş) günden fazla aşacak şekilde geciktirmesi ve İŞVEREN'in yazılı ihtarında tanıdığı en az 15 (on beş) günlük ek sürede de İş'e devam edilmemesi hâlinde İŞVEREN Sözleşme'yi feshedebilir. Bu hâlde o ana kadar yapılmış iş ve temin edilmiş malzemenin bedeli YÜKLENİCİ'ye ödenir; hesaplaşma sonrası bakiye avans var ise iade edilir.
+16.3 Sipariş İptali
+16.3.1. İŞVEREN'in ifaya başlanmadan önce Sözleşme'den dönmesi hâlinde; verilen siparişler, yapılan masraflar ve mühendislik hizmetleri bedeli ile kalan bedelin %10'u tutarındaki cezai şart alınan avanstan mahsup edilir. İmalat/montaj başladıktan sonra iptalde ayrıca yapılmış tüm imalat bedeli ödenir. YÜKLENİCİ'nin elinde kalan ürünlerin mülkiyeti YÜKLENİCİ'ye aittir ve cezai şarttan mahsup edilmesi teklif edilemez.
+MADDE 17 – SİGORTA VE İŞ SAĞLIĞI GÜVENLİĞİ
+17.1. Taraflarca yaptırılacak sigortalar (varsa montaj all-risk, üçüncü şahıs mali mesuliyet vb.) ve prim sorumlulukları EK-1'de belirtilir. EK-1'de yazılmayan sigortaların yaptırılması zorunluluğu bulunmamaktadır. Geçici Kabul sonrası Santral'in sigortalanması İŞVEREN'in sorumluluğundadır.
+17.2. YÜKLENİCİ kendi personelinin, İŞVEREN ise kendi personeli ile Saha'daki üçüncü kişilerin İSG tedbirlerinden sorumludur. Çatıya güvenli erişim altyapısının (merdiven, kapak, geçiş yolları) mevcut ve güvenli olması İŞVEREN'in sorumluluğundadır.
+MADDE 18 – GİZLİLİK, FİKRİ HAKLAR VE KİŞİSEL VERİLER
+18.1. Taraflar, Sözleşme kapsamında öğrendikleri ticari ve teknik bilgileri üçüncü kişilerle paylaşmaz. YÜKLENİCİ tarafından hazırlanan proje, çizim ve hesaplar üzerindeki fikri haklar YÜKLENİCİ'ye aittir; İŞVEREN bunları yalnızca Santral'in işletme ve bakımı amacıyla kullanabilir.
+18.2. YÜKLENİCİ, İŞVEREN'in yazılı itirazı olmadıkça, tamamlanan projeyi (Santral fotoğrafları ve genel proje bilgileri ile) referans olarak kullanabilir.
+18.3. Taraflar, 6698 sayılı KVKK kapsamındaki yükümlülüklerine uygun hareket eder.
+MADDE 19 – DEVİR VE ALT YÜKLENİCİ
+19.1. İŞVEREN, YÜKLENİCİ'nin yazılı onayı olmadan Sözleşme'yi ve alacak/borçlarını üçüncü kişiye devredemez.
+19.2. YÜKLENİCİ, İş'in kısımlarını kendi sorumluluğu devam etmek kaydıyla alt yüklenicilere yaptırabilir.
+MADDE 20 – ÇEŞİTLİ HÜKÜMLER
+20.1. Sözleşme'deki herhangi bir hükmün geçersiz sayılması diğer hükümlerin geçerliliğini etkilemez.
+20.2. Bir Tarafın herhangi bir hakkını kullanmaması, o haktan feragat ettiği anlamına gelmez.
+20.3. Sözleşme'de yapılacak değişiklikler ancak Tarafların yazılı mutabakatı ile geçerlidir.
+20.4. İşbu Sözleşme'den doğan damga vergisi EK-1'de aksi belirtilmedikçe İŞVEREN tarafından karşılanır.
+MADDE 21 – UYGULANACAK HUKUK VE UYUŞMAZLIKLARIN ÇÖZÜMÜ
+21.1. Sözleşme, Türkiye Cumhuriyeti hukukuna tabidir.
+21.2. Taraflar uyuşmazlıkları öncelikle 30 (otuz) gün içinde dostane şekilde çözmeye çalışır. Çözülemeyen uyuşmazlıklarda EK-1'de belirtilen il mahkemeleri ve icra daireleri münhasıran yetkilidir.
+21.3. Uyuşmazlıklarda Tarafların ticari defter ve kayıtları ile e-posta yazışmaları, HMK m.193 anlamında münhasır delil sözleşmesi teşkil etmemek kaydıyla geçerli delillerdendir.
+MADDE 22 – YÜRÜRLÜK
+22.1. İşbu Sözleşme, 22 (yirmi iki) madde ve ekleri ile birlikte tek nüsha (aslı YÜKLENİCİ'de, onaylı sureti İŞVEREN'de kalmak üzere) veya iki nüsha olarak EK-1'de belirtilen tarihte imzalanmış ve imza tarihinde yürürlüğe girmiştir.
+
+İŞVEREN
+YÜKLENİCİ
+
+(EK-1'de belirtilen unvan)
+(EK-1'de belirtilen unvan)
+
+Ad Soyad / Kaşe / İmza:
+Ad Soyad / Kaşe / İmza:
+
+Tarih:
+Tarih:

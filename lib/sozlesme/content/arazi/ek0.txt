@@ -1,0 +1,48 @@
+EKLER LİSTESİ
+HAZIRLIK DURUMU VE SORUMLULUK TABLOSU
+REFERANS DOKÜMAN — Sözleşme Madde 4.1 ile birlikte okunur
+Arazi Tipi GES Anahtar Teslim EPC Sözleşmesi'nin (Madde 4.1) ayrılmaz parçasıdır. Proje kimliği: EK-1 Proje Bilgi Formu.
+Durum açıklamaları: HAZIR (MATBU) = içerik yazılmıştır, projeden projeye değişmez. ŞABLON = format yazılmıştır, boş alanlar proje bazında doldurulur. PROJE BAZINDA HAZIRLANIR = içeriği bu sette yazılamaz; karşısında belirtilen taraf her proje için hazırlar ve sunar.
+EK-1  Proje Bilgi Formu
+ŞABLON — Taraflar müştereken doldurur. Tüm değişkenler bu formdadır.
+
+EK-2  Teknik Şartname
+HAZIR (MATBU) — Genel arazi GES teknik şartnamesi yazılmıştır. Projeye özgü projeler/tek hat şemaları İŞ SAHİBİ tarafından bu eke ilave edilir.
+
+EK-3  İSG ve Çevre Şartnamesi
+HAZIR (MATBU) — İhlal ceza tablosundaki tutarlar EK-1 (F) bölümünden alınır.
+
+EK-4  Tamamlanma Testleri ve Kabul Kriterleri
+HAZIR (MATBU) — IEC 62446 esaslı test seti ve eksik iş sınıflandırması yazılmıştır.
+
+EK-5  Ödeme Planı ve Fiyat Dökümü
+ŞABLON — Kilometre taşları yazılmıştır; oran ve tutarları Taraflar müştereken doldurur.
+
+EK-6  İş Programı ve Zaman Çizelgesi
+PROJE BAZINDA HAZIRLANIR — YÜKLENİCİ sunar, İŞ SAHİBİ onaylar (Madde 8.4). Asgari içerik gereksinimleri yazılmıştır.
+
+EK-7  Avans Teminat Mektubu Örneği
+HAZIR (MATBU) — Banka bu örneğe uygun düzenler.
+
+EK-8  Kesin Teminat Mektubu Örneği
+HAZIR (MATBU) — Banka bu örneğe uygun düzenler.
+
+EK-9  Garanti Teminat Mektubu Örneği
+HAZIR (MATBU) — Banka bu örneğe uygun düzenler.
+
+EK-10 Performans ve Emre Amadelik Garantileri
+HAZIR (MATBU) — Formüller ve ölçüm esasları yazılmıştır; hedef yüzdeler EK-1 (G) bölümünden alınır.
+
+EK-11 Sorumluluk Matrisi
+HAZIR (MATBU) — Tipik dağılım yazılmıştır; Taraflar proje bazında revize edebilir.
+
+EK-12 Onaylı Marka / Tedarikçi Listesi
+ŞABLON — Kategoriler yazılmıştır; markaları İŞ SAHİBİ doldurur.
+
+EK-13 Kabul Tutanakları ve Sertifika Şablonları
+HAZIR (MATBU) — Yer teslim, tamamlama sertifikası, geçici ve kesin kabul tutanak şablonları yazılmıştır.
+
+EK-14 Alt Yüklenici Listesi ve Kurumsal Belgeler
+PROJE BAZINDA HAZIRLANIR — YÜKLENİCİ sunar. Sunulacak belgelerin kontrol listesi yazılmıştır.
+
+Matbu ekler (EK-2, 3, 4, 7, 8, 9, 10, 11, 13) ana sözleşme gibi değiştirilmeden kullanılır; içlerindeki tüm değişkenler EK-1 Proje Bilgi Formu'na atıfla çözülmüştür.

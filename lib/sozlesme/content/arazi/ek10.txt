@@ -1,0 +1,19 @@
+EK-10
+PERFORMANS VE EMRE AMADELİK GARANTİLERİ
+HAZIR (MATBU) — Hedef yüzdeler ve tazminat birim değerleri EK-1 Proje Bilgi Formu (G) bölümünde belirlenir
+Arazi Tipi GES Anahtar Teslim EPC Sözleşmesi'nin (Madde 4.1) ayrılmaz parçasıdır. Proje kimliği: EK-1 Proje Bilgi Formu.
+1. PERFORMANS ORANI (PR) GARANTİSİ
+1.1  YÜKLENİCİ; Santral'in sıcaklık düzeltmeli performans oranının (PR), ölçüm dönemlerinde EK-1 (G) bölümünde belirtilen garanti değerinin (PRgaranti) altında kalmayacağını garanti eder (Sözleşme Madde 18).
+1.2  Hesaplama:  PR = Eüretilen / (Gpoa × PDC,STC / GSTC × KT)   — burada; Eüretilen: sayaçtan ölçülen net AC üretim (kWh); Gpoa: panel düzlemine gelen toplam ışınım (kWh/m²); PDC,STC: kurulu DC güç (kWp); GSTC: 1 kW/m²; KT: ortalama modül sıcaklığına göre üretici güç sıcaklık katsayısıyla hesaplanan sıcaklık düzeltme çarpanı.
+1.3  Ölçüm dönemleri: (i) Geçici PR testi — EK-4 Md. 4 kapsamındaki asgari 7 günlük deneme işletmesi; (ii) Yıllık PR ölçümleri — Geçici Kabul'den itibaren Garanti Süresi boyunca her 12 aylık dönem.
+1.4  Veri esasları: Işınım, düzlem (POA) piranometresinden; üretim, ana tahakkuk sayacından alınır. Veri kaydı azami 15 dakikalık aralıklarla yapılır. İŞ SAHİBİ kaynaklı kısıtlamalar (şebeke kesintisi, kısıt talimatı) ve mücbir sebep süreleri hesap dışı bırakılır. Ölçüm dönemi içindeki veri kaybı %10'u aşarsa, kayıp dönem uydu bazlı ışınım verisiyle veya Taraflarca mutabık kalınan komşu dönem ortalamasıyla tamamlanır.
+2. EMRE AMADELİK (AVAILABILITY) GARANTİSİ
+2.1  YÜKLENİCİ; Santral'in yıllık emre amadelik oranının EK-1 (G) bölümünde belirtilen garanti değerinin (Agaranti) altında kalmayacağını garanti eder.
+2.2  Hesaplama:  A = (Ttoplam − Tarıza) / Ttoplam × 100   — burada; Ttoplam: dönem içindeki, ışınımın inverter çalışma eşiğinin üzerinde olduğu toplam süre; Tarıza: YÜKLENİCİ sorumluluğundaki arıza ve duruş süreleri. İŞ SAHİBİ kaynaklı duruşlar, şebeke kesintileri, planlı ve İŞ SAHİBİ onaylı bakım süreleri ile mücbir sebepler Tarıza'ya dâhil edilmez.
+3. GARANTİ ALTI KALMA HÂLİNDE TAZMİNAT
+3.1  PR tazminatı:  TPR = (PRgaranti − PRölçülen) × 100 × K1   — K1: EK-1 (G) bölümünde belirtilen, eksik kalınan her %-puan başına tazminat birim değeri.
+3.2  Emre amadelik tazminatı:  TA = (Agaranti − Aölçülen) × 100 × K2   — K2: EK-1 (G) bölümünde belirtilen birim değer.
+3.3  Tazminatlar; ilgili ölçüm dönemi raporunun kesinleşmesini takiben Sözleşme Madde 18.2'deki usulle ödenir. YÜKLENİCİ; tazminat ödemek yerine, eksikliğin kök nedenini giderip müteakip 3 (üç) aylık doğrulama ölçümünde garanti değerini sağlamayı seçebilir; doğrulama başarısız olursa tazminat derhâl muaccel olur.
+3.4  Geçici PR testinde PRölçülen değerinin PRgaranti'nin %95'inin (mutlak değil, oransal) altında kalması, EK-4 kapsamında Tip A eksik sayılır ve Geçici Kabul yapılamaz.
+4. RAPORLAMA
+4.1  YÜKLENİCİ; her ölçüm dönemi sonunda 15 gün içinde, ham verileri, hesaplamaları ve hariç tutulan süre gerekçelerini içeren performans raporunu İŞ SAHİBİ'ne sunar. İŞ SAHİBİ 15 gün içinde itiraz etmezse rapor kesinleşir; itiraz hâlinde Taraflar 15 gün içinde mutabakat sağlayamazsa hesap, masrafı haksız çıkan Tarafa ait olmak üzere bağımsız bir akredite kuruluşa yaptırılır.

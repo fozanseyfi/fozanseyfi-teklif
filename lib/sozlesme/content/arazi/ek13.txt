@@ -1,0 +1,90 @@
+EK-13
+KABUL TUTANAKLARI VE TAMAMLAMA SERTİFİKASI ŞABLONLARI
+HAZIR (MATBU) — Tutanaklar bu şablonlara uygun düzenlenir (Sözleşme Madde 8.2, 15.2, 16)
+Arazi Tipi GES Anahtar Teslim EPC Sözleşmesi'nin (Madde 4.1) ayrılmaz parçasıdır. Proje kimliği: EK-1 Proje Bilgi Formu.
+1. YER TESLİM TUTANAĞI  (Sözleşme Madde 8.2)
+Proje / Sözleşme No
+EK-1'e bakınız / ……………
+
+Teslim edilen saha (ada/parsel, koordinat)
+……………………………………
+
+Ön şartların sağlandığının tespiti (EK-1/C)
+Sağlandı ☐   Sağlanmadı ☐ (açıklama: ……)
+
+Saha üzerindeki mevcut durum / röperler
+……………………………………
+
+İşe başlama tarihi (bu tutanak tarihi)
+……………
+
+İŞ SAHİBİ / Komisyon (ad-imza): ………………………………     YÜKLENİCİ / Vekili (ad-imza): ………………………………     Tarih: ……………
+2. TAMAMLAMA SERTİFİKASI  (Sözleşme Madde 15.2 — her test aşaması için)
+Aşama (EK-4: A Mekanik / B Elektriksel / C Performans)
+……………
+
+Kapsanan iş kalemleri / bölgeler
+……………………………………
+
+Test raporları referansları
+……………………………………
+
+Tespit edilen eksikler ve tipleri (A/B/C — EK-4 Md.5)
+……………………………………
+
+Eksiklerin giderilme süresi
+…………… gün
+
+Not
+İşbu sertifika İşler'in kabulü anlamına gelmez (Madde 15.2).
+
+İŞ SAHİBİ / Komisyon (ad-imza): ………………………………     YÜKLENİCİ / Vekili (ad-imza): ………………………………     Tarih: ……………
+3. GEÇİCİ KABUL TUTANAĞI  (Sözleşme Madde 16.1)
+Geçici Kabul talep bildirimi tarihi
+……………
+
+Komisyon üyeleri
+……………………………………
+
+EK-4 kontrol listesi sonucu
+Uygun ☐   Tip B/C eksiklerle uygun ☐
+
+Eksikler listesi (Yapılacak İşler) ve süreleri
+…………………………………… (azami 15 gün)
+
+Bedel kesintisi yapılan kusurlar (varsa) ve tutarı (Madde 16.1/d)
+……………………………………
+
+Garanti Teminat Mektubu teslimi (Madde 7.4)
+Teslim edildi ☐
+
+GEÇİCİ KABUL TARİHİ
+……………
+
+Not
+Hasar ve riskler bu tarihte İŞ SAHİBİ'ne geçer; Garanti Süresi bu tarihte başlar (Madde 16.1/e, 19.1).
+
+İŞ SAHİBİ / Komisyon (ad-imza): ………………………………     YÜKLENİCİ / Vekili (ad-imza): ………………………………     Tarih: ……………
+4. KESİN KABUL TUTANAĞI  (Sözleşme Madde 16.2)
+Garanti Süresi bitiş tarihi
+……………
+
+Komisyon üyeleri
+……………………………………
+
+Garanti dönemi arıza/kusur kayıtlarının değerlendirilmesi
+……………………………………
+
+EK-10 performans ve emre amadelik sonuçları
+……………………………………
+
+Giderilen / bedeli kesilen hususlar
+……………………………………
+
+KESİN KABUL TARİHİ
+……………
+
+Not
+Garanti Teminat Mektubu, muaccel borç yoksa iade edilir (Madde 7.4).
+
+İŞ SAHİBİ / Komisyon (ad-imza): ………………………………     YÜKLENİCİ / Vekili (ad-imza): ………………………………     Tarih: ……………
