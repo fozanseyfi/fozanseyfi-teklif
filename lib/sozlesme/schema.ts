@@ -7,7 +7,7 @@
  * Arazi EK-5) doldurulur. Bu dosya yalnızca VERİ'dir (server + client ortak kullanır).
  */
 
-export type SozlesmeTur = "cati" | "arazi";
+export type SozlesmeTur = "cati" | "arazi" | "malzeme" | "hizmet" | "iscilik";
 export type FieldType = "text" | "textarea" | "number" | "date" | "select" | "bool";
 
 export interface SozlesmeField {
@@ -359,7 +359,121 @@ const ARAZI: SozlesmeTemplate = {
   ],
 };
 
-export const SOZLESME_TEMPLATES: Record<SozlesmeTur, SozlesmeTemplate> = { cati: CATI, arazi: ARAZI };
+// ── MALZEME / HİZMET / İŞÇİLİK (tek ana metin + EK-1 form + EK-2/EK-3 statik) ──
+// Üçü de aynı yapıda: EK-1 "Bilgi Formu" (7 tablo, 2 sütun) doldurulur; ana metin,
+// EK-2 (ödeme planı, varsayılanlı) ve EK-3 (liste) statik — orijinal biçimde çıktı.
+
+function svcTemplate(opts: {
+  tur: SozlesmeTur;
+  label: string;
+  klasor: string;
+  cp: string; // karşı taraf (Tedarikçi / Hizmet Veren / Yüklenici)
+  ek2Title: string;
+  ek3Title: string;
+  kapsam: SozlesmeSection; // türe özgü iş/kapsam & süre bölümü
+}): SozlesmeTemplate {
+  const { tur, label, klasor, cp, ek2Title, ek3Title, kapsam } = opts;
+  return {
+    tur,
+    label,
+    klasor,
+    anaMetin: { id: "ana", ek: "", title: "Ana Sözleşme Metni", sourceFile: "ana.docx", desc: "Sözleşme ana metni — değişmez; değişkenler EK-1'de." },
+    docs: [
+      {
+        id: "ek1",
+        ek: "EK-1",
+        title: "Bilgi Formu",
+        sourceFile: "ek1.docx",
+        sections: [
+          {
+            title: "A. Taraflar ve Kimlik",
+            fields: [
+              { key: "isvBilgi", label: "İŞVEREN — Unvan / Adres / VD-VKN / MERSİS", type: "textarea", full: true, autofill: "svcIsvBilgi" },
+              { key: "isvIrtibat", label: "İŞVEREN — Yetkili / Tel / E-posta / KEP", full: true, autofill: "svcIsvIrtibat" },
+              { key: "karsiBilgi", label: `${cp} — Unvan / Adres / VD-VKN / MERSİS`, type: "textarea", full: true, autofill: "svcKarsiBilgi" },
+              { key: "karsiIrtibat", label: `${cp} — Yetkili / Tel / E-posta / KEP`, full: true, autofill: "svcKarsiIrtibat" },
+              { key: "karsiIban", label: `${cp} — Banka / IBAN`, autofill: "yukIban" },
+              { key: "sozlesmeNo", label: "Sözleşme No" },
+              { key: "imzaTarihi", label: "İmza Tarihi", type: "date" },
+              { key: "iliskiliProje", label: "İlişkili Proje (varsa)", autofill: "projeAdi" },
+            ],
+          },
+          kapsam,
+          {
+            title: "Bedel ve Ödeme",
+            fields: [
+              { key: "bedel", label: "Sözleşme Bedeli (KDV hariç)", type: "number" },
+              { key: "paraBirimi", label: "Para Birimi", type: "select", options: PARA },
+              { key: "avansOran", label: "Avans Oranı (varsa)", suffix: "%" },
+              { key: "vade", label: "Ödeme Vadesi (fatura tebliğinden)", suffix: "gün" },
+              { key: "damga", label: "Damga Vergisi Yükümlülüğü" },
+            ],
+          },
+          {
+            title: "Garanti ve Uyuşmazlık",
+            fields: [
+              { key: "garanti", label: "Garanti Süresi" },
+              { key: "mahkeme", label: "Yetkili Mahkeme / İcra Dairesi", autofill: "yetkiliMahkeme" },
+            ],
+          },
+        ],
+      },
+    ],
+    statik: [
+      { id: "ek2", ek: "EK-2", title: ek2Title, sourceFile: "ek2.docx", desc: "Ödeme planı (varsayılan kilometre taşları) — gerekirse Word'de düzenlenir." },
+      { id: "ek3", ek: "EK-3", title: ek3Title, sourceFile: "ek3.docx", desc: "Liste (kalem/teslimat) — Word'de doldurulur." },
+    ],
+  };
+}
+
+const MALZEME = svcTemplate({
+  tur: "malzeme", label: "Malzeme Tedarik", klasor: "1_Malzeme_Tedarik", cp: "TEDARİKÇİ",
+  ek2Title: "Ödeme Planı", ek3Title: "Malzeme Listesi",
+  kapsam: {
+    title: "İş / Kapsam ve Teslimat",
+    fields: [
+      { key: "kapsamIlave", label: "Kapsama dâhil ilave hizmet (varsa)", full: true },
+      { key: "sure", label: "Teslim Süresi / Tarihi" },
+      { key: "teslimYeri", label: "Teslim Yeri", full: true },
+    ],
+  },
+});
+
+const HIZMET = svcTemplate({
+  tur: "hizmet", label: "Hizmet / Projelendirme", klasor: "2_Hizmet_Projelendirme", cp: "HİZMET VEREN",
+  ek2Title: "Ödeme Planı", ek3Title: "Hizmet Teslimatları Listesi",
+  kapsam: {
+    title: "Hizmet Kapsamı ve Süre",
+    fields: [
+      { key: "isTanimi", label: "Hizmetin Tanımı / Amacı", type: "textarea", full: true },
+      { key: "kilitPersonel", label: "Kilit Personel (ad / unvan / belge)", full: true },
+      { key: "sure", label: "Toplam Süre / Nihai Teslim" },
+    ],
+  },
+});
+
+const ISCILIK = svcTemplate({
+  tur: "iscilik", label: "İşçilik / Montaj", klasor: "3_Iscilik_Montaj", cp: "YÜKLENİCİ",
+  ek2Title: "Ödeme Planı", ek3Title: "İşçilik Kalemleri ve Mahal Listesi",
+  kapsam: {
+    title: "İş Kapsamı ve Süre",
+    fields: [
+      { key: "isTanimi", label: "İşin Tanımı", type: "textarea", full: true },
+      { key: "isyeri", label: "İşyeri (adres / saha)", full: true },
+      { key: "sure", label: "İş Süresi / Bitiş" },
+    ],
+  },
+});
+
+export const SOZLESME_TEMPLATES: Record<SozlesmeTur, SozlesmeTemplate> = {
+  cati: CATI,
+  arazi: ARAZI,
+  malzeme: MALZEME,
+  hizmet: HIZMET,
+  iscilik: ISCILIK,
+};
+
+export const SOZLESME_TURS: SozlesmeTur[] = ["cati", "arazi", "malzeme", "hizmet", "iscilik"];
 
 export function getTemplate(tur: SozlesmeTur): SozlesmeTemplate {
   return SOZLESME_TEMPLATES[tur];

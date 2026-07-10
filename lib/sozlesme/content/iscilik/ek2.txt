@@ -1,0 +1,30 @@
+EK-2
+ÖDEME PLANI
+ŞABLON — Varsayılan plan yazılıdır; oranları Taraflar değiştirebilir veya özel planı doldurur
+İşçilik ve Montaj İşleri Sözleşmesi'nin (Madde 4.1) ayrılmaz parçasıdır. Sözleşme No: EK-1 (A) bölümüne bakınız.
+Aşağıdaki plan varsayılandır; Taraflar oranları değiştirebilir. Toplam %100 olmalıdır. Her aşamanın ödenmesi, karşısındaki belgenin sunulmasına bağlıdır (Sözleşme Madde 6.2).
+VARSAYILAN PLAN — İŞÇİLİK / MONTAJ
+1. İşe başlama (mobilizasyon)
+%10 — yer teslim / işe başlama tutanağı
+
+2. Aylık ara hakedişler (ilerlemeye göre)
+Toplamda %75'e kadar — müşterek metraj + SGK belgeleri (Madde 6.3)
+
+3. İmalatın tamamlanması ve testler
+%10 — tamamlama bildirimi + test/fonksiyon tutanakları
+
+4. Kabul (Madde 11)
+%5 — Kabul tutanağı
+
+ÖZEL PLAN (varsayılan yerine kullanılacaksa doldurunuz)
+Aşama 1: ……………………………………
+%…………… — belge: ……………………………………
+
+Aşama 2: ……………………………………
+%…………… — belge: ……………………………………
+
+Aşama 3: ……………………………………
+%…………… — belge: ……………………………………
+
+Aşama 4: ……………………………………
+%…………… — belge: ……………………………………

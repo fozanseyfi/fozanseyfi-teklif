@@ -1,0 +1,87 @@
+MALZEME TEDARİK
+SÖZLEŞMESİ
+ 
+İŞVEREN:  EK-1 (A)
+TEDARİKÇİ:  EK-1 (A)
+İşin Tanımı:  EK-1 (B) / EK-3
+Sözleşme No / Tarihi:  EK-1 (A)
+
+MATBU ANA SÖZLEŞME — Ekler (EK-1, EK-2, EK-3) ayrı dosyalardadır; siparişe özgü tüm bilgiler eklerde düzenlenir, ana metin değiştirilmez.
+
+İÇİNDEKİLER
+TOC \h \o "1-1"
+
+MADDE 1 – TARAFLAR
+1.1  İşbu Malzeme Tedarik Sözleşmesi ("Sözleşme"); EK-1 Sipariş Bilgi Formu'nun (A) bölümünde bilgileri belirtilen İŞVEREN ile aynı bölümde bilgileri belirtilen TEDARİKÇİ arasında, EK-1'de belirtilen tarihte akdedilmiştir. Taraflar münferiden "Taraf", birlikte "Taraflar" olarak anılır.
+1.2  Tarafların tebligat adresleri, irtibat kişileri ve banka hesap bilgileri EK-1'in (A) bölümünde yer alır.
+MADDE 2 – TANIMLAR
+Malzemeler: EK-3 Malzeme Listesi'nde kalem kalem tanımlanan mal, ekipman ve bunların standart aksesuarlarını,
+İşler: Malzemelerin EK-1'in (C) bölümünde belirtilen teslim yerine, Sözleşme'ye uygun teslimini,
+Teslimat: Malzemelerin teslim yerinde, imzalı irsaliye ve teslim tutanağı karşılığı teslimini,
+Kabul: Madde 10 uyarınca yapılan muayene ve kabul işlemlerinin tamamlanmasını,
+Sözleşme Bedeli: Madde 5'te tanımlanan ve EK-1'in (D) bölümünde tutarı belirtilen bedeli,
+Garanti Süresi: EK-1'in (F) bölümünde belirtilen ve Kabul tarihinden itibaren başlayan süreyi
+ifade eder. Gün ifadeleri takvim günüdür; başlıklar yorumda esas alınmaz.
+MADDE 3 – KONU VE KAPSAM
+3.1  İşbu Sözleşme'nin konusu; EK-3 Malzeme Listesi'nde marka/model, teknik özellik ve miktarları belirtilen Malzemelerin TEDARİKÇİ tarafından temini ve EK-1'in (C) bölümünde belirtilen yerde İŞVEREN'e teslimine ilişkin koşulların düzenlenmesidir. Montaj, kurulum ve devreye alma işleri kapsam dışıdır (EK-3'te açıkça yazılmadıkça).
+3.2  EK-3'te sayılmayan iş, malzeme ve hizmetler kapsam dışıdır; ancak kapsamın sözleşmeye uygun ifası için teknik olarak zorunlu tamamlayıcı unsurlar bedele dâhildir. İşbu Sözleşme anahtar teslim bir taahhüt içermez; TEDARİKÇİ'nin sorumluluğu EK-3'te tanımlı kapsam ile sınırlıdır.
+MADDE 4 – SÖZLEŞME DOKÜMANLARI VE ÖNCELİK SIRASI
+4.1  Sözleşme Dokümanları ve öncelik sırası: (i) işbu Sözleşme ana metni, (ii) EK-1 Sipariş Bilgi Formu, (iii) EK-3 Malzeme Listesi ve teknik şartnameler, (iv) EK-2 Ödeme Planı, (v) TEDARİKÇİ teklifi (yalnızca EK-1'de referans verilmişse ve çelişmeyen hükümleriyle). Çelişki hâlinde bu sıralama uygulanır; teknik hususlarda daha ağır ve kaliteli gereklilik esas alınır.
+MADDE 5 – SÖZLEŞME BEDELİ
+5.1  Sözleşme Bedeli; EK-1'in (D) bölümünde belirtilen, KDV hariç toplam bedeldir. Bedelin türü EK-1'in (D) bölümünde işaretlenir: (i) götürü bedel veya (ii) birim fiyat esaslı (bu hâlde EK-3'teki birim fiyat cetveli uygulanır ve kesin bedel, gerçekleşen miktar/metraja göre belirlenir).
+5.2  Bedele; Malzemeler, ambalaj, standart dokümantasyon ve (EK-1'de aksi belirtilmedikçe) teslim yerine nakliye, yükleme ve nakliye sigortası dâhildir. EK-1'in (D) bölümünde aksine açık düzenleme olmadıkça fiyat farkı ve eskalasyon uygulanmaz.
+MADDE 6 – ÖDEMELER
+6.1  Ödemeler; EK-2 Ödeme Planı'na göre yapılır. Avans öngörülmüşse tutarı EK-1'in (D) bölümünde belirtilir ve (EK-1'de teminat şartı işaretliyse) avans teminat mektubunun teslimini müteakip ödenir.
+6.2  TEDARİKÇİ; ilgili ödeme aşamasının gerçekleştiğini gösteren belgelerle birlikte faturasını düzenler. İŞVEREN; faturayı 7 (yedi) gün içinde inceler, uygun bulunmayan kısmı gerekçeli bildirir. Uygun bulunan tutar, fatura tebliğinden itibaren EK-1'in (D) bölümünde belirtilen vadede, EK-1'deki banka hesabına ödenir.
+6.3  İŞVEREN'in Sözleşme'den doğan muaccel alacakları (cezalar, nam ve hesabına yaptırılan işler dâhil), TEDARİKÇİ'ye yapılacak ödemelerden mahsup edilebilir. Ödeme yapılması veya faturanın kabulü, Kabul anlamına gelmez.
+MADDE 7 – TEMİNATLAR
+7.1  Teminat şartları EK-1'in (E) bölümünde düzenlenir; işaretlenmemişse işbu Madde uygulanmaz. İşaretlenmişse; kesin teminat, Sözleşme Bedeli'nin EK-1'de belirtilen oranında, ilk talepte ödemeli ve kayıtsız şartsız banka teminat mektubu olarak imzadan itibaren 7 (yedi) gün içinde verilir; Kabul'ü (garanti teminatı öngörülmüşse Garanti Süresi sonunu) müteakip iade edilir. Teminatlar, İŞVEREN alacakları için başkaca hüküm istihsaline gerek olmaksızın paraya çevrilebilir; fazlaya ilişkin haklar saklıdır.
+MADDE 8 – SÜRE VE TESLİMAT
+8.1  Süreler, teslim yeri, teslim şekli ve (varsa) kısmi teslim programı EK-1'in (C) bölümünde belirtilir. Süre; EK-1'de belirtilen başlangıç olayından (imza, avans, yer teslimi veya onay) itibaren işler.
+8.2  TEDARİKÇİ; süreyi etkileyebilecek her durumu derhâl yazılı bildirir. Kısmi teslimler, EK-1'de öngörülmedikçe Kabul doğurmaz.
+8.3  Süre uzatımı yalnızca; mücbir sebep (Madde 13), İŞVEREN'in kendi yükümlülüklerini (onay, bilgi, yer teslimi) geciktirmesi veya Taraflarca imzalı kapsam değişikliği hâllerinde ve etkilenen süre kadar verilir. Talep, olayın öğrenilmesinden itibaren 7 (yedi) gün içinde yazılı yapılmazsa hak düşer.
+MADDE 9 – MALZEMELERE İLİŞKİN HÜKÜMLER
+9.1  Malzemeler; yeni, kullanılmamış, orijinal ambalajında ve EK-3'teki teknik özelliklere, marka/model tanımlarına ve ilgili standartlara (TSE, EN, IEC, CE) uygun teslim edilir. Uygunluk belgeleri ve test raporları Teslimat'la birlikte verilir. EK-3'te tanımlı marka/modelin muadili, ancak İŞVEREN'in önceden yazılı onayıyla teslim edilebilir.
+9.2  Hasar geçişi: Malzemelerin ziya ve hasar riski, teslim yerinde sağlam ve eksiksiz teslim ile İŞVEREN'e geçer. Teslim öncesi tüm nakliye, elleçleme ve depolama riskleri TEDARİKÇİ'ye aittir.
+9.3  Mülkiyet; ilgili Malzemenin bedelinin tamamen ödenmesiyle İŞVEREN'e geçer. TEDARİKÇİ; Malzemeler üzerinde rehin, haciz ve benzeri takyidat bulunmadığını ve üçüncü kişilerin fikri/sınai mülkiyet haklarının ihlal edilmediğini garanti eder.
+9.4  Sevkiyat bildirimi: TEDARİKÇİ; sevkiyattan asgari 2 (iki) iş günü önce İŞVEREN'e bildirimde bulunur ve paket listesini iletir. Kısmi sevkiyat, EK-1'de öngörülmedikçe İŞVEREN onayına tabidir.
+MADDE 10 – MUAYENE VE KABUL
+10.1  İŞVEREN; Teslimat'tan itibaren 10 (on) gün içinde miktar ve gözle görülür ayıp muayenesini yapar. Ayıplı, eksik veya EK-3'e aykırı çıkan Malzemeler tutanakla tespit edilir; TEDARİKÇİ bunları, tebliğden itibaren EK-1'in (C) bölümünde belirtilen sürede (belirtilmemişse 15 gün) bedelsiz yenisiyle değiştirir veya tamamlar. Reddedilen Malzemelerin iade nakliyesi TEDARİKÇİ'ye aittir.
+10.2  Muayenede uygun bulunan (veya kusurları giderilen) Malzemeler için Kabul tutanağı düzenlenir. Kabul; gizli ayıplardan doğan kanuni hakları ve garanti yükümlülüklerini ortadan kaldırmaz. İŞVEREN'in Malzemeleri kullanmaya başlamış olması tek başına Kabul sayılmaz.
+MADDE 11 – GECİKME CEZASI
+11.1  İşler'in (veya EK-1'de ayrı süre bağlanmış her kısmın), süre uzatımları hariç, süresinde tamamlanmaması hâlinde; gecikilen her gün için, geciken kısmın bedelinin EK-1'in (F) bölümünde belirtilen oranında (belirtilmemişse binde 3) gecikme cezası uygulanır ve ödemelerden mahsup edilir. Ceza ifaya ektir. Toplam ceza, EK-1'deki üst sınıra (belirtilmemişse Sözleşme Bedeli'nin %10'u) ulaştığında İŞVEREN; Sözleşme'yi feshedebilir ve/veya kalan kısmı TEDARİKÇİ nam ve hesabına üçüncü kişilere yaptırabilir; bedel farkı ve zararlar tahsil edilir.
+MADDE 12 – GARANTİ VE AYIPTAN SORUMLULUK
+12.1  TEDARİKÇİ; Malzemeleri, malzeme ve imalat hatalarına karşı, Kabul tarihinden itibaren EK-1'in (F) bölümünde belirtilen Garanti Süresi boyunca garanti eder; üretici garanti belgeleri Teslimat'ta İŞVEREN'e verilir. Garanti kapsamındaki kusurlar; bildirimden itibaren EK-1'in (F) bölümünde belirtilen sürede (belirtilmemişse 15 gün) bedelsiz giderilir; giderilmemesi hâlinde İŞVEREN kusuru üçüncü kişilere giderttirip masrafını %10 genel gider ilavesiyle tahsil edebilir. Değiştirilen/onarılan kısımda garanti yeniden başlar; gizli ayıplara ilişkin kanuni haklar saklıdır.
+MADDE 13 – MÜCBİR SEBEP
+13.1  Tarafların kontrolü dışında, öngörülemeyen ve önlenemeyen olaylar (savaş, doğal afet, genel grev, resmî makamların genel nitelikli engelleyici işlemleri) mücbir sebeptir; ekonomik güçlükler ve tedarik zinciri aksamaları sayılmaz. Maruz kalan Taraf 7 (yedi) gün içinde bildirir; yükümlülükler etkilenen ölçüde askıya alınır. 60 (altmış) günü aşarsa her iki Taraf da tazminatsız feshedebilir; ifa edilmiş kısımların bedeli ödenir.
+MADDE 14 – FESİH
+14.1  İŞVEREN; TEDARİKÇİ'nin esaslı ihlalinde (verilen makul sürede giderilmemesi kaydıyla), gecikme cezasının üst sınıra ulaşmasında, aczi/iflası hâlinde veya Sözleşme'nin izinsiz devrinde feshedebilir; (varsa) teminat irat kaydedilir, kalan kısım üçüncü kişilere yaptırılır, bedel farkı ve zararlar tahsil edilir.
+14.2  TEDARİKÇİ; İŞVEREN'in muaccel ödeme borcunu, yazılı ihtara rağmen 30 (otuz) gün içinde ödememesi hâlinde feshedebilir; ifa ettiği kısmın bedeli ile belgeli makul masrafları ödenir.
+14.3  İŞVEREN; 15 (on beş) gün önceden yazılı bildirimle her zaman feshedebilir; bu hâlde TEDARİKÇİ'ye ifa edilen kısmın bedeli ile belgelendirilmiş makul ve iptal edilemeyen taahhüt masrafları ödenir; kâr kaybı talep edilemez. Fesihte; bedeli ödenmiş tüm malzemeler 7 (yedi) gün içinde İŞVEREN'e teslim edilir ve mevcut durum tutanakla tespit edilir.
+MADDE 15 – SORUMLULUK
+15.1  TEDARİKÇİ; ifadan kaynaklanan ve kendisine veya personeline atfedilebilen zararlardan sorumludur ve üçüncü kişi taleplerine karşı İŞVEREN'i tazmin eder. Tarafların toplam sorumluluğu; kasıt, ağır kusur, üçüncü kişi talepleri, fikri mülkiyet ve gizlilik ihlalleri ile can kaybı/bedensel zarar hariç, EK-1'in (F) bölümünde belirtilen üst sınırla (belirtilmemişse Sözleşme Bedeli ile) sınırlıdır; dolaylı zarar ve kâr kaybından sorumluluk yoktur (gecikme cezaları hariç).
+MADDE 16 – GİZLİLİK VE KİŞİSEL VERİLER
+16.1  Taraflar; Sözleşme kapsamında öğrendikleri ticari, teknik ve finansal bilgileri gizli tutar ve yalnızca Sözleşme'nin ifası için kullanır; bu yükümlülük sona ermeden itibaren 3 (üç) yıl devam eder. Taraflar, 6698 sayılı KVKK ve ikincil mevzuatına uygun hareket eder.
+MADDE 17 – DEVİR VE TEMLİK
+17.1  TEDARİKÇİ; İŞVEREN'in yazılı onayı olmadan Sözleşme'yi, yükümlülüklerini veya alacaklarını devredemez, temlik edemez, rehin veremez.
+MADDE 18 – VERGİLER
+18.1  Damga vergisi yükümlülüğü EK-1'in (D) bölümünde düzenlenir. TEDARİKÇİ'nin faaliyet, personel ve kazancına ilişkin tüm vergi ve mali yükümlülükler kendisine aittir; mevzuattan doğan tevkifatlar (KDV tevkifatı dâhil) ilgili hükümlere göre uygulanır.
+MADDE 19 – BİLDİRİMLER
+19.1  Bildirimler; EK-1'deki adreslere yazılı olarak (elden imzalı, noter, iadeli taahhütlü posta veya KEP) yapılır. Fesih ve temerrüde ilişkin bildirimlerde TTK 18/3'teki usuller uygulanır. Operasyonel yazışmalar EK-1'deki e-posta adresleriyle yürütülebilir.
+MADDE 20 – UYGULANACAK HUKUK VE UYUŞMAZLIK ÇÖZÜMÜ
+20.1  Sözleşme, Türkiye Cumhuriyeti hukukuna tabidir. Uyuşmazlıklar öncelikle 15 (on beş) gün içinde dostane çözülmeye çalışılır; çözülemezse EK-1'in (G) bölümünde belirtilen yer mahkemeleri ve icra daireleri yetkilidir. Tarafların ticari defter, e-posta ve elektronik kayıtları HMK 193 anlamında delildir.
+MADDE 21 – DİĞER HÜKÜMLER
+21.1  İşbu Sözleşme ve ekleri, Taraflar arasındaki tüm mutabakatı oluşturur; değişiklikler ancak yazılı zeyilname ile yapılabilir. Herhangi bir hükmün geçersizliği diğerlerini etkilemez; hakkın kullanılmaması feragat sayılmaz. Nitelikleri gereği sona ermeden sonra da uygulanması gereken hükümler yürürlükte kalır.
+MADDE 22 – İMZA VE YÜRÜRLÜK
+22.1  İşbu Sözleşme; 22 madde ve 3 (üç) ek ile birlikte, EK-1'de belirtilen tarihte Taraflarca imzalanarak yürürlüğe girmiştir.
+
+İŞVEREN
+(EK-1'de belirtilen unvan)
+Ad Soyad / Unvan: ………………………………
+İmza / Kaşe: ………………………………
+Tarih: ………………
+TEDARİKÇİ
+(EK-1'de belirtilen unvan)
+Ad Soyad / Unvan: ………………………………
+İmza / Kaşe: ………………………………
+Tarih: ………………

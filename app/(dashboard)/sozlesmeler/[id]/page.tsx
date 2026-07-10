@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { loadViewableProject } from "@/lib/project-access";
 import { parseBrandSettings } from "@/lib/pdf-brand";
 import { SozlesmeEditor } from "@/components/sozlesme/sozlesme-editor";
-import { type SozlesmeData, type SozlesmeTur } from "@/lib/sozlesme/schema";
+import { SOZLESME_TURS, type SozlesmeData, type SozlesmeTur } from "@/lib/sozlesme/schema";
 import { loadStaticTexts } from "@/lib/sozlesme/content";
 
 interface Props {
@@ -30,8 +30,8 @@ export default async function SozlesmeEditPage({ params, searchParams }: Props) 
   const saved = (settings.sozlesme as SozlesmeData | undefined) ?? null;
 
   const tur: SozlesmeTur =
-    turParam === "cati" || turParam === "arazi"
-      ? turParam
+    turParam && (SOZLESME_TURS as string[]).includes(turParam)
+      ? (turParam as SozlesmeTur)
       : saved?.tur ?? (project.installationType === "GROUND_MOUNTED" ? "arazi" : "cati");
 
   const str = (v: unknown) => (typeof v === "string" ? v : "");
@@ -56,6 +56,11 @@ export default async function SozlesmeEditPage({ params, searchParams }: Props) 
     inverterAC: numStr(settings.acGuc),
     ilIlce: [str(settings.il), str(settings.ilce)].filter(Boolean).join(" / "),
     yetkiliMahkeme: str(settings.il),
+    // Malzeme/Hizmet/İşçilik EK-1 birleşik alanları
+    svcIsvBilgi: [project.customerName, project.customerAddress].filter(Boolean).join(" · "),
+    svcIsvIrtibat: [project.customerPhone, project.customerEmail].filter(Boolean).join(" / "),
+    svcKarsiBilgi: [brand.payCompanyName || project.organization?.name, brand.taxNumber ? "VKN " + brand.taxNumber : ""].filter(Boolean).join(" · "),
+    svcKarsiIrtibat: brand.contact || "",
   };
 
   const staticTexts = await loadStaticTexts(tur);

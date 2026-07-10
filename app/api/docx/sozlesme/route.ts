@@ -3,6 +3,7 @@ import * as mammoth from "mammoth";
 import { getCurrentUser } from "@/lib/auth";
 import { getProjectAccess } from "@/lib/project-access";
 import { fillDocx, packageZip, contractFilename } from "@/lib/sozlesme/fill";
+import type { SozlesmeTur } from "@/lib/sozlesme/schema";
 
 export const runtime = "nodejs";
 
@@ -20,10 +21,12 @@ export async function POST(req: NextRequest) {
     format?: string;
     values?: Record<string, string>;
   };
-  const { projectId, tur, docId, format } = body;
-  if (!projectId || (tur !== "cati" && tur !== "arazi")) {
+  const { projectId, docId, format } = body;
+  const TURS = ["cati", "arazi", "malzeme", "hizmet", "iscilik"];
+  if (!projectId || !body.tur || !TURS.includes(body.tur)) {
     return NextResponse.json({ error: "Geçersiz istek" }, { status: 400 });
   }
+  const tur = body.tur as SozlesmeTur;
 
   const access = await getProjectAccess(session, projectId);
   if (!access || !access.canView) return NextResponse.json({ error: "Bulunamadı" }, { status: 404 });
@@ -50,7 +53,8 @@ export async function POST(req: NextRequest) {
   }
 
   const zip = await packageZip(tur, values);
-  const suffix = tur === "cati" ? "Cati_GES_Sozlesme_Paketi" : "Arazi_GES_Sozlesme_Paketi";
+  const TUR_AD: Record<SozlesmeTur, string> = { cati: "Cati_GES", arazi: "Arazi_GES", malzeme: "Malzeme", hizmet: "Hizmet", iscilik: "Iscilik" };
+  const suffix = `${TUR_AD[tur]}_Sozlesme_Paketi`;
   return new NextResponse(new Uint8Array(zip), {
     headers: {
       "Content-Type": "application/zip",

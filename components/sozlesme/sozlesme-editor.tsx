@@ -7,12 +7,13 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sun, LandPlot, Save, FileText, FileType2, Download, Package, Table2, RefreshCw, FileCheck2, Upload, Trash2 } from "lucide-react";
+import { Sun, LandPlot, Save, FileText, FileType2, Download, Package, Table2, RefreshCw, FileCheck2, Upload, Trash2, Briefcase, Wrench } from "lucide-react";
 import { saveSozlesme, uploadSignedContract, removeSignedContract } from "@/app/actions/sozlesme";
 import {
   getTemplate,
   fieldKey,
   isOptionalField,
+  SOZLESME_TURS,
   type SozlesmeTur,
   type SozlesmeData,
   type SozlesmeField,
@@ -73,9 +74,17 @@ interface Props {
   signed: { name: string; uploadedAt: string } | null;
 }
 
+const TUR_META: { tur: SozlesmeTur; label: string; icon: typeof Sun }[] = [
+  { tur: "cati", label: "Çatı GES", icon: Sun },
+  { tur: "arazi", label: "Arazi GES", icon: LandPlot },
+  { tur: "malzeme", label: "Malzeme", icon: Package },
+  { tur: "hizmet", label: "Hizmet", icon: Briefcase },
+  { tur: "iscilik", label: "İşçilik", icon: Wrench },
+];
+
 function buildInitialValues(saved: SozlesmeData | null, autofill: Record<string, string>): Record<string, string> {
   const values: Record<string, string> = { ...(saved?.values || {}) };
-  (["cati", "arazi"] as SozlesmeTur[]).forEach((t) => {
+  SOZLESME_TURS.forEach((t) => {
     getTemplate(t).docs.forEach((doc) => {
       doc.sections.forEach((sec) => {
         sec.fields.forEach((f) => {
@@ -242,20 +251,15 @@ export function SozlesmeEditor({ projectId, projectName, canEdit, tur, autofill,
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-semibold text-foreground">{projectName}</h1>
         </div>
-        <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card p-1">
-          <Link
-            href={`/sozlesmeler/${projectId}?tur=cati`}
-            className={cn("inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors", tur === "cati" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}
-          >
-            <Sun className="size-3.5" /> Çatı GES
-          </Link>
-          <Link
-            href={`/sozlesmeler/${projectId}?tur=arazi`}
-            className={cn("inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors", tur === "arazi" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}
-          >
-            <LandPlot className="size-3.5" /> Arazi GES
-          </Link>
-        </div>
+        {(() => {
+          const tm = TUR_META.find((t) => t.tur === tur);
+          const Icon = tm?.icon ?? FileText;
+          return (
+            <span className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-soft px-3 py-1.5 text-[12px] font-semibold text-primary-soft-foreground">
+              <Icon className="size-3.5" /> {tm?.label ?? "Sözleşme"}
+            </span>
+          );
+        })()}
         {canEdit && (
           <Button size="sm" onClick={handleSave} disabled={saving}>
             <Save className="size-4" /> {saving ? "Kaydediliyor…" : "Kaydet"}

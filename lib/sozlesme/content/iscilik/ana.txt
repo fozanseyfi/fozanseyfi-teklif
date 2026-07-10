@@ -1,0 +1,92 @@
+İŞÇİLİK VE MONTAJ
+İŞLERİ SÖZLEŞMESİ
+ 
+İŞVEREN:  EK-1 (A)
+YÜKLENİCİ:  EK-1 (A)
+İşin Tanımı:  EK-1 (B) / EK-3
+Sözleşme No / Tarihi:  EK-1 (A)
+
+MATBU ANA SÖZLEŞME — Ekler (EK-1, EK-2, EK-3) ayrı dosyalardadır; siparişe özgü tüm bilgiler eklerde düzenlenir, ana metin değiştirilmez.
+
+İÇİNDEKİLER
+TOC \h \o "1-1"
+
+MADDE 1 – TARAFLAR
+1.1  İşbu İşçilik ve Montaj İşleri Sözleşmesi ("Sözleşme"); EK-1 İş Bilgi Formu'nun (A) bölümünde bilgileri belirtilen İŞVEREN ile aynı bölümde bilgileri belirtilen YÜKLENİCİ arasında, EK-1'de belirtilen tarihte akdedilmiştir. Taraflar münferiden "Taraf", birlikte "Taraflar" olarak anılır.
+1.2  Tarafların tebligat adresleri, irtibat kişileri ve banka hesap bilgileri EK-1'in (A) bölümünde yer alır.
+MADDE 2 – TANIMLAR
+İşler: EK-3 İşçilik Kalemleri ve Mahal Listesi'nde tanımlanan montaj, imalat ve işçilik işlerinin, İŞVEREN tarafından sağlanan projelere uygun ifasını,
+İşyeri: EK-1'in (B) bölümünde belirtilen, İşler'in ifa edileceği sahayı,
+İŞVEREN Malzemesi: İşler'de kullanılmak üzere İŞVEREN tarafından sağlanan ve tutanakla YÜKLENİCİ'ye teslim edilen malzemeleri,
+Kabul: Madde 11 uyarınca yapılan muayene ve kabul işlemlerinin tamamlanmasını,
+Sözleşme Bedeli: Madde 5'te tanımlanan ve EK-1'in (D) bölümünde tutarı belirtilen bedeli,
+Garanti Süresi: EK-1'in (F) bölümünde belirtilen ve Kabul tarihinden itibaren başlayan süreyi
+ifade eder. Gün ifadeleri takvim günüdür; başlıklar yorumda esas alınmaz.
+MADDE 3 – KONU VE KAPSAM
+3.1  İşbu Sözleşme'nin konusu; EK-3'te kalem kalem tanımlanan işçilik ve montaj işlerinin, İŞVEREN tarafından sağlanan proje, şartname ve montaj talimatlarına uygun olarak YÜKLENİCİ tarafından ifasına ilişkin koşulların düzenlenmesidir. Malzeme temini kapsam dışıdır; malzemeler (EK-3'te YÜKLENİCİ'ye tahsis edilen sarf malzemeleri hariç) İŞVEREN tarafından sağlanır.
+3.2  EK-3'te sayılmayan iş, malzeme ve hizmetler kapsam dışıdır; ancak kapsamın sözleşmeye uygun ifası için teknik olarak zorunlu tamamlayıcı unsurlar bedele dâhildir. İşbu Sözleşme anahtar teslim bir taahhüt içermez; YÜKLENİCİ'nin sorumluluğu EK-3'te tanımlı kapsam ile sınırlıdır.
+MADDE 4 – SÖZLEŞME DOKÜMANLARI VE ÖNCELİK SIRASI
+4.1  Sözleşme Dokümanları ve öncelik sırası: (i) işbu Sözleşme ana metni, (ii) EK-1 İş Bilgi Formu, (iii) EK-3 İşçilik Kalemleri ve Mahal Listesi ve teknik şartnameler, (iv) EK-2 Ödeme Planı, (v) YÜKLENİCİ teklifi (yalnızca EK-1'de referans verilmişse ve çelişmeyen hükümleriyle). Çelişki hâlinde bu sıralama uygulanır; teknik hususlarda daha ağır ve kaliteli gereklilik esas alınır.
+MADDE 5 – SÖZLEŞME BEDELİ
+5.1  Sözleşme Bedeli; EK-1'in (D) bölümünde belirtilen, KDV hariç toplam bedeldir. Bedelin türü EK-1'in (D) bölümünde işaretlenir: (i) götürü bedel veya (ii) birim fiyat esaslı (bu hâlde EK-3'teki birim fiyat cetveli uygulanır ve kesin bedel, gerçekleşen miktar/metraja göre belirlenir).
+5.2  Bedele; tüm işçilik, ekip ve ekipman, el aletleri, EK-3'te YÜKLENİCİ'ye tahsis edilen sarf malzemeleri, personel ulaşım-barınma giderleri ve İSG tedbirleri dâhildir. EK-1'in (D) bölümünde aksine açık düzenleme olmadıkça fiyat farkı ve eskalasyon uygulanmaz.
+MADDE 6 – ÖDEMELER
+6.1  Ödemeler; EK-2 Ödeme Planı'na göre yapılır. Avans öngörülmüşse tutarı EK-1'in (D) bölümünde belirtilir ve (EK-1'de teminat şartı işaretliyse) avans teminat mektubunun teslimini müteakip ödenir.
+6.2  YÜKLENİCİ; ilgili ödeme aşamasının gerçekleştiğini gösteren belgelerle birlikte faturasını düzenler. İŞVEREN; faturayı 7 (yedi) gün içinde inceler, uygun bulunmayan kısmı gerekçeli bildirir. Uygun bulunan tutar, fatura tebliğinden itibaren EK-1'in (D) bölümünde belirtilen vadede, EK-1'deki banka hesabına ödenir.
+6.3  YÜKLENİCİ; her hakediş ekinde, çalıştırdığı personele ilişkin SGK bildirge ve prim ödeme belgeleri ile ücretlerin ödendiğine dair kayıtları sunar; sunulmaması veya işçilik borcunun tespiti hâlinde İŞVEREN, ödemeleri belgeler tamamlanana/borç ödenene kadar durdurabilir.
+6.4  İŞVEREN'in Sözleşme'den doğan muaccel alacakları (cezalar, nam ve hesabına yaptırılan işler dâhil), YÜKLENİCİ'ye yapılacak ödemelerden mahsup edilebilir. Ödeme yapılması veya faturanın kabulü, Kabul anlamına gelmez.
+MADDE 7 – TEMİNATLAR
+7.1  Teminat şartları EK-1'in (E) bölümünde düzenlenir; işaretlenmemişse işbu Madde uygulanmaz. İşaretlenmişse; kesin teminat, Sözleşme Bedeli'nin EK-1'de belirtilen oranında, ilk talepte ödemeli ve kayıtsız şartsız banka teminat mektubu olarak imzadan itibaren 7 (yedi) gün içinde verilir; Kabul'ü (garanti teminatı öngörülmüşse Garanti Süresi sonunu) müteakip iade edilir. Teminatlar, İŞVEREN alacakları için başkaca hüküm istihsaline gerek olmaksızın paraya çevrilebilir; fazlaya ilişkin haklar saklıdır.
+MADDE 8 – SÜRE VE İŞ PROGRAMI
+8.1  Süreler, işe başlama koşulları, iş süresi ve (varsa) ara hedefler EK-1'in (C) bölümünde belirtilir. Süre; EK-1'de belirtilen başlangıç olayından (imza, avans, yer teslimi veya onay) itibaren işler.
+8.2  YÜKLENİCİ; süreyi etkileyebilecek her durumu derhâl yazılı bildirir. Kısmi teslimler, EK-1'de öngörülmedikçe Kabul doğurmaz.
+8.3  Süre uzatımı yalnızca; mücbir sebep (Madde 14), İŞVEREN'in kendi yükümlülüklerini (onay, bilgi, yer teslimi, İŞVEREN tedarikli malzeme) geciktirmesi veya Taraflarca imzalı kapsam değişikliği hâllerinde ve etkilenen süre kadar verilir. Talep, olayın öğrenilmesinden itibaren 7 (yedi) gün içinde yazılı yapılmazsa hak düşer.
+MADDE 9 – PERSONEL, İSG VE SAHA KURALLARI
+9.1  İşçilik; kalifiye ve belgeli (mesleki yeterlilik, İSG eğitimleri, gerekli hâllerde yüksekte çalışma ve elektrik yetkilendirmeleri) personelle ifa edilir. Personel listesi ve belgeleri işe başlamadan önce İŞVEREN'e sunulur; İŞVEREN'in uygunsuz bulduğu personel derhâl değiştirilir.
+9.2  Tüm personel münhasıran YÜKLENİCİ'nin işçisidir. 4857, 6331 ve 5510 sayılı Kanunlardan doğan tüm yükümlülükler (ücret, fazla mesai, SGK primleri, kıdem-ihbar) YÜKLENİCİ'ye aittir; İŞVEREN'e yöneltilecek bu tür taleplerden İŞVEREN'i tazmin eder. İş kazalarının tüm hukuki, idari ve cezai sonuçları YÜKLENİCİ'ye aittir; kazalar mevzuattaki sürede ilgili mercilere ve eş zamanlı İŞVEREN'e bildirilir.
+9.3  YÜKLENİCİ; 6331 sayılı Kanun kapsamındaki yükümlülüklerini (risk değerlendirmesi, İSG eğitimleri, gerekiyorsa İSG uzmanı) yerine getirir, kişisel koruyucu donanımı sağlar ve İŞVEREN'in saha kurallarına uyar. İSG ihlallerinde İŞVEREN işi durdurabilir; bu duruş için süre uzatımı verilmez.
+9.4  Çalışma alanı düzenli tutulur; iş bitiminde İşyeri temiz ve atıklardan arındırılmış teslim edilir.
+MADDE 10 – İMALAT ESASLARI VE İŞVEREN MALZEMESİ
+10.1  İşler; İŞVEREN'in sağladığı proje, şartname ve üretici montaj talimatlarına uygun yapılır. YÜKLENİCİ; projelerdeki bariz hata ve uygulanamazlıkları fark ettiğinde derhâl yazılı bildirir; bildirmeden yaptığı imalatın sonuçlarından sorumludur.
+10.2  İŞVEREN Malzemesi; miktar ve durum tespitli tutanakla teslim alınır. Teslimden montaja (ve Kabul'e) kadar korunması, uygun depolanması ve zayii YÜKLENİCİ sorumluluğundadır; fire oranları (öngörülmüşse) EK-3'te belirtilir; aşan zayiat rayiç bedeliyle YÜKLENİCİ'den tahsil edilir.
+10.3  Kapanacak imalatlar (gömülü tesisat, kablo kanalı vb.) kapatılmadan önce İŞVEREN kontrolüne sunulur; sunulmadan kapatılan imalat, İŞVEREN talebiyle bedelsiz açılıp gösterilir.
+10.4  Birim fiyat esaslı bedelde hakedişler, İŞVEREN kontrolünde yapılan müşterek metrajlara dayanır; götürü bedelde EK-2'deki ilerleme aşamalarına göre ödenir.
+MADDE 11 – MUAYENE VE KABUL
+11.1  YÜKLENİCİ; İşler'in (veya kısmi kabule konu bölümün) tamamlandığını yazılı bildirir. İŞVEREN; 10 (on) gün içinde imalatın proje ve şartnameye uygunluğunu ve fonksiyon testlerini kontrol eder. Eksik ve kusurlar liste hâlinde bildirilir ve verilen sürede (azami 15 gün) bedelsiz giderilir; ardından Kabul tutanağı düzenlenir. İŞVEREN'in imalatı kullanmaya başlaması tek başına Kabul sayılmaz.
+MADDE 12 – GECİKME CEZASI
+12.1  İşler'in (veya EK-1'de ayrı süre bağlanmış her kısmın), süre uzatımları hariç, süresinde tamamlanmaması hâlinde; gecikilen her gün için, geciken kısmın bedelinin EK-1'in (F) bölümünde belirtilen oranında (belirtilmemişse binde 3) gecikme cezası uygulanır ve ödemelerden mahsup edilir. Ceza ifaya ektir. Toplam ceza, EK-1'deki üst sınıra (belirtilmemişse Sözleşme Bedeli'nin %10'u) ulaştığında İŞVEREN; Sözleşme'yi feshedebilir ve/veya kalan kısmı YÜKLENİCİ nam ve hesabına üçüncü kişilere yaptırabilir; bedel farkı ve zararlar tahsil edilir.
+MADDE 13 – GARANTİ VE AYIPTAN SORUMLULUK
+13.1  YÜKLENİCİ; İşçiliği, işçilik ve montaj kusurlarına karşı, Kabul tarihinden itibaren EK-1'in (F) bölümünde belirtilen Garanti Süresi boyunca garanti eder. Garanti kapsamındaki kusurlar; bildirimden itibaren EK-1'in (F) bölümünde belirtilen sürede (belirtilmemişse 15 gün) bedelsiz giderilir; giderilmemesi hâlinde İŞVEREN kusuru üçüncü kişilere giderttirip masrafını %10 genel gider ilavesiyle tahsil edebilir. Değiştirilen/onarılan kısımda garanti yeniden başlar; gizli ayıplara ilişkin kanuni haklar saklıdır.
+MADDE 14 – MÜCBİR SEBEP
+14.1  Tarafların kontrolü dışında, öngörülemeyen ve önlenemeyen olaylar (savaş, doğal afet, genel grev, resmî makamların genel nitelikli engelleyici işlemleri) mücbir sebeptir; ekonomik güçlükler ve tedarik zinciri aksamaları sayılmaz. Maruz kalan Taraf 7 (yedi) gün içinde bildirir; yükümlülükler etkilenen ölçüde askıya alınır. 60 (altmış) günü aşarsa her iki Taraf da tazminatsız feshedebilir; ifa edilmiş kısımların bedeli ödenir.
+MADDE 15 – FESİH
+15.1  İŞVEREN; YÜKLENİCİ'nin esaslı ihlalinde (verilen makul sürede giderilmemesi kaydıyla), gecikme cezasının üst sınıra ulaşmasında, aczi/iflası hâlinde veya Sözleşme'nin izinsiz devrinde feshedebilir; (varsa) teminat irat kaydedilir, kalan kısım üçüncü kişilere yaptırılır, bedel farkı ve zararlar tahsil edilir.
+15.2  YÜKLENİCİ; İŞVEREN'in muaccel ödeme borcunu, yazılı ihtara rağmen 30 (otuz) gün içinde ödememesi hâlinde feshedebilir; ifa ettiği kısmın bedeli ile belgeli makul masrafları ödenir.
+15.3  İŞVEREN; 15 (on beş) gün önceden yazılı bildirimle her zaman feshedebilir; bu hâlde YÜKLENİCİ'ye ifa edilen kısmın bedeli ile belgelendirilmiş makul ve iptal edilemeyen taahhüt masrafları ödenir; kâr kaybı talep edilemez. Fesihte; İŞVEREN'e ait malzeme ve o tarihe kadarki imalat 7 (yedi) gün içinde İŞVEREN'e teslim edilir ve mevcut durum tutanakla tespit edilir.
+MADDE 16 – SORUMLULUK
+16.1  YÜKLENİCİ; ifadan kaynaklanan ve kendisine veya personeline atfedilebilen zararlardan sorumludur ve üçüncü kişi taleplerine karşı İŞVEREN'i tazmin eder. Tarafların toplam sorumluluğu; kasıt, ağır kusur, üçüncü kişi talepleri, fikri mülkiyet ve gizlilik ihlalleri ile can kaybı/bedensel zarar hariç, EK-1'in (F) bölümünde belirtilen üst sınırla (belirtilmemişse Sözleşme Bedeli ile) sınırlıdır; dolaylı zarar ve kâr kaybından sorumluluk yoktur (gecikme cezaları hariç).
+MADDE 17 – GİZLİLİK VE KİŞİSEL VERİLER
+17.1  Taraflar; Sözleşme kapsamında öğrendikleri ticari, teknik ve finansal bilgileri gizli tutar ve yalnızca Sözleşme'nin ifası için kullanır; bu yükümlülük sona ermeden itibaren 3 (üç) yıl devam eder. Taraflar, 6698 sayılı KVKK ve ikincil mevzuatına uygun hareket eder.
+MADDE 18 – DEVİR VE ALT YÜKLENİCİ
+18.1  YÜKLENİCİ; İŞVEREN'in yazılı onayı olmadan Sözleşme'yi veya alacaklarını devredemez ve İşler'i alt yükleniciye yaptıramaz. Onaylı alt yüklenici hâlinde dahi YÜKLENİCİ, bunların fiillerinden ve personel yükümlülüklerinden kendi fiili gibi ve müteselsilen sorumludur.
+MADDE 19 – VERGİLER
+19.1  Damga vergisi yükümlülüğü EK-1'in (D) bölümünde düzenlenir. YÜKLENİCİ'nin faaliyet, personel ve kazancına ilişkin tüm vergi ve mali yükümlülükler kendisine aittir; mevzuattan doğan tevkifatlar (KDV tevkifatı dâhil) ilgili hükümlere göre uygulanır.
+MADDE 20 – BİLDİRİMLER
+20.1  Bildirimler; EK-1'deki adreslere yazılı olarak (elden imzalı, noter, iadeli taahhütlü posta veya KEP) yapılır. Fesih ve temerrüde ilişkin bildirimlerde TTK 18/3'teki usuller uygulanır. Operasyonel yazışmalar EK-1'deki e-posta adresleriyle yürütülebilir.
+MADDE 21 – UYGULANACAK HUKUK VE UYUŞMAZLIK ÇÖZÜMÜ
+21.1  Sözleşme, Türkiye Cumhuriyeti hukukuna tabidir. Uyuşmazlıklar öncelikle 15 (on beş) gün içinde dostane çözülmeye çalışılır; çözülemezse EK-1'in (G) bölümünde belirtilen yer mahkemeleri ve icra daireleri yetkilidir. Tarafların ticari defter, e-posta ve elektronik kayıtları HMK 193 anlamında delildir.
+MADDE 22 – DİĞER HÜKÜMLER
+22.1  İşbu Sözleşme ve ekleri, Taraflar arasındaki tüm mutabakatı oluşturur; değişiklikler ancak yazılı zeyilname ile yapılabilir. Herhangi bir hükmün geçersizliği diğerlerini etkilemez; hakkın kullanılmaması feragat sayılmaz. Nitelikleri gereği sona ermeden sonra da uygulanması gereken hükümler yürürlükte kalır.
+MADDE 23 – İMZA VE YÜRÜRLÜK
+23.1  İşbu Sözleşme; 23 madde ve 3 (üç) ek ile birlikte, EK-1'de belirtilen tarihte Taraflarca imzalanarak yürürlüğe girmiştir.
+
+İŞVEREN
+(EK-1'de belirtilen unvan)
+Ad Soyad / Unvan: ………………………………
+İmza / Kaşe: ………………………………
+Tarih: ………………
+YÜKLENİCİ
+(EK-1'de belirtilen unvan)
+Ad Soyad / Unvan: ………………………………
+İmza / Kaşe: ………………………………
+Tarih: ………………

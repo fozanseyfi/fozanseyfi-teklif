@@ -10,8 +10,16 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Sun, LandPlot, Plus, ChevronRight } from "lucide-react";
+import { Sun, LandPlot, Plus, ChevronRight, Package, Briefcase, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const TUR_OPTIONS = [
+  { tur: "cati" as const, icon: Sun, label: "Çatı GES", desc: "Çatı üzeri kurulum (EPC)" },
+  { tur: "arazi" as const, icon: LandPlot, label: "Arazi GES", desc: "Arazi tipi santral (EPC)" },
+  { tur: "malzeme" as const, icon: Package, label: "Malzeme", desc: "Malzeme tedarik sözleşmesi" },
+  { tur: "hizmet" as const, icon: Briefcase, label: "Hizmet", desc: "Hizmet / projelendirme" },
+  { tur: "iscilik" as const, icon: Wrench, label: "İşçilik", desc: "İşçilik / montaj" },
+];
 
 interface Props {
   id: string;
@@ -26,7 +34,7 @@ export function NewContractRow({ id, name, customer, installationLabel, isGround
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
-  function go(tur: "cati" | "arazi") {
+  function go(tur: string) {
     router.push(`/sozlesmeler/${id}?tur=${tur}`);
   }
 
@@ -60,28 +68,28 @@ export function NewContractRow({ id, name, customer, installationLabel, isGround
               <span className="font-medium text-foreground">{name}</span> için sözleşme türünü seçin.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 pt-1">
-            {([
-              { tur: "cati" as const, icon: Sun, label: "Çatı GES", desc: "Çatı üzeri kurulum (EPC)" },
-              { tur: "arazi" as const, icon: LandPlot, label: "Arazi GES", desc: "Arazi tipi santral (EPC)" },
-            ]).map((o) => (
-              <button
-                key={o.tur}
-                type="button"
-                onClick={() => go(o.tur)}
-                className={cn(
-                  "flex flex-col items-center gap-1.5 rounded-xl border p-4 text-center transition-colors hover:border-primary hover:bg-primary-soft",
-                  (o.tur === "arazi") === isGround ? "border-primary/50 bg-primary-soft/40" : "border-border",
-                )}
-              >
-                <o.icon className="size-7 text-primary" />
-                <span className="text-[13px] font-semibold text-foreground">{o.label}</span>
-                <span className="text-[11px] text-muted-foreground">{o.desc}</span>
-                {(o.tur === "arazi") === isGround && (
-                  <span className="mt-0.5 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">önerilen</span>
-                )}
-              </button>
-            ))}
+          <div className="grid grid-cols-2 gap-2.5 pt-1 sm:grid-cols-3">
+            {TUR_OPTIONS.map((o) => {
+              const recommended = (o.tur === "arazi" && isGround) || (o.tur === "cati" && !isGround);
+              return (
+                <button
+                  key={o.tur}
+                  type="button"
+                  onClick={() => go(o.tur)}
+                  className={cn(
+                    "flex flex-col items-center gap-1.5 rounded-xl border p-3.5 text-center transition-colors hover:border-primary hover:bg-primary-soft",
+                    recommended ? "border-primary/50 bg-primary-soft/40" : "border-border",
+                  )}
+                >
+                  <o.icon className="size-6 text-primary" />
+                  <span className="text-[12.5px] font-semibold text-foreground">{o.label}</span>
+                  <span className="text-[10.5px] text-muted-foreground">{o.desc}</span>
+                  {recommended && (
+                    <span className="mt-0.5 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">önerilen</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </DialogContent>
       </Dialog>

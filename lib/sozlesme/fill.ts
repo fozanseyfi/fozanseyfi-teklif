@@ -55,13 +55,19 @@ function mapRows(xml: string, fn: (texts: string[], row: string) => string): str
 type Vals = Record<string, string>;
 type Fmt = (g: (key: string) => string) => string | null; // null → dokunma
 
-/** 2 sütunlu satırlarda: col0 etiketi formatter haritasında varsa col1'i doldur. */
-function fill2Col(xml: string, docId: string, values: Vals, map: Record<string, Fmt>): string {
+/**
+ * 2 sütunlu satırlarda: col0 etiketi formatter haritasında varsa col1'i doldur.
+ * guardFixed=true → yalnızca değer hücresi boş veya "…" içeriyorsa doldurur
+ * (sabit referans metnini — ör. "EK-3'e bakınız" — ezmez).
+ */
+function fill2Col(xml: string, docId: string, values: Vals, map: Record<string, Fmt>, guardFixed = false): string {
   const g = (key: string) => values[fieldKey(docId, key)] ?? "";
   return mapRows(xml, (texts, row) => {
     if (texts.length < 2) return row;
     const fmt = map[texts[0]];
     if (!fmt) return row;
+    const cur = texts[1] ?? "";
+    if (guardFixed && cur && !/[…]/.test(cur)) return row; // sabit metin — dokunma
     const v = fmt(g);
     if (v == null || v === "") return row;
     return setRowCell(row, 1, v);
@@ -267,14 +273,54 @@ function fillAraziEk5(xml: string, values: Vals): string {
   });
 }
 
+// ── MALZEME / HİZMET / İŞÇİLİK — EK-1 Bilgi Formu (ortak; karşı taraf etiketleri farklı) ──
+const SVC_EK1: Record<string, Fmt> = {
+  "İŞVEREN Unvan / Adres / VD-VKN / MERSİS": F("isvBilgi"),
+  "İŞVEREN Yetkili / Tel / E-posta / KEP": F("isvIrtibat"),
+  "TEDARİKÇİ Unvan / Adres / VD-VKN / MERSİS": F("karsiBilgi"),
+  "HİZMET VEREN Unvan / Adres / VD-VKN / MERSİS": F("karsiBilgi"),
+  "YÜKLENİCİ Unvan / Adres / VD-VKN / MERSİS": F("karsiBilgi"),
+  "TEDARİKÇİ Yetkili / Tel / E-posta / KEP": F("karsiIrtibat"),
+  "HİZMET VEREN Yetkili / Tel / E-posta / KEP": F("karsiIrtibat"),
+  "YÜKLENİCİ Yetkili / Tel / E-posta / KEP": F("karsiIrtibat"),
+  "TEDARİKÇİ Banka Hesabı (IBAN)": F("karsiIban"),
+  "HİZMET VEREN Banka Hesabı (IBAN)": F("karsiIban"),
+  "YÜKLENİCİ Banka Hesabı (IBAN)": F("karsiIban"),
+  "Sözleşme No / İmza Tarihi": (g) => {
+    const no = g("sozlesmeNo"), t = g("imzaTarihi");
+    return no || t ? `${no || "………"} / ${t || "………"}` : null;
+  },
+  "İlişkili Proje (varsa)": F("iliskiliProje"),
+  // Kapsam
+  "Hizmetin tanımı / amacı": F("isTanimi"),
+  "İşin tanımı": F("isTanimi"), // malzeme'de sabit (EK-3) → guardFixed korur
+  "Kilit personel (ad / unvan / belge)": F("kilitPersonel"),
+  "İşyeri (adres / saha)": F("isyeri"),
+  "Kapsama dâhil ilave hizmet (varsa; ör. yerinde indirme)": F("kapsamIlave"),
+  "Teslim yeri": F("teslimYeri"),
+  "Teslim süresi / tarihi": F("sure"),
+  "Toplam süre / nihai teslim tarihi": F("sure"),
+  "İş süresi / bitiş tarihi": F("sure"),
+  // Bedel
+  "Sözleşme Bedeli (KDV hariç) / para birimi": (g) => (g("bedel") ? `${trNum(g("bedel"))}${g("paraBirimi") ? " / " + g("paraBirimi") : ""}` : null),
+  "Avans (varsa) oran / tutar": (g) => (g("avansOran") ? "%" + g("avansOran") : null),
+  "Ödeme vadesi (fatura tebliğinden)": (g) => (g("vade") ? g("vade") + " gün" : null),
+  "Damga vergisi yükümlülüğü": F("damga"),
+  "Garanti Süresi": F("garanti"),
+  "Yetkili mahkeme / icra dairesi": F("mahkeme"),
+};
+
 function applyFill(tur: SozlesmeTur, docId: string, xml: string, values: Vals): string {
   if (tur === "cati") {
     if (docId === "ek1") return fillCatiEk1Sigorta(fill2Col(xml, "ek1", values, CATI_EK1), values);
     if (docId === "ek2") return fillCatiEk2(xml, values);
     if (docId === "ek3") return fill2Col(xml, "ek3", values, CATI_EK3);
-  } else {
+  } else if (tur === "arazi") {
     if (docId === "ek1") return fill2Col(xml, "ek1", values, ARAZI_EK1);
     if (docId === "ek5") return fillAraziEk5(xml, values);
+  } else {
+    // malzeme / hizmet / iscilik — sadece EK-1 doldurulur (sabit hücreler korunur)
+    if (docId === "ek1") return fill2Col(xml, "ek1", values, SVC_EK1, true);
   }
   return xml;
 }

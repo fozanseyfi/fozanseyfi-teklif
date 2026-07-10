@@ -1,0 +1,88 @@
+PROJELENDİRME VE
+MÜHENDİSLİK HİZMETLERİ
+SÖZLEŞMESİ
+ 
+İŞVEREN:  EK-1 (A)
+HİZMET VEREN:  EK-1 (A)
+İşin Tanımı:  EK-1 (B) / EK-3
+Sözleşme No / Tarihi:  EK-1 (A)
+
+MATBU ANA SÖZLEŞME — Ekler (EK-1, EK-2, EK-3) ayrı dosyalardadır; siparişe özgü tüm bilgiler eklerde düzenlenir, ana metin değiştirilmez.
+
+İÇİNDEKİLER
+TOC \h \o "1-1"
+
+MADDE 1 – TARAFLAR
+1.1  İşbu Projelendirme ve Mühendislik Hizmetleri Sözleşmesi ("Sözleşme"); EK-1 Hizmet Bilgi Formu'nun (A) bölümünde bilgileri belirtilen İŞVEREN ile aynı bölümde bilgileri belirtilen HİZMET VEREN arasında, EK-1'de belirtilen tarihte akdedilmiştir. Taraflar münferiden "Taraf", birlikte "Taraflar" olarak anılır.
+1.2  Tarafların tebligat adresleri, irtibat kişileri ve banka hesap bilgileri EK-1'in (A) bölümünde yer alır.
+MADDE 2 – TANIMLAR
+Hizmetler: EK-3'te tanımlanan projelendirme, mühendislik, danışmanlık, etüt, hesap, test-ölçüm ve benzeri fikri hizmetleri,
+Teslimatlar: Hizmetler kapsamında üretilen proje, çizim, rapor, hesap, keşif-metraj ve sair çıktıları,
+İşler: Hizmetlerin ifası ile Teslimatların EK-1'in (C) bölümündeki takvime uygun teslimini,
+Kabul: Madde 10 uyarınca yapılan muayene ve kabul işlemlerinin tamamlanmasını,
+Sözleşme Bedeli: Madde 5'te tanımlanan ve EK-1'in (D) bölümünde tutarı belirtilen bedeli,
+Garanti Süresi: EK-1'in (F) bölümünde belirtilen ve Kabul tarihinden itibaren başlayan süreyi
+ifade eder. Gün ifadeleri takvim günüdür; başlıklar yorumda esas alınmaz.
+MADDE 3 – KONU VE KAPSAM
+3.1  İşbu Sözleşme'nin konusu; EK-3 Hizmet Teslimatları Listesi'nde kalem kalem tanımlanan Hizmetlerin, HİZMET VEREN tarafından ifası ve Teslimatların İŞVEREN'e teslimine ilişkin koşulların düzenlenmesidir. Uygulama, imalat, montaj ve malzeme temini kapsam dışıdır.
+3.2  EK-3'te sayılmayan iş, malzeme ve hizmetler kapsam dışıdır; ancak kapsamın sözleşmeye uygun ifası için teknik olarak zorunlu tamamlayıcı unsurlar bedele dâhildir. İşbu Sözleşme anahtar teslim bir taahhüt içermez; HİZMET VEREN'nin sorumluluğu EK-3'te tanımlı kapsam ile sınırlıdır.
+MADDE 4 – SÖZLEŞME DOKÜMANLARI VE ÖNCELİK SIRASI
+4.1  Sözleşme Dokümanları ve öncelik sırası: (i) işbu Sözleşme ana metni, (ii) EK-1 Hizmet Bilgi Formu, (iii) EK-3 Hizmet Teslimatları Listesi ve teknik şartnameler, (iv) EK-2 Ödeme Planı, (v) HİZMET VEREN teklifi (yalnızca EK-1'de referans verilmişse ve çelişmeyen hükümleriyle). Çelişki hâlinde bu sıralama uygulanır; teknik hususlarda daha ağır ve kaliteli gereklilik esas alınır.
+MADDE 5 – SÖZLEŞME BEDELİ
+5.1  Sözleşme Bedeli; EK-1'in (D) bölümünde belirtilen, KDV hariç toplam bedeldir. Bedelin türü EK-1'in (D) bölümünde işaretlenir: (i) götürü bedel veya (ii) birim fiyat esaslı (bu hâlde EK-3'teki birim fiyat cetveli uygulanır ve kesin bedel, gerçekleşen miktar/metraja göre belirlenir).
+5.2  Bedele; Hizmetlerin ifası için gerekli tüm personel, yazılım, ulaşım ve genel giderler ile EK-3'te belirtilen sayıda çıktı takımı dâhildir. EK-1'in (D) bölümünde aksine açık düzenleme olmadıkça fiyat farkı ve eskalasyon uygulanmaz.
+MADDE 6 – ÖDEMELER
+6.1  Ödemeler; EK-2 Ödeme Planı'na göre yapılır. Avans öngörülmüşse tutarı EK-1'in (D) bölümünde belirtilir ve (EK-1'de teminat şartı işaretliyse) avans teminat mektubunun teslimini müteakip ödenir.
+6.2  HİZMET VEREN; ilgili ödeme aşamasının gerçekleştiğini gösteren belgelerle birlikte faturasını düzenler. İŞVEREN; faturayı 7 (yedi) gün içinde inceler, uygun bulunmayan kısmı gerekçeli bildirir. Uygun bulunan tutar, fatura tebliğinden itibaren EK-1'in (D) bölümünde belirtilen vadede, EK-1'deki banka hesabına ödenir.
+6.3  İŞVEREN'in Sözleşme'den doğan muaccel alacakları (cezalar, nam ve hesabına yaptırılan işler dâhil), HİZMET VEREN'ye yapılacak ödemelerden mahsup edilebilir. Ödeme yapılması veya faturanın kabulü, Kabul anlamına gelmez.
+MADDE 7 – TEMİNATLAR
+7.1  Teminat şartları EK-1'in (E) bölümünde düzenlenir; işaretlenmemişse işbu Madde uygulanmaz. İşaretlenmişse; kesin teminat, Sözleşme Bedeli'nin EK-1'de belirtilen oranında, ilk talepte ödemeli ve kayıtsız şartsız banka teminat mektubu olarak imzadan itibaren 7 (yedi) gün içinde verilir; Kabul'ü (garanti teminatı öngörülmüşse Garanti Süresi sonunu) müteakip iade edilir. Teminatlar, İŞVEREN alacakları için başkaca hüküm istihsaline gerek olmaksızın paraya çevrilebilir; fazlaya ilişkin haklar saklıdır.
+MADDE 8 – SÜRE VE TESLİMLER
+8.1  Süreler, teslimat takvimi ve (varsa) aşamalı teslim programı EK-1'in (C) bölümünde belirtilir. Süre; EK-1'de belirtilen başlangıç olayından (imza, avans, yer teslimi veya onay) itibaren işler.
+8.2  HİZMET VEREN; süreyi etkileyebilecek her durumu derhâl yazılı bildirir. Kısmi teslimler, EK-1'de öngörülmedikçe Kabul doğurmaz.
+8.3  Süre uzatımı yalnızca; mücbir sebep (Madde 13), İŞVEREN'in kendi yükümlülüklerini (onay, bilgi, yer teslimi, girdi veri ve belgeleri) geciktirmesi veya Taraflarca imzalı kapsam değişikliği hâllerinde ve etkilenen süre kadar verilir. Talep, olayın öğrenilmesinden itibaren 7 (yedi) gün içinde yazılı yapılmazsa hak düşer.
+MADDE 9 – HİZMETLERE İLİŞKİN HÜKÜMLER
+9.1  Hizmetler; ilgili mevzuata, yürürlükteki standartlara ve iyi mühendislik uygulamalarına uygun, yetkin ve (gerekiyorsa) SMM/büro tescil belgeli personel eliyle ifa edilir. İmza gerektiren projelerde yetkili mühendis imzaları ve oda vizeleri HİZMET VEREN sorumluluğundadır.
+9.2  Girdiler: İŞVEREN; kendi uhdesindeki bilgi, belge ve verileri (tapu, çağrı mektubu, zemin etüdü, mevcut projeler vb.) makul sürede sağlar. HİZMET VEREN; girdilerdeki bariz hata ve eksiklikleri fark ettiğinde derhâl bildirir; bildirmeden ürettiği çıktılardan sorumludur.
+9.3  Onay ve revizyon: İŞVEREN; her Teslimatı 10 (on) gün içinde inceler ve onaylar veya gerekçeli revizyon talep eder. EK-1'in (C) bölümünde belirtilen sayıda (belirtilmemişse 2 tur) revizyon bedele dâhildir. Kurum kaynaklı zorunlu revizyonlar, ilgili Teslimat kurum onayı alana kadar bedele dâhildir. İŞVEREN'in kapsam dışı değişiklik talepleri yazılı mutabakatla ayrıca ücretlendirilir.
+9.4  Fikri haklar: Teslimatlar üzerindeki mali haklar, bedelin ödenmesiyle birlikte süresiz ve sınırsız olarak İŞVEREN'e devredilmiş sayılır; İŞVEREN bunları ilgili proje için serbestçe kullanabilir, çoğaltabilir ve tadil ettirebilir. HİZMET VEREN'in genel bilgi birikimi ve yöntemleri kendisinde kalır. Teslim formatları (dwg, pdf, düzenlenebilir hesap dosyaları) EK-3'te belirtilir.
+9.5  Kilit personel: EK-1'in (B) bölümünde belirtilen kilit personel, İŞVEREN'in yazılı onayı olmadan değiştirilemez. Taraflar bağımsız tacirdir; personel yükümlülükleri münhasıran HİZMET VEREN'e aittir.
+MADDE 10 – KABUL
+10.1  Her Teslimat; Madde 9.3 uyarınca onaylandığında (kurum onayı öngörülmüşse kurum onayı tamamlandığında) kabul edilmiş sayılır ve tutanağa bağlanır. Tüm Teslimatların kabulüyle İşler'in Kabul'ü tamamlanır. Kabul, gizli mesleki hatalardan doğan sorumluluğu ortadan kaldırmaz.
+MADDE 11 – GECİKME CEZASI
+11.1  İşler'in (veya EK-1'de ayrı süre bağlanmış her kısmın), süre uzatımları hariç, süresinde tamamlanmaması hâlinde; gecikilen her gün için, geciken kısmın bedelinin EK-1'in (F) bölümünde belirtilen oranında (belirtilmemişse binde 3) gecikme cezası uygulanır ve ödemelerden mahsup edilir. Ceza ifaya ektir. Toplam ceza, EK-1'deki üst sınıra (belirtilmemişse Sözleşme Bedeli'nin %10'u) ulaştığında İŞVEREN; Sözleşme'yi feshedebilir ve/veya kalan kısmı HİZMET VEREN nam ve hesabına üçüncü kişilere yaptırabilir; bedel farkı ve zararlar tahsil edilir.
+MADDE 12 – GARANTİ VE AYIPTAN SORUMLULUK
+12.1  HİZMET VEREN; Teslimatları, mesleki hata ve eksikliklere karşı, Kabul tarihinden itibaren EK-1'in (F) bölümünde belirtilen Garanti Süresi boyunca garanti eder; hatalı çıktıları bedelsiz düzeltir ve bunlardan kaynaklanan zararlardan mesleki sorumluluk çerçevesinde sorumludur. Garanti kapsamındaki kusurlar; bildirimden itibaren EK-1'in (F) bölümünde belirtilen sürede (belirtilmemişse 15 gün) bedelsiz giderilir; giderilmemesi hâlinde İŞVEREN kusuru üçüncü kişilere giderttirip masrafını %10 genel gider ilavesiyle tahsil edebilir. Değiştirilen/onarılan kısımda garanti yeniden başlar; gizli ayıplara ilişkin kanuni haklar saklıdır.
+MADDE 13 – MÜCBİR SEBEP
+13.1  Tarafların kontrolü dışında, öngörülemeyen ve önlenemeyen olaylar (savaş, doğal afet, genel grev, resmî makamların genel nitelikli engelleyici işlemleri) mücbir sebeptir; ekonomik güçlükler ve tedarik zinciri aksamaları sayılmaz. Maruz kalan Taraf 7 (yedi) gün içinde bildirir; yükümlülükler etkilenen ölçüde askıya alınır. 60 (altmış) günü aşarsa her iki Taraf da tazminatsız feshedebilir; ifa edilmiş kısımların bedeli ödenir.
+MADDE 14 – FESİH
+14.1  İŞVEREN; HİZMET VEREN'nin esaslı ihlalinde (verilen makul sürede giderilmemesi kaydıyla), gecikme cezasının üst sınıra ulaşmasında, aczi/iflası hâlinde veya Sözleşme'nin izinsiz devrinde feshedebilir; (varsa) teminat irat kaydedilir, kalan kısım üçüncü kişilere yaptırılır, bedel farkı ve zararlar tahsil edilir.
+14.2  HİZMET VEREN; İŞVEREN'in muaccel ödeme borcunu, yazılı ihtara rağmen 30 (otuz) gün içinde ödememesi hâlinde feshedebilir; ifa ettiği kısmın bedeli ile belgeli makul masrafları ödenir.
+14.3  İŞVEREN; 15 (on beş) gün önceden yazılı bildirimle her zaman feshedebilir; bu hâlde HİZMET VEREN'ye ifa edilen kısmın bedeli ile belgelendirilmiş makul ve iptal edilemeyen taahhüt masrafları ödenir; kâr kaybı talep edilemez. Fesihte; o tarihe kadar üretilmiş tüm çıktılar (taslaklar dâhil) 7 (yedi) gün içinde İŞVEREN'e teslim edilir ve mevcut durum tutanakla tespit edilir.
+MADDE 15 – SORUMLULUK
+15.1  HİZMET VEREN; ifadan kaynaklanan ve kendisine veya personeline atfedilebilen zararlardan sorumludur ve üçüncü kişi taleplerine karşı İŞVEREN'i tazmin eder. Tarafların toplam sorumluluğu; kasıt, ağır kusur, üçüncü kişi talepleri, fikri mülkiyet ve gizlilik ihlalleri ile can kaybı/bedensel zarar hariç, EK-1'in (F) bölümünde belirtilen üst sınırla (belirtilmemişse Sözleşme Bedeli ile) sınırlıdır; dolaylı zarar ve kâr kaybından sorumluluk yoktur (gecikme cezaları hariç).
+MADDE 16 – GİZLİLİK VE KİŞİSEL VERİLER
+16.1  Taraflar; Sözleşme kapsamında öğrendikleri ticari, teknik ve finansal bilgileri gizli tutar ve yalnızca Sözleşme'nin ifası için kullanır; bu yükümlülük sona ermeden itibaren 3 (üç) yıl devam eder. Taraflar, 6698 sayılı KVKK ve ikincil mevzuatına uygun hareket eder.
+MADDE 17 – DEVİR VE ALT HİZMET
+17.1  HİZMET VEREN; İŞVEREN'in yazılı onayı olmadan Sözleşme'yi veya alacaklarını devredemez ve hizmetin esaslı kısımlarını üçüncü kişilere gördüremez. Onaylı alt hizmet hâlinde dahi HİZMET VEREN, alt çalışanların fiillerinden kendi fiili gibi sorumludur.
+MADDE 18 – VERGİLER
+18.1  Damga vergisi yükümlülüğü EK-1'in (D) bölümünde düzenlenir. HİZMET VEREN'nin faaliyet, personel ve kazancına ilişkin tüm vergi ve mali yükümlülükler kendisine aittir; mevzuattan doğan tevkifatlar (KDV tevkifatı dâhil) ilgili hükümlere göre uygulanır.
+MADDE 19 – BİLDİRİMLER
+19.1  Bildirimler; EK-1'deki adreslere yazılı olarak (elden imzalı, noter, iadeli taahhütlü posta veya KEP) yapılır. Fesih ve temerrüde ilişkin bildirimlerde TTK 18/3'teki usuller uygulanır. Operasyonel yazışmalar EK-1'deki e-posta adresleriyle yürütülebilir.
+MADDE 20 – UYGULANACAK HUKUK VE UYUŞMAZLIK ÇÖZÜMÜ
+20.1  Sözleşme, Türkiye Cumhuriyeti hukukuna tabidir. Uyuşmazlıklar öncelikle 15 (on beş) gün içinde dostane çözülmeye çalışılır; çözülemezse EK-1'in (G) bölümünde belirtilen yer mahkemeleri ve icra daireleri yetkilidir. Tarafların ticari defter, e-posta ve elektronik kayıtları HMK 193 anlamında delildir.
+MADDE 21 – DİĞER HÜKÜMLER
+21.1  İşbu Sözleşme ve ekleri, Taraflar arasındaki tüm mutabakatı oluşturur; değişiklikler ancak yazılı zeyilname ile yapılabilir. Herhangi bir hükmün geçersizliği diğerlerini etkilemez; hakkın kullanılmaması feragat sayılmaz. Nitelikleri gereği sona ermeden sonra da uygulanması gereken hükümler yürürlükte kalır.
+MADDE 22 – İMZA VE YÜRÜRLÜK
+22.1  İşbu Sözleşme; 22 madde ve 3 (üç) ek ile birlikte, EK-1'de belirtilen tarihte Taraflarca imzalanarak yürürlüğe girmiştir.
+
+İŞVEREN
+(EK-1'de belirtilen unvan)
+Ad Soyad / Unvan: ………………………………
+İmza / Kaşe: ………………………………
+Tarih: ………………
+HİZMET VEREN
+(EK-1'de belirtilen unvan)
+Ad Soyad / Unvan: ………………………………
+İmza / Kaşe: ………………………………
+Tarih: ………………
