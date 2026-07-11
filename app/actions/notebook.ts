@@ -3,6 +3,7 @@
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import type { NotebookData } from "@/lib/notebook/types";
 
 /** Kullanıcının izole not defteri verisini getirir (yoksa boş). */
@@ -31,4 +32,20 @@ export async function saveNotebook(data: NotebookData): Promise<void> {
     update: { data: payload as never },
   });
   revalidatePath("/not-defteri");
+}
+
+/** Nota fotoğraf yükler (Storage) — URL döner. */
+export async function uploadNotebookPhoto(formData: FormData): Promise<{ url?: string; error?: string }> {
+  const user = await requireAuth();
+  const file = formData.get("file") as File | null;
+  if (!file || file.size === 0) return { error: "Dosya seçilmedi" };
+  if (!file.type.startsWith("image/")) return { error: "Sadece görsel yüklenebilir" };
+  if (file.size > 8 * 1024 * 1024) return { error: "Görsel 8 MB'tan büyük olamaz" };
+  const admin = createSupabaseAdmin();
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const path = `notebook/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
+  const { error } = await admin.storage.from("brand-logos").upload(path, file, { contentType: file.type, upsert: false });
+  if (error) return { error: `Yüklenemedi: ${error.message}` };
+  const { data } = admin.storage.from("brand-logos").getPublicUrl(path);
+  return { url: data?.publicUrl };
 }

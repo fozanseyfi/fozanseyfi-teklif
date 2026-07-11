@@ -13,7 +13,8 @@ export interface NbAction {
 export interface NbTopic {
   subject?: string;
   summary?: string;
-  decision?: string;
+  decisions?: string[]; // aynı başlık altında birden çok karar
+  decision?: string; // eski kayıtlar (okuma uyumluluğu)
 }
 export interface NbNote {
   id: string;
@@ -27,10 +28,9 @@ export interface NbNote {
   ourAttendees?: string;
   recorder?: string;
   location?: string;
-  agenda?: string[];
   topics?: NbTopic[];
   actions?: NbAction[];
-  products?: string[];
+  photos?: string[]; // yüklenen fotoğraf URL'leri
   tags?: string;
   followUp?: string;
   followDone?: boolean;
@@ -79,8 +79,18 @@ export const NB_TYPES: { id: string; name: string; dot: string; chip: string }[]
 ];
 export const nbType = (id: string) => NB_TYPES.find((t) => t.id === id) || NB_TYPES[0];
 
-export const NB_PRODUCTS = ["İnverter", "ESS / Batarya", "İzleme / SCADA", "Şarj Çözümleri", "Panel / Modül", "Diğer"];
 export const NB_SEGMENTS = ["EPC", "Yatırımcı", "Distribütör", "Sanayi", "Tarım / Sulama", "Kamu", "Diğer"];
+
+/** Bir topic'in kararlarını normalize et (eski decision alanı dahil). */
+export function topicDecisions(t: NbTopic): string[] {
+  const arr = (t.decisions || []).filter(Boolean);
+  if (!arr.length && t.decision) return [t.decision];
+  return arr;
+}
+/** Bir notun etiketlerini dizi olarak ver. */
+export function noteTagList(tags?: string): string[] {
+  return (tags || "").split(",").map((s) => s.trim()).filter(Boolean);
+}
 
 export function nbUid(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
