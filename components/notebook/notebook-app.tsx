@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
-  NotebookPen, Pin, Search, Plus, Building2, User, FileDown, Share2, Mail, Copy, Pencil, Trash2, ArrowLeft, Check, X, ChevronDown, ChevronRight, ImagePlus,
+  NotebookPen, Pin, Search, Plus, Building2, User, FileDown, Share2, Mail, Copy, Pencil, Trash2, ArrowLeft, Check, X, ChevronDown, ChevronRight, ChevronLeft, ImagePlus, ListChecks, CalendarDays,
 } from "lucide-react";
 import { saveNotebook, uploadNotebookPhoto } from "@/app/actions/notebook";
 import {
@@ -14,7 +14,7 @@ import {
 } from "@/lib/notebook/types";
 import { todayISO, isOver, fmtDate, fmtShort, monthLabel, initials, peopleStr, noteToText, noteToPrintHtml, waLink, mailLink, type PrintBrand } from "@/lib/notebook/util";
 
-type View = "notes" | "edit" | "view" | "contacts" | "companies";
+type View = "notes" | "edit" | "view" | "contacts" | "companies" | "tasks" | "cal";
 type RegItem = NbContact & NbCompany;
 const lo = (s: string) => (s || "").toLocaleLowerCase("tr");
 const clone = <T,>(o: T): T => (typeof structuredClone === "function" ? structuredClone(o) : JSON.parse(JSON.stringify(o)));
@@ -45,6 +45,13 @@ export function NotebookApp({ initial, brand }: { initial: NotebookData; brand: 
   const [openActs, setOpenActs] = useState<Record<string, boolean>>({});
   const [modal, setModal] = useState<null | { kind: "contact" | "company"; after?: () => void }>(null);
   const [modalItem, setModalItem] = useState<RegItem | null>(null);
+  const [taskWhat, setTaskWhat] = useState("");
+  const [taskDue, setTaskDue] = useState("");
+  const [taskFilter, setTaskFilter] = useState<"open" | "today" | "over" | "done">("open");
+  const now = new Date();
+  const [calYM, setCalYM] = useState<{ y: number; m: number }>({ y: now.getFullYear(), m: now.getMonth() });
+  const [dayIso, setDayIso] = useState<string | null>(null);
+  const [homeOpen, setHomeOpen] = useState(false);
 
   function mutate(fn: (d: NotebookData) => void) { const next = clone(data); fn(next); setData(next); }
   const findCompany = (name?: string) => data.companies.find((c) => lo(c.name) === lo(name || ""));
@@ -52,7 +59,7 @@ export function NotebookApp({ initial, brand }: { initial: NotebookData; brand: 
   function openReg(kind: "contact" | "company", item: Partial<RegItem>, after?: () => void) { setModalItem(item as RegItem); setModal({ kind, after }); }
 
   const setD = (patch: Partial<NbNote>) => setDraft((d) => (d ? { ...d, ...patch } : d));
-  function openNew() { setDraft({ id: nbUid(), date: todayISO(), type: "musteri", people: [], topics: [{ subject: "", summary: "", decisions: [] }], actions: [{ what: "" }], photos: [] }); setPInput(""); setTagInput(""); setCurId(null); setView("edit"); }
+  function openNew(preset?: { date?: string }) { setDraft({ id: nbUid(), date: preset?.date || todayISO(), type: "musteri", people: [], topics: [{ subject: "", summary: "", decisions: [] }], actions: [{ what: "" }], photos: [] }); setPInput(""); setTagInput(""); setCurId(null); setView("edit"); }
   function openEdit(id: string) {
     const n = data.notes.find((x) => x.id === id); if (!n) return;
     const c = clone(n); c.topics = (c.topics || []).map((t) => ({ subject: t.subject, summary: t.summary, decisions: topicDecisions(t) }));
@@ -73,6 +80,16 @@ export function NotebookApp({ initial, brand }: { initial: NotebookData; brand: 
   function deleteNote(id: string) { if (!confirm("Bu not silinsin mi?")) return; mutate((db) => { db.notes = db.notes.filter((x) => x.id !== id); }); setView("notes"); toast.success("Not silindi"); }
   function toggleAction(noteId: string, what: string) { mutate((db) => { const x = db.notes.find((z) => z.id === noteId); const a = x?.actions?.find((y) => y.what === what); if (a) a.done = !a.done; }); }
   function togglePin(noteId: string) { mutate((db) => { const x = db.notes.find((z) => z.id === noteId); if (x) x.pinned = !x.pinned; }); }
+  function addTask(what: string, due?: string) { const v = what.trim(); if (!v) return; mutate((db) => { db.tasks.unshift({ id: nbUid(), what: v, due: due || "", done: false, createdAt: todayISO() }); }); }
+  function toggleTask(id: string) { mutate((db) => { const t = db.tasks.find((x) => x.id === id); if (t) t.done = !t.done; }); }
+  function delTask(id: string) { mutate((db) => { db.tasks = db.tasks.filter((x) => x.id !== id); }); }
+  // Açık aksiyonlar (notlardan) + açık görevler — anasayfa paneli / rozet
+  function openTodos() {
+    const items: { id: string; what: string; due?: string; done?: boolean; src: "note" | "task"; noteId?: string; label?: string }[] = [];
+    data.notes.forEach((n) => (n.actions || []).forEach((a) => { if (a.what) items.push({ id: n.id + ":" + a.what, what: a.what, due: a.due, done: a.done, src: "note", noteId: n.id, label: n.company }); }));
+    data.tasks.forEach((t) => items.push({ id: t.id, what: t.what, due: t.due, done: t.done, src: "task", label: "Görev" }));
+    return items;
+  }
 
   function doPdf(n: NbNote) {
     const w = window.open("", "_blank");
@@ -139,7 +156,24 @@ export function NotebookApp({ initial, brand }: { initial: NotebookData; brand: 
     const pinned = notes.filter((n) => n.pinned); const rest = notes.filter((n) => !n.pinned);
     const groups: React.ReactNode[] = []; let lastM = "";
     rest.forEach((n) => { const m = monthLabel(n.date); if (m !== lastM) { groups.push(<div key={"m" + n.id} className="col-span-full mb-1 mt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{m}</div>); lastM = m; } groups.push(noteCard(n)); });
+    const todos = openTodos().filter((x) => !x.done).sort((a, b) => (a.due || "9999") < (b.due || "9999") ? -1 : 1);
     return (<>
+      <div className="mb-3 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <button type="button" onClick={() => setHomeOpen((o) => !o)} className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left">
+          <ListChecks className="size-4 text-primary" /><span className="text-[13.5px] font-semibold text-foreground">Yapılacaklar</span>
+          <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">{todos.length} açık</span>
+          <span className="ml-auto text-muted-foreground">{homeOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}</span>
+        </button>
+        {homeOpen && <div className="max-h-[42vh] overflow-y-auto border-t border-border/60 px-3.5 py-2">
+          {todos.length === 0 ? <p className="py-2 text-[13px] text-muted-foreground">Açık iş yok — hepsi tamam. 🎉</p> :
+            todos.map((x) => <div key={x.id} className="flex items-start gap-2 py-1.5 text-[13px]">
+              <button onClick={() => (x.src === "task" ? toggleTask(x.id) : toggleAction(x.noteId!, x.what))} className="mt-0.5"><span className="inline-block size-4 rounded border border-border" /></button>
+              <button onClick={() => (x.src === "note" ? (setCurId(x.noteId!), setView("view")) : setView("tasks"))} className="min-w-0 flex-1 text-left">
+                <span>{x.what}</span> <span className="text-muted-foreground">· {x.label}{x.due ? ` · ` : ""}{x.due && <span className={cn(isOver(x.due) && "font-semibold text-rose-600")}>{fmtShort(x.due)}</span>}</span>
+              </button>
+            </div>)}
+        </div>}
+      </div>
       <div className="mb-3 flex flex-wrap gap-2">
         <div className="flex min-w-[180px] flex-1 items-center gap-2 rounded-lg border border-border bg-card px-3"><Search className="size-4 text-muted-foreground" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Firma, kişi, not, etiket ara…" className="w-full bg-transparent py-2 text-[13.5px] outline-none" /></div>
         <select value={typeF} onChange={(e) => setTypeF(e.target.value)} className="rounded-lg border border-border bg-card px-3 text-[13px] text-muted-foreground outline-none"><option value="">Tüm türler</option>{NB_TYPES.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
@@ -289,6 +323,87 @@ export function NotebookApp({ initial, brand }: { initial: NotebookData; brand: 
     return (<>{searchBar("Şirket ara…")}{arr.length === 0 ? empty("Şirket yok", "Not alırken eklenen şirketler buraya kaydolur; buradan da ekleyebilirsin.") :
       arr.map((c) => { const cnt = data.notes.filter((n) => lo(n.company || "") === lo(c.name)).length; return <button key={c.id} type="button" onClick={() => openReg("company", clone(c))} className="mb-2 flex w-full items-center gap-3 rounded-xl border border-border bg-card p-3 text-left shadow-sm hover:border-primary/40"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-[13px] font-bold text-primary">{initials(c.name)}</span><div className="min-w-0 flex-1"><div className="font-semibold text-foreground">{c.name}</div><div className="text-[12.5px] text-muted-foreground">{[c.segment, c.city].filter(Boolean).join(" · ") || "—"}</div><div className="mt-0.5 flex flex-wrap gap-1.5 text-[11.5px]">{cnt > 0 && <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">{cnt} not</span>}{c.phone && <span className="text-primary">☎ {c.phone}</span>}</div></div><Pencil className="size-4 text-muted-foreground" /></button>; })}</>);
   }
+  function renderTasks() {
+    const t = todayISO();
+    let arr = [...data.tasks];
+    if (taskFilter === "open") arr = arr.filter((x) => !x.done);
+    else if (taskFilter === "today") arr = arr.filter((x) => !x.done && x.due === t);
+    else if (taskFilter === "over") arr = arr.filter((x) => !x.done && isOver(x.due));
+    else arr = arr.filter((x) => x.done);
+    arr.sort((a, b) => (a.due || "9999") < (b.due || "9999") ? -1 : 1);
+    return (<>
+      <div className="mb-3 flex flex-wrap gap-2">
+        <input value={taskWhat} onChange={(e) => setTaskWhat(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { addTask(taskWhat, taskDue); setTaskWhat(""); setTaskDue(""); } }} placeholder="Hızlı görev ekle — Enter" className="min-w-[180px] flex-1 rounded-lg border border-border bg-card px-3 py-2 text-[13.5px] outline-none focus:border-primary" />
+        <input type="date" value={taskDue} onChange={(e) => setTaskDue(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-2 text-[13px] text-muted-foreground outline-none" />
+        <Button size="sm" onClick={() => { addTask(taskWhat, taskDue); setTaskWhat(""); setTaskDue(""); }}><Plus className="size-4" /> Ekle</Button>
+      </div>
+      <div className="mb-3 flex gap-1.5">{([["open", "Açık"], ["today", "Bugün"], ["over", "Geciken"], ["done", "Tamamlanan"]] as const).map(([f, l]) => <button key={f} type="button" onClick={() => setTaskFilter(f)} className={cn("rounded-lg border px-3 py-1 text-[12.5px] font-medium", taskFilter === f ? "border-primary bg-primary text-primary-foreground" : "border-border/60 bg-card text-muted-foreground hover:bg-muted")}>{l}</button>)}</div>
+      {arr.length === 0 ? empty("Görev yok", "Yukarıdan hızlı görev ekleyin. Toplantı aksiyonları ana sayfadaki Yapılacaklar panelinde de görünür.") :
+        arr.map((x) => <div key={x.id} className="mb-2 flex items-start gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">
+          <button onClick={() => toggleTask(x.id)} className="mt-0.5">{x.done ? <Check className="size-5 text-emerald-600" /> : <span className="inline-block size-5 rounded border border-border" />}</button>
+          <div className="min-w-0 flex-1"><div className={cn("text-[14px]", x.done && "text-muted-foreground line-through")}>{x.what}</div>{x.due && <div className={cn("text-[12px]", isOver(x.due) && !x.done ? "font-semibold text-rose-600" : "text-muted-foreground")}>{fmtShort(x.due)}</div>}</div>
+          <button onClick={() => delTask(x.id)} className="text-muted-foreground hover:text-rose-600"><Trash2 className="size-4" /></button>
+        </div>)}
+    </>);
+  }
+  function dayItems(iso: string) {
+    const ev: { c: string; t: string; go: () => void }[] = [];
+    data.notes.forEach((n) => { if (n.date === iso) ev.push({ c: "bg-sky-500", t: "📄 " + (n.company || "Not"), go: () => { setCurId(n.id); setView("view"); } }); });
+    data.notes.forEach((n) => { if (n.followUp === iso && !n.followDone) ev.push({ c: "bg-amber-500", t: "⏰ Takip: " + (n.company || ""), go: () => { setCurId(n.id); setView("view"); } }); });
+    data.tasks.forEach((t) => { if (t.due === iso && !t.done) ev.push({ c: "bg-emerald-500", t: "✔ " + t.what, go: () => setView("tasks") }); });
+    data.notes.forEach((n) => (n.actions || []).forEach((a) => { if (a.due === iso && !a.done && a.what) ev.push({ c: "bg-violet-500", t: "✔ " + a.what, go: () => { setCurId(n.id); setView("view"); } }); }));
+    return ev;
+  }
+  function renderCal() {
+    const first = new Date(calYM.y, calYM.m, 1);
+    const startDow = (first.getDay() + 6) % 7;
+    const daysIn = new Date(calYM.y, calYM.m + 1, 0).getDate();
+    const cells: { iso: string; d: number; out: boolean }[] = [];
+    const prevDays = new Date(calYM.y, calYM.m, 0).getDate();
+    for (let i = startDow - 1; i >= 0; i--) { const d = prevDays - i; cells.push({ iso: new Date(calYM.y, calYM.m - 1, d, 12).toISOString().slice(0, 10), d, out: true }); }
+    for (let d = 1; d <= daysIn; d++) cells.push({ iso: new Date(calYM.y, calYM.m, d, 12).toISOString().slice(0, 10), d, out: false });
+    while (cells.length % 7) { const d = cells.length - (startDow + daysIn) + 1; cells.push({ iso: new Date(calYM.y, calYM.m + 1, d, 12).toISOString().slice(0, 10), d, out: true }); }
+    const dows = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
+    const move = (delta: number) => setCalYM(({ y, m }) => { m += delta; if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; } return { y, m }; });
+    return (<>
+      <div className="mb-3 flex items-center gap-2">
+        <button onClick={() => move(-1)} className="rounded-lg border border-border bg-card p-2 text-muted-foreground hover:text-foreground"><ChevronLeft className="size-4" /></button>
+        <h2 className="min-w-[150px] text-[15px] font-semibold">{first.toLocaleDateString("tr-TR", { month: "long", year: "numeric" })}</h2>
+        <button onClick={() => move(1)} className="rounded-lg border border-border bg-card p-2 text-muted-foreground hover:text-foreground"><ChevronRight className="size-4" /></button>
+        <Button size="sm" variant="outline" className="ml-auto" onClick={() => setCalYM({ y: new Date().getFullYear(), m: new Date().getMonth() })}>Bugün</Button>
+      </div>
+      <div className="grid grid-cols-7 gap-1.5">
+        {dows.map((d) => <div key={d} className="py-1 text-center text-[11px] font-semibold uppercase text-muted-foreground">{d}</div>)}
+        {cells.map((c) => { const ev = dayItems(c.iso); return (
+          <button key={c.iso} type="button" onClick={() => setDayIso(c.iso)} className={cn("min-h-[74px] rounded-lg border p-1.5 text-left transition-colors hover:border-primary/50", c.out ? "border-border/40 bg-muted/20 opacity-60" : "border-border bg-card", c.iso === todayISO() && "border-primary ring-1 ring-primary")}>
+            <div className="text-[12px] font-semibold tabular-nums">{c.d}</div>
+            <div className="mt-1 flex flex-wrap gap-0.5">{ev.slice(0, 5).map((e, i) => <span key={i} className={cn("size-1.5 rounded-full", e.c)} />)}{ev.length > 5 && <span className="text-[9px] text-muted-foreground">+{ev.length - 5}</span>}</div>
+          </button>); })}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-3 text-[11.5px] text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-sky-500" /> Toplantı</span>
+        <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-amber-500" /> Takip</span>
+        <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-emerald-500" /> Görev</span>
+        <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-violet-500" /> Aksiyon</span>
+      </div>
+    </>);
+  }
+  function renderDayModal() {
+    const iso = dayIso!; const ev = dayItems(iso);
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={(e) => { if (e.target === e.currentTarget) setDayIso(null); }}>
+        <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-xl">
+          <div className="mb-3 flex items-center gap-2"><CalendarDays className="size-4 text-primary" /><h3 className="text-[15px] font-semibold">{fmtDate(iso)}</h3><button className="ml-auto text-muted-foreground" onClick={() => setDayIso(null)}><X className="size-4" /></button></div>
+          <div className="mb-3 space-y-1.5 max-h-[40vh] overflow-y-auto">{ev.length ? ev.map((e, i) => <button key={i} onClick={() => { setDayIso(null); e.go(); }} className="flex w-full items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-left text-[13px] hover:bg-muted"><span className={cn("size-2 rounded-full", e.c)} />{e.t}</button>) : <p className="text-[12.5px] text-muted-foreground">Bu günde kayıt yok.</p>}</div>
+          <div className="flex items-center gap-2">
+            <input value={taskWhat} onChange={(e) => setTaskWhat(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && taskWhat.trim()) { addTask(taskWhat, iso); setTaskWhat(""); } }} placeholder="Bu güne görev…" className="min-w-0 flex-1 rounded-md border border-border bg-background px-2.5 py-1.5 text-[13px] outline-none focus:border-primary" />
+            <Button size="sm" variant="outline" onClick={() => { if (taskWhat.trim()) { addTask(taskWhat, iso); setTaskWhat(""); toast.success("Görev eklendi"); } }}>Görev</Button>
+          </div>
+          <Button className="mt-2 w-full" onClick={() => { const d = iso; setDayIso(null); openNew({ date: d }); }}><Plus className="size-4" /> Bu güne Not al</Button>
+        </div>
+      </div>
+    );
+  }
   function renderRegModal() {
     if (!modal || !modalItem) return null;
     const isC = modal.kind === "company"; const it = modalItem;
@@ -333,18 +448,21 @@ export function NotebookApp({ initial, brand }: { initial: NotebookData; brand: 
       </div>
       {view !== "edit" && view !== "view" && (
         <div className="mb-4 flex flex-wrap items-center gap-1.5">
-          {([["notes", "Notlar", data.notes.length], ["contacts", "Kişiler", data.contacts.length], ["companies", "Şirketler", data.companies.length]] as const).map(([v, label, n]) => (
-            <button key={v} type="button" onClick={() => setView(v)} className={cn("inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] font-semibold transition-colors", view === v ? "border-primary bg-primary text-primary-foreground" : "border-border/60 bg-card text-foreground hover:border-primary/40 hover:bg-primary-soft")}>{label}<span className={cn("rounded-full px-1.5 text-[10.5px]", view === v ? "bg-white/20" : "bg-muted text-muted-foreground")}>{n}</span></button>))}
-          {view === "notes" && <Button size="sm" className="ml-auto" onClick={openNew}><Plus className="size-4" /> Yeni Not</Button>}
+          {([["notes", "Notlar", data.notes.length], ["tasks", "Görevler", data.tasks.filter((t) => !t.done).length], ["cal", "Takvim", null], ["contacts", "Kişiler", data.contacts.length], ["companies", "Şirketler", data.companies.length]] as const).map(([v, label, n]) => (
+            <button key={v} type="button" onClick={() => setView(v)} className={cn("inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] font-semibold transition-colors", view === v ? "border-primary bg-primary text-primary-foreground" : "border-border/60 bg-card text-foreground hover:border-primary/40 hover:bg-primary-soft")}>{label}{n != null && <span className={cn("rounded-full px-1.5 text-[10.5px]", view === v ? "bg-white/20" : "bg-muted text-muted-foreground")}>{n}</span>}</button>))}
+          {view === "notes" && <Button size="sm" className="ml-auto" onClick={() => openNew()}><Plus className="size-4" /> Yeni Not</Button>}
           {view === "contacts" && <Button size="sm" className="ml-auto" onClick={() => openReg("contact", { id: nbUid(), name: "" })}><Plus className="size-4" /> Kişi</Button>}
           {view === "companies" && <Button size="sm" className="ml-auto" onClick={() => openReg("company", { id: nbUid(), name: "" })}><Plus className="size-4" /> Şirket</Button>}
         </div>)}
       {view === "notes" && renderNotes()}
       {view === "edit" && draft && renderEditor()}
       {view === "view" && renderViewer()}
+      {view === "tasks" && renderTasks()}
+      {view === "cal" && renderCal()}
       {view === "contacts" && renderContacts()}
       {view === "companies" && renderCompanies()}
       {renderRegModal()}
+      {dayIso && renderDayModal()}
     </div>
   );
 }

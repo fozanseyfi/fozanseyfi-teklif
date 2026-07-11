@@ -15,6 +15,7 @@ export async function getNotebook(): Promise<NotebookData> {
     notes: Array.isArray(d?.notes) ? d!.notes : [],
     contacts: Array.isArray(d?.contacts) ? d!.contacts : [],
     companies: Array.isArray(d?.companies) ? d!.companies : [],
+    tasks: Array.isArray(d?.tasks) ? d!.tasks : [],
   };
 }
 
@@ -25,6 +26,7 @@ export async function saveNotebook(data: NotebookData): Promise<void> {
     notes: Array.isArray(data?.notes) ? data.notes : [],
     contacts: Array.isArray(data?.contacts) ? data.contacts : [],
     companies: Array.isArray(data?.companies) ? data.companies : [],
+    tasks: Array.isArray(data?.tasks) ? data.tasks : [],
   };
   await prisma.notebook.upsert({
     where: { profileId: user.id },

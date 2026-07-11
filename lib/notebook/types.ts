@@ -49,6 +49,13 @@ export interface NbContact {
   email?: string;
   note?: string;
 }
+export interface NbTask {
+  id: string;
+  what: string;
+  due?: string; // yyyy-mm-dd
+  done?: boolean;
+  createdAt?: string;
+}
 export interface NbCompany {
   id: string;
   name: string;
@@ -64,9 +71,10 @@ export interface NotebookData {
   notes: NbNote[];
   contacts: NbContact[];
   companies: NbCompany[];
+  tasks: NbTask[];
 }
 
-export const EMPTY_NOTEBOOK: NotebookData = { notes: [], contacts: [], companies: [] };
+export const EMPTY_NOTEBOOK: NotebookData = { notes: [], contacts: [], companies: [], tasks: [] };
 
 /** Toplantı türleri — bizim temaya uygun renk anahtarları (Tailwind sınıfları editor'de). */
 export const NB_TYPES: { id: string; name: string; dot: string; chip: string }[] = [
