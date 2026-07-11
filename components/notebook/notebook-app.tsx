@@ -12,7 +12,7 @@ import {
   NB_TYPES, NB_SEGMENTS, nbType, nbUid, topicDecisions, noteTagList,
   type NotebookData, type NbNote, type NbContact, type NbCompany, type NbTopic,
 } from "@/lib/notebook/types";
-import { todayISO, isOver, fmtDate, fmtShort, monthLabel, initials, peopleStr, noteToText, waLink, mailLink } from "@/lib/notebook/util";
+import { todayISO, isOver, fmtDate, fmtShort, monthLabel, initials, peopleStr, noteToText, noteToPrintHtml, waLink, mailLink, type PrintBrand } from "@/lib/notebook/util";
 
 type View = "notes" | "edit" | "view" | "contacts" | "companies";
 type RegItem = NbContact & NbCompany;
@@ -21,7 +21,7 @@ const clone = <T,>(o: T): T => (typeof structuredClone === "function" ? structur
 const IN = "w-full rounded-md border border-border bg-background px-2.5 py-2 text-[13.5px] outline-none focus:border-primary";
 const LBL = "mb-1 block text-[11.5px] font-medium text-muted-foreground";
 
-export function NotebookApp({ initial }: { initial: NotebookData }) {
+export function NotebookApp({ initial, brand }: { initial: NotebookData; brand: PrintBrand }) {
   const [data, setData] = useState<NotebookData>(initial);
   const [saving, setSaving] = useState(false);
   const firstRun = useRef(true);
@@ -36,9 +36,9 @@ export function NotebookApp({ initial }: { initial: NotebookData }) {
   const [curId, setCurId] = useState<string | null>(null);
   const [draft, setDraft] = useState<NbNote | null>(null);
   const [pInput, setPInput] = useState("");
+  const [ourInput, setOurInput] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [photoBusy, setPhotoBusy] = useState(false);
-  const [pdfBusy, setPdfBusy] = useState(false);
   const [q, setQ] = useState("");
   const [typeF, setTypeF] = useState("");
   const [tagF, setTagF] = useState("");
@@ -74,14 +74,11 @@ export function NotebookApp({ initial }: { initial: NotebookData }) {
   function toggleAction(noteId: string, what: string) { mutate((db) => { const x = db.notes.find((z) => z.id === noteId); const a = x?.actions?.find((y) => y.what === what); if (a) a.done = !a.done; }); }
   function togglePin(noteId: string) { mutate((db) => { const x = db.notes.find((z) => z.id === noteId); if (x) x.pinned = !x.pinned; }); }
 
-  async function doPdf(n: NbNote) {
-    setPdfBusy(true);
-    try {
-      const res = await fetch("/api/pdf/notebook", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note: n }) });
-      if (!res.ok) { toast.error("PDF oluşturulamadı"); return; }
-      const blob = await res.blob(); const url = URL.createObjectURL(blob);
-      const a = document.createElement("a"); a.href = url; a.download = `Not-${(n.company || "toplanti").replace(/[^\w.-]+/g, "_").slice(0, 40)}.pdf`; a.click(); URL.revokeObjectURL(url);
-    } catch { toast.error("PDF alınamadı"); } finally { setPdfBusy(false); }
+  function doPdf(n: NbNote) {
+    const w = window.open("", "_blank");
+    if (!w) { toast.error("Açılır pencere engellendi — tarayıcı izni verin"); return; }
+    w.document.write(noteToPrintHtml(n, brand));
+    w.document.close();
   }
   async function doCopy(n: NbNote) { try { await navigator.clipboard.writeText(noteToText(n)); toast.success("Metin panoya kopyalandı"); } catch { toast.error("Kopyalanamadı"); } }
   async function addPhotos(files: FileList | null) {
@@ -126,7 +123,7 @@ export function NotebookApp({ initial }: { initial: NotebookData }) {
           {acts.length > 0 && <button onClick={() => setOpenActs((s) => ({ ...s, [n.id]: !s[n.id] }))} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] font-medium text-muted-foreground hover:bg-muted">{expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />} {openA > 0 ? `${openA} açık aksiyon` : `${acts.length} aksiyon`}</button>}
           {n.followUp && !n.followDone && <span className={cn("rounded-full border px-2 py-0.5 text-[10.5px] font-medium", isOver(n.followUp) ? "border-rose-200 bg-rose-50 text-rose-700" : "border-amber-200 bg-amber-50 text-amber-700")}>Takip: {fmtShort(n.followUp)}</span>}
           <div className="ml-auto flex items-center gap-0.5">
-            <button title="PDF" onClick={() => doPdf(n)} disabled={pdfBusy} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"><FileDown className="size-4" /></button>
+            <button title="PDF" onClick={() => doPdf(n)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"><FileDown className="size-4" /></button>
             <a title="WhatsApp" href={waLink(noteToText(n))} target="_blank" rel="noopener" className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"><Share2 className="size-4" /></a>
             <a title="Mail" href={mailLink("Toplantı Notu — " + (n.company || ""), noteToText(n))} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"><Mail className="size-4" /></a>
             <button title="Kopyala" onClick={() => doCopy(n)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"><Copy className="size-4" /></button>
@@ -162,6 +159,12 @@ export function NotebookApp({ initial }: { initial: NotebookData }) {
     const addPerson = (name: string) => { const v = name.trim(); if (!v) return; if ((d.people || []).some((p) => lo(p) === lo(v))) { setPInput(""); return; }
       if (findContact(v)) { setDraft((x) => (x ? { ...x, people: [...(x.people || []), v] } : x)); setPInput(""); }
       else openReg("contact", { id: nbUid(), name: v }, () => setDraft((x) => (x ? { ...x, people: [...(x.people || []), v] } : x))); setPInput(""); };
+    const ourList = (d.ourAttendees || "").split(",").map((s) => s.trim()).filter(Boolean);
+    const ourSug = data.contacts.filter((c) => lo(c.name).includes(lo(ourInput)) && !ourList.some((p) => lo(p) === lo(c.name))).slice(0, 5);
+    const setOur = (arr: string[]) => setD({ ourAttendees: arr.join(", ") });
+    const addOur = (name: string) => { const v = name.trim(); if (!v) return; if (ourList.some((p) => lo(p) === lo(v))) { setOurInput(""); return; }
+      if (findContact(v)) { setDraft((x) => (x ? { ...x, ourAttendees: [...(x.ourAttendees || "").split(",").map((s) => s.trim()).filter(Boolean), v].join(", ") } : x)); setOurInput(""); }
+      else openReg("contact", { id: nbUid(), name: v }, () => setDraft((x) => (x ? { ...x, ourAttendees: [...(x.ourAttendees || "").split(",").map((s) => s.trim()).filter(Boolean), v].join(", ") } : x))); setOurInput(""); };
     const commitCompany = () => { const v = (d.company || "").trim(); if (v && !findCompany(v)) openReg("company", { id: nbUid(), name: v }); };
     const upTopic = (i: number, patch: Partial<NbTopic>) => { const arr = [...(d.topics || [])]; arr[i] = { ...arr[i], ...patch }; setD({ topics: arr }); };
     return (
@@ -193,7 +196,12 @@ export function NotebookApp({ initial }: { initial: NotebookData }) {
             {pInput && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg">{contSug.map((c) => <button key={c.id} type="button" onMouseDown={(e) => { e.preventDefault(); addPerson(c.name); }} className="block w-full px-3 py-2 text-left text-[13px] hover:bg-muted">{c.name}{c.company ? ` · ${c.company}` : ""}</button>)}
               {!findContact(pInput) && <button type="button" onMouseDown={(e) => { e.preventDefault(); addPerson(pInput); }} className="block w-full border-t border-border/60 bg-primary-soft/40 px-3 py-2 text-left text-[13px] font-medium text-primary">＋ “{pInput.trim()}” yeni kişi olarak kaydet</button>}</div>}
           </div>
-          <div><label className={LBL}>Bizim taraf</label><input className={IN} value={d.ourAttendees || ""} onChange={(e) => setD({ ourAttendees: e.target.value })} placeholder="Virgülle ayır" /></div>
+          <div className="relative"><label className={LBL}>Bizim taraf <span className="font-normal normal-case text-muted-foreground/70">— aynı kişilerden; yeni isim eklerken kaydedilir</span></label>
+            <div className="flex flex-wrap gap-1.5 rounded-md border border-border bg-background p-1.5">{ourList.map((p, i) => <span key={i} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[12.5px] text-emerald-700">{p}<button onClick={() => setOur(ourList.filter((_, x) => x !== i))}><X className="size-3" /></button></span>)}
+              <input value={ourInput} onChange={(e) => setOurInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addOur(ourInput); } if (e.key === "Backspace" && !ourInput && ourList.length) setOur(ourList.slice(0, -1)); }} placeholder="İsim yazıp Enter" className="min-w-[130px] flex-1 bg-transparent px-1 py-1 text-[13px] outline-none" autoComplete="off" /></div>
+            {ourInput && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg">{ourSug.map((c) => <button key={c.id} type="button" onMouseDown={(e) => { e.preventDefault(); addOur(c.name); }} className="block w-full px-3 py-2 text-left text-[13px] hover:bg-muted">{c.name}{c.company ? ` · ${c.company}` : ""}</button>)}
+              {!findContact(ourInput) && <button type="button" onMouseDown={(e) => { e.preventDefault(); addOur(ourInput); }} className="block w-full border-t border-border/60 bg-primary-soft/40 px-3 py-2 text-left text-[13px] font-medium text-primary">＋ “{ourInput.trim()}” yeni kişi olarak kaydet</button>}</div>}
+          </div>
         </>)}
         {section("Görüşülen Konular ve Kararlar", <>
           {(d.topics || [{}]).map((tp, i) => <div key={i} className="relative rounded-lg border border-border bg-muted/20 p-2.5">
@@ -247,7 +255,7 @@ export function NotebookApp({ initial }: { initial: NotebookData }) {
           <button onClick={() => setView("notes")} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-[12.5px] font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Notlar</button>
           <div className="ml-auto flex flex-wrap gap-1.5">
             <Button size="sm" variant="outline" onClick={() => togglePin(n.id)}><Pin className="size-4" /> {n.pinned ? "Sabiti kaldır" : "Sabitle"}</Button>
-            <Button size="sm" variant="outline" onClick={() => doPdf(n)} disabled={pdfBusy}><FileDown className="size-4" /> PDF</Button>
+            <Button size="sm" variant="outline" onClick={() => doPdf(n)}><FileDown className="size-4" /> PDF</Button>
             <a href={waLink(noteToText(n))} target="_blank" rel="noopener"><Button size="sm" variant="outline"><Share2 className="size-4" /> WhatsApp</Button></a>
             <a href={mailLink("Toplantı Notu — " + (n.company || ""), noteToText(n))}><Button size="sm" variant="outline"><Mail className="size-4" /> Mail</Button></a>
             <Button size="sm" variant="outline" onClick={() => doCopy(n)}><Copy className="size-4" /> Kopyala</Button>
