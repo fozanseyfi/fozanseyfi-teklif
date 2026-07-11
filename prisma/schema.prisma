@@ -38,6 +38,20 @@ model Profile {
   @@schema("public")
 }
 
+// Not Defteri — kullanıcıya özel, İZOLE modül. Tüm veri (notlar, kişiler, şirketler)
+// tek JSON alanında; platformun Müşteriler/Projeler verisiyle ilişkisi yoktur.
+model Notebook {
+  id             String   @id @default(uuid()) @db.Uuid
+  profileId      String   @unique @map("profile_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  data           Json     @default("{}")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("notebooks")
+  @@schema("public")
+}
+
 model Organization {
   id        String   @id @default(uuid()) @db.Uuid
   name      String

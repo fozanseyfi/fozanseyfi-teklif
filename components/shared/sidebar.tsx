@@ -19,6 +19,7 @@ import {
   ChevronDown,
   ScrollText,
   FileSignature,
+  NotebookPen,
   Share2,
   Search,
   BarChart3,
@@ -72,6 +73,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/projects", icon: FolderOpen, label: "Teklifler" },
       { href: "/sozlesmeler", icon: FileSignature, label: "Sözleşmeler" },
+      { href: "/not-defteri", icon: NotebookPen, label: "Not Defteri" },
       { href: "/templates", icon: LayoutTemplate, label: "Şablonlar" },
       { href: "/materials", icon: Package, label: "Malzemeler" },
       { href: "/customers", icon: Users, label: "Müşteriler" },
