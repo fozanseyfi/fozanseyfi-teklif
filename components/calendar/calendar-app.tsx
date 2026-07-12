@@ -12,10 +12,10 @@ import {
   type CalEvent, type CalMember, type CalEventInput, type FeedItem,
 } from "@/app/actions/calendar";
 import {
-  EVENT_TYPES, PRIORITIES, VISIBILITIES, ATTENDEE_STATUSES, REMINDER_OPTIONS, evType, reminderLabel,
+  EVENT_TYPES, VISIBILITIES, ATTENDEE_STATUSES, REMINDER_OPTIONS, evType, reminderLabel,
 } from "@/lib/calendar/constants";
 import { DayTimeGrid } from "./day-time-grid";
-import type { AttendeeStatus, CalendarEventType, CalendarPriority, CalendarVisibility } from "@prisma/client";
+import type { AttendeeStatus, CalendarEventType, CalendarVisibility } from "@prisma/client";
 
 type View = "month" | "week" | "day" | "agenda";
 
@@ -173,7 +173,7 @@ export function CalendarApp({
       // Bir tur filtresi aciksa yeni etkinlik dogrudan o turde acilir.
       title: "", description: "", type: (typeF || "TOPLANTI") as CalendarEventType,
       startAt: base.toISOString(), endAt: end.toISOString(), allDay: false, location: "",
-      priority: "NORMAL" as CalendarPriority, status: "PLANLANDI", visibility: "ORG" as CalendarVisibility,
+      status: "PLANLANDI", visibility: "ORG" as CalendarVisibility,
       projectId: null, attendeeIds: [], reminders: [60], canEdit: true, canDelete: true,
     });
   }
@@ -404,7 +404,7 @@ export function CalendarApp({
     const endLocal = f.endAt ? toLocalInput(f.endAt) : "";
     return (
       <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4" onClick={(e) => { if (e.target === e.currentTarget) setForm(null); }}>
-        <div className="my-6 w-full max-w-2xl rounded-2xl border border-border bg-card p-5 shadow-xl">
+        <div className="my-6 w-full max-w-4xl rounded-2xl border border-border bg-card p-5 shadow-xl">
           <div className="mb-4 flex items-center gap-2">
             <CalendarDays className="size-4 text-primary" />
             <h3 className="text-[15px] font-semibold">{f.id ? (ro ? "Etkinlik" : "Etkinliği düzenle") : "Yeni etkinlik"}</h3>
@@ -419,7 +419,8 @@ export function CalendarApp({
             </div>
           )}
 
-          <div className="space-y-3">
+          <div className="grid gap-4 md:grid-cols-[1fr_290px]">
+            <div className="space-y-3">
             <div>
               <label className={LBL}>Başlık *</label>
               <input disabled={ro} value={f.title} onChange={(e) => patch({ title: e.target.value })} placeholder="Örn. Çimsa ile fiyat görüşmesi" className={IN} />
@@ -440,27 +441,6 @@ export function CalendarApp({
                         on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:bg-muted")}
                     >
                       <span className={cn("size-2 rounded-full", on ? "bg-primary-foreground" : t.dot)} /> {t.name}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <label className={LBL}>Öncelik</label>
-              <div className="flex flex-wrap gap-1.5">
-                {PRIORITIES.map((p) => {
-                  const on = f.priority === p.id;
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      disabled={ro}
-                      onClick={() => patch({ priority: p.id as CalendarPriority })}
-                      className={cn("rounded-lg border px-2.5 py-1.5 text-[12.5px] font-medium transition-colors disabled:opacity-60",
-                        on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:bg-muted")}
-                    >
-                      {p.name}
                     </button>
                   );
                 })}
@@ -521,16 +501,6 @@ export function CalendarApp({
                 />
               </div>
             </div>
-
-            {!f.allDay && (
-              <DayTimeGrid
-                dayISO={startLocal.slice(0, 10)}
-                startISO={f.startAt}
-                endISO={f.endAt || null}
-                disabled={ro}
-                onChange={(s, e) => patch({ startAt: s, endAt: e })}
-              />
-            )}
 
             <div>
               <label className={LBL}>Konum</label>
@@ -607,6 +577,24 @@ export function CalendarApp({
                 })}
               </div>
               <p className="mt-1.5 text-[11.5px] text-muted-foreground">{VISIBILITIES.find((v) => v.id === f.visibility)?.hint}</p>
+            </div>
+            </div>
+
+            {/* Sag panel — Outlook'taki gunluk zaman izgarasi */}
+            <div className="md:sticky md:top-0 md:self-start">
+              {f.allDay ? (
+                <div className="rounded-lg border border-dashed border-border p-4 text-center text-[12.5px] text-muted-foreground">
+                  Tüm gün etkinliği — saat seçimi yok.
+                </div>
+              ) : (
+                <DayTimeGrid
+                  dayISO={startLocal.slice(0, 10)}
+                  startISO={f.startAt}
+                  endISO={f.endAt || null}
+                  disabled={ro}
+                  onChange={(s, e) => patch({ startAt: s, endAt: e })}
+                />
+              )}
             </div>
           </div>
 

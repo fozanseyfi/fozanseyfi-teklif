@@ -16,6 +16,8 @@ const SLOT_H = 14;                // 10 dk = 14px  → 30 dk = 42px, 1 saat = 84
 const SLOTS = (24 * 60) / SLOT_MIN; // 144
 const DEFAULT_SLOTS = 3;          // varsayilan sure: 30 dk
 
+type Mode = "create" | "move" | "resize" | "resizeStart";
+
 const pad = (n: number) => String(n).padStart(2, "0");
 const slotLabel = (s: number) => `${pad(Math.floor((s * SLOT_MIN) / 60))}:${pad((s * SLOT_MIN) % 60)}`;
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
@@ -34,7 +36,7 @@ export function DayTimeGrid({
 }) {
   const gridRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const [drag, setDrag] = useState<null | { mode: "create" | "move" | "resize"; anchor: number; dur: number; grab: number }>(null);
+  const [drag, setDrag] = useState<null | { mode: Mode; anchor: number; dur: number; grab: number }>(null);
 
   const start = new Date(startISO);
   const end = endISO ? new Date(endISO) : new Date(start.getTime() + DEFAULT_SLOTS * SLOT_MIN * 60_000);
@@ -69,7 +71,7 @@ export function DayTimeGrid({
     return clamp(Math.floor((clientY - r.top) / SLOT_H), 0, SLOTS - 1);
   };
 
-  function down(e: React.PointerEvent, mode: "create" | "move" | "resize") {
+  function down(e: React.PointerEvent, mode: Mode) {
     if (disabled) return;
     e.preventDefault();
     e.stopPropagation();
@@ -81,7 +83,7 @@ export function DayTimeGrid({
     } else if (mode === "move") {
       setDrag({ mode, anchor: startSlot, dur: endSlot - startSlot, grab: s - startSlot });
     } else {
-      setDrag({ mode, anchor: startSlot, dur: endSlot - startSlot, grab: 0 });
+      setDrag({ mode, anchor: mode === "resizeStart" ? endSlot : startSlot, dur: endSlot - startSlot, grab: 0 });
     }
   }
 
@@ -106,6 +108,8 @@ export function DayTimeGrid({
     } else if (drag.mode === "move") {
       const ns = clamp(s - drag.grab, 0, SLOTS - drag.dur);
       emit(ns, ns + drag.dur);
+    } else if (drag.mode === "resizeStart") {
+      emit(Math.min(s, endSlot - 1), endSlot);
     } else {
       emit(startSlot, Math.max(s + 1, startSlot + 1));
     }
@@ -156,7 +160,7 @@ export function DayTimeGrid({
           {/* secili aralik */}
           <div
             onPointerDown={(e) => down(e, "move")}
-            className={cn("absolute left-12 right-2 z-20 overflow-hidden rounded-md border-2 border-rose-600 bg-rose-500 shadow-sm",
+            className={cn("absolute left-12 right-2 z-20 rounded-md border-2 border-rose-600 bg-rose-500 shadow-sm",
               disabled ? "cursor-default" : "cursor-grab active:cursor-grabbing")}
             style={{ top: startSlot * SLOT_H, height: (endSlot - startSlot) * SLOT_H }}
           >
@@ -164,13 +168,24 @@ export function DayTimeGrid({
               {slotLabel(startSlot)} – {slotLabel(endSlot)}
             </div>
             {!disabled && (
-              <div
-                onPointerDown={(e) => down(e, "resize")}
-                className="absolute inset-x-0 bottom-0 flex h-3 cursor-ns-resize items-end justify-center"
-                title="Aşağı çekerek 10'ar dakika uzat"
-              >
-                <span className="mb-0.5 h-1 w-8 rounded-full bg-white/80" />
-              </div>
+              <>
+                {/* ust tutamak — baslangici degistirir */}
+                <div
+                  onPointerDown={(e) => down(e, "resizeStart")}
+                  className="absolute -top-1 left-2 z-30 flex size-4 cursor-ns-resize items-center justify-center"
+                  title="Yukarı/aşağı çekerek başlangıcı değiştir"
+                >
+                  <span className="size-2.5 rounded-full border-2 border-rose-600 bg-white" />
+                </div>
+                {/* alt tutamak — bitisi 10'ar dk degistirir */}
+                <div
+                  onPointerDown={(e) => down(e, "resize")}
+                  className="absolute -bottom-1 right-2 z-30 flex size-4 cursor-ns-resize items-center justify-center"
+                  title="Aşağı çekerek 10'ar dakika uzat"
+                >
+                  <span className="size-2.5 rounded-full border-2 border-rose-600 bg-white" />
+                </div>
+              </>
             )}
           </div>
         </div>
