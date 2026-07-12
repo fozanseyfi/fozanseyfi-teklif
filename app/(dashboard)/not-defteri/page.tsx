@@ -1,6 +1,6 @@
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { parseBrandSettings } from "@/lib/pdf-brand";
+import { parseBrandSettings, resolveBrand } from "@/lib/pdf-brand";
 import { getNotebook } from "@/app/actions/notebook";
 import { NotebookApp } from "@/components/notebook/notebook-app";
 import type { PrintBrand } from "@/lib/notebook/util";
@@ -13,11 +13,13 @@ export default async function NotDefteriPage() {
     getNotebook(),
     prisma.organization.findUnique({ where: { id: user.organizationId } }),
   ]);
-  const b = parseBrandSettings(org?.brandSettings);
+  // Teklif (malzeme/hizmet) PDF'iyle aynı brand çözümü: accent + accent-light + varsa logo/slogan.
+  const rb = resolveBrand(parseBrandSettings(org?.brandSettings));
   const brand: PrintBrand = {
-    firm: b.payCompanyName || org?.name || "Firma",
-    accent: b.colorEnabled && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(b.color || "") ? (b.color as string) : "#059669",
-    logoUrl: b.logoEnabled && b.logoUrl ? b.logoUrl : undefined,
+    accent: rb.primary,
+    accentLight: rb.primaryLight + "22",
+    logoUrl: rb.showLogo ? rb.logoUrl : undefined,
+    slogan: rb.showSlogan ? rb.slogan : undefined,
   };
   return <NotebookApp initial={data} brand={brand} />;
 }

@@ -40,68 +40,98 @@ export function noteToText(n: NbNote): string {
 
 const esc = (s?: string) => (s ?? "").toString().replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 
-export interface PrintBrand { firm: string; accent: string; logoUrl?: string }
+/** Teklif (malzeme/hizmet) PDF'iyle aynı başlık formatı: koyu slate gradyan + logo + accent bar. */
+export interface PrintBrand { accent: string; accentLight: string; logoUrl?: string; slogan?: string }
 
-/** Markalı (platform formatı) yazdırılabilir tutanak HTML'i — ayrı pencerede açılıp yazdırılır (PDF). */
+/** Yazdırılabilir tutanak HTML'i — platformun teklif PDF formatı (ayrı pencerede açılıp yazdırılır). */
 export function noteToPrintHtml(n: NbNote, brand: PrintBrand): string {
   const t = nbType(n.type);
   const accent = brand.accent || "#059669";
+  const accentLight = brand.accentLight || accent + "22";
   const time = (n.startTime || "") + (n.endTime ? " – " + n.endTime : "");
   const acts = (n.actions || []).filter((a) => a.what);
-  const row = (a: string, b: string, c: string, d: string) => `<tr><td class="k">${esc(a)}</td><td>${esc(b) || "—"}</td><td class="k">${esc(c)}</td><td>${esc(d) || "—"}</td></tr>`;
-  const noNo = n.id.slice(-6).toUpperCase();
-  return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Toplantı Notu — ${esc(n.company || "")}</title><style>
-@page{margin:0}*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter','Segoe UI',system-ui,Arial,sans-serif;color:#111827;font-size:11px;line-height:1.55;background:#fff}
-.header-bar{background:#111827;color:#fff;padding:9px 24px;font-size:10px;display:flex;justify-content:space-between;align-items:center}
-.header-bar .firm{color:${accent};font-weight:700;font-size:12px;display:flex;align-items:center;gap:8px}
-.header-bar .firm img{max-height:20px;max-width:90px;object-fit:contain}
-.tag{display:inline-block;background:${accent};color:#fff;font-size:9px;font-weight:700;padding:2px 9px;border-radius:99px;letter-spacing:.05em}
-.body{padding:24px}
-h1{font-size:17px;font-weight:700;margin-bottom:4px}
-.sub{color:#6B7280;font-size:10px;margin-bottom:18px}
-.section-title{font-size:13px;font-weight:700;color:#111827;margin:20px 0 10px;padding-bottom:5px;border-bottom:2px solid ${accent};display:inline-block}
-table.meta{width:100%;border-collapse:collapse;font-size:10.5px}
-table.meta td{border:1px solid #E5E7EB;padding:6px 10px}
-table.meta td.k{background:#F9FAFB;font-weight:600;width:15%;white-space:nowrap;color:#6B7280}
-.topic{margin-bottom:11px}.topic b{display:block;margin-bottom:2px;color:#111827}
-.topic .summary{color:#4B5563}
-.dec{margin-top:5px;padding:7px 11px;background:#F9FAFB;border-left:3px solid ${accent};border-radius:0 6px 6px 0}
-table.acts{width:100%;border-collapse:collapse;font-size:10.5px}
-table.acts th{background:#1F2937;color:#fff;text-align:left;padding:7px 10px;font-weight:600;font-size:9.5px}
-table.acts td{padding:6px 10px;border-bottom:1px solid #F3F4F6;vertical-align:top}
-table.acts tr:nth-child(even) td{background:#F9FAFB}
-.free{white-space:pre-wrap;color:#374151;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:12px}
-.photos{display:flex;flex-wrap:wrap;gap:8px}.photos img{max-width:47%;max-height:220px;border:1px solid #E5E7EB;border-radius:8px;object-fit:cover}
-.sigs{display:flex;gap:20px;margin-top:26px}
-.signature-box{flex:1;border:1px solid #D1D5DB;border-radius:8px;padding:14px;min-height:110px}
-.signature-title{font-size:10px;font-weight:700;color:#374151;margin-bottom:4px}
-.signature-sub{font-size:9px;color:#9CA3AF}
-.signature-line{margin-top:52px;border-top:1px solid #D1D5DB;padding-top:6px;font-size:9px;color:#9CA3AF}
-.footer-bar{background:#F9FAFB;border-top:1px solid #E5E7EB;padding:7px 24px;font-size:9px;color:#9CA3AF;display:flex;justify-content:space-between;margin-top:26px}
-@media print{.header-bar{-webkit-print-color-adjust:exact;print-color-adjust:exact}table.acts th,.tag,.header-bar .firm{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-</style></head><body onload="setTimeout(()=>window.print(),250)">
-<div class="header-bar"><span class="firm">${brand.logoUrl ? `<img src="${esc(brand.logoUrl)}">` : ""}${esc(brand.firm)}</span><span><span class="tag">TOPLANTI NOTU</span> &nbsp;No: ${esc(noNo)} · ${fmtDate(n.date)}</span></div>
-<div class="body">
-<h1>${esc(n.title || n.company || "Toplantı Notu")}</h1>
-<div class="sub">${t.name}${n.location ? " · " + esc(n.location) : ""}</div>
-<table class="meta"><tbody>
-${row("Firma / Kurum", n.company || "", "Tür", t.name)}
-${row("Tarih / Saat", fmtDate(n.date) + (time ? " · " + time : ""), "Konum", n.location || "")}
-${row("Karşı Taraf", peopleStr(n), "Bizim Taraf", n.ourAttendees || "")}
-${row("Hazırlayan", n.recorder || "", "Sonraki Toplantı", n.nextMeeting ? fmtDate(n.nextMeeting) : "")}
-</tbody></table>
-${(n.topics || []).length ? `<div class="section-title">Görüşülen Konular ve Kararlar</div>${n.topics!.map((tp, i) => { const dec = topicDecisions(tp); return `<div class="topic">${tp.subject ? `<b>${i + 1}. ${esc(tp.subject)}</b>` : ""}${tp.summary ? `<div class="summary">${esc(tp.summary)}</div>` : ""}${dec.map((d) => `<div class="dec"><b>Karar:</b> ${esc(d)}</div>`).join("")}</div>`; }).join("")}` : ""}
-${acts.length ? `<div class="section-title">Aksiyon Planı</div><table class="acts"><thead><tr><th style="width:24px">#</th><th>Aksiyon</th><th>Sorumlu</th><th>Termin</th><th>Durum</th></tr></thead><tbody>${acts.map((a, i) => `<tr><td>${i + 1}</td><td>${esc(a.what)}</td><td>${esc(a.who || "—")}</td><td>${a.due ? fmtDate(a.due) : "—"}</td><td>${a.done ? "Tamamlandı" : "Açık"}</td></tr>`).join("")}</tbody></table>` : ""}
-${n.note ? `<div class="section-title">Notlar</div><div class="free">${esc(n.note)}</div>` : ""}
-${(n.photos || []).length ? `<div class="section-title">Fotoğraflar</div><div class="photos">${n.photos!.map((u) => `<img src="${esc(u)}">`).join("")}</div>` : ""}
-${n.tags ? `<div class="section-title">Etiketler</div><div>${esc(n.tags)}</div>` : ""}
-<div class="sigs">
-  <div class="signature-box"><div class="signature-title">Hazırlayan</div><div class="signature-sub">${n.recorder ? esc(n.recorder) : esc(brand.firm)}</div><div class="signature-line">İmza</div></div>
-  <div class="signature-box"><div class="signature-title">Kullanıcı Onayı</div><div class="signature-sub">Katılımcı / Yetkili</div><div class="signature-line">İmza & Kaşe</div></div>
-</div>
-</div>
-<div class="footer-bar"><span>${esc(brand.firm)} · Not Defteri</span><span>${fmtDate(todayISO())}</span></div>
+  const topics = (n.topics || []).filter((tp) => tp.subject || tp.summary || topicDecisions(tp).length);
+  const dateStr = new Date(n.date + "T00:00").toLocaleDateString("tr-TR");
+  const logo = brand.logoUrl
+    ? `<div style="display:flex;flex-direction:column;gap:1px;margin-bottom:10px"><img src="${esc(brand.logoUrl)}" alt="" style="max-height:48px;max-width:200px;object-fit:contain"/>${brand.slogan ? `<div style="font-size:9.5px;color:rgba(255,255,255,0.85);font-style:italic;margin-top:2px">${esc(brand.slogan)}</div>` : ""}</div>`
+    : "";
+  return `<!DOCTYPE html>
+<html lang="tr"><head><meta charset="utf-8"/>
+<title>Toplantı Notu — ${esc(n.company || dateStr)}</title>
+<style>
+  @page { size: A4; margin: 14mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Inter','Segoe UI',Arial,sans-serif; color:#0f172a; margin:0; font-size:12px; }
+  .header { background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%); color:#fff; padding:16px 20px 14px; display:flex; justify-content:space-between; align-items:flex-end; }
+  .header h1 { font-size:17px; font-weight:700; letter-spacing:-0.02em; color:#fff; margin:6px 0 0; }
+  .header .sub { font-size:9px; color:rgba(255,255,255,0.55); margin-top:3px; }
+  .total-badge { text-align:right; }
+  .total-badge .label { font-size:8px; color:rgba(255,255,255,0.6); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:3px; }
+  .total-badge .amount { font-size:15px; font-weight:800; color:${accent}; letter-spacing:-0.02em; }
+  .accent-bar { height:3px; background:linear-gradient(90deg, ${accent}, ${accentLight}, transparent); }
+  .content { padding:16px 20px; }
+  .meta { display:flex; justify-content:space-between; gap:16px; }
+  .card { border:1px solid #e2e8f0; border-radius:8px; padding:11px 13px; font-size:11.5px; flex:1; }
+  .card .lbl { font-size:9px; text-transform:uppercase; letter-spacing:0.05em; color:#94a3b8; font-weight:700; }
+  .dim { color:#94a3b8; }
+  table { width:100%; border-collapse:collapse; margin-top:8px; }
+  thead th { background:#1e293b; color:#fff; text-align:left; font-size:9px; text-transform:uppercase; letter-spacing:0.04em; padding:7px 9px; }
+  tbody td { padding:7px 9px; border-bottom:1px solid #eef2f7; font-size:11.5px; vertical-align:top; }
+  .block { margin-top:16px; page-break-inside:avoid; break-inside:avoid; }
+  .blk-ttl { font-size:11px; font-weight:700; color:#334155; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.04em; border-bottom:2px solid ${accent}; display:inline-block; padding-bottom:3px; }
+  .topic { margin-top:8px; }
+  .topic b { display:block; color:#0f172a; }
+  .topic .summary { color:#64748b; font-size:11px; margin-top:2px; white-space:pre-line; }
+  .dec { margin-top:4px; padding:5px 9px; background:${accentLight}; color:#334155; border-left:3px solid ${accent}; border-radius:0 6px 6px 0; font-size:11px; }
+  .dec b { color:${accent}; }
+  .free { white-space:pre-line; color:#475569; font-size:11.5px; }
+  .photos { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  .photos img { max-width:47%; max-height:220px; border:1px solid #e2e8f0; border-radius:8px; object-fit:cover; }
+  .tags span { display:inline-block; background:${accentLight}; color:${accent}; font-weight:700; font-size:10px; padding:3px 9px; border-radius:99px; margin:0 4px 4px 0; }
+  @media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+</style></head>
+<body onload="setTimeout(()=>window.print(),250)">
+  <div class="header">
+    <div>
+      ${logo}
+      <h1>${esc(n.title || n.company || "Toplantı Notu")}</h1>
+      <div class="sub">${dateStr}${time ? " · " + esc(time) : ""} · ${esc(t.name)}${n.location ? " · " + esc(n.location) : ""}</div>
+    </div>
+    <div class="total-badge">
+      <div class="label">Toplantı Notu</div>
+      <div class="amount">${dateStr}</div>
+    </div>
+  </div>
+  <div class="accent-bar"></div>
+
+  <div class="content">
+    <div class="meta">
+      <div class="card">
+        <div class="lbl">Firma / Kurum</div>
+        <div style="font-weight:700;margin-top:3px">${esc(n.company || "—")}</div>
+        ${peopleStr(n) ? `<div style="color:#475569;margin-top:3px"><span class="dim">Karşı taraf:</span> ${esc(peopleStr(n))}</div>` : ""}
+        ${n.ourAttendees ? `<div style="color:#475569;margin-top:2px"><span class="dim">Bizim taraf:</span> ${esc(n.ourAttendees)}</div>` : ""}
+      </div>
+      <div class="card" style="max-width:210px">
+        <div class="lbl">Toplantı Bilgisi</div>
+        <div style="margin-top:3px"><span class="dim">Tarih:</span> ${fmtDate(n.date)}</div>
+        ${time ? `<div style="margin-top:2px"><span class="dim">Saat:</span> ${esc(time)}</div>` : ""}
+        <div style="margin-top:2px"><span class="dim">Tür:</span> ${esc(t.name)}</div>
+        ${n.location ? `<div style="margin-top:2px"><span class="dim">Konum:</span> ${esc(n.location)}</div>` : ""}
+        ${n.nextMeeting ? `<div style="margin-top:2px"><span class="dim">Sonraki:</span> ${fmtDate(n.nextMeeting)}</div>` : ""}
+      </div>
+    </div>
+
+    ${topics.length ? `<div class="block"><div class="blk-ttl">Görüşülen Konular ve Kararlar</div>${topics.map((tp, i) => { const dec = topicDecisions(tp); return `<div class="topic">${tp.subject ? `<b>${i + 1}. ${esc(tp.subject)}</b>` : ""}${tp.summary ? `<div class="summary">${esc(tp.summary)}</div>` : ""}${dec.map((d) => `<div class="dec"><b>Karar:</b> ${esc(d)}</div>`).join("")}</div>`; }).join("")}</div>` : ""}
+
+    ${acts.length ? `<div class="block"><div class="blk-ttl">Aksiyon Planı</div><table><thead><tr><th style="width:26px">#</th><th>Aksiyon</th><th style="width:120px">Sorumlu</th><th style="width:110px">Termin</th><th style="width:90px">Durum</th></tr></thead><tbody>${acts.map((a, i) => `<tr><td>${i + 1}</td><td>${esc(a.what)}</td><td>${esc(a.who || "—")}</td><td>${a.due ? fmtDate(a.due) : "—"}</td><td>${a.done ? "Tamamlandı" : "Açık"}</td></tr>`).join("")}</tbody></table></div>` : ""}
+
+    ${n.note ? `<div class="block"><div class="blk-ttl">Notlar</div><div class="free">${esc(n.note)}</div></div>` : ""}
+
+    ${(n.photos || []).length ? `<div class="block"><div class="blk-ttl">Fotoğraflar</div><div class="photos">${n.photos!.map((u) => `<img src="${esc(u)}"/>`).join("")}</div></div>` : ""}
+
+    ${n.tags ? `<div class="block"><div class="blk-ttl">Etiketler</div><div class="tags">${n.tags.split(",").map((x) => x.trim()).filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join("")}</div></div>` : ""}
+  </div>
 </body></html>`;
 }
 
