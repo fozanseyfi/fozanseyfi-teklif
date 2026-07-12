@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -26,13 +27,15 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
 const dateToSlot = (d: Date) => clamp(Math.floor((d.getHours() * 60 + d.getMinutes()) / SLOT_MIN), 0, SLOTS - 1);
 
 export function DayTimeGrid({
-  dayISO, startISO, endISO, disabled, onChange,
+  dayISO, startISO, endISO, disabled, onChange, onDayChange,
 }: {
   dayISO: string;                 // yyyy-mm-dd — izgaranin gunu
   startISO: string;
   endISO: string | null;
   disabled?: boolean;
   onChange: (startISO: string, endISO: string) => void;
+  /** Ok tuslariyla gun degistirme (etkinligin tarihi kayar). */
+  onDayChange?: (dayISO: string) => void;
 }) {
   const gridRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -125,15 +128,33 @@ export function DayTimeGrid({
   const now = new Date();
   const nowSlot = now.toISOString().slice(0, 10) === dayISO ? (now.getHours() * 60 + now.getMinutes()) / SLOT_MIN : null;
 
+  const shiftDay = (n: number) => {
+    const d = new Date(dayISO + "T12:00");
+    d.setDate(d.getDate() + n);
+    onDayChange?.(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+  };
+  const dayLabel = new Date(dayISO + "T12:00").toLocaleDateString("tr-TR", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+
   return (
-    <div className="rounded-lg border border-border">
-      <div className="flex items-center gap-2 border-b border-border/60 px-3 py-1.5 text-[12px]">
-        <span className="font-semibold text-foreground">{slotLabel(startSlot)} – {slotLabel(endSlot)}</span>
-        <span className="text-muted-foreground">· {durLabel}</span>
-        <span className="ml-auto text-[11px] text-muted-foreground">{"Sürükleyerek seç · alt kenardan 10'ar dk uzat"}</span>
+    <div className="flex h-full min-h-0 flex-col rounded-lg border border-border">
+      {/* gun basligi + ok tuslari */}
+      <div className="flex items-center gap-1 border-b border-border/60 px-2 py-1.5">
+        <button type="button" disabled={disabled || !onDayChange} onClick={() => shiftDay(-1)} className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40">
+          <ChevronLeft className="size-4" />
+        </button>
+        <span className="flex-1 text-center text-[12.5px] font-semibold capitalize">{dayLabel}</span>
+        <button type="button" disabled={disabled || !onDayChange} onClick={() => shiftDay(1)} className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40">
+          <ChevronRight className="size-4" />
+        </button>
       </div>
 
-      <div ref={scrollRef} className="max-h-[260px] overflow-y-auto">
+      <div className="flex items-center gap-2 border-b border-border/60 px-3 py-1 text-[12px]">
+        <span className="font-semibold text-foreground">{slotLabel(startSlot)} – {slotLabel(endSlot)}</span>
+        <span className="text-muted-foreground">· {durLabel}</span>
+        <span className="ml-auto text-[11px] text-muted-foreground">{"Sürükle · uçlardan 10'ar dk"}</span>
+      </div>
+
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
         <div
           ref={gridRef}
           onPointerDown={(e) => down(e, "create")}

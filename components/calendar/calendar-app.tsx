@@ -403,24 +403,24 @@ export function CalendarApp({
     const startLocal = toLocalInput(f.startAt);
     const endLocal = f.endAt ? toLocalInput(f.endAt) : "";
     return (
-      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4" onClick={(e) => { if (e.target === e.currentTarget) setForm(null); }}>
-        <div className="my-6 w-full max-w-4xl rounded-2xl border border-border bg-card p-5 shadow-xl">
-          <div className="mb-4 flex items-center gap-2">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3" onClick={(e) => { if (e.target === e.currentTarget) setForm(null); }}>
+        <div className="flex h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
+          <div className="flex items-center gap-2 border-b border-border px-5 py-3">
             <CalendarDays className="size-4 text-primary" />
             <h3 className="text-[15px] font-semibold">{f.id ? (ro ? "Etkinlik" : "Etkinliği düzenle") : "Yeni etkinlik"}</h3>
             <button className="ml-auto text-muted-foreground hover:text-foreground" onClick={() => setForm(null)}><X className="size-4" /></button>
           </div>
 
           {mine === "DAVETLI" && (
-            <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-800">
+            <div className="flex flex-wrap items-center gap-2 border-b border-amber-200 bg-amber-50 px-5 py-2 text-[13px] text-amber-800">
               <span className="font-medium">Bu etkinliğe davet edildiniz.</span>
               <Button size="sm" className="ml-auto" onClick={() => respond(f.id!, "KABUL")}>Kabul et</Button>
               <Button size="sm" variant="outline" onClick={() => respond(f.id!, "RET")}>Reddet</Button>
             </div>
           )}
 
-          <div className="grid gap-4 md:grid-cols-[1fr_290px]">
-            <div className="space-y-3">
+          <div className="grid min-h-0 flex-1 gap-5 overflow-hidden p-5 md:grid-cols-[1fr_340px]">
+            <div className="min-h-0 space-y-3 overflow-y-auto pr-1">
             <div>
               <label className={LBL}>Başlık *</label>
               <input disabled={ro} value={f.title} onChange={(e) => patch({ title: e.target.value })} placeholder="Örn. Çimsa ile fiyat görüşmesi" className={IN} />
@@ -447,12 +447,7 @@ export function CalendarApp({
               </div>
             </div>
 
-            <label className="flex items-center gap-2 text-[13px]">
-              <input type="checkbox" disabled={ro} checked={!!f.allDay} onChange={(e) => patch({ allDay: e.target.checked })} className="size-4 rounded border-border" />
-              Tüm gün
-            </label>
-
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto]">
               <div>
                 <label className={LBL}>Tarih *</label>
                 <input
@@ -500,6 +495,10 @@ export function CalendarApp({
                   className={IN}
                 />
               </div>
+              <label className="flex items-center gap-2 self-end pb-2 text-[13px] whitespace-nowrap">
+                <input type="checkbox" disabled={ro} checked={!!f.allDay} onChange={(e) => patch({ allDay: e.target.checked })} className="size-4 rounded border-border" />
+                Tüm gün
+              </label>
             </div>
 
             <div>
@@ -512,6 +511,7 @@ export function CalendarApp({
               <textarea disabled={ro} value={f.description || ""} onChange={(e) => patch({ description: e.target.value })} rows={3} className={cn(IN, "resize-y")} />
             </div>
 
+            <div className="grid gap-3 lg:grid-cols-2">
             <div className="rounded-lg border border-border p-3">
               <label className={cn(LBL, "flex items-center gap-1.5")}><Users className="size-3.5" /> Katılımcılar</label>
               <div className="flex flex-wrap gap-1.5">
@@ -555,6 +555,7 @@ export function CalendarApp({
               </div>
               <p className="mt-2 text-[11.5px] text-muted-foreground">Zamanı gelince üstteki zil ikonunda ve Bildirimler sayfasında görünür.</p>
             </div>
+            </div>
 
             <div>
               <label className={LBL}>Görünürlük</label>
@@ -580,8 +581,8 @@ export function CalendarApp({
             </div>
             </div>
 
-            {/* Sag panel — Outlook'taki gunluk zaman izgarasi */}
-            <div className="md:sticky md:top-0 md:self-start">
+            {/* Sag panel — Outlook'taki gunluk zaman izgarasi (modal yuksekligi boyunca) */}
+            <div className="hidden min-h-0 md:block">
               {f.allDay ? (
                 <div className="rounded-lg border border-dashed border-border p-4 text-center text-[12.5px] text-muted-foreground">
                   Tüm gün etkinliği — saat seçimi yok.
@@ -593,12 +594,13 @@ export function CalendarApp({
                   endISO={f.endAt || null}
                   disabled={ro}
                   onChange={(s, e) => patch({ startAt: s, endAt: e })}
+                  onDayChange={ro ? undefined : setDay}
                 />
               )}
             </div>
           </div>
 
-          <div className="mt-5 flex items-center gap-2">
+          <div className="flex items-center gap-2 border-t border-border px-5 py-3">
             {f.id && f.canDelete && <Button variant="ghost" className="text-rose-600" disabled={busy} onClick={remove}><Trash2 className="size-4" /> Sil</Button>}
             <Button variant="outline" className="ml-auto" onClick={() => setForm(null)}>Kapat</Button>
             {!ro && <Button disabled={busy} onClick={save}>{busy ? "Kaydediliyor…" : f.id ? "Güncelle" : "Oluştur"}</Button>}
@@ -606,6 +608,17 @@ export function CalendarApp({
         </div>
       </div>
     );
+  }
+
+  /** Etkinligin gununu degistirir; saatler ve sure korunur. */
+  function setDay(day: string) {
+    setForm((f) => {
+      if (!f) return f;
+      const s = new Date(f.startAt);
+      const dur = f.endAt ? new Date(f.endAt).getTime() - s.getTime() : 30 * 60_000;
+      const ns = new Date(`${day}T${String(s.getHours()).padStart(2, "0")}:${String(s.getMinutes()).padStart(2, "0")}`);
+      return { ...f, startAt: ns.toISOString(), endAt: new Date(ns.getTime() + dur).toISOString() };
+    });
   }
 
   /* ---------- ana ---------- */
