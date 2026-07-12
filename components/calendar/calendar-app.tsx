@@ -130,7 +130,8 @@ export function CalendarApp({
     const base = d ? new Date(d.getFullYear(), d.getMonth(), d.getDate(), 9, 0) : new Date();
     const end = new Date(base.getTime() + 60 * 60_000);
     setForm({
-      title: "", description: "", type: "TOPLANTI" as CalendarEventType,
+      // Bir tur filtresi aciksa yeni etkinlik dogrudan o turde acilir.
+      title: "", description: "", type: (typeF || "TOPLANTI") as CalendarEventType,
       startAt: base.toISOString(), endAt: end.toISOString(), allDay: false, location: "",
       priority: "NORMAL" as CalendarPriority, status: "PLANLANDI", visibility: "ORG" as CalendarVisibility,
       projectId: null, attendeeIds: [], reminders: [60], canEdit: true, canDelete: true,
@@ -349,18 +350,45 @@ export function CalendarApp({
               <input disabled={ro} value={f.title} onChange={(e) => patch({ title: e.target.value })} placeholder="Örn. Çimsa ile fiyat görüşmesi" className={IN} />
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className={LBL}>Tür</label>
-                <select disabled={ro} value={f.type} onChange={(e) => patch({ type: e.target.value as CalendarEventType })} className={IN}>
-                  {EVENT_TYPES.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
+            <div>
+              <label className={LBL}>Tür</label>
+              <div className="flex flex-wrap gap-1.5">
+                {EVENT_TYPES.map((t) => {
+                  const on = f.type === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      disabled={ro}
+                      onClick={() => patch({ type: t.id as CalendarEventType })}
+                      className={cn("inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12.5px] font-medium transition-colors disabled:opacity-60",
+                        on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:bg-muted")}
+                    >
+                      <span className={cn("size-2 rounded-full", on ? "bg-primary-foreground" : t.dot)} /> {t.name}
+                    </button>
+                  );
+                })}
               </div>
-              <div>
-                <label className={LBL}>Öncelik</label>
-                <select disabled={ro} value={f.priority} onChange={(e) => patch({ priority: e.target.value as CalendarPriority })} className={IN}>
-                  {PRIORITIES.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
+            </div>
+
+            <div>
+              <label className={LBL}>Öncelik</label>
+              <div className="flex flex-wrap gap-1.5">
+                {PRIORITIES.map((p) => {
+                  const on = f.priority === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      disabled={ro}
+                      onClick={() => patch({ priority: p.id as CalendarPriority })}
+                      className={cn("rounded-lg border px-2.5 py-1.5 text-[12.5px] font-medium transition-colors disabled:opacity-60",
+                        on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:bg-muted")}
+                    >
+                      {p.name}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -457,9 +485,25 @@ export function CalendarApp({
 
             <div>
               <label className={LBL}>Görünürlük</label>
-              <select disabled={ro} value={f.visibility} onChange={(e) => patch({ visibility: e.target.value as CalendarVisibility })} className={IN}>
-                {VISIBILITIES.map((v) => <option key={v.id} value={v.id}>{v.name} — {v.hint}</option>)}
-              </select>
+              <div className="flex flex-wrap gap-1.5">
+                {VISIBILITIES.map((v) => {
+                  const on = f.visibility === v.id;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      disabled={ro}
+                      title={v.hint}
+                      onClick={() => patch({ visibility: v.id as CalendarVisibility })}
+                      className={cn("rounded-lg border px-2.5 py-1.5 text-[12.5px] font-medium transition-colors disabled:opacity-60",
+                        on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:bg-muted")}
+                    >
+                      {v.name}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1.5 text-[11.5px] text-muted-foreground">{VISIBILITIES.find((v) => v.id === f.visibility)?.hint}</p>
             </div>
           </div>
 
