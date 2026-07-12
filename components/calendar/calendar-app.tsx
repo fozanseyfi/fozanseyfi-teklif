@@ -5,11 +5,11 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
-  CalendarDays, ChevronLeft, ChevronRight, Plus, X, Trash2, Check, MapPin, Users, Bell, Briefcase, Clock,
+  CalendarDays, ChevronLeft, ChevronRight, Plus, X, Trash2, Check, MapPin, Users, Bell, Briefcase, Clock, NotebookPen,
 } from "lucide-react";
 import {
-  listCalendarEvents, saveCalendarEvent, deleteCalendarEvent, toggleCalendarEventDone, respondToEvent,
-  type CalEvent, type CalMember, type CalEventInput,
+  listCalendarEvents, saveCalendarEvent, deleteCalendarEvent, toggleCalendarEventDone, respondToEvent, getNotebookFeed,
+  type CalEvent, type CalMember, type CalEventInput, type FeedItem,
 } from "@/app/actions/calendar";
 import {
   EVENT_TYPES, PRIORITIES, VISIBILITIES, ATTENDEE_STATUSES, REMINDER_OPTIONS, evType, reminderLabel,
@@ -18,6 +18,14 @@ import { DayTimeGrid } from "./day-time-grid";
 import type { AttendeeStatus, CalendarEventType, CalendarPriority, CalendarVisibility } from "@prisma/client";
 
 type View = "month" | "week" | "day" | "agenda";
+
+/** Not Defteri katmani etiketleri. */
+const FEED_KINDS: Record<FeedItem["kind"], { name: string; tone: string }> = {
+  note: { name: "Toplantı notu", tone: "text-sky-600" },
+  followup: { name: "Takip", tone: "text-amber-600" },
+  action: { name: "Aksiyon", tone: "text-violet-600" },
+  task: { name: "Görev", tone: "text-emerald-600" },
+};
 
 const IN = "w-full rounded-md border border-border bg-background px-2.5 py-2 text-[13.5px] outline-none focus:border-primary";
 const LBL = "mb-1 block text-[11.5px] font-medium text-muted-foreground";
@@ -54,6 +62,8 @@ export function CalendarApp({
   const [typeF, setTypeF] = useState<string>("");
   const [mineOnly, setMineOnly] = useState(false);
   const [memberF, setMemberF] = useState("");
+  const [feed, setFeed] = useState<FeedItem[]>([]);
+  const [showFeed, setShowFeed] = useState(true);
 
   const [form, setForm] = useState<(CalEventInput & { canEdit?: boolean; canDelete?: boolean; attendeeStatuses?: Record<string, AttendeeStatus>; createdById?: string }) | null>(null);
   const [busy, setBusy] = useState(false);
@@ -95,6 +105,15 @@ export function CalendarApp({
     return () => { alive = false; };
   }, [fromISO, toISO, reloadKey]);
 
+  // Not Defteri katmani (toplanti notlari, takipler, aksiyonlar, gorevler) — salt-okunur.
+  useEffect(() => {
+    let alive = true;
+    getNotebookFeed(isoDay(from), isoDay(to))
+      .then((r) => { if (alive) setFeed(r); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [from, to, reloadKey]);
+
   // Bildirimden gelen ?event=<id> — etkinlik yuklendiginde ac (URL disaridan gelen durum).
   const [opened, setOpened] = useState(false);
   useEffect(() => {
@@ -114,6 +133,25 @@ export function CalendarApp({
   }), [events, typeF, mineOnly, memberF, me]);
 
   const dayEvents = (d: Date) => shown.filter((e) => sameDay(new Date(e.startAt), d)).sort((a, b) => a.startAt < b.startAt ? -1 : 1);
+  const dayFeed = (d: Date) => (showFeed && !typeF ? feed.filter((f) => f.day === isoDay(d)) : []);
+
+  /** Not Defteri ogesi — salt-okunur, tiklayinca Not Defteri'ne gider. */
+  function feedPill(f: FeedItem) {
+    const meta = FEED_KINDS[f.kind];
+    return (
+      <a
+        key={f.id}
+        href="/not-defteri"
+        onClick={(e) => e.stopPropagation()}
+        className="flex w-full items-center gap-1.5 rounded-md border border-dashed border-border/70 px-1.5 py-1 text-left text-[11.5px] text-muted-foreground hover:bg-muted"
+        title={`Not Defteri · ${meta.name}`}
+      >
+        <NotebookPen className={cn("size-3 shrink-0", meta.tone)} />
+        {f.time && <span className="shrink-0 tabular-nums">{f.time}</span>}
+        <span className="truncate">{f.title}</span>
+      </a>
+    );
+  }
 
   /* ---- eylemler ---- */
   function toForm(e: CalEvent) {
@@ -209,6 +247,7 @@ export function CalendarApp({
         {DOWS.map((d) => <div key={d} className="py-1 text-center text-[11px] font-semibold uppercase text-muted-foreground">{d}</div>)}
         {cells.map((d) => {
           const evs = dayEvents(d);
+          const fds = dayFeed(d);
           const out = d.getMonth() !== cursor.getMonth();
           const today = sameDay(d, new Date());
           return (
@@ -224,6 +263,8 @@ export function CalendarApp({
               <div className="space-y-0.5">
                 {evs.slice(0, 3).map((e) => eventPill(e))}
                 {evs.length > 3 && <span className="block px-1.5 text-[10.5px] text-muted-foreground">+{evs.length - 3} daha</span>}
+                {fds.slice(0, 2).map((f) => feedPill(f))}
+                {fds.length > 2 && <span className="block px-1.5 text-[10.5px] text-muted-foreground">+{fds.length - 2} not</span>}
               </div>
             </button>
           );
@@ -249,7 +290,11 @@ export function CalendarApp({
               <div className="mb-1.5 text-[11.5px] font-semibold text-muted-foreground">
                 {DOWS[(d.getDay() + 6) % 7]} <span className="text-foreground tabular-nums">{d.getDate()}</span>
               </div>
-              <div className="space-y-1">{evs.length ? evs.map((e) => eventPill(e)) : <span className="px-1 text-[11px] text-muted-foreground">—</span>}</div>
+              <div className="space-y-1">
+                {evs.map((e) => eventPill(e))}
+                {dayFeed(d).map((f) => feedPill(f))}
+                {!evs.length && !dayFeed(d).length && <span className="px-1 text-[11px] text-muted-foreground">—</span>}
+              </div>
             </button>
           );
         })}
@@ -259,23 +304,52 @@ export function CalendarApp({
 
   function renderDay() {
     const evs = dayEvents(from);
-    if (!evs.length) return emptyBox("Bu günde etkinlik yok", "Gün üzerinde \"Etkinlik ekle\" ile plan oluşturun.");
-    return <div className="space-y-2">{evs.map((e) => eventRow(e))}</div>;
+    const fds = dayFeed(from);
+    if (!evs.length && !fds.length) return emptyBox("Bu günde etkinlik yok", "Gün üzerinde \"Etkinlik ekle\" ile plan oluşturun.");
+    return (
+      <div className="space-y-2">
+        {evs.map((e) => eventRow(e))}
+        {fds.map((f) => feedRow(f))}
+      </div>
+    );
+  }
+
+  /** Not Defteri ogesi — gun/ajanda listelerinde satir. */
+  function feedRow(f: FeedItem) {
+    const meta = FEED_KINDS[f.kind];
+    return (
+      <a key={f.id} href="/not-defteri" className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-card/60 p-3 hover:bg-muted">
+        <NotebookPen className={cn("size-4 shrink-0", meta.tone)} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[13.5px]">{f.title}</span>
+          <span className="text-[12px] text-muted-foreground">Not Defteri · {meta.name}{f.time ? ` · ${f.time}` : ""}</span>
+        </span>
+      </a>
+    );
   }
 
   function renderAgenda() {
-    const groups = new Map<string, CalEvent[]>();
+    const groups = new Map<string, { evs: CalEvent[]; fds: FeedItem[] }>();
+    const bucket = (k: string) => groups.get(k) || { evs: [], fds: [] };
     shown.slice().sort((a, b) => (a.startAt < b.startAt ? -1 : 1)).forEach((e) => {
       const k = isoDay(new Date(e.startAt));
-      groups.set(k, [...(groups.get(k) || []), e]);
+      const b = bucket(k);
+      groups.set(k, { evs: [...b.evs, e], fds: b.fds });
+    });
+    if (showFeed && !typeF) feed.forEach((f) => {
+      const b = bucket(f.day);
+      groups.set(f.day, { evs: b.evs, fds: [...b.fds, f] });
     });
     if (!groups.size) return emptyBox("Yaklaşan etkinlik yok", "Önümüzdeki 30 günde planlanmış bir şey görünmüyor.");
     return (
       <div className="space-y-4">
-        {[...groups.entries()].map(([k, evs]) => (
+        {[...groups.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([k, { evs, fds }]) => (
           <div key={k}>
             <h3 className="mb-1.5 text-[12.5px] font-semibold text-muted-foreground">{longDate(new Date(k + "T12:00"))}</h3>
-            <div className="space-y-2">{evs.map((e) => eventRow(e))}</div>
+            <div className="space-y-2">
+              {evs.map((e) => eventRow(e))}
+              {fds.map((f) => feedRow(f))}
+            </div>
           </div>
         ))}
       </div>
@@ -590,6 +664,14 @@ export function CalendarApp({
             <span className={cn("size-1.5 rounded-full", t.dot)} /> {t.name}
           </button>
         ))}
+        <button
+          onClick={() => setShowFeed((s) => !s)}
+          title="Not Defteri'ndeki toplantı notları, takipler, aksiyonlar ve görevler"
+          className={cn("inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[12px] font-medium",
+            showFeed ? "border-primary bg-primary-soft text-primary" : "border-border/60 bg-card text-muted-foreground hover:bg-muted")}
+        >
+          <NotebookPen className="size-3.5" /> Not Defteri
+        </button>
         <label className="ml-auto flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
           <input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} className="size-4 rounded border-border" /> Sadece benimkiler
         </label>

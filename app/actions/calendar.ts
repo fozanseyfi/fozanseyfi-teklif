@@ -132,6 +132,42 @@ export async function listCalendarEvents(fromISO: string, toISO: string): Promis
   }));
 }
 
+export interface FeedItem {
+  id: string;
+  kind: "note" | "followup" | "task" | "action";
+  title: string;
+  /** Gun (yyyy-mm-dd) — tumu tum-gun ogesi olarak gosterilir. */
+  day: string;
+  time?: string;
+}
+
+/** Not Defteri beslemesi — kullanicinin kendi notlari/takipleri/gorevleri (salt-okunur).
+ *  Not Defteri izole bir JSON modulu oldugu icin takvimde ayri bir katman olarak gosterilir. */
+export async function getNotebookFeed(fromDay: string, toDay: string): Promise<FeedItem[]> {
+  const user = await requireAuth();
+  const nb = await prisma.notebook.findUnique({ where: { profileId: user.id } });
+  const d = nb?.data as {
+    notes?: { id: string; title?: string; company?: string; date?: string; startTime?: string; followUp?: string; followDone?: boolean; actions?: { what?: string; due?: string; done?: boolean }[] }[];
+    tasks?: { id: string; what?: string; due?: string; done?: boolean }[];
+  } | null;
+  if (!d) return [];
+
+  const inRange = (day?: string) => !!day && day >= fromDay && day < toDay;
+  const out: FeedItem[] = [];
+
+  (d.notes || []).forEach((n) => {
+    if (inRange(n.date)) out.push({ id: `note:${n.id}`, kind: "note", title: n.title || n.company || "Toplantı notu", day: n.date!, time: n.startTime });
+    if (!n.followDone && inRange(n.followUp)) out.push({ id: `fu:${n.id}`, kind: "followup", title: `Takip: ${n.company || n.title || "not"}`, day: n.followUp! });
+    (n.actions || []).forEach((a, i) => {
+      if (a.what && !a.done && inRange(a.due)) out.push({ id: `act:${n.id}:${i}`, kind: "action", title: a.what, day: a.due! });
+    });
+  });
+  (d.tasks || []).forEach((t) => {
+    if (t.what && !t.done && inRange(t.due)) out.push({ id: `task:${t.id}`, kind: "task", title: t.what, day: t.due! });
+  });
+  return out;
+}
+
 /** Hatirlatmalari (etkinlik + kullanici) yeniden kurar. */
 async function syncReminders(eventId: string, userId: string, startAt: Date, minutes: number[]) {
   await prisma.calendarReminder.deleteMany({ where: { eventId, userId } });
