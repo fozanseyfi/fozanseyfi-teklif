@@ -21,5 +21,6 @@ export default async function NotDefteriPage() {
     logoUrl: rb.showLogo ? rb.logoUrl : undefined,
     slogan: rb.showSlogan ? rb.slogan : undefined,
   };
-  return <NotebookApp initial={data} brand={brand} />;
+  // Silme yetkisi yalnızca tam yetkili (admin) rolünde — kullanıcı/görüntüleyici silemez.
+  return <NotebookApp initial={data} brand={brand} canDelete={user.platformRole === "admin"} />;
 }

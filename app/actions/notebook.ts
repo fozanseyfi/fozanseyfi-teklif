@@ -19,7 +19,9 @@ export async function getNotebook(): Promise<NotebookData> {
   };
 }
 
-/** Tüm defteri (notlar+kişiler+şirketler) kaydeder. */
+/** Tüm defteri (notlar+kişiler+şirketler) kaydeder.
+ *  Silme yalnızca tam yetkili (admin) rolünde: user/viewer kaydettiğinde mevcut
+ *  notlar/kişiler/firmalar kaybolamaz — sunucuda geri eklenir. */
 export async function saveNotebook(data: NotebookData): Promise<void> {
   const user = await requireAuth();
   const payload = {
@@ -28,6 +30,21 @@ export async function saveNotebook(data: NotebookData): Promise<void> {
     companies: Array.isArray(data?.companies) ? data.companies : [],
     tasks: Array.isArray(data?.tasks) ? data.tasks : [],
   };
+
+  if (user.platformRole !== "admin") {
+    const prev = await prisma.notebook.findUnique({ where: { profileId: user.id } });
+    const old = (prev?.data as Partial<NotebookData> | null) || null;
+    const keep = <T extends { id: string }>(oldArr: T[] | undefined, next: T[]): T[] => {
+      if (!Array.isArray(oldArr) || oldArr.length === 0) return next;
+      const ids = new Set(next.map((x) => x.id));
+      const dropped = oldArr.filter((x) => !ids.has(x.id));
+      return dropped.length ? [...next, ...dropped] : next;
+    };
+    payload.notes = keep(old?.notes, payload.notes);
+    payload.contacts = keep(old?.contacts, payload.contacts);
+    payload.companies = keep(old?.companies, payload.companies);
+  }
+
   await prisma.notebook.upsert({
     where: { profileId: user.id },
     create: { profileId: user.id, organizationId: user.organizationId, data: payload as never },

@@ -21,7 +21,7 @@ const clone = <T,>(o: T): T => (typeof structuredClone === "function" ? structur
 const IN = "w-full rounded-md border border-border bg-background px-2.5 py-2 text-[13.5px] outline-none focus:border-primary";
 const LBL = "mb-1 block text-[11.5px] font-medium text-muted-foreground";
 
-export function NotebookApp({ initial, brand }: { initial: NotebookData; brand: PrintBrand }) {
+export function NotebookApp({ initial, brand, canDelete }: { initial: NotebookData; brand: PrintBrand; canDelete: boolean }) {
   const [data, setData] = useState<NotebookData>(initial);
   const [saving, setSaving] = useState(false);
   const firstRun = useRef(true);
@@ -77,7 +77,15 @@ export function NotebookApp({ initial, brand }: { initial: NotebookData; brand: 
     mutate((db) => { const i = db.notes.findIndex((x) => x.id === n.id); if (i >= 0) db.notes[i] = n; else db.notes.unshift(n); });
     setCurId(n.id); setView("view"); toast.success("Not kaydedildi");
   }
-  function deleteNote(id: string) { if (!confirm("Bu not silinsin mi?")) return; mutate((db) => { db.notes = db.notes.filter((x) => x.id !== id); }); setView("notes"); toast.success("Not silindi"); }
+  /** Silme yalnızca tam yetkili (admin) rolünde — kullanıcı/görüntüleyici silemez. */
+  function deleteNote(id: string) {
+    if (!canDelete) { toast.error("Silme yetkiniz yok — yalnızca tam yetkili (admin) silebilir"); return; }
+    const n = data.notes.find((x) => x.id === id);
+    if (!confirm(`"${n?.title || n?.company || "Bu not"}" kalıcı olarak silinsin mi?`)) return;
+    mutate((db) => { db.notes = db.notes.filter((x) => x.id !== id); });
+    if (curId === id) setCurId(null);
+    setView("notes"); toast.success("Not silindi");
+  }
   function toggleAction(noteId: string, what: string) { mutate((db) => { const x = db.notes.find((z) => z.id === noteId); const a = x?.actions?.find((y) => y.what === what); if (a) a.done = !a.done; }); }
   function togglePin(noteId: string) { mutate((db) => { const x = db.notes.find((z) => z.id === noteId); if (x) x.pinned = !x.pinned; }); }
   function addTask(what: string, due?: string) { const v = what.trim(); if (!v) return; mutate((db) => { db.tasks.unshift({ id: nbUid(), what: v, due: due || "", done: false, createdAt: todayISO() }); }); }
@@ -144,6 +152,8 @@ export function NotebookApp({ initial, brand }: { initial: NotebookData; brand: 
             <a title="WhatsApp" href={waLink(noteToText(n))} target="_blank" rel="noopener" className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"><Share2 className="size-4" /></a>
             <a title="Mail" href={mailLink("Toplantı Notu — " + (n.company || ""), noteToText(n))} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"><Mail className="size-4" /></a>
             <button title="Kopyala" onClick={() => doCopy(n)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"><Copy className="size-4" /></button>
+            <button title="Düzenle" onClick={() => openEdit(n.id)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"><Pencil className="size-4" /></button>
+            {canDelete && <button title="Sil" onClick={() => deleteNote(n.id)} className="rounded-md p-1.5 text-muted-foreground hover:bg-rose-50 hover:text-rose-600"><Trash2 className="size-4" /></button>}
           </div>
         </div>
         {expanded && acts.length > 0 && <div className="border-t border-border/60 px-3 py-2" onClick={stop}>
@@ -205,7 +215,7 @@ export function NotebookApp({ initial, brand }: { initial: NotebookData; brand: 
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <button onClick={() => setView(curId ? "view" : "notes")} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-[12.5px] font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Geri</button>
-          {curId && <Button size="sm" variant="ghost" className="text-rose-600" onClick={() => deleteNote(d.id)}><Trash2 className="size-4" /> Sil</Button>}
+          {curId && canDelete && <Button size="sm" variant="ghost" className="text-rose-600" onClick={() => deleteNote(d.id)}><Trash2 className="size-4" /> Sil</Button>}
           <Button size="sm" className="ml-auto" onClick={saveDraft}><Check className="size-4" /> Kaydet</Button>
         </div>
         {section("Genel", <>
@@ -294,6 +304,7 @@ export function NotebookApp({ initial, brand }: { initial: NotebookData; brand: 
             <a href={mailLink("Toplantı Notu — " + (n.company || ""), noteToText(n))}><Button size="sm" variant="outline"><Mail className="size-4" /> Mail</Button></a>
             <Button size="sm" variant="outline" onClick={() => doCopy(n)}><Copy className="size-4" /> Kopyala</Button>
             <Button size="sm" onClick={() => openEdit(n.id)}><Pencil className="size-4" /> Düzenle</Button>
+            {canDelete && <Button size="sm" variant="outline" className="border-rose-200 text-rose-600 hover:bg-rose-50" onClick={() => deleteNote(n.id)}><Trash2 className="size-4" /> Sil</Button>}
           </div>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm sm:p-7">
@@ -415,7 +426,7 @@ export function NotebookApp({ initial, brand }: { initial: NotebookData; brand: 
       mutate((d) => { const list: (NbContact | NbCompany)[] = isC ? d.companies : d.contacts; const i = list.findIndex((x) => x.id === it.id); if (i >= 0) list[i] = it; else list.push(it); });
       toast.success(isC ? "Şirket kaydedildi" : "Kişi kaydedildi"); close();
     }
-    function delIt() { if (!confirm("Kayıt silinsin mi?")) return; mutate((d) => { if (isC) d.companies = d.companies.filter((x) => x.id !== it.id); else d.contacts = d.contacts.filter((x) => x.id !== it.id); }); setModal(null); setModalItem(null); }
+    function delIt() { if (!canDelete) { toast.error("Silme yetkiniz yok — yalnızca tam yetkili (admin) silebilir"); return; } if (!confirm("Kayıt silinsin mi?")) return; mutate((d) => { if (isC) d.companies = d.companies.filter((x) => x.id !== it.id); else d.contacts = d.contacts.filter((x) => x.id !== it.id); }); setModal(null); setModalItem(null); }
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
         <div className="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-xl">
@@ -433,7 +444,7 @@ export function NotebookApp({ initial, brand }: { initial: NotebookData; brand: 
             </>}
             <div><label className={LBL}>Not</label><input className={IN} value={it.note || ""} onChange={(e) => setIt({ note: e.target.value })} /></div>
           </div>
-          <div className="mt-4 flex gap-2">{exists && <Button variant="ghost" className="text-rose-600" onClick={delIt}>Sil</Button>}<Button variant="outline" className="ml-auto" onClick={close}>{modal.after ? "İptal" : "Vazgeç"}</Button><Button onClick={saveIt}>Kaydet</Button></div>
+          <div className="mt-4 flex gap-2">{exists && canDelete && <Button variant="ghost" className="text-rose-600" onClick={delIt}>Sil</Button>}<Button variant="outline" className="ml-auto" onClick={close}>{modal.after ? "İptal" : "Vazgeç"}</Button><Button onClick={saveIt}>Kaydet</Button></div>
         </div>
       </div>
     );
