@@ -190,7 +190,7 @@ export function NotebookApp({ initial, brand, canDelete }: { initial: NotebookDa
       </div>
       {allTagNames.length > 0 && <div className="mb-3 flex flex-wrap gap-1.5">{allTagNames.slice(0, 14).map((t) => <button key={t.name} type="button" onClick={() => setTagF(lo(tagF) === lo(t.name) ? "" : t.name)} className={cn("rounded-full border px-2.5 py-0.5 text-[11.5px]", lo(tagF) === lo(t.name) ? "border-primary bg-primary-soft text-primary" : "border-border/60 bg-card text-muted-foreground hover:bg-muted")}>#{t.name} <span className="opacity-60">{t.c}</span></button>)}</div>}
       {notes.length === 0 ? empty(data.notes.length ? "Sonuç yok" : "Henüz not yok", data.notes.length ? "Arama/filtreyi değiştirin." : "İlk toplantı notunu ‘Yeni Not’ ile ekleyin.")
-        : <><div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">{pinned.map(noteCard)}</div>{pinned.length > 0 && <div className="my-1 h-px bg-border/50" />}<div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">{groups}</div></>}
+        : <><div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2 xl:grid-cols-3">{pinned.map(noteCard)}</div>{pinned.length > 0 && <div className="my-1 h-px bg-border/50" />}<div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2 xl:grid-cols-3">{groups}</div></>}
     </>);
   }
   function renderEditor() {
@@ -213,11 +213,15 @@ export function NotebookApp({ initial, brand, canDelete }: { initial: NotebookDa
     const upTopic = (i: number, patch: Partial<NbTopic>) => { const arr = [...(d.topics || [])]; arr[i] = { ...arr[i], ...patch }; setD({ topics: arr }); };
     return (
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="sticky top-0 z-30 -mx-4 flex flex-wrap items-center gap-2 border-b border-border bg-background/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6">
           <button onClick={() => setView(curId ? "view" : "notes")} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-[12.5px] font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Geri</button>
           {curId && canDelete && <Button size="sm" variant="ghost" className="text-rose-600" onClick={() => deleteNote(d.id)}><Trash2 className="size-4" /> Sil</Button>}
           <Button size="sm" className="ml-auto" onClick={saveDraft}><Check className="size-4" /> Kaydet</Button>
         </div>
+
+        {/* Iki sutun: solda kimlik/katilimcilar/takip, sagda konular/aksiyon/foto */}
+        <div className="grid items-start gap-4 lg:grid-cols-2">
+        <div className="space-y-4">
         {section("Genel", <>
           <div><label className={LBL}>Başlık</label><input className={IN} value={d.title || ""} onChange={(e) => setD({ title: e.target.value })} placeholder="Örn. 5 MWp arazi GES — teknik değerlendirme" /></div>
           <div className="grid grid-cols-3 gap-2">
@@ -247,24 +251,6 @@ export function NotebookApp({ initial, brand, canDelete }: { initial: NotebookDa
               {!findContact(ourInput) && <button type="button" onMouseDown={(e) => { e.preventDefault(); addOur(ourInput); }} className="block w-full border-t border-border/60 bg-primary-soft/40 px-3 py-2 text-left text-[13px] font-medium text-primary">＋ “{ourInput.trim()}” yeni kişi olarak kaydet</button>}</div>}
           </div>
         </>)}
-        {section("Görüşülen Konular ve Kararlar", <>
-          {(d.topics || [{}]).map((tp, i) => <div key={i} className="relative rounded-lg border border-border bg-muted/20 p-2.5">
-            <button className="absolute right-2 top-2 text-muted-foreground hover:text-rose-600" onClick={() => setD({ topics: (d.topics || []).filter((_, x) => x !== i) })}><X className="size-4" /></button>
-            <input className={cn(IN, "mb-1.5")} value={tp.subject || ""} placeholder="Konu başlığı" onChange={(e) => upTopic(i, { subject: e.target.value })} />
-            <textarea className={cn(IN, "mb-1.5 resize-y")} rows={2} value={tp.summary || ""} placeholder="Görüşme özeti" onChange={(e) => upTopic(i, { summary: e.target.value })} />
-            <div className="space-y-1.5">{(tp.decisions || []).map((dec, di) => <div key={di} className="flex items-center gap-2"><span className="text-[11px] font-semibold text-primary">Karar</span><input className={IN} value={dec} placeholder="Alınan karar / mutabakat" onChange={(e) => { const ds = [...(tp.decisions || [])]; ds[di] = e.target.value; upTopic(i, { decisions: ds }); }} /><button className="text-muted-foreground hover:text-rose-600" onClick={() => upTopic(i, { decisions: (tp.decisions || []).filter((_, x) => x !== di) })}><X className="size-4" /></button></div>)}</div>
-            <button className="mt-1.5 text-[12px] font-semibold text-primary" onClick={() => upTopic(i, { decisions: [...(tp.decisions || []), ""] })}>+ Karar ekle</button>
-          </div>)}
-          <button className="text-[13px] font-semibold text-primary" onClick={() => setD({ topics: [...(d.topics || []), { subject: "", summary: "", decisions: [] }] })}>+ Konu ekle</button>
-        </>)}
-        {section("Aksiyon Planı", <>
-          {(d.actions || [{ what: "" }]).map((a, i) => <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2 sm:grid-cols-[2fr_1.2fr_150px_auto]">
-            <input className={IN} value={a.what} placeholder="Yapılacak iş" onChange={(e) => { const arr = [...(d.actions || [])]; arr[i] = { ...arr[i], what: e.target.value }; setD({ actions: arr }); }} />
-            <input className={IN} value={a.who || ""} placeholder="Sorumlu" onChange={(e) => { const arr = [...(d.actions || [])]; arr[i] = { ...arr[i], who: e.target.value }; setD({ actions: arr }); }} />
-            <input type="date" className={IN} value={a.due || ""} onChange={(e) => { const arr = [...(d.actions || [])]; arr[i] = { ...arr[i], due: e.target.value }; setD({ actions: arr }); }} />
-            <button className="text-muted-foreground hover:text-rose-600" onClick={() => setD({ actions: (d.actions || []).filter((_, x) => x !== i) })}><X className="size-4" /></button></div>)}
-          <button className="text-[13px] font-semibold text-primary" onClick={() => setD({ actions: [...(d.actions || []), { what: "" }] })}>+ Aksiyon ekle</button>
-        </>)}
         {section("Fotoğraflar", <>
           <div className="flex flex-wrap gap-2">
             {(d.photos || []).map((u, i) => <div key={i} className="relative"><img src={u} alt="" className="size-24 rounded-lg border border-border object-cover" /><button onClick={() => setD({ photos: (d.photos || []).filter((_, x) => x !== i) })} className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-rose-600 text-white"><X className="size-3" /></button></div>)}
@@ -284,6 +270,30 @@ export function NotebookApp({ initial, brand, canDelete }: { initial: NotebookDa
               {!allTagNames.some((t) => lo(t.name) === lo(tagInput)) && <button type="button" onMouseDown={(e) => { e.preventDefault(); addTag(tagInput); }} className="block w-full border-t border-border/60 bg-primary-soft/40 px-3 py-2 text-left text-[13px] font-medium text-primary">＋ “{tagInput.trim()}” yeni etiket</button>}</div>}
           </div>
         </>)}
+        </div>
+
+        <div className="space-y-4">
+        {section("Görüşülen Konular ve Kararlar", <>
+          {(d.topics || [{}]).map((tp, i) => <div key={i} className="relative rounded-lg border border-border bg-muted/20 p-2.5">
+            <button className="absolute right-2 top-2 text-muted-foreground hover:text-rose-600" onClick={() => setD({ topics: (d.topics || []).filter((_, x) => x !== i) })}><X className="size-4" /></button>
+            <input className={cn(IN, "mb-1.5")} value={tp.subject || ""} placeholder="Konu başlığı" onChange={(e) => upTopic(i, { subject: e.target.value })} />
+            <textarea className={cn(IN, "mb-1.5 resize-y")} rows={2} value={tp.summary || ""} placeholder="Görüşme özeti" onChange={(e) => upTopic(i, { summary: e.target.value })} />
+            <div className="space-y-1.5">{(tp.decisions || []).map((dec, di) => <div key={di} className="flex items-center gap-2"><span className="text-[11px] font-semibold text-primary">Karar</span><input className={IN} value={dec} placeholder="Alınan karar / mutabakat" onChange={(e) => { const ds = [...(tp.decisions || [])]; ds[di] = e.target.value; upTopic(i, { decisions: ds }); }} /><button className="text-muted-foreground hover:text-rose-600" onClick={() => upTopic(i, { decisions: (tp.decisions || []).filter((_, x) => x !== di) })}><X className="size-4" /></button></div>)}</div>
+            <button className="mt-1.5 text-[12px] font-semibold text-primary" onClick={() => upTopic(i, { decisions: [...(tp.decisions || []), ""] })}>+ Karar ekle</button>
+          </div>)}
+          <button className="text-[13px] font-semibold text-primary" onClick={() => setD({ topics: [...(d.topics || []), { subject: "", summary: "", decisions: [] }] })}>+ Konu ekle</button>
+        </>)}
+        {section("Aksiyon Planı", <>
+          {(d.actions || [{ what: "" }]).map((a, i) => <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2 sm:grid-cols-[2fr_1.2fr_150px_auto]">
+            <input className={IN} value={a.what} placeholder="Yapılacak iş" onChange={(e) => { const arr = [...(d.actions || [])]; arr[i] = { ...arr[i], what: e.target.value }; setD({ actions: arr }); }} />
+            <input className={IN} value={a.who || ""} placeholder="Sorumlu" onChange={(e) => { const arr = [...(d.actions || [])]; arr[i] = { ...arr[i], who: e.target.value }; setD({ actions: arr }); }} />
+            <input type="date" className={IN} value={a.due || ""} onChange={(e) => { const arr = [...(d.actions || [])]; arr[i] = { ...arr[i], due: e.target.value }; setD({ actions: arr }); }} />
+            <button className="text-muted-foreground hover:text-rose-600" onClick={() => setD({ actions: (d.actions || []).filter((_, x) => x !== i) })}><X className="size-4" /></button></div>)}
+          <button className="text-[13px] font-semibold text-primary" onClick={() => setD({ actions: [...(d.actions || []), { what: "" }] })}>+ Aksiyon ekle</button>
+        </>)}
+        </div>
+        </div>
+
         <div className="flex justify-end gap-2 pb-6"><Button variant="outline" onClick={() => setView(curId ? "view" : "notes")}>Vazgeç</Button><Button onClick={saveDraft}><Check className="size-4" /> Notu Kaydet</Button></div>
       </div>
     );
@@ -294,7 +304,8 @@ export function NotebookApp({ initial, brand, canDelete }: { initial: NotebookDa
     const meta: [string, string][] = [["Firma", n.company || "—"], ["Tür", t.name], ["Tarih", fmtDate(n.date) + (n.startTime ? " · " + n.startTime + (n.endTime ? "–" + n.endTime : "") : "")], ["Konum", n.location || "—"], ["Karşı taraf", peopleStr(n) || "—"], ["Bizim taraf", n.ourAttendees || "—"]];
     const acts = (n.actions || []).filter((a) => a.what);
     return (
-      <div className="space-y-3">
+      // Not belgesi okunabilir genislikte tutulur (tam genislik yorucu olur).
+      <div className="mx-auto max-w-5xl space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <button onClick={() => setView("notes")} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-[12.5px] font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Notlar</button>
           <div className="ml-auto flex flex-wrap gap-1.5">
@@ -451,7 +462,7 @@ export function NotebookApp({ initial, brand, canDelete }: { initial: NotebookDa
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><NotebookPen className="size-5" /></div>
         <div className="min-w-0"><h1 className="text-lg font-semibold text-foreground">Not Defteri</h1><p className="text-[12px] text-muted-foreground">Toplantı notların, kişilerin ve şirketlerin — yalnızca bu deftere özel.</p></div>
