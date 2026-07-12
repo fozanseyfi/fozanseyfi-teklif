@@ -14,6 +14,7 @@ import {
 import {
   EVENT_TYPES, PRIORITIES, VISIBILITIES, ATTENDEE_STATUSES, REMINDER_OPTIONS, evType, reminderLabel,
 } from "@/lib/calendar/constants";
+import { DayTimeGrid } from "./day-time-grid";
 import type { AttendeeStatus, CalendarEventType, CalendarPriority, CalendarVisibility } from "@prisma/client";
 
 type View = "month" | "week" | "day" | "agenda";
@@ -127,8 +128,10 @@ export function CalendarApp({
   }
   function openNew(d?: Date) {
     if (!canCreate) { toast.error("Görüntüleyici rolünde etkinlik oluşturamazsınız"); return; }
+    // Varsayilan sure 30 dk; saat 10'ar dk adima yuvarlanir.
     const base = d ? new Date(d.getFullYear(), d.getMonth(), d.getDate(), 9, 0) : new Date();
-    const end = new Date(base.getTime() + 60 * 60_000);
+    base.setMinutes(Math.round(base.getMinutes() / 10) * 10, 0, 0);
+    const end = new Date(base.getTime() + 30 * 60_000);
     setForm({
       // Bir tur filtresi aciksa yeni etkinlik dogrudan o turde acilir.
       title: "", description: "", type: (typeF || "TOPLANTI") as CalendarEventType,
@@ -397,28 +400,65 @@ export function CalendarApp({
               Tüm gün
             </label>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <div>
-                <label className={LBL}>Başlangıç *</label>
+                <label className={LBL}>Tarih *</label>
                 <input
-                  type={f.allDay ? "date" : "datetime-local"}
+                  type="date"
                   disabled={ro}
-                  value={f.allDay ? startLocal.slice(0, 10) : startLocal}
-                  onChange={(e) => patch({ startAt: new Date(f.allDay ? e.target.value + "T00:00" : e.target.value).toISOString() })}
+                  value={startLocal.slice(0, 10)}
+                  onChange={(e) => {
+                    const day = e.target.value;
+                    if (!day) return;
+                    const s = `${day}T${startLocal.slice(11)}`;
+                    const dur = f.endAt ? new Date(f.endAt).getTime() - new Date(f.startAt).getTime() : 30 * 60_000;
+                    const ns = new Date(s);
+                    patch({ startAt: ns.toISOString(), endAt: new Date(ns.getTime() + dur).toISOString() });
+                  }}
+                  className={IN}
+                />
+              </div>
+              <div>
+                <label className={LBL}>Başlangıç</label>
+                <input
+                  type="time"
+                  step={600}
+                  disabled={ro || !!f.allDay}
+                  value={startLocal.slice(11)}
+                  onChange={(e) => {
+                    if (!e.target.value) return;
+                    const ns = new Date(`${startLocal.slice(0, 10)}T${e.target.value}`);
+                    const dur = f.endAt ? Math.max(600_000, new Date(f.endAt).getTime() - new Date(f.startAt).getTime()) : 30 * 60_000;
+                    patch({ startAt: ns.toISOString(), endAt: new Date(ns.getTime() + dur).toISOString() });
+                  }}
                   className={IN}
                 />
               </div>
               <div>
                 <label className={LBL}>Bitiş</label>
                 <input
-                  type={f.allDay ? "date" : "datetime-local"}
-                  disabled={ro}
-                  value={f.allDay ? (endLocal || startLocal).slice(0, 10) : endLocal}
-                  onChange={(e) => patch({ endAt: e.target.value ? new Date(f.allDay ? e.target.value + "T23:59" : e.target.value).toISOString() : null })}
+                  type="time"
+                  step={600}
+                  disabled={ro || !!f.allDay}
+                  value={(endLocal || startLocal).slice(11)}
+                  onChange={(e) => {
+                    if (!e.target.value) return;
+                    patch({ endAt: new Date(`${startLocal.slice(0, 10)}T${e.target.value}`).toISOString() });
+                  }}
                   className={IN}
                 />
               </div>
             </div>
+
+            {!f.allDay && (
+              <DayTimeGrid
+                dayISO={startLocal.slice(0, 10)}
+                startISO={f.startAt}
+                endISO={f.endAt || null}
+                disabled={ro}
+                onChange={(s, e) => patch({ startAt: s, endAt: e })}
+              />
+            )}
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
