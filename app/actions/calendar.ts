@@ -184,7 +184,10 @@ export async function saveCalendarEvent(input: CalEventInput): Promise<{ id?: st
       return { error: "Bu etkinliği yalnızca sahibi veya yönetici düzenleyebilir" };
 
     await prisma.calendarEvent.update({ where: { id: eventId }, data });
-    await prisma.calendarAttendee.deleteMany({ where: { eventId, userId: { notIn: attendeeIds.length ? attendeeIds : ["-"] } } });
+    // Not: userId uuid kolonu — bos listede notIn'e sentinel deger verilemez (uuid parse hatasi).
+    const dropWhere: Prisma.CalendarAttendeeWhereInput = { eventId };
+    if (attendeeIds.length) dropWhere.userId = { notIn: attendeeIds };
+    await prisma.calendarAttendee.deleteMany({ where: dropWhere });
     const existing = new Set(cur.attendees.map((a) => a.userId));
     const fresh = attendeeIds.filter((id) => !existing.has(id));
     if (fresh.length)
