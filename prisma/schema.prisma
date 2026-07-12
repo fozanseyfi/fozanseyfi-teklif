@@ -13,26 +13,26 @@ datasource db {
 // =============================================================================
 
 model Profile {
-  id                  String   @id @db.Uuid // = auth.users.id
+  id                  String       @id @db.Uuid // = auth.users.id
   email               String?
-  fullName            String?  @map("full_name")
-  avatarUrl           String?  @map("avatar_url")
-  role                String   // 'admin' | 'user' | 'viewer' — active org icindeki rol
-  organizationId     String   @map("organization_id") @db.Uuid
-  organization       Organization @relation("ActiveOrg", fields: [organizationId], references: [id])
-  onboardingCompleted Boolean  @default(false) @map("onboarding_completed")
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  fullName            String?      @map("full_name")
+  avatarUrl           String?      @map("avatar_url")
+  role                String // 'admin' | 'user' | 'viewer' — active org icindeki rol
+  organizationId      String       @map("organization_id") @db.Uuid
+  organization        Organization @relation("ActiveOrg", fields: [organizationId], references: [id])
+  onboardingCompleted Boolean      @default(false) @map("onboarding_completed")
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
 
-  memberships  OrganizationMember[]
-  ownedOrgs    Organization[]       @relation("OrgOwner")
-  projects     Project[]            @relation("ProjectCreatedBy")
-  invitations  Invitation[]         @relation("Inviter")
+  memberships OrganizationMember[]
+  ownedOrgs   Organization[]       @relation("OrgOwner")
+  projects    Project[]            @relation("ProjectCreatedBy")
+  invitations Invitation[]         @relation("Inviter")
 
-  hiddenResources    UserHiddenResource[] @relation("HiddenForUser")
-  hiddenByMe         UserHiddenResource[] @relation("HiderProfile")
-  lockedResources    UserLockedResource[] @relation("LockedForUser")
-  lockedByMe         UserLockedResource[] @relation("LockerProfile")
+  hiddenResources UserHiddenResource[] @relation("HiddenForUser")
+  hiddenByMe      UserHiddenResource[] @relation("HiderProfile")
+  lockedResources UserLockedResource[] @relation("LockedForUser")
+  lockedByMe      UserLockedResource[] @relation("LockerProfile")
 
   @@map("profiles")
   @@schema("public")
@@ -53,10 +53,10 @@ model Notebook {
 }
 
 model Organization {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  ownerId   String?  @map("owner_id") @db.Uuid
-  owner     Profile? @relation("OrgOwner", fields: [ownerId], references: [id])
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String
+  ownerId       String?  @map("owner_id") @db.Uuid
+  owner         Profile? @relation("OrgOwner", fields: [ownerId], references: [id])
   // Marka ayarlari (PDF/Excel ciktilarinda kullanilir, web UI'yi etkilemez).
   // JSON sema:
   //   {
@@ -71,9 +71,9 @@ model Organization {
   //     contact?: string,
   //   }
   // Footer doc-id ve hazirlayan kullanici email'i her zaman basilir (kapatilamaz).
-  brandSettings Json @default("{}") @map("brand_settings")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  brandSettings Json     @default("{}") @map("brand_settings")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   members       OrganizationMember[]
   activeMembers Profile[]            @relation("ActiveOrg")
@@ -85,6 +85,8 @@ model Organization {
   lockedResources UserLockedResource[] @relation("LockedInOrg")
   auditLogs       AuditLog[]
   shareLinks      ShareLink[]
+  calendarEvents  CalendarEvent[]
+  notifications   Notification[]
 
   @@map("organizations")
   @@schema("public")
@@ -93,7 +95,7 @@ model Organization {
 model Invitation {
   id             String       @id @default(uuid()) @db.Uuid
   email          String
-  role           String       // 'admin' | 'user' | 'viewer'
+  role           String // 'admin' | 'user' | 'viewer'
   organizationId String       @map("organization_id") @db.Uuid
   organization   Organization @relation(fields: [organizationId], references: [id])
   token          String       @unique
@@ -114,7 +116,7 @@ model OrganizationMember {
   user           Profile      @relation(fields: [userId], references: [id])
   organizationId String       @map("organization_id") @db.Uuid
   organization   Organization @relation(fields: [organizationId], references: [id])
-  role           String       // 'admin' | 'user' | 'viewer'
+  role           String // 'admin' | 'user' | 'viewer'
   joinedAt       DateTime     @default(now()) @map("joined_at")
 
   @@id([userId, organizationId])
@@ -169,11 +171,11 @@ model UserLockedResource {
 // =============================================================================
 
 model Project {
-  id              String       @id @default(cuid())
-  organizationId  String       @map("organization_id") @db.Uuid
-  organization    Organization @relation(fields: [organizationId], references: [id])
-  createdById     String       @db.Uuid
-  createdBy       Profile      @relation("ProjectCreatedBy", fields: [createdById], references: [id])
+  id             String       @id @default(cuid())
+  organizationId String       @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdById    String       @db.Uuid
+  createdBy      Profile      @relation("ProjectCreatedBy", fields: [createdById], references: [id])
 
   name            String
   customerName    String  @default("")
@@ -204,7 +206,7 @@ model Project {
 
   // Teklif tipi: TURNKEY = anahtar teslim GES projesi (teknik+keşif+timeline
   // akışı), MATERIAL_SERVICE = malzeme & hizmet teklifi (sade kalem listesi).
-  quoteKind   ProjectKind   @default(TURNKEY) @map("quote_kind")
+  quoteKind ProjectKind @default(TURNKEY) @map("quote_kind")
 
   // Satış pipeline'ı — Project.status'tan AYRI bir eksen. status proje yaşam
   // döngüsü (taslak/devam/tamamlandı), pipelineStage satış sürecidir
@@ -216,9 +218,9 @@ model Project {
   // Rakip bilgisi — kaybedilen tekliflerde "kime kaybettik?"
   competitorName String?        @map("competitor_name")
 
-  isTemplate    Boolean @default(false)
-  templateLabel String?
-  templateOrder Int     @default(0)
+  isTemplate     Boolean @default(false)
+  templateLabel  String?
+  templateOrder  Int     @default(0)
   templateLocked Boolean @default(false)
 
   createdAt DateTime @default(now())
@@ -231,6 +233,7 @@ model Project {
   projectDetail   ProjectDetail?
   shareLinks      ShareLink[]
   activities      ProjectActivity[]
+  calendarEvents  CalendarEvent[]
 
   @@index([isTemplate, templateOrder])
   @@index([organizationId])
@@ -253,18 +256,18 @@ model AuditLog {
   // Insanca okunabilir aksiyon adi: "save_project_info", "save_teknik",
   // "save_kesif_a", "save_kesif_b", "save_timeline", "save_dor",
   // "delete_project", "use_template", "create_project", "invite_user", vb.
-  action         String
+  action String
 
   // resourceType: "project" | "template" | "user" | "settings"
-  resourceType   String       @map("resource_type")
-  resourceId     String?      @map("resource_id")
+  resourceType String  @map("resource_type")
+  resourceId   String? @map("resource_id")
   // Snapshot: proje silinse bile log'da hangi proje olduğu görülsün.
-  resourceName   String?      @map("resource_name")
+  resourceName String? @map("resource_name")
 
   // Free-form ek bilgi: degisen alan(lar), miktar farki, advance flag vs.
-  details        Json         @default("{}")
+  details Json @default("{}")
 
-  createdAt      DateTime     @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@index([organizationId, createdAt])
   @@index([actorId])
@@ -301,7 +304,7 @@ model ShareLink {
   revokedAt      DateTime?    @map("revoked_at")
   createdAt      DateTime     @default(now()) @map("created_at")
 
-  activities     ProjectActivity[]
+  activities ProjectActivity[]
 
   @@index([organizationId, createdAt])
   @@index([projectId])
@@ -310,22 +313,22 @@ model ShareLink {
 }
 
 model ProjectDetail {
-  id        String   @id @default(cuid())
-  projectId String   @unique
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  kesifA    Json     @default("[]")
-  kesifB    Json     @default("[]")
-  timeline  Json     @default("{}")
-  dor       Json     @default("[]")
-  settings  Json     @default("{}")
+  id             String   @id @default(cuid())
+  projectId      String   @unique
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  kesifA         Json     @default("[]")
+  kesifB         Json     @default("[]")
+  timeline       Json     @default("{}")
+  dor            Json     @default("[]")
+  settings       Json     @default("{}")
   // Malzeme & Hizmet teklifi kalemleri (MATERIAL_SERVICE projelerinde kullanılır).
   // Her kalem: { id, kind, code, name, desc, unit, qty, currency, unitCost, marginPct }
   // quoteItems + settings = SON revizyonun aynası (geriye-uyumlu okuma için).
-  quoteItems Json    @default("[]") @map("quote_items")
+  quoteItems     Json     @default("[]") @map("quote_items")
   // Teklif revizyonları: [{ id, label, createdAt, items, meta }]. Son eleman aktif.
-  quoteRevisions Json @default("[]") @map("quote_revisions")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  quoteRevisions Json     @default("[]") @map("quote_revisions")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@schema("solar")
 }
@@ -367,8 +370,8 @@ enum ProjectStatus {
 
 /// Teklif tipi — anahtar teslim GES projesi mi yoksa malzeme/hizmet teklifi mi.
 enum ProjectKind {
-  TURNKEY           // Anahtar teslim GES projesi (tam akış)
-  MATERIAL_SERVICE  // Malzeme & hizmet teklifi (sade kalem listesi)
+  TURNKEY // Anahtar teslim GES projesi (tam akış)
+  MATERIAL_SERVICE // Malzeme & hizmet teklifi (sade kalem listesi)
 
   @@schema("solar")
 }
@@ -405,24 +408,24 @@ model MaterialCatalogItem {
 /// Satış pipeline aşamaları — proje yaşam döngüsünden (Project.status) ayrı.
 /// Yöneticinin satış sürecini izlemesi için.
 enum PipelineStage {
-  DRAFT         // Taslak (henüz müşteriye gönderilmemiş)
-  SENT          // Müşteriye gönderildi (paylaşım linki üretilince otomatik)
-  REVISED       // Müşteri revizyon istedi
-  WON           // Closed Won (müşteri kabul etti veya manuel)
-  LOST          // Closed Lost (manuel; lostReason zorunlu)
-  CANCELLED     // Proje iptal edildi
+  DRAFT // Taslak (henüz müşteriye gönderilmemiş)
+  SENT // Müşteriye gönderildi (paylaşım linki üretilince otomatik)
+  REVISED // Müşteri revizyon istedi
+  WON // Closed Won (müşteri kabul etti veya manuel)
+  LOST // Closed Lost (manuel; lostReason zorunlu)
+  CANCELLED // Proje iptal edildi
 
   @@schema("solar")
 }
 
 /// Kayıp sebepleri — yıl sonu raporda "neden kaybediyoruz?" sorusunu cevaplar.
 enum LostReason {
-  PRICE          // Fiyatımız yüksekti
-  TECHNICAL      // Teknik çözümümüz uymadı
-  REFERENCE      // Referansımız/firmamız yetersiz bulundu
-  TIMING         // Zamanlama uymadı (proje ertelendi/iptal)
-  RELATIONSHIP   // Müşteri ilişkisi (mevcut sağlayıcıya gitti)
-  OTHER          // Diğer
+  PRICE // Fiyatımız yüksekti
+  TECHNICAL // Teknik çözümümüz uymadı
+  REFERENCE // Referansımız/firmamız yetersiz bulundu
+  TIMING // Zamanlama uymadı (proje ertelendi/iptal)
+  RELATIONSHIP // Müşteri ilişkisi (mevcut sağlayıcıya gitti)
+  OTHER // Diğer
 
   @@schema("solar")
 }
@@ -430,14 +433,14 @@ enum LostReason {
 /// ProjectActivity tipleri — hem dahili (admin notu, telefon kaydı) hem
 /// public (müşteri paylaşımı görüntüledi/yanıtladı) etkinlikleri kapsar.
 enum ActivityType {
-  CUSTOMER_VIEWED         // Müşteri paylaşım linkini ilk kez görüntüledi (otomatik)
-  CUSTOMER_ACCEPTED       // Müşteri "Kabul Ediyorum" butonuna bastı
-  CUSTOMER_REVISION       // Müşteri "Revizyon İste" butonuna bastı (mesajlı)
-  CUSTOMER_QUESTION       // Müşteri "Soru Sor" butonuna bastı (mesajlı)
-  INTERNAL_NOTE           // Yönetici/kullanıcı eklediği iç not
-  PHONE_CALL              // Telefon görüşmesi kaydı
-  EMAIL_SENT              // Mail gönderildi (manuel kayıt)
-  STAGE_CHANGE            // Pipeline stage değiştirildi (otomatik)
+  CUSTOMER_VIEWED // Müşteri paylaşım linkini ilk kez görüntüledi (otomatik)
+  CUSTOMER_ACCEPTED // Müşteri "Kabul Ediyorum" butonuna bastı
+  CUSTOMER_REVISION // Müşteri "Revizyon İste" butonuna bastı (mesajlı)
+  CUSTOMER_QUESTION // Müşteri "Soru Sor" butonuna bastı (mesajlı)
+  INTERNAL_NOTE // Yönetici/kullanıcı eklediği iç not
+  PHONE_CALL // Telefon görüşmesi kaydı
+  EMAIL_SENT // Mail gönderildi (manuel kayıt)
+  STAGE_CHANGE // Pipeline stage değiştirildi (otomatik)
 
   @@schema("solar")
 }
@@ -446,28 +449,28 @@ enum ActivityType {
 /// share üzerinden müşteri yanıtları tek bir timeline'da toplanır. Pipeline
 /// sayfasında kronolojik gösterilir.
 model ProjectActivity {
-  id              String        @id @default(cuid())
-  projectId       String        @map("project_id")
-  project         Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  organizationId  String        @map("organization_id") @db.Uuid
+  id             String  @id @default(cuid())
+  projectId      String  @map("project_id")
+  project        Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organizationId String  @map("organization_id") @db.Uuid
 
-  type            ActivityType
+  type       ActivityType
   // Müşteri yanıtlarında müşterinin yazdığı not, iç notlarda kullanıcının metni.
-  message         String?
+  message    String?
   // Etkinliği kim tetikledi — internal user için actorId, public müşteri için
   // null (snapshot adı message/details içinde tutulur).
-  actorId         String?       @map("actor_id") @db.Uuid
-  actorEmail      String?       @map("actor_email")
-  actorName       String?       @map("actor_name")
+  actorId    String?      @map("actor_id") @db.Uuid
+  actorEmail String?      @map("actor_email")
+  actorName  String?      @map("actor_name")
 
   // Public müşteri yanıtıysa hangi paylaşım linkinden geldiği (analitik için).
-  shareLinkId     String?       @map("share_link_id")
-  shareLink       ShareLink?    @relation(fields: [shareLinkId], references: [id], onDelete: SetNull)
+  shareLinkId String?    @map("share_link_id")
+  shareLink   ShareLink? @relation(fields: [shareLinkId], references: [id], onDelete: SetNull)
 
   // Free-form metadata: STAGE_CHANGE'de fromStage/toStage, vb.
-  details         Json          @default("{}")
+  details Json @default("{}")
 
-  createdAt       DateTime      @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@index([projectId, createdAt])
   @@index([organizationId, createdAt])
@@ -645,31 +648,31 @@ model PlatformSettings {
 /// Maliyet kontrol projesi — satış fiyatı + gerçekleşen harcama takibi. Teklif
 /// projesinden (sourceProjectId) import edilebilir ama bağımsız yaşar.
 model CostProject {
-  id              String            @id @default(cuid())
-  organizationId  String            @map("organization_id") @db.Uuid
-  createdById     String            @map("created_by_id") @db.Uuid
-  name            String
-  customer        String            @default("")
-  salesPrice      Float             @default(0) @map("sales_price")
-  salesCurrency   String            @default("TRY") @map("sales_currency")
-  salesVatRate    Float             @default(20) @map("sales_vat_rate")
+  id                  String            @id @default(cuid())
+  organizationId      String            @map("organization_id") @db.Uuid
+  createdById         String            @map("created_by_id") @db.Uuid
+  name                String
+  customer            String            @default("")
+  salesPrice          Float             @default(0) @map("sales_price")
+  salesCurrency       String            @default("TRY") @map("sales_currency")
+  salesVatRate        Float             @default(20) @map("sales_vat_rate")
   // Satışın faturalı (KDV hariç) kısmı. Kalanı faturasız kabul edilir. Vergi
   // (KDV + kurumlar vergisi) hesabı yalnız faturalı kısım üzerinden yapılır.
-  salesInvoicedAmount Float          @default(0) @map("sales_invoiced_amount")
+  salesInvoicedAmount Float             @default(0) @map("sales_invoiced_amount")
   // Öngörülen (teklif) TOPLAM maliyet — proje düzeyinde snapshot (KDV hariç, TL).
   // Kalem ekleme/silmeden ETKİLENMEZ; öngörülen kâr = satış − bu tutar.
-  plannedCostTotal    Float          @default(0) @map("planned_cost_total")
-  startDate       DateTime?         @map("start_date")
-  endDate         DateTime?         @map("end_date")
-  status          CostProjectStatus @default(ACTIVE)
+  plannedCostTotal    Float             @default(0) @map("planned_cost_total")
+  startDate           DateTime?         @map("start_date")
+  endDate             DateTime?         @map("end_date")
+  status              CostProjectStatus @default(ACTIVE)
   // Kaynak teklif projesi (opsiyonel) — import edildiyse referans/etiket.
-  sourceProjectId String?           @map("source_project_id")
+  sourceProjectId     String?           @map("source_project_id")
   // Müşteriye açık ödeme ekstresi (public /pay/<token>) için tokenli link.
   // null = link üretilmemiş. Yeniden üretilince eski link geçersiz olur.
-  statementToken  String?           @unique @map("statement_token")
-  notes           String?
-  createdAt       DateTime          @default(now()) @map("created_at")
-  updatedAt       DateTime          @updatedAt @map("updated_at")
+  statementToken      String?           @unique @map("statement_token")
+  notes               String?
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
 
   lines       CostLine[]
   collections CostCollection[]
@@ -725,37 +728,37 @@ model CostVendor {
 /// Harcama kalemi — birim fiyat × miktar × kur = TL toplam. Planlanan bütçe
 /// (opsiyonel) ile varyans; kalem bazında KDV ve faturalı/faturasız.
 model CostLine {
-  id            String  @id @default(cuid())
-  costProjectId String  @map("cost_project_id")
-  costProject   CostProject @relation(fields: [costProjectId], references: [id], onDelete: Cascade)
-  categoryId    String? @map("category_id")
+  id            String           @id @default(cuid())
+  costProjectId String           @map("cost_project_id")
+  costProject   CostProject      @relation(fields: [costProjectId], references: [id], onDelete: Cascade)
+  categoryId    String?          @map("category_id")
   category      CostCategoryDef? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
-  code        String  @default("")
-  description String
-  model       String?
-  brand       String?
-  unit        String  @default("adet")
-  quantity    Float   @default(0)
-  unitPrice   Float   @default(0) @map("unit_price")
-  currency    String  @default("TRY")
-  exchangeRate Float  @default(1) @map("exchange_rate")
-  vatRate     Float   @default(20) @map("vat_rate")
-  isInvoiced  Boolean @default(true) @map("is_invoiced")
+  code         String  @default("")
+  description  String
+  model        String?
+  brand        String?
+  unit         String  @default("adet")
+  quantity     Float   @default(0)
+  unitPrice    Float   @default(0) @map("unit_price")
+  currency     String  @default("TRY")
+  exchangeRate Float   @default(1) @map("exchange_rate")
+  vatRate      Float   @default(20) @map("vat_rate")
+  isInvoiced   Boolean @default(true) @map("is_invoiced")
 
-  vendorId    String? @map("vendor_id")
-  vendor      CostVendor? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  vendorId               String?     @map("vendor_id")
+  vendor                 CostVendor? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
   // Ödeme sahibi (bu kalem için ödeme kime/hangi IBAN'a gidecek — tedarikçiden
   // farklı olabilir). Ödeme dağıtım listesi bu alanlardan üretilir.
-  payAccountNameOverride String? @map("pay_account_name_override")
-  payIbanOverride        String? @map("pay_iban_override")
+  payAccountNameOverride String?     @map("pay_account_name_override")
+  payIbanOverride        String?     @map("pay_iban_override")
 
   // Fatura/dekont linki (opsiyonel) — tabloda tıklanınca bu adrese gider.
   link String?
 
   // Planlanan bütçe (TL, opsiyonel) — varyans = gerçekleşen(TL) − planlanan.
-  plannedAmount Float? @map("planned_amount")
-  sortOrder     Int    @default(0) @map("sort_order")
+  plannedAmount Float?   @map("planned_amount")
+  sortOrder     Int      @default(0) @map("sort_order")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -787,14 +790,14 @@ model CostPayment {
 /// isPlanned=true ise henüz tahsil edilmemiş PLANLANAN tahsilattır (hangi tarihte
 /// ne kadar alacağız); tahsil edilene sayılmaz, ayrı gösterilir.
 model CostCollection {
-  id            String   @id @default(cuid())
-  costProjectId String   @map("cost_project_id")
+  id            String      @id @default(cuid())
+  costProjectId String      @map("cost_project_id")
   costProject   CostProject @relation(fields: [costProjectId], references: [id], onDelete: Cascade)
   amount        Float
-  collectedDate DateTime @map("collected_date")
-  isPlanned     Boolean  @default(false) @map("is_planned")
+  collectedDate DateTime    @map("collected_date")
+  isPlanned     Boolean     @default(false) @map("is_planned")
   note          String?
-  createdAt     DateTime @default(now()) @map("created_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
 
   @@index([costProjectId])
   @@map("cost_collections")
@@ -803,12 +806,12 @@ model CostCollection {
 
 /// Kâr dağıtımı — ortak payları (yüzde). Toplam %100 olmalı (uyarı).
 model CostPartner {
-  id            String   @id @default(cuid())
-  costProjectId String   @map("cost_project_id")
+  id            String      @id @default(cuid())
+  costProjectId String      @map("cost_project_id")
   costProject   CostProject @relation(fields: [costProjectId], references: [id], onDelete: Cascade)
   name          String
-  sharePercent  Float    @default(0) @map("share_percent")
-  createdAt     DateTime @default(now()) @map("created_at")
+  sharePercent  Float       @default(0) @map("share_percent")
+  createdAt     DateTime    @default(now()) @map("created_at")
 
   @@index([costProjectId])
   @@map("cost_partners")
@@ -828,6 +831,142 @@ enum CostPaymentMethod {
   NAKIT
   KART
   CEK
+
+  @@schema("solar")
+}
+
+// =============================================================================
+// TAKVIM — organizasyon geneli, cok kullanicili etkinlik + hatirlatma modulu.
+// Etkinlikler org'a bagli; katilimcilar organization_members icinden secilir.
+// Hatirlatmalar kisi bazlidir (her katilimci kendi hatirlatmasini alir) ve
+// vakti geldiginde uygulama-ici Notification kaydina donusur.
+// =============================================================================
+
+model CalendarEvent {
+  id             String              @id @default(cuid())
+  organizationId String              @map("organization_id") @db.Uuid
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdById    String              @map("created_by_id") @db.Uuid
+  title          String
+  description    String?
+  type           CalendarEventType   @default(TOPLANTI)
+  startAt        DateTime            @map("start_at")
+  // Bos ise tek anlik etkinlik; tum gun etkinliklerinde gun sonu olarak kullanilir.
+  endAt          DateTime?           @map("end_at")
+  allDay         Boolean             @default(false) @map("all_day")
+  location       String?
+  priority       CalendarPriority    @default(NORMAL)
+  status         CalendarEventStatus @default(PLANLANDI)
+  // ORG: tum ekip gorur · KATILIMCILAR: sadece davetliler+sahibi · OZEL: sadece sahibi
+  visibility     CalendarVisibility  @default(ORG)
+  projectId      String?             @map("project_id")
+  project        Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+
+  attendees CalendarAttendee[]
+  reminders CalendarReminder[]
+
+  @@index([organizationId, startAt])
+  @@index([createdById])
+  @@index([projectId])
+  @@map("calendar_events")
+  @@schema("solar")
+}
+
+model CalendarAttendee {
+  id      String         @id @default(cuid())
+  eventId String         @map("event_id")
+  event   CalendarEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String         @map("user_id") @db.Uuid
+  status  AttendeeStatus @default(DAVETLI)
+
+  @@unique([eventId, userId])
+  @@index([userId])
+  @@map("calendar_attendees")
+  @@schema("solar")
+}
+
+model CalendarReminder {
+  id            String        @id @default(cuid())
+  eventId       String        @map("event_id")
+  event         CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId        String        @map("user_id") @db.Uuid
+  // Etkinlikten kac dakika once hatirlatilacak (0 = etkinlik aninda).
+  minutesBefore Int           @map("minutes_before")
+  // startAt - minutesBefore olarak hesaplanir; etkinlik tarihi degisince guncellenir.
+  remindAt      DateTime      @map("remind_at")
+  // Dolu ise bildirime donusturulmustur (tekrar gonderilmez).
+  sentAt        DateTime?     @map("sent_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  @@unique([eventId, userId, minutesBefore])
+  @@index([remindAt, sentAt])
+  @@index([userId, sentAt])
+  @@map("calendar_reminders")
+  @@schema("solar")
+}
+
+model Notification {
+  id             String       @id @default(cuid())
+  organizationId String       @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String       @map("user_id") @db.Uuid
+  // 'calendar_reminder' | 'calendar_invite' | 'calendar_update' | 'calendar_cancel'
+  type           String
+  title          String
+  body           String?
+  // Tiklaninca gidilecek uygulama-ici yol (or. /takvim?event=...)
+  link           String?
+  readAt         DateTime?    @map("read_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@index([userId, readAt])
+  @@index([organizationId])
+  @@map("notifications")
+  @@schema("solar")
+}
+
+enum CalendarEventType {
+  TOPLANTI
+  GOREV
+  HATIRLATMA
+  TERMIN
+  ZIYARET
+  ARAMA
+  DIGER
+
+  @@schema("solar")
+}
+
+enum CalendarPriority {
+  DUSUK
+  NORMAL
+  YUKSEK
+
+  @@schema("solar")
+}
+
+enum CalendarEventStatus {
+  PLANLANDI
+  TAMAMLANDI
+  IPTAL
+
+  @@schema("solar")
+}
+
+enum CalendarVisibility {
+  ORG
+  KATILIMCILAR
+  OZEL
+
+  @@schema("solar")
+}
+
+enum AttendeeStatus {
+  DAVETLI
+  KABUL
+  RET
 
   @@schema("solar")
 }

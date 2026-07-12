@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { getUnreadCount } from "@/app/actions/notifications";
 import {
   LayoutDashboard,
   FolderOpen,
@@ -20,6 +21,7 @@ import {
   ScrollText,
   FileSignature,
   NotebookPen,
+  CalendarDays,
   Share2,
   Search,
   BarChart3,
@@ -73,6 +75,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/projects", icon: FolderOpen, label: "Teklifler" },
       { href: "/sozlesmeler", icon: FileSignature, label: "Sözleşmeler" },
+      { href: "/takvim", icon: CalendarDays, label: "Takvim" },
       { href: "/not-defteri", icon: NotebookPen, label: "Not Defteri" },
       { href: "/templates", icon: LayoutTemplate, label: "Şablonlar" },
       { href: "/materials", icon: Package, label: "Malzemeler" },
@@ -446,6 +449,7 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -458,6 +462,19 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- rota değişince mobil menüyü kapat (dış senkronizasyon)
     setMobileOpen(false);
+  }, [pathname]);
+
+  // Okunmamis bildirim sayisi — vakti gelen takvim hatirlatmalarini da isler.
+  useEffect(() => {
+    let alive = true;
+    const tick = () => {
+      getUnreadCount()
+        .then((n) => { if (alive) setUnread(n); })
+        .catch(() => {});
+    };
+    tick();
+    const t = setInterval(tick, 60_000);
+    return () => { alive = false; clearInterval(t); };
   }, [pathname]);
 
   useEffect(() => {
@@ -550,9 +567,14 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
           <Link
             href="/notifications"
             aria-label="Bildirimler"
-            className="flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="relative flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <Bell className="size-4" />
+            {unread > 0 && (
+              <span className="absolute right-1.5 top-1.5 flex min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-4 text-white">
+                {unread > 9 ? "9+" : unread}
+              </span>
+            )}
           </Link>
           <UserMenu name={userName} role={roleLabel} />
         </div>
