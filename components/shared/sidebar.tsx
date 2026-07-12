@@ -68,21 +68,21 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Ana Menü",
     items: [
       { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+      { href: "/takvim", icon: CalendarDays, label: "Takvim" },
     ],
   },
   {
     label: "Çalışma Alanı",
     items: [
       { href: "/projects", icon: FolderOpen, label: "Teklifler" },
-      { href: "/sozlesmeler", icon: FileSignature, label: "Sözleşmeler" },
-      { href: "/takvim", icon: CalendarDays, label: "Takvim" },
-      { href: "/not-defteri", icon: NotebookPen, label: "Not Defteri" },
       { href: "/templates", icon: LayoutTemplate, label: "Şablonlar" },
-      { href: "/materials", icon: Package, label: "Malzemeler" },
+      { href: "/sozlesmeler", icon: FileSignature, label: "Sözleşmeler" },
+      { href: "/cost-control", icon: Wallet, label: "Maliyet Kontrol" },
       { href: "/customers", icon: Users, label: "Müşteriler" },
       { href: "/suppliers", icon: Truck, label: "Tedarikçiler" },
-      { href: "/cost-control", icon: Wallet, label: "Maliyet Kontrol" },
+      { href: "/materials", icon: Package, label: "Malzemeler" },
       { href: "/tasarim", icon: SunMedium, label: "3D Tasarım" },
+      { href: "/not-defteri", icon: NotebookPen, label: "Not Defteri" },
     ],
   },
   {
