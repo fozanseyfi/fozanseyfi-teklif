@@ -85,8 +85,19 @@ export function DayTimeGrid({
     }
   }
 
+  /** Surukleme kenara yaklasinca izgarayi otomatik kaydirir (Outlook davranisi). */
+  function autoScroll(clientY: number) {
+    const el = scrollRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const EDGE = 28;
+    if (clientY > r.bottom - EDGE) el.scrollTop += Math.min(24, clientY - (r.bottom - EDGE) + 6);
+    else if (clientY < r.top + EDGE) el.scrollTop -= Math.min(24, r.top + EDGE - clientY + 6);
+  }
+
   function move(e: React.PointerEvent) {
     if (!drag || disabled) return;
+    autoScroll(e.clientY);
     const s = slotAt(e.clientY);
     if (drag.mode === "create") {
       const lo = Math.min(drag.anchor, s);
@@ -137,19 +148,19 @@ export function DayTimeGrid({
 
           {/* simdi cizgisi */}
           {nowSlot !== null && (
-            <div className="pointer-events-none absolute left-12 right-0 z-10 border-t-2 border-rose-500" style={{ top: nowSlot * SLOT_H }}>
-              <span className="absolute -left-1 -top-1 size-2 rounded-full bg-rose-500" />
+            <div className="pointer-events-none absolute left-12 right-0 z-10 border-t-2 border-sky-500" style={{ top: nowSlot * SLOT_H }} title="Şimdi">
+              <span className="absolute -left-1 -top-1 size-2 rounded-full bg-sky-500" />
             </div>
           )}
 
           {/* secili aralik */}
           <div
             onPointerDown={(e) => down(e, "move")}
-            className={cn("absolute left-12 right-2 z-20 rounded-md border-2 border-primary bg-primary-soft/80 shadow-sm",
+            className={cn("absolute left-12 right-2 z-20 overflow-hidden rounded-md border-2 border-rose-600 bg-rose-500 shadow-sm",
               disabled ? "cursor-default" : "cursor-grab active:cursor-grabbing")}
             style={{ top: startSlot * SLOT_H, height: (endSlot - startSlot) * SLOT_H }}
           >
-            <div className="px-2 py-0.5 text-[11.5px] font-semibold text-primary">
+            <div className="px-2 py-0.5 text-[11.5px] font-semibold text-white">
               {slotLabel(startSlot)} – {slotLabel(endSlot)}
             </div>
             {!disabled && (
@@ -158,7 +169,7 @@ export function DayTimeGrid({
                 className="absolute inset-x-0 bottom-0 flex h-3 cursor-ns-resize items-end justify-center"
                 title="Aşağı çekerek 10'ar dakika uzat"
               >
-                <span className="mb-0.5 h-1 w-8 rounded-full bg-primary/70" />
+                <span className="mb-0.5 h-1 w-8 rounded-full bg-white/80" />
               </div>
             )}
           </div>

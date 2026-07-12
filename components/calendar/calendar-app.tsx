@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
-  CalendarDays, ChevronLeft, ChevronRight, Plus, X, Trash2, Check, MapPin, Users, Bell, Briefcase, Clock, NotebookPen,
+  CalendarDays, ChevronLeft, ChevronRight, Plus, X, Trash2, Check, MapPin, Users, Bell, Clock, NotebookPen,
 } from "lucide-react";
 import {
   listCalendarEvents, saveCalendarEvent, deleteCalendarEvent, toggleCalendarEventDone, respondToEvent, getNotebookFeed,
@@ -45,10 +45,9 @@ const toLocalInput = (iso?: string | null) => {
 };
 
 export function CalendarApp({
-  members, projects, me, canCreate, initialEventId,
+  members, me, canCreate, initialEventId,
 }: {
   members: CalMember[];
-  projects: { id: string; name: string }[];
   me: string;
   canCreate: boolean;
   initialEventId?: string;
@@ -374,7 +373,6 @@ export function CalendarApp({
             <span className="inline-flex items-center gap-1"><Clock className="size-3.5" />{e.allDay ? "Tüm gün" : hhmm(e.startAt) + (e.endAt ? "–" + hhmm(e.endAt) : "")}</span>
             {e.location && <span className="inline-flex items-center gap-1"><MapPin className="size-3.5" />{e.location}</span>}
             {e.attendees.length > 0 && <span className="inline-flex items-center gap-1"><Users className="size-3.5" />{e.attendees.length} katılımcı</span>}
-            {e.projectName && <span className="inline-flex items-center gap-1"><Briefcase className="size-3.5" />{e.projectName}</span>}
             {e.myReminders.length > 0 && <span className="inline-flex items-center gap-1"><Bell className="size-3.5" />{reminderLabel(e.myReminders[0])}</span>}
           </div>
           {e.description && <p className="mt-1 line-clamp-2 text-[13px] text-foreground/70">{e.description}</p>}
@@ -534,18 +532,9 @@ export function CalendarApp({
               />
             )}
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className={LBL}>Konum</label>
-                <input disabled={ro} value={f.location || ""} onChange={(e) => patch({ location: e.target.value })} placeholder="Ofis / Online / Saha" className={IN} />
-              </div>
-              <div>
-                <label className={LBL}>İlgili teklif / proje</label>
-                <select disabled={ro} value={f.projectId || ""} onChange={(e) => patch({ projectId: e.target.value || null })} className={IN}>
-                  <option value="">— Yok —</option>
-                  {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-              </div>
+            <div>
+              <label className={LBL}>Konum</label>
+              <input disabled={ro} value={f.location || ""} onChange={(e) => patch({ location: e.target.value })} placeholder="Ofis / Online / Saha" className={IN} />
             </div>
 
             <div>
