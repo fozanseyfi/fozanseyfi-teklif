@@ -39,6 +39,7 @@ const PLATFORMS: Platform[] = [
     icon: Workflow,
     color: "#4f46e5",
     softColor: "#eef2ff",
+    href: "https://pm.fozanseyfi.com",
   },
   {
     name: "Satınalma Karar Destek Platformu",
@@ -54,6 +55,7 @@ const PLATFORMS: Platform[] = [
     icon: TrendingUp,
     color: "#0891b2",
     softColor: "#ecfeff",
+    href: "https://fizibilite.fozanseyfi.com",
   },
   {
     name: "GES Mühendislik Platformu",

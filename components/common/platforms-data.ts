@@ -53,7 +53,7 @@ export const PLATFORMS: PlatformInfo[] = [
     tagline: "Çoklu proje, ekip & ilerleme takibi",
     description:
       "GES/RES/HES projeleri için WBS, S-eğrisi, günlük gerçekleşme, puantaj, claim ve günlük rapor modülleri. SPI/CPI/EAC otomatik hesaplanır.",
-    href: "https://proje.fozanseyfi.com",
+    href: "https://pm.fozanseyfi.com",
     status: "live",
   },
   {
