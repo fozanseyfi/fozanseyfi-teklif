@@ -46,7 +46,7 @@ export default async function ProfilePage() {
   const brand = parseBrandSettings(firm.brandSettings);
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto w-full max-w-5xl">
       <FirmSettingsForm
         firm={firm}
         profile={user}

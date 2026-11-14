@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useTransition, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Share2, Copy, Trash2, Link as LinkIcon, ExternalLink, Eye, Clock, Mail, AlertTriangle, Send, QrCode } from "lucide-react";
+import { Copy, Trash2, Link as LinkIcon, ExternalLink, Eye, Clock, Mail, AlertTriangle, Send, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { createShareLink, revokeShareLink, resendShareLinkEmail } from "@/app/actions/share";
@@ -225,43 +224,36 @@ export function ShareLinksClient({ projects, links, organizationName, customDocu
   const archivedLinks = useMemo(() => links.filter((l) => l.revokedAt || (l.expiresAt && new Date(l.expiresAt).getTime() <= Date.now())), [links]);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      {/* Hero */}
-      <Card className="overflow-hidden border-emerald-200 shadow-sm">
-        <CardContent className="p-0">
-          <div className="space-y-4 p-6">
-            <div className="flex items-start gap-3">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
-                <Share2 className="size-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10.5px] font-semibold uppercase tracking-wider text-emerald-700">
-                  Yönetici Paneli
-                </p>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-                  Paylaşım Linkleri
-                </h1>
-                <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                  <strong className="text-slate-900">{organizationName}</strong>{" "}
-                  panelindeki projelerin müşteri/yatırımcıya gönderilebilir
-                  read-only linkleri. Hangi sekmelerin (Keşif, BoQ, Analiz, DoR)
-                  paylaşılacağını ve süresini sen belirlersin. Müşteri linke
-                  tıklayınca sadece seçili sekmeleri görür ve PDF indirebilir.
-                </p>
-              </div>
-            </div>
+    <div className="mx-auto w-full max-w-6xl space-y-5">
+      {/* Başlık — tüm platformlarda aynı sade düzen */}
+      <section className="flex flex-wrap items-end justify-between gap-4 rounded-xl border bg-gradient-to-b from-card to-muted/40 px-6 py-6">
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Paylaşım</p>
+          <h1 className="mt-1.5 text-[26px] font-bold leading-tight tracking-tight text-foreground">Paylaşım linkleri</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            <strong className="text-foreground">{organizationName}</strong> panelindeki projeler için müşteri veya yatırımcıya
+            gönderilebilir, salt okunur linkler. Hangi bölümlerin paylaşılacağını ve süresini siz belirlersiniz.
+          </p>
+        </div>
+        <dl className="flex gap-6 text-xs">
+          <div>
+            <dt className="text-muted-foreground">Aktif link</dt>
+            <dd className="text-xl font-bold tabular-nums text-foreground">{activeLinks.length}</dd>
           </div>
-        </CardContent>
-      </Card>
+          <div>
+            <dt className="text-muted-foreground">Geçmiş</dt>
+            <dd className="text-xl font-bold tabular-nums text-foreground">{archivedLinks.length}</dd>
+          </div>
+        </dl>
+      </section>
 
-      {/* Yeni Paylaşım Oluştur */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <LinkIcon className="size-4" /> Yeni Paylaşım Oluştur
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      {/* Yeni paylaşım */}
+      <section className="overflow-hidden rounded-xl border bg-card">
+        <div className="flex items-center gap-2 border-b px-5 py-3.5">
+          <LinkIcon className="size-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold text-foreground">Yeni paylaşım oluştur</h2>
+        </div>
+        <div className="space-y-4 px-5 py-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="project">Proje</Label>
@@ -475,17 +467,17 @@ export function ShareLinksClient({ projects, links, organizationName, customDocu
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       {/* Aktif Linkler */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <LinkIcon className="size-4" /> Aktif Linkler ({activeLinks.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <section className="overflow-hidden rounded-xl border bg-card">
+        <div className="flex items-center gap-2 border-b px-5 py-3.5">
+          <LinkIcon className="size-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold text-foreground">Aktif linkler</h2>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">{activeLinks.length}</span>
+        </div>
+        <div className="px-5 py-4">
           {activeLinks.length === 0 ? (
             <div className="rounded-lg border border-dashed bg-muted/30 p-8 text-center text-sm text-muted-foreground">
               Henüz aktif paylaşım linki yok. Yukarıdan yeni bir link oluştur.
@@ -502,18 +494,18 @@ export function ShareLinksClient({ projects, links, organizationName, customDocu
               pending={pending}
             />
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       {/* Arşiv */}
       {archivedLinks.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Clock className="size-4" /> Geçmiş ({archivedLinks.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <section className="overflow-hidden rounded-xl border bg-card">
+        <div className="flex items-center gap-2 border-b px-5 py-3.5">
+          <Clock className="size-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold text-foreground">Geçmiş</h2>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">{archivedLinks.length}</span>
+        </div>
+          <div className="px-5 py-4">
             <LinkTable
               rows={archivedLinks}
               baseUrl={baseUrl}
@@ -524,8 +516,8 @@ export function ShareLinksClient({ projects, links, organizationName, customDocu
               showRevoke={false}
               pending={pending}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       )}
     </div>
   );
