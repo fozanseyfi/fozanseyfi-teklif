@@ -728,3 +728,12 @@
   .brand-loader-badge,
   .brand-loader-dots > span { animation: none; }
 }
+
+/* Ortak İletişim başlığı: soluk renk bandı soldan sağa akar (components/common) */
+@keyframes common-flow { from { background-position: 0% 50%; } to { background-position: -200% 50%; } }
+.common-flow {
+  background-image: linear-gradient(90deg, transparent 0%, rgb(16 185 129 / 0.10) 20%, rgb(59 130 246 / 0.10) 40%, transparent 60%, rgb(16 185 129 / 0.08) 80%, transparent 100%);
+  background-size: 200% 100%;
+  animation: common-flow 14s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { .common-flow { animation: none; } }
