@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-15T17:52:23.409Z",
+ "generatedAt": "2026-11-15T18:47:32.234Z",
  "viewport": {
   "w": 1440,
   "h": 900
@@ -191,9 +191,49 @@
      }
     },
     {
-     "img": "/tanitim/anahtar-teslim-07.webp",
-     "title": "Keşif-B: dolaylı maliyetler",
-     "text": "Personel, işletme-bakım, risk, teminat ve sigorta giderleri girilir. B.6 Finans Maliyeti Cash Flow sayfasındaki kredi faizinden otomatik hesaplanır.",
+     "img": "/tanitim/anahtar-teslim-04.webp",
+     "title": "Teknik parametreler",
+     "text": "DC/AC güç, panel ve inverter gücü ile inverter adedi girilir. Panel adedi DC güç ve panel gücünden otomatik hesaplanır; yıldızlı alanlar doldurulmadan bir sonraki adıma geçilemez.",
+     "marks": [
+      {
+       "x": 19.24,
+       "y": 35.36,
+       "w": 38.13,
+       "h": 5.33
+      },
+      {
+       "x": 58.19,
+       "y": 47.36,
+       "w": 34.79,
+       "h": 5.33
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/anahtar-teslim-05.webp",
+     "title": "Kurlar ve inşaat takvimi",
+     "text": "“Güncel kuru çek” USD ve EUR kurunu otomatik getirir. Başlangıç tarihi ve inşaat süresi Cash Flow ve Timeline ekranlarının ay sayısını belirler.",
+     "marks": [
+      {
+       "x": 87.07,
+       "y": 60.81,
+       "w": 9.24,
+       "h": 3.83
+      },
+      {
+       "x": 19.24,
+       "y": 77.08,
+       "w": 38.13,
+       "h": 5.33
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/anahtar-teslim-06.webp",
+     "title": "Kaydedip ilerleyin",
+     "text": "Zorunlu alanlar dolunca “Kaydet & İlerle” etkinleşir. Kaydedildiğinde Keşif-A kalemlerinin miktarları bu teknik değerlere göre yeniden hesaplanır.",
      "marks": [
       {
        "x": 87.47,
@@ -208,7 +248,52 @@
      }
     },
     {
+     "img": "/tanitim/anahtar-teslim-07.webp",
+     "title": "Keşif-A: doğrudan maliyetler",
+     "text": "Panel, inverter, konstrüksiyon, kablo ve işçilik kalemleri 18 grup altında hazır gelir. Teknik sayfada girdiğiniz güce göre miktarlar otomatik hesaplanmıştır; birim fiyat ve para birimi değiştirilebilir.",
+     "marks": [
+      {
+       "x": 19.24,
+       "y": 47.97,
+       "w": 12.18,
+       "h": 3.33
+      }
+     ],
+     "cursor": {
+      "x": 25.33,
+      "y": 49.64
+     }
+    },
+    {
+     "img": "/tanitim/anahtar-teslim-08.webp",
+     "title": "Keşif-B: dolaylı maliyetler",
+     "text": "Personel, işletme-bakım, risk, teminat ve sigorta giderleri girilir. B.6 Finans Maliyeti Cash Flow sayfasındaki kredi faizinden otomatik hesaplanır; elle yazılmaz.",
+     "marks": [
+      {
+       "x": 38.12,
+       "y": 72.92,
+       "w": 8.26,
+       "h": 3
+      }
+     ],
+     "cursor": null
+    },
+    {
      "img": "/tanitim/anahtar-teslim-09.webp",
+     "title": "Timeline: tahsilat ve ödeme takvimi",
+     "text": "Avans, hakediş ve iş sonu tahsilatları ile her maliyet grubunun aylara dağılımı yüzde olarak girilir. “Eşit dağıt” seçilen grubu aylara eşit böler; her satırın toplamı %100 olmalıdır.",
+     "marks": [
+      {
+       "x": 17.57,
+       "y": 50.64,
+       "w": 81.58,
+       "h": 17.22
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/anahtar-teslim-10.webp",
      "title": "Analiz ekranı açıldı",
      "text": "Timeline kaydedildiğinde Analiz sekmesi açılır: toplam EPC satış fiyatı, $/kWp, brüt kâr marjı ve maliyet dağılımı tek ekranda görünür.",
      "marks": [],

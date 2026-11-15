@@ -13,7 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
-import { launch, login, go, settle, sleep, byText, clickText, fill, field, OUT } from "./lib.mjs";
+import { launch, login, go, settle, sleep, byText, clickText, clickOption, fill, field, setValue, waitPath, OUT } from "./lib.mjs";
 
 const VW = 1440;
 const VH = 900;
@@ -209,33 +209,47 @@ const MODULES = [
         title: "Müşteriyi listeden seçin",
         text: "Açılan listeden müşteriyi seçince iletişim bilgileri otomatik dolar. Notlar ve riskler alanlarına yazdıklarınız teklif PDF’ine yansır.",
         run: async (page) => {
-          await clickText(page, "Anadolu Tarım Ürünleri A.Ş.", "button, li, [role=option], div");
-          await sleep(500);
+          await clickOption(page, "Anadolu Tarım Ürünleri A.Ş.");
           await fill(page, 'input[placeholder*="Detay mühendislik"]', "Metrajlar detay proje aşamasında kesinleşecektir.");
+          await mark(page, await page.$('input[placeholder="Müşteri adı ara veya yaz…"]'));
           await mark(page, "Kaydet & İlerle", { click: true });
         },
       },
       {
         title: "Teknik parametreler",
-        text: "DC/AC güç, panel ve inverter gücü, döviz kurları ve inşaat süresi girilir. “Güncel kuru çek” USD ve EUR kurunu otomatik getirir. DC güç girildiğinde panel adedi gibi değerler hesaplanır.",
+        text: "DC/AC güç, panel ve inverter gücü ile inverter adedi girilir. Panel adedi DC güç ve panel gücünden otomatik hesaplanır; yıldızlı alanlar doldurulmadan bir sonraki adıma geçilemez.",
         run: async (page) => {
-          await press(page, "Kaydet & İlerle", 2000);
+          await press(page, "Kaydet & İlerle", 1000);
+          await waitPath(page, /\/teknik$/);
           await fill(page, await field(page, "DC Güç (kW)"), "3000");
           await fill(page, await field(page, "AC Güç (kW)"), "2750");
           await fill(page, await field(page, "Panel Gücü (Wp)"), "625");
           await fill(page, await field(page, "İnverter Gücü (kW)"), "250");
-          await mark(page, "Güncel kuru çek", { click: true });
+          await fill(page, await field(page, "İnverter Adedi"), "11");
+          await fill(page, await field(page, "Çevre Telçit (m)"), "1450");
+          await page.keyboard.press("Tab");
+          await mark(page, await field(page, "DC Güç (kW)"));
+          await mark(page, await field(page, "Panel Adedi"));
         },
       },
       {
-        title: "Kurlar ve takvim",
-        text: "Kur çekildikten sonra kredi faizi, marjlar ve inşaat süresi girilir. Eksik zorunlu alan varsa kaydederken kırmızıyla gösterilir.",
+        title: "Kurlar ve inşaat takvimi",
+        text: "“Güncel kuru çek” USD ve EUR kurunu otomatik getirir. Başlangıç tarihi ve inşaat süresi Cash Flow ve Timeline ekranlarının ay sayısını belirler.",
         run: async (page) => {
-          await press(page, "Güncel kuru çek", 2500);
-          for (const [l, v] of [["Kredi Faizi (%)", "38"], ["Contingency (%)", "3"], ["Genel Gider (%)", "4"], ["Net Kar (%)", "10"], ["İnşaat Süresi (gün)", "150"]]) {
-            try { await fill(page, await field(page, l), v); } catch {}
-          }
-          try { await fill(page, await field(page, "Başlangıç Tarihi"), "01.02.2027"); } catch {}
+          await press(page, await byText(page, "Güncel kuru çek", "button"), 2500);
+          const d = await field(page, "Başlangıç Tarihi");
+          await setValue(d, "2027-02-01");
+          await fill(page, await field(page, "İnşaat Süresi (gün)"), "150");
+          await page.keyboard.press("Tab");
+          await mark(page, await byText(page, "Güncel kuru çek", "button"));
+          await mark(page, d);
+        },
+      },
+      {
+        title: "Kaydedip ilerleyin",
+        text: "Zorunlu alanlar dolunca “Kaydet & İlerle” etkinleşir. Kaydedildiğinde Keşif-A kalemlerinin miktarları bu teknik değerlere göre yeniden hesaplanır.",
+        run: async (page) => {
+          await top(page);
           await mark(page, "Kaydet & İlerle", { click: true });
         },
       },
@@ -243,31 +257,55 @@ const MODULES = [
         title: "Keşif-A: doğrudan maliyetler",
         text: "Panel, inverter, konstrüksiyon, kablo ve işçilik kalemleri 18 grup altında hazır gelir. Teknik sayfada girdiğiniz güce göre miktarlar otomatik hesaplanmıştır; birim fiyat ve para birimi değiştirilebilir.",
         run: async (page) => {
-          await press(page, "Kaydet & İlerle", 2500);
-          await mark(page, "Kalem ekle");
+          await press(page, "Kaydet & İlerle", 1000);
+          await waitPath(page, /\/kesif-a$/);
+          // İlk grubu (A.1 Panel) aç: kalem satırları görünsün
+          const badge = await byText(page, "A.1", "span, div, code");
+          const row = await badge.evaluateHandle((n) => n.closest("button, [role=button], summary") || n.parentElement);
+          await row.asElement().click();
+          await settle(page, 600);
+          await row.asElement().evaluate((n) => n.scrollIntoView({ block: "start" }));
+          await page.evaluate(() => window.scrollBy(0, -80));
+          await sleep(300);
+          await mark(page, row.asElement(), { click: true });
         },
       },
       {
         title: "Keşif-B: dolaylı maliyetler",
-        text: "Personel, işletme-bakım, risk, teminat ve sigorta giderleri girilir. B.6 Finans Maliyeti Cash Flow sayfasındaki kredi faizinden otomatik hesaplanır.",
+        text: "Personel, işletme-bakım, risk, teminat ve sigorta giderleri girilir. B.6 Finans Maliyeti Cash Flow sayfasındaki kredi faizinden otomatik hesaplanır; elle yazılmaz.",
         run: async (page) => {
-          await press(page, "Kaydet & İlerle", 2500);
-          await mark(page, "Kaydet & İlerle", { click: true });
+          await top(page);
+          await press(page, "Kaydet & İlerle", 1000);
+          await waitPath(page, /\/kesif-b$/);
+          await page.evaluate(() => window.scrollTo(0, 260));
+          await mark(page, await byText(page, "Cash Flow Otomatik", "span, div, p, button").catch(() => byText(page, "Kalem ekle", "button")));
         },
       },
       {
         title: "Timeline: tahsilat ve ödeme takvimi",
         text: "Avans, hakediş ve iş sonu tahsilatları ile her maliyet grubunun aylara dağılımı yüzde olarak girilir. “Eşit dağıt” seçilen grubu aylara eşit böler; her satırın toplamı %100 olmalıdır.",
         run: async (page) => {
-          await press(page, "Kaydet & İlerle", 2500);
-          await mark(page, "Eşit dağıt");
+          await top(page);
+          await press(page, "Kaydet & İlerle", 1000);
+          await waitPath(page, /\/timeline$/);
+          await settle(page, 1200);
+          const eq = await byText(page, "Eşit dağıt", "button", 2000).catch(() => null);
+          if (eq) await mark(page, eq);
+          else {
+            const t = await page.$("table");
+            if (t) await mark(page, t);
+            await top(page);
+          }
         },
       },
       {
         title: "Analiz ekranı açıldı",
         text: "Timeline kaydedildiğinde Analiz sekmesi açılır: toplam EPC satış fiyatı, $/kWp, brüt kâr marjı ve maliyet dağılımı tek ekranda görünür.",
         run: async (page) => {
-          await press(page, "Kaydet & İlerle", 3000);
+          await top(page);
+          await press(page, "Kaydet & İlerle", 1000);
+          await waitPath(page, /\/analiz$/);
+          await settle(page, 1500);
           await top(page);
         },
       },

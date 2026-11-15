@@ -75,8 +75,60 @@ export async function shot(page, name, { keepToast = false, fullPage = false, di
   return file;
 }
 
-/** Görünür metne göre eleman bul (buton/link/sekme). İlk eşleşeni döndürür. */
-export async function byText(page, text, selector = "button, a, [role=tab], [role=button], label, summary") {
+/** Görünür metne göre eleman bul (buton/link/sekme). Sayfa geç yüklenirse `timeout` ms boyunca yeniden dener. */
+export async function byText(page, text, selector = "button, a, [role=tab], [role=button], label, summary", timeout = 10_000) {
+  const end = Date.now() + timeout;
+  for (;;) {
+    try {
+      return await byTextOnce(page, text, selector);
+    } catch (e) {
+      if (Date.now() > end) throw e;
+      await sleep(400);
+    }
+  }
+}
+
+/** Sayfa yolu verilen ifadeyle bitene kadar bekle (istemci tarafı geçişlerde). */
+export async function waitPath(page, re, timeout = 30_000) {
+  await page.waitForFunction((src) => new RegExp(src).test(location.pathname), { timeout }, re.source ?? re);
+  await settle(page, 800);
+}
+
+/** Açılır listedeki seçeneğe tıkla: tam metni eşleşen satırın en yakın butonu / seçeneği. */
+export async function clickOption(page, text, timeout = 8_000) {
+  const end = Date.now() + timeout;
+  for (;;) {
+    const ok = await page.evaluate((t) => {
+      const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
+      const el = [...document.querySelectorAll("p, span, div, li, button")].find((n) => {
+        const r = n.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && norm(n.textContent) === t && ![...n.children].some((c) => norm(c.textContent) === t);
+      });
+      const target = el?.closest("button, [role=option], li, a") || el;
+      if (!target) return false;
+      target.scrollIntoView({ block: "center" });
+      target.click();
+      return true;
+    }, text);
+    if (ok) return sleep(400);
+    if (Date.now() > end) throw new Error(`Seçenek bulunamadı: "${text}"`);
+    await sleep(400);
+  }
+}
+
+/** React kontrollü input'a doğrudan değer ata (tarih gibi klavyeyle yazılması zor alanlar için). */
+export async function setValue(el, value) {
+  await el.evaluate((n, v) => {
+    const proto = n instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : n instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+    Object.getOwnPropertyDescriptor(proto, "value").set.call(n, v);
+    n.dispatchEvent(new Event("input", { bubbles: true }));
+    n.dispatchEvent(new Event("change", { bubbles: true }));
+    n.dispatchEvent(new Event("blur", { bubbles: true }));
+  }, String(value));
+  await sleep(150);
+}
+
+async function byTextOnce(page, text, selector) {
   const handle = await page.evaluateHandle(
     (t, sel) => {
       const norm = (s) => s.replace(/\s+/g, " ").trim();
@@ -114,7 +166,19 @@ export async function fill(page, selector, value) {
  * Etiket metnine göre form alanı bul: metni tam eşleşen en küçük eleman, sonra yukarı doğru
  * (en fazla 4 ata) ilk input/select/textarea. `nth`: aynı etiket birden çok kez varsa sıra.
  */
-export async function field(page, labelText, { nth = 0, kind = "input, select, textarea" } = {}) {
+export async function field(page, labelText, { nth = 0, kind = "input, select, textarea", timeout = 10_000 } = {}) {
+  const end = Date.now() + timeout;
+  for (;;) {
+    try {
+      return await fieldOnce(page, labelText, nth, kind);
+    } catch (e) {
+      if (Date.now() > end) throw e;
+      await sleep(400);
+    }
+  }
+}
+
+async function fieldOnce(page, labelText, nth, kind) {
   const handle = await page.evaluateHandle(
     (t, n, k) => {
       const norm = (s) => (s || "").replace(/\s+/g, " ").replace(/\*$/, "").trim();
