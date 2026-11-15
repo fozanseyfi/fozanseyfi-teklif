@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-15T18:47:32.234Z",
+ "generatedAt": "2026-11-15T18:50:13.945Z",
  "viewport": {
   "w": 1440,
   "h": 900
@@ -327,6 +327,23 @@
      "text": "Her grubun toplamı ve $/Wp birim maliyeti grup başlığında görünür. Bir kalemin miktarını veya fiyatını değiştirdiğinizde toplamlar anında güncellenir.",
      "marks": [],
      "cursor": null
+    },
+    {
+     "img": "/tanitim/proje-detay-03.webp",
+     "title": "Analiz: satış fiyatı ve marjlar",
+     "text": "Üstte toplam EPC satış fiyatı, USD/kWp ve brüt kâr marjı yer alır. Contingency, genel gider ve net kâr oranları ±0,5 düğmeleriyle değiştirilir; fiyat canlı güncellenir.",
+     "marks": [
+      {
+       "x": 33.24,
+       "y": 47.97,
+       "w": 2.5,
+       "h": 4
+      }
+     ],
+     "cursor": {
+      "x": 34.49,
+      "y": 49.97
+     }
     },
     {
      "img": "/tanitim/proje-detay-04.webp",

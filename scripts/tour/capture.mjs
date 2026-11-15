@@ -340,7 +340,8 @@ const MODULES = [
         text: "Üstte toplam EPC satış fiyatı, USD/kWp ve brüt kâr marjı yer alır. Contingency, genel gider ve net kâr oranları ±0,5 düğmeleriyle değiştirilir; fiyat canlı güncellenir.",
         run: async (page) => {
           await go(page, `${P}/analiz`, 1200);
-          await mark(page, "+0.5", { click: true });
+          const plus = await page.waitForSelector('button[title="+0.5"], button[aria-label="+0.5"]', { visible: true });
+          await mark(page, plus, { click: true });
         },
       },
       {
