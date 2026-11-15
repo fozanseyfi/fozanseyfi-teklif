@@ -700,12 +700,28 @@ const MODULES = [
         },
       },
       {
-        title: "Sözleşme formu ve önizleme",
-        text: "Taraflar, bedel ve ödeme planı gibi alanlar tekliften otomatik dolar. Boş zorunlu alanlar kırmızıyla işaretlenir; sağda Word belgesinin birebir önizlemesi görünür.",
+        title: "Ana sözleşme metni",
+        text: "Sözleşme ana metin ve eklerden (EK-0 … EK-14) oluşur; her biri üstteki sekmelerden açılır. Ana metin matbudur, projeye özgü bilgiler eklerden gelir. Altta Word belgesinin birebir önizlemesi görünür; “Tümünü indir (ZIP)” bütün belgeleri .docx olarak verir.",
         run: async (page) => {
-          try { await press(page, await byText(page, "Sözleşme oluştur", "button"), 2500); } catch {}
           try { await press(page, await byText(page, "Arazi tipi santral (EPC)", "button, label, div"), 2500); } catch {}
           await settle(page, 1500);
+          await mark(page, await byText(page, "Tümünü indir (ZIP)", "button"));
+        },
+      },
+      {
+        title: "EK-1 Proje Bilgi Formu",
+        text: "Taraflar, sözleşme bedeli, adres ve yetkililer gibi bilgiler bu formda girilir; tekliften gelenler otomatik doludur. Boş kalan zorunlu alanlar kırmızıyla işaretlenir. “Kaydet” ile tüm eklere işlenir.",
+        run: async (page) => {
+          await press(page, await byText(page, "EK-1 · Proje Bilgi Formu", "button, a"), 1500);
+          await mark(page, await byText(page, "EK-1 · Proje Bilgi Formu", "button, a"), { click: true });
+        },
+      },
+      {
+        title: "İmzalı sözleşmeyi arşivleme",
+        text: "Islak veya e-imzalı sözleşmenin tamamı (ana metin + ekler) tek PDF olarak yüklenir ve burada sayfa sayfa görüntülenir.",
+        run: async (page) => {
+          await press(page, await byText(page, "İmzalı Sözleşme", "button, a"), 1200);
+          await mark(page, await byText(page, "PDF seç", "button, label"));
         },
       },
     ],

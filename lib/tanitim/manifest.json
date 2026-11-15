@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-15T19:13:40.345Z",
+ "generatedAt": "2026-11-15T19:16:05.762Z",
  "viewport": {
   "w": 1440,
   "h": 900
@@ -832,9 +832,47 @@
     },
     {
      "img": "/tanitim/sozlesme-03.webp",
-     "title": "Sözleşme formu ve önizleme",
-     "text": "Taraflar, bedel ve ödeme planı gibi alanlar tekliften otomatik dolar. Boş zorunlu alanlar kırmızıyla işaretlenir; sağda Word belgesinin birebir önizlemesi görünür.",
-     "marks": [],
+     "title": "Ana sözleşme metni",
+     "text": "Sözleşme ana metin ve eklerden (EK-0 … EK-14) oluşur; her biri üstteki sekmelerden açılır. Ana metin matbudur, projeye özgü bilgiler eklerden gelir. Altta Word belgesinin birebir önizlemesi görünür; “Tümünü indir (ZIP)” bütün belgeleri .docx olarak verir.",
+     "marks": [
+      {
+       "x": 80.66,
+       "y": 12,
+       "w": 11.29,
+       "h": 4.44
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/sozlesme-04.webp",
+     "title": "EK-1 Proje Bilgi Formu",
+     "text": "Taraflar, sözleşme bedeli, adres ve yetkililer gibi bilgiler bu formda girilir; tekliften gelenler otomatik doludur. Boş kalan zorunlu alanlar kırmızıyla işaretlenir. “Kaydet” ile tüm eklere işlenir.",
+     "marks": [
+      {
+       "x": 37.94,
+       "y": 17.33,
+       "w": 12.18,
+       "h": 4.36
+      }
+     ],
+     "cursor": {
+      "x": 44.03,
+      "y": 19.51
+     }
+    },
+    {
+     "img": "/tanitim/sozlesme-05.webp",
+     "title": "İmzalı sözleşmeyi arşivleme",
+     "text": "Islak veya e-imzalı sözleşmenin tamamı (ana metin + ekler) tek PDF olarak yüklenir ve burada sayfa sayfa görüntülenir.",
+     "marks": [
+      {
+       "x": 54.28,
+       "y": 65.92,
+       "w": 6.99,
+       "h": 4.22
+      }
+     ],
      "cursor": null
     }
    ]
