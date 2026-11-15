@@ -393,6 +393,36 @@ await prisma.notification.createMany({
   ],
 });
 
+// ---------------------------------------------------------------- aktivite kayıtları (lib/audit-log.ts eylem anahtarları)
+const au = (action, resourceType, p, daysAgo, details = {}, who = actor) => ({
+  organizationId: ORG,
+  actorId: who.actorId ?? null,
+  actorEmail: who.actorEmail ?? null,
+  actorName: who.actorName,
+  action,
+  resourceType,
+  resourceId: p?.id ?? null,
+  resourceName: p?.name ?? null,
+  details,
+  createdAt: ago(daysAgo, 9 + (daysAgo % 8)),
+});
+await prisma.auditLog.createMany({
+  data: [
+    au("create_project", "project", created["Bor 10 MWp Arazi GES"], 6),
+    au("save_project_info", "project", created["Bor 10 MWp Arazi GES"], 6),
+    au("save_teknik", "project", created["Bor 10 MWp Arazi GES"], 5, { dcGuc: 10, acGuc: 9.2 }),
+    au("save_kesif_a", "project", created["Bor 10 MWp Arazi GES"], 4),
+    au("customer_revision_request", "project", P2, 3, { customerName: "Mehmet Yıldız" }, { actorName: "Mehmet Yıldız (Bozkır Enerji)" }),
+    au("update_pipeline_stage", "project", P2, 3, { from: "SENT", to: "REVISED" }),
+    au("save_kesif_b", "project", P2, 2),
+    au("create_share_link", "project", P3, 4, { tabs: ["firma", "priced-boq-detailed", "dor"] }),
+    au("save_timeline", "project", created["İncesu 1 MWp Arazi GES"], 12),
+    au("update_brand", "settings", null, 20, { slogan: true, color: "#059669" }),
+    au("customer_accepted", "project", P1, 60, { customerName: "Ayşe Kaya" }, { actorName: "Ayşe Kaya (Anadolu Tarım)" }),
+    au("mark_completed", "project", P1, 59),
+  ],
+});
+
 // ---------------------------------------------------------------- not defteri
 const nb = {
   companies: [

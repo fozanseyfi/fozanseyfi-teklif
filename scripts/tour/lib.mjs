@@ -27,8 +27,25 @@ export async function launch({ width = 1440, height = 900 } = {}) {
   });
   const page = await browser.newPage();
   page.setDefaultTimeout(45_000);
+  await noSmoothScroll(page);
   await page.setExtraHTTPHeaders({ "Accept-Language": "tr-TR,tr;q=0.9" });
   return { browser, page };
+}
+
+/**
+ * Uygulama `scroll-behavior: smooth` kullanıyor; çekimde kaydırmalar animasyonsuz olmalı,
+ * yoksa art arda gelen kaydırmalar birbirini yarıda keser ve görüntü yanlış yerde alınır.
+ */
+export async function noSmoothScroll(page) {
+  await page.evaluateOnNewDocument(() => {
+    const add = () => {
+      const s = document.createElement("style");
+      s.textContent = "html, body { scroll-behavior: auto !important; }";
+      document.head.appendChild(s);
+    };
+    if (document.head) add();
+    else document.addEventListener("DOMContentLoaded", add, { once: true });
+  });
 }
 
 /** Sayfa oturdu mu: ağ sakin + yükleniyor göstergesi yok. */

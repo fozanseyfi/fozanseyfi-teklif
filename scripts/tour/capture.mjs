@@ -13,7 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
-import { launch, login, go, settle, sleep, byText, clickText, clickOption, ensureChecked, fill, field, setValue, waitPath, OUT } from "./lib.mjs";
+import { launch, noSmoothScroll, login, go, settle, sleep, byText, clickText, clickOption, ensureChecked, fill, field, setValue, waitPath, OUT } from "./lib.mjs";
 
 const VW = 1440;
 const VH = 900;
@@ -1252,14 +1252,19 @@ const MODULES = [
         title: "Marka ayarları",
         text: "Logo, kaşe, marka rengi, slogan, filigran ve banka bilgileri PDF ve Excel çıktılarına uygulanır. “Önizle” çıktının nasıl görüneceğini gösterir.",
         run: async (page) => {
+          await settle(page, 800);
           await scrollTo(page, "Marka Ayarları");
-          await mark(page, await byText(page, "Marka Ayarlarını Kaydet", "button"));
+          await sleep(600);
+          await scrollTo(page, "Marka Ayarları");
+          await mark(page, await byText(page, "Logoyu PDF'lerde göster", "label, span, p, div"));
         },
       },
       {
         title: "Firma profili ve referanslar",
         text: "Firma tanıtım PDF’i, referans listesi ve sertifika gibi ek belgeler yüklenir; paylaşım linkinde müşteri bunları “Firma” ve “Referanslar” sekmelerinde görür.",
         run: async (page) => {
+          await scrollTo(page, "Firma Profili & Referanslar");
+          await sleep(600);
           await scrollTo(page, "Firma Profili & Referanslar");
         },
       },
@@ -1315,6 +1320,7 @@ function writeManifest() {
 const { browser, page } = await launch({ width: VW, height: VH });
 const guestCtx = await browser.createBrowserContext();
 const guest = await guestCtx.newPage();
+await noSmoothScroll(guest);
 await guest.setViewport({ width: VW, height: VH });
 guest.setDefaultTimeout(45_000);
 
