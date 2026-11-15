@@ -69,7 +69,7 @@ async function press(page, target, wait = 600) {
   await settle(page, wait);
 }
 async function scrollTo(page, target, block = "start") {
-  const el = typeof target === "string" ? await byText(page, target, "h1, h2, h3, h4, p, span, div, button, a, th") : target;
+  const el = typeof target === "string" ? await byText(page, target, "h1, h2, h3, h4, p, span, div, label, button, a, th") : target;
   await el.evaluate((n, b) => n.scrollIntoView({ block: b }), block);
   await page.evaluate(() => window.scrollBy(0, -70));
   await sleep(350);
@@ -462,13 +462,26 @@ const MODULES = [
           await i.type("HZM", { delay: 40 });
           await sleep(900);
           await mark(page, i);
+          await mark(page, await byText(page, "Elektrik Proje Çizimi ve Onay", "button, li, div, span"), { click: true });
+        },
+      },
+      {
+        title: "Kalem tabloya eklendi",
+        text: "Seçilen kalem tablonun sonuna eklenir. Miktar, para birimi ve birim maliyet girildikten sonra “Kaydet” ile teklif kaydedilir; satır toplamı TL karşılığıyla hesaplanır.",
+        run: async (page) => {
+          await clickOption(page, "Elektrik Proje Çizimi ve Onay");
+          await settle(page, 600);
+          const row = await page.evaluateHandle(() => [...document.querySelectorAll("tr")].filter((r) => r.textContent.includes("Elektrik Proje Çizimi ve Onay")).pop());
+          await row.asElement().evaluate((n) => n.scrollIntoView({ block: "center" }));
+          await sleep(300);
+          await mark(page, row.asElement());
         },
       },
       {
         title: "Analiz: kâr ve toplamlar",
         text: "Tüm kalemlere tek seferde kâr oranı uygulanabilir ya da hedef toplam fiyat girilerek kâr otomatik dağıtılır. İç özet maliyet, kâr ve satış tutarlarını üç para biriminde gösterir; müşteriye gösterilmez.",
         run: async (page) => {
-          await page.keyboard.press("Escape");
+          await press(page, await byText(page, "Kaydet", "button"), 1500);
           await go(page, `${M}/quote-analiz`, 1000);
           await mark(page, await byText(page, "Uygula", "button"));
         },
@@ -477,7 +490,8 @@ const MODULES = [
         title: "Ödeme şekli",
         text: "Avans, bakiye gibi ödeme satırları yüzdesiyle girilir; tutar KDV dahil otomatik hesaplanır. PDF’te yalnızca işaretli satırlar görünür.",
         run: async (page) => {
-          await scrollTo(page, "Ödeme Şekli");
+          await sleep(800);
+          await mark(page, await byText(page, "Ödeme Şekli", "label"));
         },
       },
       {
@@ -493,7 +507,18 @@ const MODULES = [
         text: "Müşteri revizyon istediğinde “Yeni Revize Oluştur” mevcut teklifin kopyasını açar. Revizeler kalem bazında fiyat karşılaştırmasıyla listelenir; PDF’te istediğiniz revizeyi seçebilirsiniz.",
         run: async (page) => {
           await go(page, `${M}/revizeler`, 900);
-          await mark(page, await byText(page, "Yeni Revize Oluştur", "button"));
+          await mark(page, await byText(page, "Yeni Revize Oluştur", "button"), { click: true });
+        },
+      },
+      {
+        title: "Yeni revize oluşturuldu",
+        text: "Yeni revize listeye eklenir ve aktif olur; Kalemler ve Analiz sekmelerinde yapılan değişiklikler bu revizeye yazılır. Karşılaştırma tablosu her kalemin revizeler arasındaki fiyat değişimini gösterir.",
+        toast: true,
+        run: async (page) => {
+          await press(page, await byText(page, "Yeni Revize Oluştur", "button"), 2500);
+          await go(page, `${M}/revizeler`, 1000);
+          const row = await page.evaluateHandle(() => [...document.querySelectorAll("tr")].find((r) => r.textContent.includes("Revize 1")));
+          await mark(page, row.asElement());
         },
       },
     ],

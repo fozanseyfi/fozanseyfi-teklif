@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-15T19:05:07.450Z",
+ "generatedAt": "2026-11-15T19:11:47.859Z",
  "viewport": {
   "w": 1440,
   "h": 900
@@ -504,15 +504,38 @@
      "marks": [
       {
        "x": 18.68,
-       "y": 42.58,
+       "y": 38.58,
        "w": 78.19,
        "h": 5.33
+      },
+      {
+       "x": 23.04,
+       "y": 48.47,
+       "w": 69.32,
+       "h": 3.11
+      }
+     ],
+     "cursor": {
+      "x": 57.7,
+      "y": 50.03
+     }
+    },
+    {
+     "img": "/tanitim/malzeme-hizmet-04.webp",
+     "title": "Kalem tabloya eklendi",
+     "text": "Seçilen kalem tablonun sonuna eklenir. Miktar, para birimi ve birim maliyet girildikten sonra “Kaydet” ile teklif kaydedilir; satır toplamı TL karşılığıyla hesaplanır.",
+     "marks": [
+      {
+       "x": 17.57,
+       "y": 68.1,
+       "w": 80.42,
+       "h": 7.83
       }
      ],
      "cursor": null
     },
     {
-     "img": "/tanitim/malzeme-hizmet-04.webp",
+     "img": "/tanitim/malzeme-hizmet-05.webp",
      "title": "Analiz: kâr ve toplamlar",
      "text": "Tüm kalemlere tek seferde kâr oranı uygulanabilir ya da hedef toplam fiyat girilerek kâr otomatik dağıtılır. İç özet maliyet, kâr ve satış tutarlarını üç para biriminde gösterir; müşteriye gösterilmez.",
      "marks": [
@@ -526,14 +549,21 @@
      "cursor": null
     },
     {
-     "img": "/tanitim/malzeme-hizmet-05.webp",
+     "img": "/tanitim/malzeme-hizmet-06.webp",
      "title": "Ödeme şekli",
      "text": "Avans, bakiye gibi ödeme satırları yüzdesiyle girilir; tutar KDV dahil otomatik hesaplanır. PDF’te yalnızca işaretli satırlar görünür.",
-     "marks": [],
+     "marks": [
+      {
+       "x": 18.68,
+       "y": 48.45,
+       "w": 7.87,
+       "h": 3.11
+      }
+     ],
      "cursor": null
     },
     {
-     "img": "/tanitim/malzeme-hizmet-06.webp",
+     "img": "/tanitim/malzeme-hizmet-07.webp",
      "title": "Teklif PDF önizleme",
      "text": "Müşteriye gidecek teklif belgesi burada görünür: satış fiyatı ve KDV yer alır, maliyet ve kâr görünmez. “PDF İndir” ile kaydedilir veya paylaşım linkiyle gönderilir.",
      "marks": [
@@ -547,7 +577,7 @@
      "cursor": null
     },
     {
-     "img": "/tanitim/malzeme-hizmet-07.webp",
+     "img": "/tanitim/malzeme-hizmet-08.webp",
      "title": "Revizeler",
      "text": "Müşteri revizyon istediğinde “Yeni Revize Oluştur” mevcut teklifin kopyasını açar. Revizeler kalem bazında fiyat karşılaştırmasıyla listelenir; PDF’te istediğiniz revizeyi seçebilirsiniz.",
      "marks": [
@@ -556,6 +586,23 @@
        "y": 24.78,
        "w": 11.34,
        "h": 4.44
+      }
+     ],
+     "cursor": {
+      "x": 91.21,
+      "y": 27
+     }
+    },
+    {
+     "img": "/tanitim/malzeme-hizmet-09.webp",
+     "title": "Yeni revize oluşturuldu",
+     "text": "Yeni revize listeye eklenir ve aktif olur; Kalemler ve Analiz sekmelerinde yapılan değişiklikler bu revizeye yazılır. Karşılaştırma tablosu her kalemin revizeler arasındaki fiyat değişimini gösterir.",
+     "marks": [
+      {
+       "x": 17.57,
+       "y": 41.61,
+       "w": 80.42,
+       "h": 6.72
       }
      ],
      "cursor": null
