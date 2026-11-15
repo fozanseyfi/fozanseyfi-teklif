@@ -132,6 +132,12 @@
     color: var(--color-primary-soft-foreground);
   }
 
+  /* Edge'in kendi şifre göster/gizle düğmesini kapat — şifre alanlarında zaten kendi göz düğmemiz var */
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear {
+    display: none;
+  }
+
   /* Scrollbar — minimal */
   ::-webkit-scrollbar {
     width: 8px;

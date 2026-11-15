@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-15T19:01:42.732Z",
+ "generatedAt": "2026-11-15T19:05:07.450Z",
  "viewport": {
   "w": 1440,
   "h": 900
@@ -42,7 +42,7 @@
      "marks": [
       {
        "x": 17.57,
-       "y": 12.94,
+       "y": 12.61,
        "w": 80.42,
        "h": 74.78
       }
@@ -89,7 +89,7 @@
     {
      "img": "/tanitim/giris-06.webp",
      "title": "Bildirimler",
-     "text": "Zil simgesindeki sayı okunmamış bildirimleri gösterir. Müşterinin paylaşım linkini açması, revizyon istemesi ve takvim hatırlatmaları buraya düşer.",
+     "text": "Zil simgesindeki sayı okunmamış bildirimleri gösterir. Takvim hatırlatmaları, etkinlik davetleri ve etkinlik değişiklikleri buraya düşer; bildirime tıklayınca ilgili etkinlik açılır.",
      "marks": [
       {
        "x": 87.1,

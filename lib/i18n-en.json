@@ -297,7 +297,7 @@
 "Çıkış Yap":"Sign Out",
 "Menüyü aç":"Open menu",
 "Dashboard'a git":"Go to Dashboard",
-"Ara":"Dec",
+"Ara":"Search",
 "Menüyü kapat":"Close menu",
 "Aydınlık temaya geç":"Switch to light theme",
 "Karanlık temaya geç":"Switch to dark theme",
@@ -2708,4 +2708,6 @@
 "İzleyici":"Viewer",
 "Ücretsiz":"Free",
 "Geçerli bir e-posta girin":"Enter a valid email",
-"Şifre en az 8 karakter olmalıdır":"Password must be at least 8 characters"}
+"Şifre en az 8 karakter olmalıdır":"Password must be at least 8 characters",
+"Tanıtım":"Tour",
+"Platform Tanıtımı":"Platform Tour"}
