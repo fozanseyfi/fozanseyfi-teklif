@@ -43,7 +43,8 @@ export async function settle(page, extra = 500) {
 }
 
 export async function go(page, url, extra) {
-  await page.goto(BASE + url, { waitUntil: "domcontentloaded" });
+  // İlk açılışta dev sunucusu sayfayı derler; 2 dk bekle
+  await page.goto(BASE + url, { waitUntil: "domcontentloaded", timeout: 120_000 });
   await settle(page, extra);
 }
 
@@ -98,21 +99,47 @@ export async function waitPath(page, re, timeout = 30_000) {
 export async function clickOption(page, text, timeout = 8_000) {
   const end = Date.now() + timeout;
   for (;;) {
-    const ok = await page.evaluate((t) => {
+    const handle = await page.evaluateHandle((t) => {
       const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
-      const el = [...document.querySelectorAll("p, span, div, li, button")].find((n) => {
+      const vis = (n) => {
         const r = n.getBoundingClientRect();
-        return r.width > 0 && r.height > 0 && norm(n.textContent) === t && ![...n.children].some((c) => norm(c.textContent) === t);
-      });
+        return r.width > 0 && r.height > 0;
+      };
+      // Önce açık liste/popover içindeki seçenekler (Radix Select vb.), sonra sayfanın geri kalanı
+      const opts = [...document.querySelectorAll("[role=option]")].filter(vis);
+      const inList = opts.find((o) => norm(o.textContent) === t) || opts.find((o) => norm(o.textContent).startsWith(t));
+      const el =
+        inList ||
+        [...document.querySelectorAll("p, span, div, li, button")].find(
+          (n) => vis(n) && norm(n.textContent) === t && ![...n.children].some((c) => norm(c.textContent) === t),
+        );
       const target = el?.closest("button, [role=option], li, a") || el;
-      if (!target) return false;
-      target.scrollIntoView({ block: "center" });
-      target.click();
-      return true;
+      target?.scrollIntoView({ block: "center" });
+      return target || null;
     }, text);
-    if (ok) return sleep(400);
+    const el = handle.asElement();
+    if (el) {
+      // Gerçek fare tıklaması: Radix gibi bileşenler pointer olaylarını dinler
+      await el.click();
+      return sleep(400);
+    }
     if (Date.now() > end) throw new Error(`Seçenek bulunamadı: "${text}"`);
     await sleep(400);
+  }
+}
+
+/** Metni içeren işaret kutusunu işaretli hâle getir (zaten işaretliyse dokunma). */
+export async function ensureChecked(page, text, want = true) {
+  const label = await byText(page, text, "label, button, [role=checkbox]");
+  const state = await label.evaluate((n) => {
+    const box = n.matches("input,[role=checkbox]") ? n : n.querySelector("input[type=checkbox], [role=checkbox]");
+    if (!box) return null;
+    if (box instanceof HTMLInputElement) return box.checked;
+    return box.getAttribute("aria-checked") === "true" || box.getAttribute("data-state") === "checked";
+  });
+  if (state === null || state !== want) {
+    await label.click();
+    await sleep(250);
   }
 }
 

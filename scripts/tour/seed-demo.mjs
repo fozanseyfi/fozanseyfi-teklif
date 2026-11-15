@@ -376,10 +376,11 @@ for (const e of events) {
 // ---------------------------------------------------------------- bildirimler
 await prisma.notification.createMany({
   data: [
-    { organizationId: ORG, userId: user.id, type: "share", title: "Bozkır Enerji teklifinizi görüntüledi", body: "Polatlı 10 MWp Arazi GES — paylaşım linki 7. kez açıldı.", link: `/projects/${P2.id}/detail/pipeline`, createdAt: ago(1, 16) },
-    { organizationId: ORG, userId: user.id, type: "share", title: "Revizyon talebi geldi", body: "Polatlı 10 MWp Arazi GES — müşteri inverter markasının revize edilmesini istedi.", link: `/projects/${P2.id}/detail/pipeline`, createdAt: ago(3, 12) },
-    { organizationId: ORG, userId: user.id, type: "calendar", title: "Hatırlatma: Huawei fiyatını tedarikçiden al", body: "Bugün 14:00", link: "/takvim", createdAt: ago(0, 9) },
-    { organizationId: ORG, userId: user.id, type: "share", title: "Anadolu Tarım teklifi onayladı", body: "Karapınar 5 MWp Arazi GES — Kazanıldı aşamasına alındı.", link: `/projects/${P1.id}/detail/pipeline`, readAt: ago(59), createdAt: ago(60) },
+    // Platform yalnız takvim bildirimleri üretir (hatırlatma, davet, değişiklik) — demo da yalnız bunları içerir.
+    { organizationId: ORG, userId: user.id, type: "calendar_reminder", title: "Hatırlatma: Huawei fiyatını tedarikçiden al", body: `${ahead(0).toLocaleDateString("tr-TR", { day: "numeric", month: "long" })} · 14:00`, link: "/takvim", createdAt: ago(0, 9) },
+    { organizationId: ORG, userId: user.id, type: "calendar_invite", title: "Yeni davet: Bozkır Enerji — revize teklif sunumu", body: `${ahead(1).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })} · 10:00`, link: "/takvim", createdAt: ago(1, 16) },
+    { organizationId: ORG, userId: user.id, type: "calendar_invite", title: "Yeni davet: Karapınar saha ziyareti", body: `${ahead(2).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })} · 09:00`, link: "/takvim", createdAt: ago(2, 11) },
+    { organizationId: ORG, userId: user.id, type: "calendar_reminder", title: "Hatırlatma: Aylık maliyet raporu", body: `${ago(2).toLocaleDateString("tr-TR", { day: "numeric", month: "long" })} · 16:00`, link: "/takvim", readAt: ago(2), createdAt: ago(2, 15) },
   ],
 });
 

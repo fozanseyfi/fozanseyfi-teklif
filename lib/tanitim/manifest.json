@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-15T18:50:13.945Z",
+ "generatedAt": "2026-11-15T19:01:42.732Z",
  "viewport": {
   "w": 1440,
   "h": 900
@@ -675,9 +675,70 @@
     },
     {
      "img": "/tanitim/paylasim-07.webp",
-     "title": "Müşteri ekranı: özet teklif",
-     "text": "Her bölüm ayrı sekmede açılır ve PDF olarak indirilebilir. Link süresi dolunca otomatik kapanır.",
+     "title": "Müşteri ekranı: detaylı teklif",
+     "text": "Her bölüm ayrı sekmede açılır ve PDF olarak indirilebilir. Fiyatlı teklifte kâr oranları ve gizlenen kalemler görünmez; link süresi dolunca otomatik kapanır.",
      "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/paylasim-08.webp",
+     "title": "Teklifle ilgili karar çubuğu",
+     "text": "Sayfanın altında sabit duran çubukta müşteri teklifi onaylayabilir, revizyon isteyebilir veya soru sorabilir.",
+     "marks": [
+      {
+       "x": 82.64,
+       "y": 93.76,
+       "w": 9.04,
+       "h": 4.89
+      }
+     ],
+     "cursor": {
+      "x": 87.16,
+      "y": 96.21
+     }
+    },
+    {
+     "img": "/tanitim/paylasim-09.webp",
+     "title": "Müşteri revizyon talebini yazar",
+     "text": "Açılan pencerede müşteri adını ve revize edilmesini istediği noktaları yazar; e-posta ve telefon isteğe bağlıdır.",
+     "marks": [
+      {
+       "x": 35.56,
+       "y": 53.88,
+       "w": 28.89,
+       "h": 14
+      },
+      {
+       "x": 57.48,
+       "y": 74.22,
+       "w": 7.24,
+       "h": 4.75
+      }
+     ],
+     "cursor": {
+      "x": 61.1,
+      "y": 76.6
+     }
+    },
+    {
+     "img": "/tanitim/paylasim-10.webp",
+     "title": "Talep iletildi",
+     "text": "Talep teklifin aktivite akışına kaydedilir, aşaması otomatik “Revizyon İstendi” olur ve teklifi hazırlayan kişiye e-posta gider. Müşteri aynı linki tekrar açtığında yanıtının iletildiğini görür.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/paylasim-11.webp",
+     "title": "Talep teklifin akışında",
+     "text": "Teklifin Pipeline sekmesinde aşama “Revizyon İstendi” olarak güncellenmiştir; müşterinin adı, e-postası ve mesajı aktivite akışının en üstündedir.",
+     "marks": [
+      {
+       "x": 26.11,
+       "y": 76.17,
+       "w": 64.86,
+       "h": 4.83
+      }
+     ],
      "cursor": null
     }
    ]

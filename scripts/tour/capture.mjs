@@ -13,7 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
-import { launch, login, go, settle, sleep, byText, clickText, clickOption, fill, field, setValue, waitPath, OUT } from "./lib.mjs";
+import { launch, login, go, settle, sleep, byText, clickText, clickOption, ensureChecked, fill, field, setValue, waitPath, OUT } from "./lib.mjs";
 
 const VW = 1440;
 const VH = 900;
@@ -27,9 +27,10 @@ const pid = async (name) => (await prisma.project.findFirst({ where: { organizat
 const ID = {
   polatli: await pid("Polatlı 10 MWp Arazi GES"),
   karapinar: await pid("Karapınar 5 MWp Arazi GES"),
+  manisa: await pid("Manisa OSB Fabrika Çatı GES"),
   eskisehir: await pid("Eskişehir Fabrika Çatı — Malzeme Teklifi"),
   costKarapinar: (await prisma.costProject.findFirst({ where: { organizationId: ORG, name: "Karapınar 5 MWp Arazi GES" } }))?.id,
-  shareToken: (await prisma.shareLink.findFirst({ where: { organizationId: ORG, customerLabel: "Yatırımcı" } }))?.token,
+  shareToken: (await prisma.shareLink.findFirst({ where: { organizationId: ORG, customerLabel: "Satınalma" } }))?.token,
 };
 await prisma.$disconnect();
 for (const [k, v] of Object.entries(ID)) if (!v) throw new Error(`Demo kayıt yok: ${k} — önce seed-demo.mjs çalıştırın`);
@@ -137,7 +138,7 @@ const MODULES = [
       },
       {
         title: "Bildirimler",
-        text: "Zil simgesindeki sayı okunmamış bildirimleri gösterir. Müşterinin paylaşım linkini açması, revizyon istemesi ve takvim hatırlatmaları buraya düşer.",
+        text: "Zil simgesindeki sayı okunmamış bildirimleri gösterir. Takvim hatırlatmaları, etkinlik davetleri ve etkinlik değişiklikleri buraya düşer; bildirime tıklayınca ilgili etkinlik açılır.",
         run: async (page) => {
           await page.keyboard.press("Escape");
           await go(page, "/notifications", 700);
@@ -555,10 +556,10 @@ const MODULES = [
         text: "Paylaşılacak teklifi seçin, ardından müşterinin göreceği bölümleri işaretleyin: firma tanıtımı, referanslar, fiyatsız BoQ, özet teklif, DoR. Maliyet/kâr içeren bölümler sarı uyarıyla işaretlidir.",
         run: async (page) => {
           await press(page, await byText(page, "Proje seç...", "button"), 500);
-          await clickText(page, "Manisa OSB Fabrika Çatı GES", "button, li, [role=option], div");
+          await clickOption(page, "Manisa OSB Fabrika Çatı GES");
           await sleep(500);
-          for (const t of ["Firma Tanıtımı", "Referanslar", "Özet Teklif (P-BoQ)", "DoR"]) {
-            try { await clickText(page, t, "label"); } catch {}
+          for (const t of ["Firma Tanıtımı", "Referanslarımız", "Özet Fiyat Teklifi", "Sorumluluk Kapsam Tablosu"]) {
+            try { await ensureChecked(page, t); } catch {}
           }
           await fill(page, "#customerLabel", "Satınalma Müdürlüğü");
           await mark(page, await byText(page, "Paylaşılacak Bölümler", "p, span, div, label, h3"));
@@ -598,21 +599,55 @@ const MODULES = [
         },
       },
       {
-        title: "Müşteri ekranı: özet teklif",
-        text: "Her bölüm ayrı sekmede açılır ve PDF olarak indirilebilir. Link süresi dolunca otomatik kapanır.",
+        title: "Müşteri ekranı: detaylı teklif",
+        text: "Her bölüm ayrı sekmede açılır ve PDF olarak indirilebilir. Fiyatlı teklifte kâr oranları ve gizlenen kalemler görünmez; link süresi dolunca otomatik kapanır.",
         guest: true,
         run: async (page) => {
-          await go(page, `/share/${ID.shareToken}/priced-boq-summary`, 1500);
+          await go(page, `/share/${ID.shareToken}/priced-boq-detailed`, 1500);
         },
       },
       {
-        title: "Müşteri onayı ve revizyon talebi",
-        text: "Sayfanın altında müşteri teklifi onaylayabilir, revizyon isteyebilir veya soru sorabilir. Yanıt size bildirim olarak gelir ve teklifin pipeline akışına kaydedilir.",
+        title: "Teklifle ilgili karar çubuğu",
+        text: "Sayfanın altında sabit duran çubukta müşteri teklifi onaylayabilir, revizyon isteyebilir veya soru sorabilir.",
         guest: true,
         run: async (page) => {
+          await mark(page, await byText(page, "Revizyon İste", "button"), { click: true });
+        },
+      },
+      {
+        title: "Müşteri revizyon talebini yazar",
+        text: "Açılan pencerede müşteri adını ve revize edilmesini istediği noktaları yazar; e-posta ve telefon isteğe bağlıdır.",
+        guest: true,
+        run: async (page) => {
+          await press(page, await byText(page, "Revizyon İste", "button"), 600);
+          await fill(page, 'input[placeholder="Ad Soyad"]', "Selin Ak");
+          await fill(page, 'input[placeholder="ornek@firma.com"]', "selin@egetekstil.example");
+          const ta = await page.$('textarea[placeholder*="revize edilmesini"]');
+          await ta.click();
+          await ta.type("Panel markasının alternatifli verilmesini ve teslim süresinin 6 haftaya çekilmesini rica ederiz.", { delay: 5 });
+          await mark(page, ta);
+          await mark(page, await byText(page, "Gönder", "button"), { click: true });
+        },
+      },
+      {
+        title: "Talep iletildi",
+        text: "Talep teklifin aktivite akışına kaydedilir, aşaması otomatik “Revizyon İstendi” olur ve teklifi hazırlayan kişiye e-posta gider. Müşteri aynı linki tekrar açtığında yanıtının iletildiğini görür.",
+        guest: true,
+        toast: true,
+        run: async (page) => {
+          await press(page, await byText(page, "Gönder", "button"), 2500);
+          await settle(page, 1500);
           await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-          await sleep(600);
-          await mark(page, await byText(page, "Revizyon İste", "button"));
+          await sleep(500);
+        },
+      },
+      {
+        title: "Talep teklifin akışında",
+        text: "Teklifin Pipeline sekmesinde aşama “Revizyon İstendi” olarak güncellenmiştir; müşterinin adı, e-postası ve mesajı aktivite akışının en üstündedir.",
+        run: async (page) => {
+          await go(page, `/projects/${ID.manisa}/detail/pipeline`, 1200);
+          await scrollTo(page, "Aktivite Akışı", "start");
+          await mark(page, await byText(page, "Panel markasının alternatifli verilmesini ve teslim süresinin 6 haftaya çekilmesini rica ederiz.", "p, div, span"));
         },
       },
     ],
