@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-15T19:30:13.446Z",
+ "generatedAt": "2026-11-15T19:35:08.706Z",
  "viewport": {
   "w": 1440,
   "h": 900
@@ -1195,34 +1195,104 @@
    "id": "not-defteri",
    "group": "Çalışma Araçları",
    "title": "Not Defteri",
-   "intro": "Toplantı notları, kararlar, aksiyon planı, kişiler ve şirketler kişisel bir defterde tutulur. Notlar PDF olarak yazdırılabilir veya metin olarak kopyalanabilir.",
+   "intro": "Toplantı notları, kararlar, aksiyon planı, kişiler ve şirketler kişisel bir defterde tutulur. Notlar PDF olarak indirilebilir, WhatsApp veya e-postayla paylaşılabilir ya da metin olarak kopyalanabilir.",
    "steps": [
     {
      "img": "/tanitim/not-defteri-01.webp",
      "title": "Notlar ve yapılacaklar",
-     "text": "Solda notlar listesi, sağda açık aksiyonlar (Yapılacaklar) yer alır. Firma, kişi, etiket veya metinle arama yapılır.",
-     "marks": [],
+     "text": "Notlar kart olarak, aya göre gruplanarak listelenir; sabitlenen not en üstte durur. Üstteki “Yapılacaklar” çubuğu tüm notlardaki açık aksiyonları toplar. Firma, kişi, etiket veya metinle arama yapılır.",
+     "marks": [
+      {
+       "x": 21.88,
+       "y": 25.54,
+       "w": 6.01,
+       "h": 3.14
+      }
+     ],
      "cursor": null
     },
     {
      "img": "/tanitim/not-defteri-02.webp",
      "title": "Toplantı notu",
-     "text": "Her not konu başlıkları, alınan kararlar ve sorumlu-termin bilgisiyle aksiyon planından oluşur. Takip tarihi takvime düşer.",
-     "marks": [],
+     "text": "Her not konu başlıkları, alınan kararlar ve sorumlu-termin bilgisiyle aksiyon planından oluşur; takip tarihi takvime düşer. Üstteki düğmelerle not PDF olarak indirilir, WhatsApp veya e-postayla paylaşılır.",
+     "marks": [
+      {
+       "x": 55.64,
+       "y": 18.93,
+       "w": 5.64,
+       "h": 4.44
+      }
+     ],
      "cursor": null
     },
     {
      "img": "/tanitim/not-defteri-03.webp",
      "title": "Yeni not",
-     "text": "“Yeni Not” ile başlık, tarih, tür, firma ve katılımcılar girilir; konu ve karar satırları ile aksiyonlar eklenir.",
-     "marks": [],
+     "text": "“Yeni Not” ile başlık, tarih, tür ve firma girilir. Firma deftere kayıtlı şirketlerden seçilir; listede yoksa yeni şirket olarak kaydedilir.",
+     "marks": [
+      {
+       "x": 20.35,
+       "y": 4.33,
+       "w": 35.97,
+       "h": 5.14
+      },
+      {
+       "x": 20.35,
+       "y": 47.47,
+       "w": 35.97,
+       "h": 5.14
+      }
+     ],
      "cursor": null
     },
     {
      "img": "/tanitim/not-defteri-04.webp",
-     "title": "Görevler",
-     "text": "Hızlı görevler tarihleriyle tutulur; toplantı aksiyonları da burada listelenir.",
+     "title": "Konular, kararlar ve aksiyonlar",
+     "text": "Sağ tarafta görüşülen her konu için özet ve kararlar yazılır; aksiyon planına yapılacak iş, sorumlu ve termin eklenir. “Kaydet” ile not deftere kaydedilir.",
+     "marks": [
+      {
+       "x": 60,
+       "y": 33.64,
+       "w": 34.44,
+       "h": 5.14
+      },
+      {
+       "x": 59.24,
+       "y": 64.28,
+       "w": 14.44,
+       "h": 5.14
+      },
+      {
+       "x": 89.75,
+       "y": 19.82,
+       "w": 6.64,
+       "h": 4.44
+      }
+     ],
+     "cursor": {
+      "x": 93.07,
+      "y": 22.04
+     }
+    },
+    {
+     "img": "/tanitim/not-defteri-05.webp",
+     "title": "Not kaydedildi",
+     "text": "Kaydedilen not, yazdırılabilir toplantı notu görünümünde açılır. Açık aksiyonu Notlar sekmesindeki Yapılacaklar çubuğuna eklenir; “Düzenle” ile değiştirilebilir.",
      "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/not-defteri-06.webp",
+     "title": "Görevler",
+     "text": "Görevler sekmesinde hızlı görevler tarihleriyle tutulur ve açık, bugün, geciken, tamamlanan olarak süzülür. Yuvarlak işarete tıklayınca görev tamamlanır.",
+     "marks": [
+      {
+       "x": 19.17,
+       "y": 24.31,
+       "w": 61.9,
+       "h": 5.14
+      }
+     ],
      "cursor": null
     }
    ]

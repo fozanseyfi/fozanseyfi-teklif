@@ -990,38 +990,71 @@ const MODULES = [
     id: "not-defteri",
     group: "Çalışma Araçları",
     title: "Not Defteri",
-    intro: "Toplantı notları, kararlar, aksiyon planı, kişiler ve şirketler kişisel bir defterde tutulur. Notlar PDF olarak yazdırılabilir veya metin olarak kopyalanabilir.",
+    intro: "Toplantı notları, kararlar, aksiyon planı, kişiler ve şirketler kişisel bir defterde tutulur. Notlar PDF olarak indirilebilir, WhatsApp veya e-postayla paylaşılabilir ya da metin olarak kopyalanabilir.",
     steps: [
       {
         title: "Notlar ve yapılacaklar",
-        text: "Solda notlar listesi, sağda açık aksiyonlar (Yapılacaklar) yer alır. Firma, kişi, etiket veya metinle arama yapılır.",
+        text: "Notlar kart olarak, aya göre gruplanarak listelenir; sabitlenen not en üstte durur. Üstteki “Yapılacaklar” çubuğu tüm notlardaki açık aksiyonları toplar. Firma, kişi, etiket veya metinle arama yapılır.",
         run: async (page) => {
           await go(page, "/not-defteri", 900);
+          await mark(page, await byText(page, "Yapılacaklar", "button, div, span, p"));
         },
       },
       {
         title: "Toplantı notu",
-        text: "Her not konu başlıkları, alınan kararlar ve sorumlu-termin bilgisiyle aksiyon planından oluşur. Takip tarihi takvime düşer.",
+        text: "Her not konu başlıkları, alınan kararlar ve sorumlu-termin bilgisiyle aksiyon planından oluşur; takip tarihi takvime düşer. Üstteki düğmelerle not PDF olarak indirilir, WhatsApp veya e-postayla paylaşılır.",
         run: async (page) => {
           await clickText(page, "Polatlı 10 MWp — teknik değerlendirme", "button, a, div, h3, p");
           await settle(page, 800);
+          await mark(page, await byText(page, "PDF", "button"));
         },
       },
       {
         title: "Yeni not",
-        text: "“Yeni Not” ile başlık, tarih, tür, firma ve katılımcılar girilir; konu ve karar satırları ile aksiyonlar eklenir.",
+        text: "“Yeni Not” ile başlık, tarih, tür ve firma girilir. Firma deftere kayıtlı şirketlerden seçilir; listede yoksa yeni şirket olarak kaydedilir.",
         run: async (page) => {
           await go(page, "/not-defteri", 700);
           await press(page, await byText(page, "Yeni Not", "button"), 800);
-          try { await fill(page, 'input[placeholder*="5 MWp arazi"]', "Niğde Kooperatif — ön görüşme"); } catch {}
+          await fill(page, 'input[placeholder*="5 MWp arazi"]', "Niğde Kooperatif — ön görüşme");
+          const firm = await page.$('input[placeholder="Deftere kayıtlı şirketlerden seç"]');
+          await firm.click();
+          await firm.type("Niğde", { delay: 30 });
+          await sleep(600);
+          await clickOption(page, "Niğde Tarım Kooperatifi · Niğde");
+          await mark(page, await page.$('input[placeholder*="5 MWp arazi"]'));
+          await mark(page, firm);
+        },
+      },
+      {
+        title: "Konular, kararlar ve aksiyonlar",
+        text: "Sağ tarafta görüşülen her konu için özet ve kararlar yazılır; aksiyon planına yapılacak iş, sorumlu ve termin eklenir. “Kaydet” ile not deftere kaydedilir.",
+        run: async (page) => {
+          await fill(page, 'input[placeholder="Konu başlığı"]', "Sulama pompaları için GES");
+          await fill(page, 'textarea[placeholder="Görüşme özeti"]', "Kooperatif 1,2 MW sulama yükü için arazi GES düşünüyor; kredi desteği araştırılıyor.");
+          await fill(page, 'input[placeholder="Yapılacak iş"]', "Ön fizibilite ve bütçe teklifi hazırla");
+          await fill(page, 'input[placeholder="Sorumlu"]', "Deniz Aydın");
+          await mark(page, await page.$('input[placeholder="Konu başlığı"]'));
+          await mark(page, await page.$('input[placeholder="Yapılacak iş"]'));
+          await mark(page, await byText(page, "Kaydet", "button"), { click: true });
+        },
+      },
+      {
+        title: "Not kaydedildi",
+        text: "Kaydedilen not, yazdırılabilir toplantı notu görünümünde açılır. Açık aksiyonu Notlar sekmesindeki Yapılacaklar çubuğuna eklenir; “Düzenle” ile değiştirilebilir.",
+        toast: true,
+        run: async (page) => {
+          await press(page, await byText(page, "Kaydet", "button"), 1500);
+          await settle(page, 800);
+          await top(page);
         },
       },
       {
         title: "Görevler",
-        text: "Hızlı görevler tarihleriyle tutulur; toplantı aksiyonları da burada listelenir.",
+        text: "Görevler sekmesinde hızlı görevler tarihleriyle tutulur ve açık, bugün, geciken, tamamlanan olarak süzülür. Yuvarlak işarete tıklayınca görev tamamlanır.",
         run: async (page) => {
           await go(page, "/not-defteri", 700);
           await press(page, await byText(page, "Görevler", "button"), 700);
+          await mark(page, await page.$('input[placeholder*="Hızlı görev ekle"]'));
         },
       },
     ],
