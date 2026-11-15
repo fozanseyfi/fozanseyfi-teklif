@@ -28,6 +28,8 @@ const ahead = (d, h = 10, m = 0) => {
   return x;
 };
 const iso = (d) => d.toISOString().slice(0, 10);
+/** Türkçe harfleri ASCII karşılığına çevirip e-posta alan adına uygun hale getirir. */
+const slug = (s) => s.toLocaleLowerCase("tr-TR").replace(/[çğıöşü]/g, (c) => ({ ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u" })[c]).replace(/[^a-z0-9]/g, "");
 const cuid = () => "c" + crypto.randomBytes(12).toString("hex").slice(0, 24);
 
 // ---------------------------------------------------------------- temizlik
@@ -82,6 +84,12 @@ const TURNKEY = [
   { tpl: "10 MWp", name: "Bor 10 MWp Arazi GES", customer: "Niğde Tarım Kooperatifi", il: "Niğde", ilce: "Bor", stage: "DRAFT", created: 6, updated: 0 },
 ];
 
+const INSIGHTS = {
+  "Polatlı 10 MWp Arazi GES": ["Yatırım komitesi Huawei inverter tercih ediyor.", "Avans oranının %30'a düşürülmesini istiyor.", "Karar Aralık ayı yönetim kurulunda verilecek."],
+  "Karapınar 5 MWp Arazi GES": ["Sulama pompaları için öz tüketim önceliği var.", "Bankası proje finansmanında yerli panel şartı arıyor."],
+  "Manisa OSB Fabrika Çatı GES": ["Çatı statik raporu mevcut, trapez sac.", "Üretim duruşu istemiyor; montaj hafta sonu yapılmalı."],
+  "Şahinbey 50 MWp Arazi GES": ["Birden fazla EPC'den teklif topluyor.", "Trafo merkezi bağlantı kapasitesi teyit edilecek."],
+};
 const created = {};
 for (const [i, p] of TURNKEY.entries()) {
   const t = tpl(p.tpl);
@@ -101,9 +109,10 @@ for (const [i, p] of TURNKEY.entries()) {
     mevduat: 32,
     baslangic: iso(ahead(30 + i * 7)),
     sure: p.roof ? 90 : 180,
-    notlar: "Detay mühendislik aşamasında metraj farklılıkları olabilir. Fiyatlar teklif tarihindeki kurlarla hesaplanmıştır.",
+    notes: ["Detay mühendislik aşamasında metraj farklılıkları olabilir.", "Fiyatlar teklif tarihindeki USD/TRY kuruyla hesaplanmıştır."],
     gesStep: 5,
-    riskler: "Döviz kuru dalgalanması, panel tedarik süresi, TEDAŞ bağlantı onay süreci.",
+    risks: ["Döviz kuru dalgalanması", "Panel tedarik süresi", "TEDAŞ bağlantı onay süreci"],
+    customerInsights: INSIGHTS[p.name] ?? ["Karar sürecinde fiyat kadar teslim süresi de belirleyici."],
   };
   const proj = await prisma.project.create({
     data: {
@@ -111,7 +120,7 @@ for (const [i, p] of TURNKEY.entries()) {
       createdById: user.id,
       name: p.name,
       customerName: p.customer,
-      customerEmail: `satinalma@${p.customer.split(" ")[0].toLowerCase().replace(/[^a-z]/g, "") || "musteri"}.example`,
+      customerEmail: `satinalma@${slug(p.customer.split(" ")[0]) || "musteri"}.example`,
       customerPhone: "+90 312 000 00 0" + i,
       projectLocation: `${p.il} / ${p.ilce}`,
       installationType: t.installationType,

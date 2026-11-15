@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-15T19:19:27.599Z",
+ "generatedAt": "2026-11-15T19:23:53.024Z",
  "viewport": {
   "w": 1440,
   "h": 900
@@ -1058,7 +1058,14 @@
     {
      "img": "/tanitim/kayitlar-01.webp",
      "title": "Müşteriler",
-     "text": "Her müşterinin teklif sayısı ve toplam gücü listelenir. Yeni müşteri, teklif oluştururken eklenir.",
+     "text": "Müşteriler iletişim bilgisi, teklif sayısı ve öngörü notuyla listelenir. Yeni müşteri, teklif oluştururken müşteri kutusundan eklenir; “Git” müşteri sayfasını açar.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/kayitlar-02.webp",
+     "title": "Müşteri detayı",
+     "text": "Müşterinin tüm teklifleri, iletişim bilgileri ve tekliflerde girilen notlar tek sayfada toplanır.",
      "marks": [],
      "cursor": null
     },
@@ -1082,8 +1089,38 @@
     {
      "img": "/tanitim/kayitlar-04.webp",
      "title": "Yeni katalog kalemi",
-     "text": "Tür (malzeme / hizmet), ad ve birim girilir; kod otomatik verilir.",
-     "marks": [],
+     "text": "Tür (malzeme / hizmet), ad ve birim girilir; kod türüne göre otomatik verilir (MLZ… / HZM…).",
+     "marks": [
+      {
+       "x": 35.9,
+       "y": 49.44,
+       "w": 28.19,
+       "h": 5.33
+      },
+      {
+       "x": 57.73,
+       "y": 64.11,
+       "w": 6.37,
+       "h": 4.89
+      }
+     ],
+     "cursor": {
+      "x": 60.92,
+      "y": 66.55
+     }
+    },
+    {
+     "img": "/tanitim/kayitlar-05.webp",
+     "title": "Kalem kataloğa eklendi",
+     "text": "Yeni kalem sıradaki kodla kataloğa eklenir ve hemen Malzeme & Hizmet tekliflerinde aranabilir hale gelir. Satırdaki düğmelerle düzenlenir veya silinir.",
+     "marks": [
+      {
+       "x": 26.46,
+       "y": 29.24,
+       "w": 62.64,
+       "h": 6.78
+      }
+     ],
      "cursor": null
     }
    ]

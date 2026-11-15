@@ -880,7 +880,7 @@ const MODULES = [
     steps: [
       {
         title: "Müşteriler",
-        text: "Her müşterinin teklif sayısı ve toplam gücü listelenir. Yeni müşteri, teklif oluştururken eklenir.",
+        text: "Müşteriler iletişim bilgisi, teklif sayısı ve öngörü notuyla listelenir. Yeni müşteri, teklif oluştururken müşteri kutusundan eklenir; “Git” müşteri sayfasını açar.",
         run: async (page) => {
           await go(page, "/customers", 900);
         },
@@ -902,13 +902,22 @@ const MODULES = [
       },
       {
         title: "Yeni katalog kalemi",
-        text: "Tür (malzeme / hizmet), ad ve birim girilir; kod otomatik verilir.",
+        text: "Tür (malzeme / hizmet), ad ve birim girilir; kod türüne göre otomatik verilir (MLZ… / HZM…).",
         run: async (page) => {
           await press(page, await byText(page, "Yeni Kalem", "button"), 700);
-          try { await fill(page, 'input[placeholder*="550W"]', "Bifacial PV Panel 700 Wp"); } catch {}
+          await fill(page, 'input[placeholder*="550W"]', "Bifacial PV Panel 700 Wp");
+          await mark(page, await page.$('input[placeholder*="550W"]'));
+          await mark(page, await modalButton(page, "Ekle"), { click: true });
         },
-        after: async (page) => {
-          await page.keyboard.press("Escape");
+      },
+      {
+        title: "Kalem kataloğa eklendi",
+        text: "Yeni kalem sıradaki kodla kataloğa eklenir ve hemen Malzeme & Hizmet tekliflerinde aranabilir hale gelir. Satırdaki düğmelerle düzenlenir veya silinir.",
+        toast: true,
+        run: async (page) => {
+          await press(page, await modalButton(page, "Ekle"), 1500);
+          const row = await page.evaluateHandle(() => [...document.querySelectorAll("tr")].find((r) => r.textContent.includes("Bifacial PV Panel 700 Wp")));
+          await mark(page, row.asElement());
         },
       },
     ],
