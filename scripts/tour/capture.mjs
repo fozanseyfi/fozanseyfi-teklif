@@ -938,17 +938,25 @@ const MODULES = [
       },
       {
         title: "Yeni etkinlik",
-        text: "“+ Etkinlik” ile başlık, tür, tarih-saat, konum, katılımcılar, görünürlük ve hatırlatma süresi girilir.",
+        text: "“+ Etkinlik” ile başlık, tür, tarih-saat, konum, katılımcılar, görünürlük ve hatırlatma süresi girilir. Sağdaki saat ızgarasında etkinlik bloğu sürüklenerek saati, uçlarından çekilerek süresi 10’ar dakikalık adımlarla ayarlanır.",
         run: async (page) => {
           await press(page, await byText(page, "Etkinlik", "button"), 700);
           try { await fill(page, 'input[placeholder*="Örn. Çimsa"]', "Ege Tekstil — revize sunum"); } catch {}
           try { await fill(page, 'input[placeholder*="Ofis / Online"]', "Manisa OSB"); } catch {}
+          // Tarih: yarın, 14:00–15:00 (çekim saatine bağlı kalmasın)
+          const d = new Date(Date.now() + 86_400_000);
+          const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          try { await setValue(await field(page, "Tarih *", { kind: "input" }), iso); } catch { try { await setValue(await field(page, "Tarih", { kind: "input" }), iso); } catch {} }
+          try { await setValue(await field(page, "Başlangıç", { kind: "input" }), "14:00"); } catch {}
+          try { await setValue(await field(page, "Bitiş", { kind: "input" }), "15:00"); } catch {}
+          await sleep(400);
+          await mark(page, await page.$('input[placeholder*="Örn. Çimsa"]'));
           await mark(page, await byText(page, "Oluştur", "button"), { click: true });
         },
       },
       {
         title: "Etkinlik eklendi",
-        text: "Kaydedilen etkinlik takvimde görünür; tıklayınca düzenlenebilir, sürükleyerek başka güne taşınabilir.",
+        text: "Kaydedilen etkinlik takvimde görünür; üzerine tıklayınca düzenleme penceresi açılır. Seçilen hatırlatma zamanı gelince zil simgesine bildirim düşer.",
         toast: true,
         run: async (page) => {
           await press(page, await byText(page, "Oluştur", "button"), 1200);
@@ -956,9 +964,16 @@ const MODULES = [
       },
       {
         title: "Haftalık görünüm",
-        text: "Hafta ve gün görünümünde etkinlikler saat ızgarasında gösterilir. Bir etkinliği sürükleyerek saatini, alt kenarından çekerek süresini değiştirirsiniz.",
+        text: "Hafta görünümü haftanın yedi gününü yan yana, her günün etkinlikleri saat sırasıyla gösterir. Oklarla önceki / sonraki haftaya geçilir.",
         run: async (page) => {
           await press(page, await byText(page, "Hafta", "button"), 900);
+        },
+      },
+      {
+        title: "Günlük görünüm",
+        text: "Gün görünümü seçili günün etkinliklerini ve Not Defteri’ndeki aksiyonları saat sırasıyla listeler.",
+        run: async (page) => {
+          await press(page, await byText(page, "Gün", "button"), 900);
         },
       },
       {

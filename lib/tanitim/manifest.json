@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-15T19:25:05.584Z",
+ "generatedAt": "2026-11-15T19:30:13.446Z",
  "viewport": {
   "w": 1440,
   "h": 900
@@ -1141,8 +1141,14 @@
     {
      "img": "/tanitim/takvim-02.webp",
      "title": "Yeni etkinlik",
-     "text": "“+ Etkinlik” ile başlık, tür, tarih-saat, konum, katılımcılar, görünürlük ve hatırlatma süresi girilir.",
+     "text": "“+ Etkinlik” ile başlık, tür, tarih-saat, konum, katılımcılar, görünürlük ve hatırlatma süresi girilir. Sağdaki saat ızgarasında etkinlik bloğu sürüklenerek saati, uçlarından çekilerek süresi 10’ar dakikalık adımlarla ayarlanır.",
      "marks": [
+      {
+       "x": 11.18,
+       "y": 12.53,
+       "w": 52.36,
+       "h": 5.14
+      },
       {
        "x": 82.69,
        "y": 91.11,
@@ -1158,19 +1164,26 @@
     {
      "img": "/tanitim/takvim-03.webp",
      "title": "Etkinlik eklendi",
-     "text": "Kaydedilen etkinlik takvimde görünür; tıklayınca düzenlenebilir, sürükleyerek başka güne taşınabilir.",
+     "text": "Kaydedilen etkinlik takvimde görünür; üzerine tıklayınca düzenleme penceresi açılır. Seçilen hatırlatma zamanı gelince zil simgesine bildirim düşer.",
      "marks": [],
      "cursor": null
     },
     {
      "img": "/tanitim/takvim-04.webp",
      "title": "Haftalık görünüm",
-     "text": "Hafta ve gün görünümünde etkinlikler saat ızgarasında gösterilir. Bir etkinliği sürükleyerek saatini, alt kenarından çekerek süresini değiştirirsiniz.",
+     "text": "Hafta görünümü haftanın yedi gününü yan yana, her günün etkinlikleri saat sırasıyla gösterir. Oklarla önceki / sonraki haftaya geçilir.",
      "marks": [],
      "cursor": null
     },
     {
      "img": "/tanitim/takvim-05.webp",
+     "title": "Günlük görünüm",
+     "text": "Gün görünümü seçili günün etkinliklerini ve Not Defteri’ndeki aksiyonları saat sırasıyla listeler.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/takvim-06.webp",
      "title": "Ajanda",
      "text": "Önümüzdeki 30 günün etkinlikleri liste halinde, gün gün sıralanır.",
      "marks": [],
