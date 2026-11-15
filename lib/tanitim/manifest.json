@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-15T19:11:47.859Z",
+ "generatedAt": "2026-11-15T19:13:40.345Z",
  "viewport": {
   "w": 1440,
   "h": 900
@@ -626,8 +626,18 @@
      "img": "/tanitim/teklifler-02.webp",
      "title": "Aşamaya göre filtre",
      "text": "Üstteki sekmelerle yalnızca taslakları, müşteriye gönderilenleri, revizyon bekleyenleri ya da kazanılan / kaybedilen teklifleri listeleyebilirsiniz.",
-     "marks": [],
-     "cursor": null
+     "marks": [
+      {
+       "x": 28.08,
+       "y": 26.67,
+       "w": 10.96,
+       "h": 4.22
+      }
+     ],
+     "cursor": {
+      "x": 33.56,
+      "y": 28.78
+     }
     },
     {
      "img": "/tanitim/teklifler-03.webp",
