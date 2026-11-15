@@ -76,6 +76,45 @@ async function scrollTo(page, target, block = "start") {
 }
 const top = (page) => page.evaluate(() => window.scrollTo(0, 0));
 
+/** Açık penceredeki (en üstteki sabit katman) düğme. */
+async function modalButton(page, text, timeout = 8000) {
+  const end = Date.now() + timeout;
+  for (;;) {
+    const h = await page.evaluateHandle((t) => {
+      const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
+      const layers = [...document.querySelectorAll("[role=dialog], .fixed")].filter((n) => {
+        const r = n.getBoundingClientRect();
+        return r.width > 200 && r.height > 150 && getComputedStyle(n).position === "fixed";
+      });
+      for (const layer of layers.reverse()) {
+        const b = [...layer.querySelectorAll("button")].find((x) => norm(x.textContent) === t);
+        if (b) return b;
+      }
+      return null;
+    }, text);
+    const el = h.asElement();
+    if (el) return el;
+    if (Date.now() > end) throw new Error(`Pencere düğmesi bulunamadı: "${text}"`);
+    await sleep(300);
+  }
+}
+
+/** Tabloda metni içeren satırdaki düğme. */
+async function rowButton(page, rowText, buttonText) {
+  const h = await page.evaluateHandle(
+    (rt, bt) => {
+      const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
+      const row = [...document.querySelectorAll("tr, li, [role=row]")].find((r) => r.textContent.includes(rt));
+      return row ? [...row.querySelectorAll("button, a")].find((b) => norm(b.textContent) === bt) || null : null;
+    },
+    rowText,
+    buttonText,
+  );
+  const el = h.asElement();
+  if (!el) throw new Error(`Satır düğmesi bulunamadı: ${rowText} / ${buttonText}`);
+  return el;
+}
+
 // ---------------------------------------------------------------- senaryo
 /** @type {{id:string,title:string,group:string,intro:string,steps:{title:string,text:string,run:(page:any)=>Promise<void>,toast?:boolean}[]}[]} */
 const MODULES = [
@@ -750,15 +789,32 @@ const MODULES = [
       },
       {
         title: "Kalem ekleme",
-        text: "“Kalem Ekle” ile kategori, tanım, miktar, birim fiyat, para birimi, KDV ve tedarikçi girilir. Ödenen tutar varsa aynı formda kaydedilir.",
+        text: "“Kalem Ekle” ile tanım, kategori, miktar, birim fiyat, para birimi, KDV ve tedarikçi girilir. Faturasız kalemler ayrıca işaretlenir; ödenen tutar varsa aynı formda kaydedilir.",
         run: async (page) => {
           await press(page, await byText(page, "Kalem Ekle", "button"), 800);
-          try { await fill(page, 'input[placeholder="Örn. Solar Panel"]', "OG Hücre ve Trafo Köşkü"); } catch {}
+          await fill(page, 'input[placeholder="Örn. Solar Panel"]', "OG Hücre ve Trafo Köşkü");
+          await fill(page, await field(page, "Birim Fiyat (KDV hariç)"), "2850000");
+          await page.keyboard.press("Tab");
           await mark(page, await page.$('input[placeholder="Örn. Solar Panel"]'));
+          await mark(page, await field(page, "Birim Fiyat (KDV hariç)"));
         },
-        after: async (page) => {
-          await page.keyboard.press("Escape");
-          await sleep(300);
+      },
+      {
+        title: "Kalemi kaydedin",
+        text: "Formun altında TL toplam ve KDV dahil ödenecek tutar hesaplanır. “Ekle” ile kalem harcama listesine eklenir.",
+        run: async (page) => {
+          const add = await modalButton(page, "Ekle");
+          await mark(page, add, { click: true });
+        },
+      },
+      {
+        title: "Kalem listeye eklendi",
+        text: "Yeni kalem harcama kalemleri tablosunda görünür; gerçekleşen maliyet ve kâr kartları anında güncellenir. Ödeme durumu “Ödenmedi” olarak başlar.",
+        toast: true,
+        run: async (page) => {
+          await press(page, await modalButton(page, "Ekle"), 1500);
+          const row = await page.evaluateHandle(() => [...document.querySelectorAll("tr")].find((r) => r.textContent.includes("OG Hücre ve Trafo Köşkü")));
+          await mark(page, row.asElement());
         },
       },
       {
@@ -775,6 +831,27 @@ const MODULES = [
         text: "Tedarikçi bazında toplam borç, ödenen ve kalan tutar listelenir. “Öde” ile girilen tutar o tedarikçinin kalemlerine otomatik dağıtılır; IBAN tek tıkla kopyalanır.",
         run: async (page) => {
           await press(page, await byText(page, "Ödeme Yapılacak Kişiler", "button"), 700);
+          await mark(page, await rowButton(page, "Kablo Market Elektrik", "Öde"), { click: true });
+        },
+      },
+      {
+        title: "Tedarikçiye ödeme",
+        text: "“Öde” penceresinde tutar yazılır ya da “Kalanı yaz” ile borcun tamamı doldurulur; tarih ve ödeme yöntemi seçilir. Tutar tedarikçinin kalemlerine kalan bakiyeye göre otomatik dağıtılır.",
+        run: async (page) => {
+          await press(page, await rowButton(page, "Kablo Market Elektrik", "Öde"), 700);
+          await press(page, await modalButton(page, "Kalanı yaz"), 300);
+          await mark(page, await modalButton(page, "Kalanı yaz"));
+          await mark(page, await modalButton(page, "Ödeme Kaydet"), { click: true });
+        },
+      },
+      {
+        title: "Ödeme kaydedildi",
+        text: "Ödeme kaydedilince tedarikçinin kalan borcu sıfırlanır, ilgili kalemin durumu “Ödendi” olur ve “Tedarikçilere Kalan” kartı güncellenir.",
+        toast: true,
+        run: async (page) => {
+          await press(page, await modalButton(page, "Ödeme Kaydet"), 1500);
+          await top(page);
+          await mark(page, await byText(page, "TEDARİKÇİLERE KALAN", "p, span, div").catch(() => byText(page, "Tedarikçilere Kalan", "p, span, div")));
         },
       },
       {

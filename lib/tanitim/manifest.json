@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-15T19:16:05.762Z",
+ "generatedAt": "2026-11-15T19:19:27.599Z",
  "viewport": {
   "w": 1440,
   "h": 900
@@ -907,12 +907,18 @@
     {
      "img": "/tanitim/maliyet-03.webp",
      "title": "Kalem ekleme",
-     "text": "“Kalem Ekle” ile kategori, tanım, miktar, birim fiyat, para birimi, KDV ve tedarikçi girilir. Ödenen tutar varsa aynı formda kaydedilir.",
+     "text": "“Kalem Ekle” ile tanım, kategori, miktar, birim fiyat, para birimi, KDV ve tedarikçi girilir. Faturasız kalemler ayrıca işaretlenir; ödenen tutar varsa aynı formda kaydedilir.",
      "marks": [
       {
        "x": 28.13,
        "y": 14.89,
        "w": 43.75,
+       "h": 5.33
+      },
+      {
+       "x": 50.14,
+       "y": 37.39,
+       "w": 10.73,
        "h": 5.33
       }
      ],
@@ -920,6 +926,37 @@
     },
     {
      "img": "/tanitim/maliyet-04.webp",
+     "title": "Kalemi kaydedin",
+     "text": "Formun altında TL toplam ve KDV dahil ödenecek tutar hesaplanır. “Ekle” ile kalem harcama listesine eklenir.",
+     "marks": [
+      {
+       "x": 67.17,
+       "y": 87.78,
+       "w": 4.7,
+       "h": 4.89
+      }
+     ],
+     "cursor": {
+      "x": 69.52,
+      "y": 90.23
+     }
+    },
+    {
+     "img": "/tanitim/maliyet-05.webp",
+     "title": "Kalem listeye eklendi",
+     "text": "Yeni kalem harcama kalemleri tablosunda görünür; gerçekleşen maliyet ve kâr kartları anında güncellenir. Ödeme durumu “Ödenmedi” olarak başlar.",
+     "marks": [
+      {
+       "x": 17.57,
+       "y": 76.2,
+       "w": 80.42,
+       "h": 5.28
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/maliyet-06.webp",
      "title": "Tahsilat",
      "text": "Müşteriden yapılan tahsilatlar ve planlanan tahsilatlar tarihleriyle girilir. Müşteriye ödeme ekstresi linki gönderilebilir; ekstre güncel bakiyeyi gösterir.",
      "marks": [
@@ -936,21 +973,68 @@
      }
     },
     {
-     "img": "/tanitim/maliyet-05.webp",
+     "img": "/tanitim/maliyet-07.webp",
      "title": "Ödeme yapılacak kişiler",
      "text": "Tedarikçi bazında toplam borç, ödenen ve kalan tutar listelenir. “Öde” ile girilen tutar o tedarikçinin kalemlerine otomatik dağıtılır; IBAN tek tıkla kopyalanır.",
-     "marks": [],
+     "marks": [
+      {
+       "x": 93.44,
+       "y": 70.04,
+       "w": 3.71,
+       "h": 4
+      }
+     ],
+     "cursor": {
+      "x": 95.3,
+      "y": 72.04
+     }
+    },
+    {
+     "img": "/tanitim/maliyet-08.webp",
+     "title": "Tedarikçiye ödeme",
+     "text": "“Öde” penceresinde tutar yazılır ya da “Kalanı yaz” ile borcun tamamı doldurulur; tarih ve ödeme yöntemi seçilir. Tutar tedarikçinin kalemlerine kalan bakiyeye göre otomatik dağıtılır.",
+     "marks": [
+      {
+       "x": 33.68,
+       "y": 66.1,
+       "w": 6.38,
+       "h": 4.44
+      },
+      {
+       "x": 56.62,
+       "y": 66.1,
+       "w": 9.7,
+       "h": 4.44
+      }
+     ],
+     "cursor": {
+      "x": 61.47,
+      "y": 68.32
+     }
+    },
+    {
+     "img": "/tanitim/maliyet-09.webp",
+     "title": "Ödeme kaydedildi",
+     "text": "Ödeme kaydedilince tedarikçinin kalan borcu sıfırlanır, ilgili kalemin durumu “Ödendi” olur ve “Tedarikçilere Kalan” kartı güncellenir.",
+     "marks": [
+      {
+       "x": 79.31,
+       "y": 18.78,
+       "w": 17.57,
+       "h": 2.64
+      }
+     ],
      "cursor": null
     },
     {
-     "img": "/tanitim/maliyet-06.webp",
+     "img": "/tanitim/maliyet-10.webp",
      "title": "KDV ve vergi özeti",
      "text": "Faturalı ve faturasız satış ayrılarak ödenecek KDV, kurumlar vergisi ve şirkete kalan net kâr adım adım hesaplanır.",
      "marks": [],
      "cursor": null
     },
     {
-     "img": "/tanitim/maliyet-07.webp",
+     "img": "/tanitim/maliyet-11.webp",
      "title": "Tedarikçiler",
      "text": "Tedarikçilerin vergi numarası, IBAN ve ödeme hesabı bilgileri burada tutulur; kalem eklerken listeden seçilir.",
      "marks": [
