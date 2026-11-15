@@ -32,6 +32,7 @@ import {
   X,
   UserCircle2,
   Package,
+  PlayCircle,
   Wallet,
   Truck,
   SunMedium,
@@ -106,6 +107,10 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/help", icon: HelpCircle, label: "Nasıl Çalışır" },
       { href: "/contact", icon: MessageCircle, label: "İletişime Geç" },
     ],
+  },
+  {
+    label: "Tanıtım",
+    items: [{ href: "/platform-tanitimi", icon: PlayCircle, label: "Platform Tanıtımı" }],
   },
   {
     label: "Diğer Platformlar",

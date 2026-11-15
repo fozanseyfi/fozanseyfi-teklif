@@ -48,3 +48,6 @@ tmp/
 
 # i18n-extract çýktýsý (üretilen)
 scripts/i18n-missing.json
+
+# tanýtým keþif görüntüleri (geçici)
+.tour-explore/

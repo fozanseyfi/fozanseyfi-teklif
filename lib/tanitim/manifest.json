@@ -1,0 +1,964 @@
+{
+ "generatedAt": "2026-11-15T17:52:23.409Z",
+ "viewport": {
+  "w": 1440,
+  "h": 900
+ },
+ "modules": [
+  {
+   "id": "giris",
+   "group": "Başlarken",
+   "title": "Giriş ve Genel Görünüm",
+   "intro": "Platforma e-posta ve şifreyle girilir. Üst barda hesap ve panel menüsü, arama, bildirimler, dil ve gece modu; solda tüm modüllere giden menü bulunur.",
+   "steps": [
+    {
+     "img": "/tanitim/giris-01.webp",
+     "title": "Giriş ekranı",
+     "text": "E-posta adresinizi ve şifrenizi yazıp “Giriş Yap”a basın. Şifrenizi unuttuysanız aynı ekrandaki bağlantıyla sıfırlama e-postası isteyebilirsiniz.",
+     "marks": [
+      {
+       "x": 6.74,
+       "y": 46.44,
+       "w": 31.67,
+       "h": 5.33
+      }
+     ],
+     "cursor": {
+      "x": 22.58,
+      "y": 49.11
+     }
+    },
+    {
+     "img": "/tanitim/giris-02.webp",
+     "title": "Dashboard",
+     "text": "Girişten sonra Dashboard açılır. Üstte toplam teklif, devam eden, kazanılan teklif sayısı ve teklif verilen toplam güç; altında son projeler tablosu ve projelerin il bazında dağılımı yer alır.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/giris-03.webp",
+     "title": "Son projeler tablosu",
+     "text": "Tabloda her teklifin gücü, tutarı, satış aşaması ve tarihi görünür. Göz simgesi teklifi salt okunur açar, yanındaki düğme teklifi kopyalayıp yeni bir proje olarak başlatır.",
+     "marks": [
+      {
+       "x": 17.57,
+       "y": 12.94,
+       "w": 80.42,
+       "h": 74.78
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/giris-04.webp",
+     "title": "Hesap ve panel menüsü",
+     "text": "Sol üstteki adınıza tıklayınca hesap menüsü açılır. Burada üye olduğunuz paneller (şirketler) listelenir; birine tıklayarak o şirketin verileriyle çalışmaya geçersiniz.",
+     "marks": [
+      {
+       "x": 16.94,
+       "y": 0.07,
+       "w": 24.05,
+       "h": 5.97
+      },
+      {
+       "x": 17.01,
+       "y": 11.6,
+       "w": 20.42,
+       "h": 4.11
+      }
+     ],
+     "cursor": {
+      "x": 28.97,
+      "y": 3.06
+     }
+    },
+    {
+     "img": "/tanitim/giris-05.webp",
+     "title": "Hızlı arama (Ctrl+K)",
+     "text": "Herhangi bir sayfada Ctrl+K’ya basın ya da üstteki “Ara” kutusuna tıklayın. Proje adı, müşteri, lokasyon veya kalem adıyla arama yapılır; sonuçlarda fiyat ve güç bilgisi de görünür.",
+     "marks": [
+      {
+       "x": 29.51,
+       "y": 11,
+       "w": 39.7,
+       "h": 3.22
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/giris-06.webp",
+     "title": "Bildirimler",
+     "text": "Zil simgesindeki sayı okunmamış bildirimleri gösterir. Müşterinin paylaşım linkini açması, revizyon istemesi ve takvim hatırlatmaları buraya düşer.",
+     "marks": [
+      {
+       "x": 87.1,
+       "y": 0.61,
+       "w": 3.06,
+       "h": 4.89
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/giris-07.webp",
+     "title": "Gece modu",
+     "text": "Sağ üstteki ay simgesi arayüzü koyu temaya alır. Seçim tarayıcınızda saklanır; yazdırırken çıktı her zaman açık renkli olur.",
+     "marks": [
+      {
+       "x": 95.56,
+       "y": 0.61,
+       "w": 3.06,
+       "h": 4.89
+      }
+     ],
+     "cursor": {
+      "x": 97.09,
+      "y": 3.06
+     }
+    },
+    {
+     "img": "/tanitim/giris-08.webp",
+     "title": "İngilizce arayüz",
+     "text": "TR / EN düğmesiyle arayüz dili değişir. Proje ve müşteri adları gibi sizin girdiğiniz bilgiler çevrilmez.",
+     "marks": [
+      {
+       "x": 92.55,
+       "y": 0.72,
+       "w": 3.07,
+       "h": 4.67
+      }
+     ],
+     "cursor": {
+      "x": 94.09,
+      "y": 3.06
+     }
+    }
+   ]
+  },
+  {
+   "id": "anahtar-teslim",
+   "group": "Teklif Hazırlama",
+   "title": "Yeni Anahtar Teslim Teklif",
+   "intro": "Anahtar teslim GES teklifi altı adımda hazırlanır: Proje bilgileri → Teknik → Keşif-A → Keşif-B → Timeline → Analiz. Her adım “Kaydet & İlerle” ile kaydedilir ve bir sonraki sekmenin kilidi açılır.",
+   "steps": [
+    {
+     "img": "/tanitim/anahtar-teslim-01.webp",
+     "title": "Teklif tipini seçin",
+     "text": "Sol menüden Teklifler → “Yeni Proje”ye tıklayın. Tam GES EPC teklifi için “Anahtar Teslim”, sade malzeme veya hizmet teklifi için “Malzeme & Hizmet” seçilir.",
+     "marks": [
+      {
+       "x": 33.75,
+       "y": 57.22,
+       "w": 21.81,
+       "h": 5.33
+      }
+     ],
+     "cursor": {
+      "x": 44.66,
+      "y": 59.89
+     }
+    },
+    {
+     "img": "/tanitim/anahtar-teslim-02.webp",
+     "title": "Proje bilgilerini doldurun",
+     "text": "Proje adı, il / ilçe, kurulum tipi (çatı veya arazi) ve müşteri girilir. Müşteri kutusuna yazdıkça kayıtlı müşteriler listelenir; listede yoksa yeni müşteri olarak eklenir.",
+     "marks": [
+      {
+       "x": 19.24,
+       "y": 59.36,
+       "w": 36.39,
+       "h": 5.33
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/anahtar-teslim-03.webp",
+     "title": "Müşteriyi listeden seçin",
+     "text": "Açılan listeden müşteriyi seçince iletişim bilgileri otomatik dolar. Notlar ve riskler alanlarına yazdıklarınız teklif PDF’ine yansır.",
+     "marks": [
+      {
+       "x": 87.47,
+       "y": 30,
+       "w": 9.4,
+       "h": 4.44
+      }
+     ],
+     "cursor": {
+      "x": 92.17,
+      "y": 32.22
+     }
+    },
+    {
+     "img": "/tanitim/anahtar-teslim-07.webp",
+     "title": "Keşif-B: dolaylı maliyetler",
+     "text": "Personel, işletme-bakım, risk, teminat ve sigorta giderleri girilir. B.6 Finans Maliyeti Cash Flow sayfasındaki kredi faizinden otomatik hesaplanır.",
+     "marks": [
+      {
+       "x": 87.47,
+       "y": 30,
+       "w": 9.4,
+       "h": 4.44
+      }
+     ],
+     "cursor": {
+      "x": 92.17,
+      "y": 32.22
+     }
+    },
+    {
+     "img": "/tanitim/anahtar-teslim-09.webp",
+     "title": "Analiz ekranı açıldı",
+     "text": "Timeline kaydedildiğinde Analiz sekmesi açılır: toplam EPC satış fiyatı, $/kWp, brüt kâr marjı ve maliyet dağılımı tek ekranda görünür.",
+     "marks": [],
+     "cursor": null
+    }
+   ]
+  },
+  {
+   "id": "proje-detay",
+   "group": "Teklif Hazırlama",
+   "title": "Teklif Detayı ve Analiz",
+   "intro": "Kaydedilmiş bir anahtar teslim teklifin tüm sekmeleri: maliyet kalemleri, marj ayarları, nakit akışı ve müşteriye gidecek belgeler. Örnek: Polatlı 10 MWp Arazi GES.",
+   "steps": [
+    {
+     "img": "/tanitim/proje-detay-01.webp",
+     "title": "Proje sekmeleri",
+     "text": "Teklif açıldığında üstte sekmeler sıralanır. Veri girişi (Proje, Teknik, Keşif-A/B, Timeline), karar (Analiz, Cash Flow) ve çıktı (BoQ, P-BoQ, DoR) sekmeleri renkleriyle ayrılır.",
+     "marks": [
+      {
+       "x": 53.07,
+       "y": 19.22,
+       "w": 8.09,
+       "h": 4.83
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/proje-detay-02.webp",
+     "title": "Keşif-A kalemleri",
+     "text": "Her grubun toplamı ve $/Wp birim maliyeti grup başlığında görünür. Bir kalemin miktarını veya fiyatını değiştirdiğinizde toplamlar anında güncellenir.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/proje-detay-04.webp",
+     "title": "Kritik malzeme seçimi",
+     "text": "Panel, konstrüksiyon ve inverter için tanımlı alternatifler yan yana listelenir. Bir alternatife tıklayınca toplam fiyata etkisi (+/−) gösterilir ve teklif o malzemeyle yeniden hesaplanır.",
+     "marks": [
+      {
+       "x": 66.6,
+       "y": 46.19,
+       "w": 10.23,
+       "h": 5.89
+      }
+     ],
+     "cursor": {
+      "x": 71.71,
+      "y": 49.14
+     }
+    },
+    {
+     "img": "/tanitim/proje-detay-05.webp",
+     "title": "Tüm kalemler özeti",
+     "text": "Grup bazında maliyet, payı ve satıştaki yüzdesi listelenir. Bir gruba tıklayarak miktar ve fiyatları buradan düzenleyebilirsiniz; değişiklik Keşif sayfalarına da yansır.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/proje-detay-06.webp",
+     "title": "Maliyet dağılımı ve halka grafik",
+     "text": "“Diğer Detaylar” bölümünde maliyet dağılımı, halka grafik, nakit akışı, kur duyarlılığı ve kârlılık analizi yer alır. Halkadaki bir dilime tıklayınca o grubun kalemleri açılır.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/proje-detay-07.webp",
+     "title": "Cash Flow",
+     "text": "Aylık giriş ve çıkışlar, kümülatif nakit pozisyonu ve kredi ihtiyacı gösterilir. Negatife düşen aylar için faiz hesaplanır ve toplam finans maliyeti Keşif-B’deki B.6 kalemine yazılır.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/proje-detay-08.webp",
+     "title": "BoQ: fiyatsız kapsam listesi",
+     "text": "Müşteriye gönderilebilecek temiz kalem listesidir. Fiyat sütunu tek tıkla açılıp kapanır; boş kalemler otomatik gizlenir. PDF veya Excel olarak indirilir.",
+     "marks": [
+      {
+       "x": 77.94,
+       "y": 40.58,
+       "w": 9.32,
+       "h": 4.44
+      }
+     ],
+     "cursor": {
+      "x": 82.6,
+      "y": 42.8
+     }
+    },
+    {
+     "img": "/tanitim/proje-detay-09.webp",
+     "title": "P-BoQ: birim fiyat cetveli",
+     "text": "Müşteriye gidecek fiyatlı belgedir. Bir kalemi “Karsız” yaparsanız üzerine kâr eklenmez; “Gizle” ile PDF’ten çıkarırsanız payı diğer kalemlere dağıtılır. Toplam satış fiyatı değişmez.",
+     "marks": [
+      {
+       "x": 90.83,
+       "y": 48.43,
+       "w": 5.41,
+       "h": 3.04
+      }
+     ],
+     "cursor": {
+      "x": 93.54,
+      "y": 49.95
+     }
+    },
+    {
+     "img": "/tanitim/proje-detay-10.webp",
+     "title": "DoR: sorumluluk tablosu",
+     "text": "Tedarik, montaj ve devreye alma işlerinin yüklenici, işveren veya ortak sorumlulukta olduğu madde madde belirlenir. Grup ve madde eklenip çıkarılabilir.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/proje-detay-11.webp",
+     "title": "Pipeline: satış süreci",
+     "text": "Teklifin satış aşaması (taslak, gönderildi, revizyon, kazanıldı, kaybedildi) buradan yönetilir. Müşterinin linki açması ve revizyon talepleri aktivite akışına otomatik düşer.",
+     "marks": [
+      {
+       "x": 23.68,
+       "y": 47.11,
+       "w": 45.09,
+       "h": 5.78
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/proje-detay-12.webp",
+     "title": "Aktivite ve not ekleme",
+     "text": "Telefon görüşmesi, gönderilen e-posta veya iç not kaydedilir. Kayıtlar tarih sırasıyla akışta listelenir; ekip arkadaşlarınız da görür.",
+     "marks": [
+      {
+       "x": 46.78,
+       "y": 35.11,
+       "w": 45.09,
+       "h": 12
+      },
+      {
+       "x": 85.65,
+       "y": 47.56,
+       "w": 6.23,
+       "h": 4.89
+      }
+     ],
+     "cursor": {
+      "x": 88.77,
+      "y": 50.01
+     }
+    },
+    {
+     "img": "/tanitim/proje-detay-13.webp",
+     "title": "Not kaydedildi",
+     "text": "“Ekle”ye basınca not, yazan kişi ve saatle birlikte akışın en üstüne eklenir.",
+     "marks": [],
+     "cursor": null
+    }
+   ]
+  },
+  {
+   "id": "malzeme-hizmet",
+   "group": "Teklif Hazırlama",
+   "title": "Malzeme & Hizmet Teklifi",
+   "intro": "Proje gerektirmeyen sade malzeme veya hizmet teklifleri için kullanılır: müşteri bilgisi, katalogdan kalem listesi, kâr ve KDV ayarı, 1–2 sayfalık teklif PDF’i.",
+   "steps": [
+    {
+     "img": "/tanitim/malzeme-hizmet-01.webp",
+     "title": "Müşteri ve teklif bilgileri",
+     "text": "Teklif başlığı, müşteri ve iletişim bilgileri girilir. Örnek: Eskişehir’deki bir fabrika çatısı için malzeme teklifi.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/malzeme-hizmet-02.webp",
+     "title": "Kalemler",
+     "text": "Kalemler malzeme kataloğundan kod veya adla aranarak eklenir. Her satırda miktar, maliyet, para birimi ve kâr oranı girilir; “Opsiyon” işaretli kalemler ana toplama girmez.",
+     "marks": [
+      {
+       "x": 18.68,
+       "y": 42.58,
+       "w": 78.19,
+       "h": 5.33
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/malzeme-hizmet-03.webp",
+     "title": "Katalogdan kalem ekleme",
+     "text": "Arama kutusuna kod ya da ad yazın; eşleşen kalemler listelenir. Tıklayınca kalem tabloya eklenir. Listede yoksa yeni malzeme/hizmet olarak kataloğa kaydedebilirsiniz.",
+     "marks": [
+      {
+       "x": 18.68,
+       "y": 42.58,
+       "w": 78.19,
+       "h": 5.33
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/malzeme-hizmet-04.webp",
+     "title": "Analiz: kâr ve toplamlar",
+     "text": "Tüm kalemlere tek seferde kâr oranı uygulanabilir ya da hedef toplam fiyat girilerek kâr otomatik dağıtılır. İç özet maliyet, kâr ve satış tutarlarını üç para biriminde gösterir; müşteriye gösterilmez.",
+     "marks": [
+      {
+       "x": 51.77,
+       "y": 47.58,
+       "w": 4.97,
+       "h": 4.89
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/malzeme-hizmet-05.webp",
+     "title": "Ödeme şekli",
+     "text": "Avans, bakiye gibi ödeme satırları yüzdesiyle girilir; tutar KDV dahil otomatik hesaplanır. PDF’te yalnızca işaretli satırlar görünür.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/malzeme-hizmet-06.webp",
+     "title": "Teklif PDF önizleme",
+     "text": "Müşteriye gidecek teklif belgesi burada görünür: satış fiyatı ve KDV yer alır, maliyet ve kâr görünmez. “PDF İndir” ile kaydedilir veya paylaşım linkiyle gönderilir.",
+     "marks": [
+      {
+       "x": 89.55,
+       "y": 24.78,
+       "w": 7.33,
+       "h": 4.44
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/malzeme-hizmet-07.webp",
+     "title": "Revizeler",
+     "text": "Müşteri revizyon istediğinde “Yeni Revize Oluştur” mevcut teklifin kopyasını açar. Revizeler kalem bazında fiyat karşılaştırmasıyla listelenir; PDF’te istediğiniz revizeyi seçebilirsiniz.",
+     "marks": [
+      {
+       "x": 85.54,
+       "y": 24.78,
+       "w": 11.34,
+       "h": 4.44
+      }
+     ],
+     "cursor": null
+    }
+   ]
+  },
+  {
+   "id": "teklifler",
+   "group": "Teklif Hazırlama",
+   "title": "Teklif Listesi ve Şablonlar",
+   "intro": "Tüm teklifler tek listede, satış aşamasına göre filtrelenir. Hazır boyut şablonları yeni teklife hızlı başlangıç sağlar.",
+   "steps": [
+    {
+     "img": "/tanitim/teklifler-01.webp",
+     "title": "Teklifler",
+     "text": "Her satırda müşteri, güç, fiyat ($/kWp ile), aşama ve tarih yer alır. Görüntüle salt okunur açar, Düzenle teklifi açar; kopyala ve sil düğmeleri satır sonundadır.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/teklifler-02.webp",
+     "title": "Aşamaya göre filtre",
+     "text": "Üstteki sekmelerle yalnızca taslakları, müşteriye gönderilenleri, revizyon bekleyenleri ya da kazanılan / kaybedilen teklifleri listeleyebilirsiniz.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/teklifler-03.webp",
+     "title": "Şablonlar",
+     "text": "10 kWp’den 100 MWp’ye dokuz hazır şablon vardır; kalemler, fiyatlar, timeline ve DoR önceden doludur. “İncele / Düzenle” şablonun kendisini açar.",
+     "marks": [
+      {
+       "x": 31.64,
+       "y": 47.76,
+       "w": 10.81,
+       "h": 4.44
+      }
+     ],
+     "cursor": {
+      "x": 37.05,
+      "y": 49.98
+     }
+    },
+    {
+     "img": "/tanitim/teklifler-04.webp",
+     "title": "Şablondan yeni proje",
+     "text": "“Bu şablonu kullan” şablonun kopyasıyla yeni bir proje açar; şablon değişmez. Proje bilgilerini girip diğer sekmelerde yalnızca farkları düzeltmeniz yeterlidir.",
+     "marks": [],
+     "cursor": null
+    }
+   ]
+  },
+  {
+   "id": "paylasim",
+   "group": "Müşteriyle Paylaşım",
+   "title": "Paylaşım Linki ve Müşteri Ekranı",
+   "intro": "Teklif, müşteriye veya yatırımcıya giriş gerektirmeyen salt okunur bir linkle gönderilir. Hangi bölümlerin görüneceğini ve linkin süresini siz belirlersiniz; görüntülenme sayısı izlenir.",
+   "steps": [
+    {
+     "img": "/tanitim/paylasim-01.webp",
+     "title": "Paylaşım linkleri sayfası",
+     "text": "Yönetim → Paylaşım Linkleri. Üstte yeni link formu, altta aktif linkler ve kaç kez görüntülendikleri yer alır.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/paylasim-02.webp",
+     "title": "Proje ve bölümleri seçin",
+     "text": "Paylaşılacak teklifi seçin, ardından müşterinin göreceği bölümleri işaretleyin: firma tanıtımı, referanslar, fiyatsız BoQ, özet teklif, DoR. Maliyet/kâr içeren bölümler sarı uyarıyla işaretlidir.",
+     "marks": [
+      {
+       "x": 18.96,
+       "y": 48.56,
+       "w": 10.56,
+       "h": 2.78
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/paylasim-03.webp",
+     "title": "Süre ve link oluşturma",
+     "text": "Linkin geçerlilik süresi (1 gün – süresiz) seçilir. Müşteri e-postası yazarsanız link e-postayla gönderilir; boş bırakırsanız yalnızca oluşturulur ve kopyalanır.",
+     "marks": [
+      {
+       "x": 58.06,
+       "y": 47.5,
+       "w": 9.95,
+       "h": 4.89
+      }
+     ],
+     "cursor": {
+      "x": 63.04,
+      "y": 49.95
+     }
+    },
+    {
+     "img": "/tanitim/paylasim-04.webp",
+     "title": "Link oluşturuldu",
+     "text": "Link aktif linkler tablosuna eklenir. Paylaş düğmesi karekod, WhatsApp, e-posta ve kopyalama seçeneklerini açar.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/paylasim-05.webp",
+     "title": "Karekod ve WhatsApp ile paylaşım",
+     "text": "Müşteri karekodu telefon kamerasıyla okutup teklifi açabilir. WhatsApp ve e-posta düğmeleri hazır mesaj metniyle açılır.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/paylasim-06.webp",
+     "title": "Müşteri ekranı: genel bakış",
+     "text": "Müşteri linki açtığında giriş yapmadan firmanızın logosu ve seçtiğiniz bölümlerle karşılanır. Maliyet, kâr ve editör uyarıları görünmez.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/paylasim-07.webp",
+     "title": "Müşteri ekranı: özet teklif",
+     "text": "Her bölüm ayrı sekmede açılır ve PDF olarak indirilebilir. Link süresi dolunca otomatik kapanır.",
+     "marks": [],
+     "cursor": null
+    }
+   ]
+  },
+  {
+   "id": "sozlesme",
+   "group": "Müşteriyle Paylaşım",
+   "title": "Sözleşmeler",
+   "intro": "Kazanılan (Closed Won) teklifler için çatı veya arazi EPC sözleşmesi hazırlanır, Word olarak indirilir; imzalı nüsha PDF olarak yüklenip arşivlenir.",
+   "steps": [
+    {
+     "img": "/tanitim/sozlesme-01.webp",
+     "title": "Sözleşme listesi",
+     "text": "Yalnızca kazanılan teklifler listelenir. Bir teklife tıklayarak sözleşme türünü seçip formu açarsınız.",
+     "marks": [
+      {
+       "x": 23.61,
+       "y": 21.67,
+       "w": 68.33,
+       "h": 8
+      }
+     ],
+     "cursor": {
+      "x": 57.78,
+      "y": 25.67
+     }
+    },
+    {
+     "img": "/tanitim/sozlesme-02.webp",
+     "title": "Sözleşme türü",
+     "text": "Teklife göre önerilen tür işaretlidir: çatı üstü EPC, arazi tipi EPC, malzeme tedarik, hizmet veya işçilik sözleşmesi.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/sozlesme-03.webp",
+     "title": "Sözleşme formu ve önizleme",
+     "text": "Taraflar, bedel ve ödeme planı gibi alanlar tekliften otomatik dolar. Boş zorunlu alanlar kırmızıyla işaretlenir; sağda Word belgesinin birebir önizlemesi görünür.",
+     "marks": [],
+     "cursor": null
+    }
+   ]
+  },
+  {
+   "id": "maliyet",
+   "group": "Proje Sonrası",
+   "title": "Maliyet Kontrol",
+   "intro": "Kazanılan projenin satışı, gerçekleşen maliyeti, kârı, müşteriden tahsilatı ve tedarikçi ödemeleri tek yerde izlenir.",
+   "steps": [
+    {
+     "img": "/tanitim/maliyet-01.webp",
+     "title": "Maliyet projeleri",
+     "text": "Üstte tüm projelerin toplam satış, maliyet, vergi öncesi kâr ve kalan alacak/borç tutarları; altta her proje için tahsilat yüzdesiyle birlikte kart yer alır.",
+     "marks": [
+      {
+       "x": 70.84,
+       "y": 14.25,
+       "w": 12.11,
+       "h": 4.89
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/maliyet-02.webp",
+     "title": "Proje maliyet detayı",
+     "text": "Satış, gerçekleşen maliyet, tedarikçilere ödenen ve kalan tutar, anlık ve iş sonu kâr özetlenir. Altta harcama kalemleri tedarikçi ve ödeme durumuyla listelenir.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/maliyet-03.webp",
+     "title": "Kalem ekleme",
+     "text": "“Kalem Ekle” ile kategori, tanım, miktar, birim fiyat, para birimi, KDV ve tedarikçi girilir. Ödenen tutar varsa aynı formda kaydedilir.",
+     "marks": [
+      {
+       "x": 28.13,
+       "y": 14.89,
+       "w": 43.75,
+       "h": 5.33
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/maliyet-04.webp",
+     "title": "Tahsilat",
+     "text": "Müşteriden yapılan tahsilatlar ve planlanan tahsilatlar tarihleriyle girilir. Müşteriye ödeme ekstresi linki gönderilebilir; ekstre güncel bakiyeyi gösterir.",
+     "marks": [
+      {
+       "x": 42.44,
+       "y": 47.39,
+       "w": 9.89,
+       "h": 5.28
+      }
+     ],
+     "cursor": {
+      "x": 47.39,
+      "y": 50.03
+     }
+    },
+    {
+     "img": "/tanitim/maliyet-05.webp",
+     "title": "Ödeme yapılacak kişiler",
+     "text": "Tedarikçi bazında toplam borç, ödenen ve kalan tutar listelenir. “Öde” ile girilen tutar o tedarikçinin kalemlerine otomatik dağıtılır; IBAN tek tıkla kopyalanır.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/maliyet-06.webp",
+     "title": "KDV ve vergi özeti",
+     "text": "Faturalı ve faturasız satış ayrılarak ödenecek KDV, kurumlar vergisi ve şirkete kalan net kâr adım adım hesaplanır.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/maliyet-07.webp",
+     "title": "Tedarikçiler",
+     "text": "Tedarikçilerin vergi numarası, IBAN ve ödeme hesabı bilgileri burada tutulur; kalem eklerken listeden seçilir.",
+     "marks": [
+      {
+       "x": 82.75,
+       "y": 10,
+       "w": 10.86,
+       "h": 4.89
+      }
+     ],
+     "cursor": null
+    }
+   ]
+  },
+  {
+   "id": "kayitlar",
+   "group": "Kayıtlar",
+   "title": "Müşteriler ve Malzeme Kataloğu",
+   "intro": "Müşteriler tekliflerden otomatik oluşur. Malzeme kataloğu, Malzeme & Hizmet tekliflerinde seçilen fiyatsız kalem tanımlarını tutar.",
+   "steps": [
+    {
+     "img": "/tanitim/kayitlar-01.webp",
+     "title": "Müşteriler",
+     "text": "Her müşterinin teklif sayısı ve toplam gücü listelenir. Yeni müşteri, teklif oluştururken eklenir.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/kayitlar-03.webp",
+     "title": "Malzeme kataloğu",
+     "text": "Malzemeler MLZ, hizmetler HZM koduyla tutulur. Fiyat kataloğa değil teklife girilir; her kalemin hangi teklifte hangi fiyatla verildiği görülebilir.",
+     "marks": [
+      {
+       "x": 79.63,
+       "y": 10.33,
+       "w": 9.54,
+       "h": 4.89
+      }
+     ],
+     "cursor": {
+      "x": 84.4,
+      "y": 12.78
+     }
+    },
+    {
+     "img": "/tanitim/kayitlar-04.webp",
+     "title": "Yeni katalog kalemi",
+     "text": "Tür (malzeme / hizmet), ad ve birim girilir; kod otomatik verilir.",
+     "marks": [],
+     "cursor": null
+    }
+   ]
+  },
+  {
+   "id": "takvim",
+   "group": "Çalışma Araçları",
+   "title": "Takvim",
+   "intro": "Ekip toplantıları, saha ziyaretleri, görevler ve hatırlatmalar tek takvimde tutulur. Etkinlikler bir teklife bağlanabilir; hatırlatmalar bildirim olarak gelir.",
+   "steps": [
+    {
+     "img": "/tanitim/takvim-01.webp",
+     "title": "Aylık görünüm",
+     "text": "Etkinlikler türüne göre renkli işaretlenir. Üstteki filtrelerle yalnızca toplantı, görev veya ziyaretleri gösterebilirsiniz; Not Defteri’ndeki takip tarihleri de takvime düşer.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/takvim-02.webp",
+     "title": "Yeni etkinlik",
+     "text": "“+ Etkinlik” ile başlık, tür, tarih-saat, konum, katılımcılar, görünürlük ve hatırlatma süresi girilir.",
+     "marks": [
+      {
+       "x": 82.69,
+       "y": 91.11,
+       "w": 6.13,
+       "h": 4.89
+      }
+     ],
+     "cursor": {
+      "x": 85.76,
+      "y": 93.56
+     }
+    },
+    {
+     "img": "/tanitim/takvim-03.webp",
+     "title": "Etkinlik eklendi",
+     "text": "Kaydedilen etkinlik takvimde görünür; tıklayınca düzenlenebilir, sürükleyerek başka güne taşınabilir.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/takvim-04.webp",
+     "title": "Haftalık görünüm",
+     "text": "Hafta ve gün görünümünde etkinlikler saat ızgarasında gösterilir. Bir etkinliği sürükleyerek saatini, alt kenarından çekerek süresini değiştirirsiniz.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/takvim-05.webp",
+     "title": "Ajanda",
+     "text": "Önümüzdeki 30 günün etkinlikleri liste halinde, gün gün sıralanır.",
+     "marks": [],
+     "cursor": null
+    }
+   ]
+  },
+  {
+   "id": "not-defteri",
+   "group": "Çalışma Araçları",
+   "title": "Not Defteri",
+   "intro": "Toplantı notları, kararlar, aksiyon planı, kişiler ve şirketler kişisel bir defterde tutulur. Notlar PDF olarak yazdırılabilir veya metin olarak kopyalanabilir.",
+   "steps": [
+    {
+     "img": "/tanitim/not-defteri-01.webp",
+     "title": "Notlar ve yapılacaklar",
+     "text": "Solda notlar listesi, sağda açık aksiyonlar (Yapılacaklar) yer alır. Firma, kişi, etiket veya metinle arama yapılır.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/not-defteri-02.webp",
+     "title": "Toplantı notu",
+     "text": "Her not konu başlıkları, alınan kararlar ve sorumlu-termin bilgisiyle aksiyon planından oluşur. Takip tarihi takvime düşer.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/not-defteri-03.webp",
+     "title": "Yeni not",
+     "text": "“Yeni Not” ile başlık, tarih, tür, firma ve katılımcılar girilir; konu ve karar satırları ile aksiyonlar eklenir.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/not-defteri-04.webp",
+     "title": "Görevler",
+     "text": "Hızlı görevler tarihleriyle tutulur; toplantı aksiyonları da burada listelenir.",
+     "marks": [],
+     "cursor": null
+    }
+   ]
+  },
+  {
+   "id": "tasarim",
+   "group": "Çalışma Araçları",
+   "title": "3D Tasarım",
+   "intro": "Haritadan bina bulunur, çatı çizilir, paneller yerleştirilir ve yaklaşık üretim hesaplanır.",
+   "steps": [
+    {
+     "img": "/tanitim/tasarim-01.webp",
+     "title": "Tasarımlar",
+     "text": "Yeni tasarım için ad ve konum girilip “Oluştur & Aç”a basılır. Açılan editörde sırasıyla görüntü ve ölçek, bina ve çatı, panel yerleşimi adımları izlenir.",
+     "marks": [
+      {
+       "x": 77.54,
+       "y": 40.31,
+       "w": 10.16,
+       "h": 4.89
+      }
+     ],
+     "cursor": null
+    }
+   ]
+  },
+  {
+   "id": "yonetim",
+   "group": "Yönetim",
+   "title": "Ekip, Kayıtlar ve Firma Ayarları",
+   "intro": "Panel yöneticisi ekip arkadaşlarını davet eder, rollerini ve proje erişimlerini belirler; kim ne yaptı kayıtlarını ve firma performansını izler; PDF çıktılarındaki firma kimliğini ayarlar.",
+   "steps": [
+    {
+     "img": "/tanitim/yonetim-01.webp",
+     "title": "Kullanıcılar",
+     "text": "Paneldeki kişiler rolleriyle (Yönetici, Kullanıcı, Görüntüleyici) listelenir. Kalkan simgesinden kişi bazında proje gizleme veya salt okunur yapma ayarlanır.",
+     "marks": [
+      {
+       "x": 86.39,
+       "y": 19.56,
+       "w": 9.93,
+       "h": 4.89
+      }
+     ],
+     "cursor": {
+      "x": 91.36,
+      "y": 22.01
+     }
+    },
+    {
+     "img": "/tanitim/yonetim-02.webp",
+     "title": "Kişi davet etme",
+     "text": "E-posta ve rol seçilip davet oluşturulur. Davet edilen kişiye e-posta gider; linke tıklayıp şifresini belirleyince doğrudan panele katılır.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/yonetim-03.webp",
+     "title": "Aktivite kayıtları",
+     "text": "Panelde kimin ne zaman hangi kaydı değiştirdiği listelenir. Kayıtlar silinemez; kullanıcı, işlem ve kaynak türüne göre filtrelenir. Satıra tıklayınca değişiklik detayı açılır.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/yonetim-04.webp",
+     "title": "Firma performansı",
+     "text": "Aylık teklif sayısı ve gücü, kazanma oranı, ortalama $/Wp, bekleyen ve tamamlanan ciro, 12 aylık trend ve satışçı sıralaması. “Yıllık Rapor” PDF olarak indirilir.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/yonetim-05.webp",
+     "title": "Profilim",
+     "text": "Ad, şirket adı ve şifre değiştirilir; üye olduğunuz paneller ve aralarında geçiş burada listelenir.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/yonetim-06.webp",
+     "title": "Marka ayarları",
+     "text": "Logo, kaşe, marka rengi, slogan, filigran ve banka bilgileri PDF ve Excel çıktılarına uygulanır. “Önizle” çıktının nasıl görüneceğini gösterir.",
+     "marks": [
+      {
+       "x": 78.77,
+       "y": 47.76,
+       "w": 13.11,
+       "h": 4.44
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/yonetim-07.webp",
+     "title": "Firma profili ve referanslar",
+     "text": "Firma tanıtım PDF’i, referans listesi ve sertifika gibi ek belgeler yüklenir; paylaşım linkinde müşteri bunları “Firma” ve “Referanslar” sekmelerinde görür.",
+     "marks": [],
+     "cursor": null
+    }
+   ]
+  },
+  {
+   "id": "destek",
+   "group": "Destek",
+   "title": "Nasıl Çalışır, İletişim ve Diğer Platformlar",
+   "intro": "Platform içi yardım sayfası, geliştiriciyle iletişim formu ve aynı hesapla kullanılabilen diğer platformlar.",
+   "steps": [
+    {
+     "img": "/tanitim/destek-01.webp",
+     "title": "Nasıl Çalışır",
+     "text": "Şablonla başlayıp müşteriyle paylaşıma kadar 13 adımlık akış, her adımda otomatik hesaplanan değerler ve pratik ipuçlarıyla anlatılır.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/destek-02.webp",
+     "title": "İletişime Geç",
+     "text": "Hata bildirimi, özellik önerisi veya soru için form doldurulur; mesaj e-posta uygulamanızda hazır taslak olarak açılır.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/destek-03.webp",
+     "title": "Diğer Platformlar",
+     "text": "Fizibilite, proje yönetimi, satınalma karar destek ve konstrüksiyon BoM platformlarına buradan geçilir.",
+     "marks": [],
+     "cursor": null
+    }
+   ]
+  }
+ ]
+}

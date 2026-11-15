@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { refreshSupabaseSession } from "@/lib/supabase/proxy";
 
-const publicRoutes = ["/", "/login", "/register", "/forgot-password", "/reset-password"];
+const publicRoutes = ["/", "/login", "/register", "/forgot-password", "/reset-password", "/tanitim"];
 const authRoutes = ["/login", "/register", "/forgot-password", "/reset-password"];
 
 // /invite/* path'i auth gerektirmez (login degilse register'a yonlendirir);
