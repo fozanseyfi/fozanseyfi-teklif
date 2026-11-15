@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { Toaster } from "sonner";
+import { ThemedToaster } from "@/components/shared/themed-toaster";
 import { ReadOnlyProvider } from "@/lib/readonly-context";
 import { loadShareContext, recordShareView } from "@/lib/share-loader";
 import { ShareHeader } from "./_components/share-header";
@@ -76,7 +76,7 @@ export default async function ShareLayout({ children, params }: Props) {
       <footer className="mx-auto max-w-[1440px] px-4 pb-8 pt-4 text-center text-[10.5px] text-slate-500">
         {ctx.firmName} tarafından paylaşıldı · Bu sayfa müşteri/yatırımcı için hazırlanmıştır.
       </footer>
-      <Toaster theme="light" position="top-right" richColors />
+      <ThemedToaster />
     </div>
   );
 }

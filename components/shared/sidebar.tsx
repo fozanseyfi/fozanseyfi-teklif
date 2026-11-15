@@ -16,6 +16,7 @@ import {
   HelpCircle,
   Bell,
   Boxes,
+  Building2,
   Check,
   ChevronDown,
   ScrollText,
@@ -38,6 +39,8 @@ import {
 import { logout, switchOrganization } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { LocaleToggle } from "@/components/shared/locale-toggle";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 interface OrganizationOption {
   id: string;
@@ -48,6 +51,7 @@ interface OrganizationOption {
 
 interface SidebarProps {
   userName: string;
+  userEmail: string;
   firmName: string;
   userRole: string;
   organizations?: OrganizationOption[];
@@ -276,15 +280,31 @@ function NavLink({
   );
 }
 
-// Top bar'da "Panel: <ad>" yerine dropdown — kullanicinin uye oldugu tum
-// organizasyonlar listelenir, secim profile.organizationId'yi guncelleyip
-// hard reload ile sayfayi sifirdan render eder.
-function PanelSwitcher({
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// Üst barın solundaki hesap menüsü (Fizibilite ile aynı yerleşim): avatar + ad +
+// çalışılan panel (şirket) + e-posta. Açılır listede kullanıcının üye olduğu
+// paneller (tıklayınca o panele geçilir), Profilim ve Çıkış Yap bulunur.
+// Panel değişimi profile.organizationId'yi günceller ve sayfayı sıfırdan yükler.
+function AccountMenu({
+  name,
+  email,
+  role,
   firmName,
   organizations,
+  compact = false,
 }: {
+  name: string;
+  email: string;
+  role: string;
   firmName: string;
   organizations: OrganizationOption[];
+  compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
@@ -295,14 +315,16 @@ function PanelSwitcher({
     function onClick(e: MouseEvent) {
       if (!ref.current?.contains(e.target as Node)) setOpen(false);
     }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
     document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open]);
-
-  // Dropdown her zaman tiklanabilir — tek panel varsa bile kullanici
-  // "Panellerim" listesini gorebilsin. Profilim'de daha detayli panel
-  // yonetimi (kendi paneline gec, davet rozetleri, vb.) var; bu sadece
-  // hizli switcher.
 
   async function handleSwitch(orgId: string) {
     if (pending) return;
@@ -322,26 +344,59 @@ function PanelSwitcher({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-muted"
+        aria-label="Hesap ve panel menüsü"
+        aria-expanded={open}
+        className="flex min-w-0 items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-secondary"
       >
-        <FolderOpen className="size-4 shrink-0 text-muted-foreground" />
-        <span className="shrink-0 text-sm text-muted-foreground">Panel:</span>
-        <span className="truncate text-sm font-semibold text-foreground">{firmName}</span>
-        <ChevronDown
-          className={cn(
-            "size-3.5 shrink-0 text-muted-foreground transition-transform",
-            open && "rotate-180",
-          )}
-        />
+        <div
+          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar text-[11px] font-semibold text-white"
+          data-no-i18n
+        >
+          {initials(name)}
+        </div>
+        {!compact && (
+          <>
+            <div className="min-w-0 leading-tight">
+              <p className="flex min-w-0 items-center gap-1.5" data-no-i18n>
+                <span className="truncate text-[13px] font-semibold text-foreground">{name}</span>
+                <span className="shrink-0 text-muted-foreground/60">·</span>
+                <span className="truncate rounded bg-primary-soft px-1.5 py-px text-[11px] font-semibold text-primary-soft-foreground">
+                  {firmName}
+                </span>
+              </p>
+              <p className="truncate text-[11px] text-muted-foreground" data-no-i18n>
+                {email}
+              </p>
+            </div>
+            <ChevronDown
+              className={cn(
+                "size-3.5 shrink-0 text-muted-foreground transition-transform",
+                open && "rotate-180",
+              )}
+            />
+          </>
+        )}
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-72 overflow-hidden rounded-lg border bg-card shadow-lg">
-          <div className="border-b bg-muted/40 px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Üye olduğun paneller
+        <div
+          className={cn(
+            "absolute top-full z-50 mt-1 w-72 overflow-hidden rounded-lg border bg-card shadow-lg",
+            compact ? "right-0" : "left-0",
+          )}
+        >
+          <div className="border-b bg-secondary/40 px-3 py-2">
+            <p className="truncate text-sm font-semibold text-foreground" data-no-i18n>
+              {name}
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              <span data-no-i18n>{email}</span> · {role}
             </p>
           </div>
-          <ul className="max-h-72 overflow-y-auto py-1">
+
+          <p className="px-3 pb-1 pt-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Çalışılan panel
+          </p>
+          <ul className="max-h-60 overflow-y-auto pb-1">
             {organizations.map((o) => (
               <li key={o.id}>
                 <button
@@ -350,20 +405,20 @@ function PanelSwitcher({
                   disabled={o.isActive || pending !== null}
                   className={cn(
                     "flex w-full items-center gap-2 px-3 py-2 text-left transition-colors",
-                    o.isActive
-                      ? "bg-primary-soft/40 cursor-default"
-                      : "hover:bg-muted",
+                    o.isActive ? "cursor-default bg-primary-soft/50" : "hover:bg-secondary",
                     pending === o.id && "opacity-50",
                   )}
                 >
-                  <FolderOpen
+                  <Building2
                     className={cn(
                       "size-4 shrink-0",
                       o.isActive ? "text-primary" : "text-muted-foreground",
                     )}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">{o.name}</p>
+                    <p className="truncate text-sm font-semibold text-foreground" data-no-i18n>
+                      {o.name}
+                    </p>
                     <p className="text-[10.5px] text-muted-foreground">
                       {ROLE_LABEL[o.role] ?? o.role}
                     </p>
@@ -373,67 +428,19 @@ function PanelSwitcher({
               </li>
             ))}
           </ul>
-          <div className="border-t bg-muted/30 px-3 py-2">
-            <Link
-              href="/firm-settings"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-1.5 text-[11px] font-semibold text-primary hover:underline"
-            >
-              Tüm panellerimi yönet →
-            </Link>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
-function UserMenu({ name, role }: { name: string; role: string }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function onClick(e: MouseEvent) {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [open]);
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted"
-        aria-label="Kullanıcı menüsü"
-      >
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-          {name.charAt(0).toUpperCase()}
-        </div>
-        <div className="hidden min-w-0 text-left sm:block">
-          <p className="truncate text-xs font-semibold leading-tight text-foreground">{name}</p>
-          <p className="truncate text-[10px] leading-tight text-muted-foreground">{role}</p>
-        </div>
-        <ChevronDown
-          className={cn(
-            "hidden size-3.5 text-muted-foreground transition-transform sm:block",
-            open && "rotate-180",
-          )}
-        />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-48 overflow-hidden rounded-lg border bg-card shadow-lg">
-          {/* Mobile-only user header (since name/role hidden in trigger) */}
-          <div className="border-b bg-muted/40 px-3 py-2 sm:hidden">
-            <p className="truncate text-sm font-semibold text-foreground">{name}</p>
-            <p className="text-xs text-muted-foreground">{role}</p>
-          </div>
+          <Link
+            href="/firm-settings"
+            onClick={() => setOpen(false)}
+            className="flex w-full items-center gap-2 border-t px-3 py-2 text-sm text-foreground transition-colors hover:bg-secondary"
+          >
+            <UserCircle2 className="size-4 text-muted-foreground" />
+            Profilim ve panellerim
+          </Link>
           <form action={logout}>
             <button
               type="submit"
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+              className="flex w-full items-center gap-2 border-t px-3 py-2 text-sm text-foreground transition-colors hover:bg-secondary"
             >
               <LogOut className="size-4 text-muted-foreground" />
               Çıkış Yap
@@ -445,7 +452,7 @@ function UserMenu({ name, role }: { name: string; role: string }) {
   );
 }
 
-export function Sidebar({ userName, firmName, userRole, organizations }: SidebarProps) {
+export function Sidebar({ userName, userEmail, firmName, userRole, organizations }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -503,9 +510,6 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
       {/* Sticky top bar — mobil + desktop, içerik responsive değişir */}
       <header
         className="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/90 px-3 backdrop-blur-md sm:px-4 lg:px-6"
-        style={{
-          paddingLeft: undefined,
-        }}
       >
         {/* Desktop: padding-left sidebar genişliğine göre */}
         <div className="contents lg:hidden">
@@ -532,27 +536,33 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
           </Link>
         </div>
 
-        {/* Desktop: Panel switcher (dropdown) */}
+        {/* Masaüstü: hesap + panel menüsü sidebar'ın hemen sağında */}
         <div
-          className="hidden min-w-0 items-center gap-2 lg:flex"
+          className="hidden min-w-0 items-center lg:flex"
           style={{ marginLeft: "var(--sidebar-w, 14rem)", transition: "margin-left 200ms" }}
         >
-          <PanelSwitcher firmName={firmName} organizations={organizations ?? []} />
+          <AccountMenu
+            name={userName}
+            email={userEmail}
+            role={roleLabel}
+            firmName={firmName}
+            organizations={organizations ?? []}
+          />
         </div>
 
-        {/* Right: search + bell + user */}
-        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+        {/* Sağ: arama + bildirim + dil + tema (mobilde ayrıca hesap menüsü) */}
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
           {/* Global Ctrl+K arama tetikleyici — ikon (mobile) veya rozet (desktop). */}
           <button
             type="button"
             onClick={() => window.dispatchEvent(new CustomEvent("solar:open-search"))}
             aria-label="Ara (Ctrl+K)"
             title="Ara — Ctrl+K"
-            className="hidden items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:flex"
+            className="hidden h-9 items-center gap-2 rounded-md border border-border bg-secondary px-2.5 text-xs text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground md:flex"
           >
             <Search className="size-3.5" />
             <span className="text-[11.5px]">Ara</span>
-            <kbd className="rounded border border-border bg-muted/50 px-1 py-0 font-mono text-[9.5px] font-semibold">
+            <kbd className="rounded border border-border bg-background/60 px-1 py-0 font-mono text-[9.5px] font-semibold" data-no-i18n>
               Ctrl+K
             </kbd>
           </button>
@@ -560,23 +570,35 @@ export function Sidebar({ userName, firmName, userRole, organizations }: Sidebar
             type="button"
             onClick={() => window.dispatchEvent(new CustomEvent("solar:open-search"))}
             aria-label="Ara"
-            className="flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:hidden"
+            className="flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground md:hidden"
           >
             <Search className="size-4" />
           </button>
           <Link
             href="/notifications"
             aria-label="Bildirimler"
-            className="relative flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            title="Bildirimler"
+            className="relative flex size-9 items-center justify-center rounded-md border border-border bg-secondary text-foreground transition-colors hover:bg-secondary/80"
           >
             <Bell className="size-4" />
             {unread > 0 && (
-              <span className="absolute right-1.5 top-1.5 flex min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-4 text-white">
+              <span className="absolute -right-1 -top-1 flex min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-4 text-white">
                 {unread > 9 ? "9+" : unread}
               </span>
             )}
           </Link>
-          <UserMenu name={userName} role={roleLabel} />
+          <LocaleToggle />
+          <ThemeToggle />
+          <div className="lg:hidden">
+            <AccountMenu
+              compact
+              name={userName}
+              email={userEmail}
+              role={roleLabel}
+              firmName={firmName}
+              organizations={organizations ?? []}
+            />
+          </div>
         </div>
       </header>
 

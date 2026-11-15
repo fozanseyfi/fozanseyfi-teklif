@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Gece modu: sınıf tabanlı (html.dark) — renkler app/dark.css içinde */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ---------------------------------------------------------------
    Design tokens (Tailwind 4 @theme)
    - Emerald primary, slate neutrals

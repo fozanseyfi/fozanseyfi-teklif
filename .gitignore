@@ -45,3 +45,6 @@ next-env.d.ts
 
 /app/generated/prisma
 tmp/
+
+# i18n-extract çýktýsý (üretilen)
+scripts/i18n-missing.json

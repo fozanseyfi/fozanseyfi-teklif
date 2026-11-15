@@ -1,0 +1,164 @@
+/*
+ * Gece modu (html.dark) — Fizibilite / Mounting platformlarıyla aynı yaklaşım.
+ *
+ * 1) Tasarım token'ları (globals.css @theme) koyu değerlerle ezilir.
+ * 2) Bileşenlerde sabit yazılmış açık tonlar (slate-50, emerald-50, amber-100 …) Tailwind 4'te
+ *    --color-* değişkenlerinden okunduğu için burada koyu karşılıklarına çevrilir.
+ * 3) Sabit koyu metin sınıfları (text-slate-900 …) ve bg-white sınıf bazında uyarlanır.
+ *
+ * Bu dosya katmansızdır; Tailwind'in @layer utilities kurallarını her zaman ezer.
+ * Kâğıt gibi her zaman açık kalması gereken alanlara `keep-light` sınıfı verilir.
+ */
+
+/* EN: sayfa çevrilene kadar Türkçe metin görünmesin (en fazla 2,5 sn) */
+html.i18n-pending body { visibility: hidden; }
+
+.dark {
+  color-scheme: dark;
+
+  /* --- Token'lar --- */
+  --color-background: #0b1220;
+  --color-foreground: #e5eaf2;
+  --color-card: #111a2b;
+  --color-card-foreground: #e5eaf2;
+  --color-popover: #131d30;
+  --color-popover-foreground: #e5eaf2;
+
+  --color-primary: #0d9f6e;
+  --color-primary-foreground: #ffffff;
+  --color-primary-soft: #0f2a20;
+  --color-primary-soft-foreground: #6ee7b7;
+
+  --color-secondary: #1a2437;
+  --color-secondary-foreground: #e2e8f0;
+  --color-muted: #1a2437;
+  --color-muted-foreground: #94a3b8;
+  --color-accent: #0f2a20;
+  --color-accent-foreground: #6ee7b7;
+
+  --color-destructive: #ef4444;
+  --color-destructive-soft: #2c1519;
+  --color-destructive-soft-foreground: #fca5a5;
+  --color-success: #10b981;
+  --color-success-soft: #0f2a20;
+  --color-success-soft-foreground: #6ee7b7;
+  --color-warning: #f59e0b;
+  --color-warning-soft: #2a2212;
+  --color-warning-soft-foreground: #fbbf24;
+  --color-info: #3b82f6;
+  --color-info-soft: #131f38;
+  --color-info-soft-foreground: #93c5fd;
+
+  --color-border: #243044;
+  --color-input: #2b3850;
+  --color-ring: #10b981;
+
+  /* --- Açık tonlar → koyu zemin/çizgi tonları --- */
+  --color-slate-50: #131c2e;   --color-slate-100: #1a2437;  --color-slate-200: #263247;  --color-slate-300: #34425a;
+  --color-gray-50: #131c2e;    --color-gray-100: #1a2437;   --color-gray-200: #263247;   --color-gray-300: #34425a;
+  --color-emerald-50: #0f2a20; --color-emerald-100: #143528; --color-emerald-200: #1f4d3a; --color-emerald-300: #2b6b50;
+  --color-green-50: #0f2a20;   --color-green-100: #143528;  --color-green-200: #1f4d3a;  --color-green-300: #2b6b50;
+  --color-teal-50: #0e2928;    --color-teal-100: #123534;   --color-teal-200: #1c4d4b;
+  --color-amber-50: #2a2212;   --color-amber-100: #3a2f12;  --color-amber-200: #5a4a1f;  --color-amber-300: #7a6428;
+  --color-yellow-50: #2a2612;  --color-yellow-100: #3a3412; --color-yellow-200: #5a501f;
+  --color-orange-50: #2c1d12;  --color-orange-100: #3d2814; --color-orange-200: #5c3c1f;
+  --color-rose-50: #2c1519;    --color-rose-100: #3d1c22;   --color-rose-200: #5c2a33;   --color-rose-300: #7a3743;
+  --color-red-50: #2c1516;     --color-red-100: #3d1c1d;    --color-red-200: #5c2a2b;    --color-red-300: #7a3738;
+  --color-sky-50: #0f2233;     --color-sky-100: #14304a;    --color-sky-200: #1f4a6e;    --color-sky-300: #2a628f;
+  --color-blue-50: #131f38;    --color-blue-100: #1a2b4d;   --color-blue-200: #27407a;   --color-blue-300: #34549c;
+  --color-indigo-50: #171c3a;  --color-indigo-100: #20264f; --color-indigo-200: #2f3874;
+  --color-violet-50: #1e1a36;  --color-violet-100: #2a2450; --color-violet-200: #3d3570; --color-violet-300: #50468f;
+  --color-purple-50: #211a36;  --color-purple-100: #2e2450; --color-purple-200: #443570;
+}
+
+/* --- Beyaz zeminler --- */
+.dark .bg-white,
+.dark .hover\:bg-white:hover { background-color: var(--color-card); }
+.dark .bg-white\/95, .dark .bg-white\/90, .dark .bg-white\/85, .dark .bg-white\/80 { background-color: color-mix(in oklab, var(--color-card) 92%, transparent); }
+.dark .bg-white\/70, .dark .bg-white\/60, .dark .bg-white\/50 { background-color: color-mix(in oklab, var(--color-card) 70%, transparent); }
+.dark [class*="to-white"]   { --tw-gradient-to: var(--color-card); }
+.dark [class*="via-white"]  { --tw-gradient-via: var(--color-card); }
+.dark [class*="from-white"] { --tw-gradient-from: var(--color-card); }
+.dark .bg-soft-gradient { background: var(--color-background); }
+
+/* --- Koyu metin sınıfları → açık --- */
+.dark .text-slate-900, .dark .text-slate-800, .dark .text-gray-900, .dark .text-gray-800,
+.dark .hover\:text-slate-900:hover { color: #e5eaf2; }
+.dark .text-slate-700, .dark .text-gray-700, .dark .hover\:text-slate-700:hover { color: #cbd5e1; }
+.dark .text-slate-600, .dark .text-gray-600 { color: #a9b4c4; }
+.dark .text-slate-500, .dark .text-gray-500 { color: #94a3b8; }
+.dark .text-slate-400, .dark .text-gray-400 { color: #7d8aa0; }
+/* Açık metin (koyu şerit üzerinde) açık kalır — değişken yukarıda koyulaştı */
+.dark .text-slate-300, .dark .text-slate-200, .dark .text-slate-100 { color: #cbd5e1; }
+.dark .text-emerald-300, .dark .text-emerald-200, .dark .text-emerald-100, .dark .text-emerald-50 { color: #a7f3d0; }
+
+.dark .text-emerald-900, .dark .text-emerald-800, .dark .text-emerald-700, .dark .text-green-700,
+.dark .hover\:text-emerald-700:hover { color: #6ee7b7; }
+.dark .text-emerald-600, .dark .text-green-600 { color: #34d399; }
+.dark .text-amber-900, .dark .text-amber-800, .dark .text-amber-700, .dark .text-yellow-800, .dark .text-orange-700 { color: #fcd34d; }
+.dark .text-amber-600, .dark .text-orange-600 { color: #fbbf24; }
+.dark .text-rose-900, .dark .text-rose-800, .dark .text-rose-700, .dark .text-red-800, .dark .text-red-700 { color: #fda4af; }
+.dark .text-rose-600, .dark .text-rose-500, .dark .text-red-600, .dark .hover\:text-rose-600:hover { color: #fb7185; }
+.dark .text-sky-900, .dark .text-sky-800, .dark .text-sky-700, .dark .text-sky-600 { color: #7dd3fc; }
+.dark .text-blue-900, .dark .text-blue-800, .dark .text-blue-700, .dark .text-blue-600 { color: #93c5fd; }
+.dark .text-indigo-700, .dark .text-indigo-600 { color: #a5b4fc; }
+.dark .text-violet-900, .dark .text-violet-800, .dark .text-violet-700, .dark .text-violet-600,
+.dark .text-purple-700, .dark .text-purple-600 { color: #c4b5fd; }
+.dark .text-teal-700, .dark .text-teal-600 { color: #5eead4; }
+
+/* Koyu şerit olarak kullanılan slate zeminler: gece modunda da koyu kalsın ama karttan ayrışsın */
+.dark .bg-slate-900, .dark .bg-slate-800 { background-color: #060b15; }
+
+/* --- Form alanları --- */
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+.dark select,
+.dark textarea {
+  background-color: #0e1626;
+  color: #e5eaf2;
+  border-color: var(--color-input);
+}
+.dark input::placeholder, .dark textarea::placeholder { color: #64748b; }
+.dark select option { background-color: #131d30; color: #e5eaf2; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #3b4a63; }
+
+/* --- Salt-okunur bantları, yükleyici, shimmer --- */
+.dark .template-readonly::before { color: #bfdbfe; background: rgb(30 58 138 / 0.25); border-color: #3b5b9a; }
+.dark .template-readonly[data-readonly-reason="view"]::before { color: #e2e8f0; background: rgb(30 41 59 / 0.6); border-color: #475569; }
+.dark .template-readonly input, .dark .template-readonly select, .dark .template-readonly textarea { background-color: transparent; }
+.dark .brand-loader-sub { color: #94a3b8; }
+.dark .shimmer-text {
+  background-image: linear-gradient(90deg, #6ee7b7 0%, #34d399 18%, #a7f3d0 32%, #34d399 46%, #d1fae5 56%, #34d399 70%, #a7f3d0 82%, #6ee7b7 100%);
+}
+
+/* --- Grafikler (recharts) --- */
+.dark .recharts-cartesian-axis-tick-value, .dark .recharts-legend-item-text { fill: #a9b4c4; color: #a9b4c4 !important; }
+.dark .recharts-cartesian-grid line { stroke: #243044; }
+.dark .recharts-default-tooltip { background-color: #0e1626 !important; border-color: #34425a !important; color: #e5eaf2; }
+
+/* --- Her zaman açık kalacak alanlar (kâğıt önizlemeleri: teklif/sözleşme çıktısı) --- */
+.dark .keep-light {
+  color-scheme: light;
+  --color-background: #f8fafc; --color-foreground: #0f172a;
+  --color-card: #ffffff; --color-card-foreground: #0f172a;
+  --color-popover: #ffffff; --color-popover-foreground: #0f172a;
+  --color-primary: #059669; --color-primary-soft: #ecfdf5; --color-primary-soft-foreground: #047857;
+  --color-secondary: #f1f5f9; --color-secondary-foreground: #1e293b;
+  --color-muted: #f1f5f9; --color-muted-foreground: #64748b;
+  --color-accent: #ecfdf5; --color-accent-foreground: #047857;
+  --color-border: #e2e8f0; --color-input: #e2e8f0;
+  --color-slate-50: #f8fafc; --color-slate-100: #f1f5f9; --color-slate-200: #e2e8f0; --color-slate-300: #cbd5e1;
+  --color-emerald-50: #ecfdf5; --color-emerald-100: #d1fae5; --color-emerald-200: #a7f3d0; --color-emerald-300: #6ee7b7;
+  --color-amber-50: #fffbeb; --color-amber-100: #fef3c7; --color-amber-200: #fde68a;
+  --color-rose-50: #fff1f2; --color-rose-100: #ffe4e6; --color-rose-200: #fecdd3;
+  --color-sky-50: #f0f9ff; --color-sky-100: #e0f2fe; --color-sky-200: #bae6fd;
+  --color-violet-50: #f5f3ff; --color-violet-100: #ede9fe; --color-violet-200: #ddd6fe;
+  background-color: #ffffff;
+  color: #0f172a;
+}
+.dark .keep-light .bg-white { background-color: #ffffff; }
+.dark .keep-light .text-slate-900, .dark .keep-light .text-slate-800 { color: #0f172a; }
+.dark .keep-light .text-slate-700 { color: #334155; }
+.dark .keep-light .text-slate-600 { color: #475569; }
+.dark .keep-light .text-slate-500 { color: #64748b; }
+.dark .keep-light .text-slate-400 { color: #94a3b8; }
+.dark .keep-light .text-emerald-700, .dark .keep-light .text-emerald-800 { color: #047857; }

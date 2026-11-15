@@ -194,11 +194,12 @@ export default async function DashboardPage() {
                       <Link
                         href={`/projects/${project.id}/detail`}
                         className="font-medium text-foreground hover:text-primary hover:underline"
+                        data-no-i18n
                       >
                         {project.name}
                       </Link>
                       {project.customerName && (
-                        <p className="mt-0.5 text-xs text-muted-foreground">{project.customerName}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground" data-no-i18n>{project.customerName}</p>
                       )}
                     </td>
                     <td className="hidden whitespace-nowrap px-3 py-3 text-right tabular-nums text-muted-foreground md:table-cell">

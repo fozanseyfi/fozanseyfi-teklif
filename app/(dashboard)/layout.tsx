@@ -2,7 +2,7 @@ import { requireAuth, getUserOrganizations } from "@/lib/auth";
 import { Sidebar } from "@/components/shared/sidebar";
 import { Footer } from "@/components/shared/footer";
 import { GlobalSearch } from "@/components/shared/global-search";
-import { Toaster } from "sonner";
+import { ThemedToaster } from "@/components/shared/themed-toaster";
 import { UnsavedChangesProvider } from "@/lib/unsaved-changes";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -20,6 +20,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div className="min-h-screen bg-background">
         <Sidebar
           userName={user.fullName ?? user.email ?? ""}
+          userEmail={user.email ?? ""}
           firmName={user.organization.name}
           // platformRole = aktif organizasyondaki rol; profile.role degil.
           // Kullanici kendi panelinde admin olabilir, davet edildigi panelde
@@ -39,7 +40,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </main>
           <Footer />
         </div>
-        <Toaster theme="light" position="top-right" richColors />
+        <ThemedToaster />
         {/* Global Ctrl+K arama — her sayfada aktif, modal kapalı render
             edilir (sadece açıkken DOM'da görünür). */}
         <GlobalSearch />
