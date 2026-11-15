@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-15T19:35:08.706Z",
+ "generatedAt": "2026-11-15T19:49:00.875Z",
  "viewport": {
   "w": 1440,
   "h": 900
@@ -1301,13 +1301,19 @@
    "id": "tasarim",
    "group": "Çalışma Araçları",
    "title": "3D Tasarım",
-   "intro": "Haritadan bina bulunur, çatı çizilir, paneller yerleştirilir ve yaklaşık üretim hesaplanır.",
+   "intro": "Haritadan bina bulunur, uydu görüntüsü ölçekli altlık olarak alınır, bina kütlesi ve çatı oluşturulur, paneller yerleştirilir ve yaklaşık üretim hesaplanır. Tasarımlar tarayıcıda otomatik kaydedilir.",
    "steps": [
     {
      "img": "/tanitim/tasarim-01.webp",
-     "title": "Tasarımlar",
-     "text": "Yeni tasarım için ad ve konum girilip “Oluştur & Aç”a basılır. Açılan editörde sırasıyla görüntü ve ölçek, bina ve çatı, panel yerleşimi adımları izlenir.",
+     "title": "Yeni tasarım",
+     "text": "Tasarım adı ve konumu girilip “Oluştur & Aç”a basılır. Editörde dört adım vardır: Görüntü & Ölçek, Bina & Çatı, Panel Yerleşimi ve Analiz; her adım bir öncekini tamamlayınca açılır.",
      "marks": [
+      {
+       "x": 27.85,
+       "y": 34.08,
+       "w": 19.77,
+       "h": 5.33
+      },
       {
        "x": 77.54,
        "y": 40.31,
@@ -1315,6 +1321,157 @@
        "h": 4.89
       }
      ],
+     "cursor": {
+      "x": 82.62,
+      "y": 42.76
+     }
+    },
+    {
+     "img": "/tanitim/tasarim-02.webp",
+     "title": "Haritadan binayı bulun",
+     "text": "“Haritadan Al (uydu)” ile harita açılır; adres veya bina adı aranır, sonuç seçilince harita oraya gider. Bina ortalanıp yakınlaştırılır (zoom 20+) ve “Bu Görünümü Al”a basılır. Ölçek haritadan otomatik hesaplanır.",
+     "marks": [
+      {
+       "x": 20.56,
+       "y": 5.89,
+       "w": 20.14,
+       "h": 4.44
+      },
+      {
+       "x": 42.48,
+       "y": 78.78,
+       "w": 11.88,
+       "h": 4.89
+      }
+     ],
+     "cursor": {
+      "x": 48.42,
+      "y": 81.22
+     }
+    },
+    {
+     "img": "/tanitim/tasarim-03.webp",
+     "title": "Görüntüyü kırpın",
+     "text": "Alınan görüntüde köşeler sürüklenerek binanın çevresi seçilir ve “Kırp & Kullan”a basılır. İstenirse bunun yerine drone veya ekran görüntüsü de yüklenebilir.",
+     "marks": [
+      {
+       "x": 63.11,
+       "y": 23.11,
+       "w": 9.53,
+       "h": 4.67
+      }
+     ],
+     "cursor": {
+      "x": 67.88,
+      "y": 25.45
+     }
+    },
+    {
+     "img": "/tanitim/tasarim-04.webp",
+     "title": "Altlık ve ölçek hazır",
+     "text": "Kırpılan görüntü ölçekli altlık olur; sağdaki panelde ölçek (1 m = … px) görünür. “İlerle” ile bina adımına geçilir.",
+     "marks": [
+      {
+       "x": 0,
+       "y": 0,
+       "w": 100,
+       "h": 100
+      },
+      {
+       "x": 91.96,
+       "y": 47.78,
+       "w": 5.82,
+       "h": 4.44
+      }
+     ],
+     "cursor": {
+      "x": 94.87,
+      "y": 50
+     }
+    },
+    {
+     "img": "/tanitim/tasarim-05.webp",
+     "title": "Bina dış hattını çizin",
+     "text": "“Boş Çiz” ile binanın dış hattı köşe köşe tıklanır; ilk köşeye dönülünce şekil kapanır. Hazır şekiller (dikdörtgen, L, T, U…) de eklenip “Taşı” ile binanın üzerine oturtulabilir. Çatı dış hattan otomatik üretilir.",
+     "marks": [
+      {
+       "x": 89.6,
+       "y": 23.89,
+       "w": 7,
+       "h": 4.44
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/tasarim-06.webp",
+     "title": "Çatı tipi ve yükseklik",
+     "text": "Seçili kütle için duvar yüksekliği, çatı tipi (düz teras, beşik, kırma, tek eğim), eğim ve parapet ayarlanır. Depo ve fabrika çatıları için genellikle düz teras seçilir.",
+     "marks": [
+      {
+       "x": 75.07,
+       "y": 57.89,
+       "w": 3.27,
+       "h": 2.44
+      },
+      {
+       "x": 62.41,
+       "y": 23.44,
+       "w": 10.57,
+       "h": 4.44
+      }
+     ],
+     "cursor": {
+      "x": 67.69,
+      "y": 25.66
+     }
+    },
+    {
+     "img": "/tanitim/tasarim-07.webp",
+     "title": "Çatıyı kilitleyip panel yerleşimine geçin",
+     "text": "“Tamamla & Kilitle” çatı modelini sabitler ve doğrudan panel yerleşimine geçer. Panel modeli katalogdan seçilir veya ölçüleri girilir; yön, panel arası, çatı kenar payı ve dizi arası boşluklar ayarlanır.",
+     "marks": [
+      {
+       "x": 75.07,
+       "y": 47.72,
+       "w": 21.53,
+       "h": 4.44
+      }
+     ],
+     "cursor": {
+      "x": 85.84,
+      "y": 49.94
+     }
+    },
+    {
+     "img": "/tanitim/tasarim-08.webp",
+     "title": "Paneller yerleşti",
+     "text": "“Panelleri Otomatik Yerleştir” çatıya sığan en fazla paneli dizer. Paneller tek tek tıklanıp taşınabilir, döndürülebilir (R) veya silinebilir (Del); boş alanda dikdörtgen çizerek çoklu seçim yapılır.",
+     "marks": [],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/tasarim-09.webp",
+     "title": "3B görünüm",
+     "text": "“3B” düğmesi binayı, çatıyı ve panelleri uydu görüntüsü üzerinde üç boyutlu gösterir. Fareyle döndürülür, tekerlekle yakınlaştırılır.",
+     "marks": [
+      {
+       "x": 68.25,
+       "y": 23.56,
+       "w": 4.39,
+       "h": 4.22
+      }
+     ],
+     "cursor": {
+      "x": 70.44,
+      "y": 25.67
+     }
+    },
+    {
+     "img": "/tanitim/tasarim-10.webp",
+     "title": "Analiz özeti",
+     "text": "Toplam panel sayısı, kurulu güç, özgül üretim ve yaklaşık yıllık üretim gösterilir. Üretim tahmini şehir bazlı özgül üretimle yapılır.",
+     "marks": [],
      "cursor": null
     }
    ]

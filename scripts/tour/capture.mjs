@@ -1064,14 +1064,139 @@ const MODULES = [
     id: "tasarim",
     group: "Çalışma Araçları",
     title: "3D Tasarım",
-    intro: "Haritadan bina bulunur, çatı çizilir, paneller yerleştirilir ve yaklaşık üretim hesaplanır.",
+    intro: "Haritadan bina bulunur, uydu görüntüsü ölçekli altlık olarak alınır, bina kütlesi ve çatı oluşturulur, paneller yerleştirilir ve yaklaşık üretim hesaplanır. Tasarımlar tarayıcıda otomatik kaydedilir.",
     steps: [
       {
-        title: "Tasarımlar",
-        text: "Yeni tasarım için ad ve konum girilip “Oluştur & Aç”a basılır. Açılan editörde sırasıyla görüntü ve ölçek, bina ve çatı, panel yerleşimi adımları izlenir.",
+        title: "Yeni tasarım",
+        text: "Tasarım adı ve konumu girilip “Oluştur & Aç”a basılır. Editörde dört adım vardır: Görüntü & Ölçek, Bina & Çatı, Panel Yerleşimi ve Analiz; her adım bir öncekini tamamlayınca açılır.",
         run: async (page) => {
           await go(page, "/tasarim", 900);
-          await mark(page, await byText(page, "Oluştur & Aç", "button"));
+          await fill(page, 'input[placeholder="Örn. Villa Çatı GES"]', "Depo Çatı GES");
+          await fill(page, 'input[placeholder="Mahalle / il"]', "Ümraniye / İstanbul");
+          await mark(page, await page.$('input[placeholder="Örn. Villa Çatı GES"]'));
+          await mark(page, await byText(page, "Oluştur & Aç", "button"), { click: true });
+        },
+      },
+      {
+        title: "Haritadan binayı bulun",
+        text: "“Haritadan Al (uydu)” ile harita açılır; adres veya bina adı aranır, sonuç seçilince harita oraya gider. Bina ortalanıp yakınlaştırılır (zoom 20+) ve “Bu Görünümü Al”a basılır. Ölçek haritadan otomatik hesaplanır.",
+        run: async (page) => {
+          await press(page, await byText(page, "Oluştur & Aç", "button"), 2000);
+          await press(page, await byText(page, "Haritadan Al (uydu)", "button"), 1500);
+          const q = await page.$('input[placeholder="Adres / bina ara…"]');
+          await fill(page, q, "IKEA Ümraniye");
+          await press(page, await byText(page, "Ara", "button"), 3000);
+          const res = await page.evaluateHandle(() =>
+            [...document.querySelectorAll("button, li, div")].find(
+              (n) => n.children.length === 0 && /Balkan Caddesi/.test(n.textContent) && !n.closest(".leaflet-container"),
+            ),
+          );
+          await res.asElement().click();
+          await settle(page, 3000);
+          // Seçimde harita en yüksek yakınlaştırmaya gider (büyütülmüş, bulanık); iki kademe geri net görüntü verir
+          for (let k = 0; k < 2; k++) {
+            await (await page.$(".leaflet-control-zoom-out")).click();
+            await sleep(2000);
+          }
+          await settle(page, 2500);
+          // Tanıtımda firma adı görünmesin: arama kutusunda genel adres
+          await setValue(q, "Balkan Caddesi, Ümraniye / İstanbul");
+          await mark(page, q);
+          await mark(page, await byText(page, "Bu Görünümü Al", "button"), { click: true });
+        },
+      },
+      {
+        title: "Görüntüyü kırpın",
+        text: "Alınan görüntüde köşeler sürüklenerek binanın çevresi seçilir ve “Kırp & Kullan”a basılır. İstenirse bunun yerine drone veya ekran görüntüsü de yüklenebilir.",
+        run: async (page) => {
+          await press(page, await byText(page, "Bu Görünümü Al", "button"), 4500);
+          await mark(page, await byText(page, "Kırp & Kullan", "button"), { click: true });
+        },
+      },
+      {
+        title: "Altlık ve ölçek hazır",
+        text: "Kırpılan görüntü ölçekli altlık olur; sağdaki panelde ölçek (1 m = … px) görünür. “İlerle” ile bina adımına geçilir.",
+        run: async (page) => {
+          await press(page, await byText(page, "Kırp & Kullan", "button"), 3000);
+          await mark(page, await byText(page, "Ölçek hazır", "p, span, div").catch(() => byText(page, "İlerle", "button")));
+          await mark(page, await byText(page, "İlerle", "button"), { click: true });
+        },
+      },
+      {
+        title: "Bina dış hattını çizin",
+        text: "“Boş Çiz” ile binanın dış hattı köşe köşe tıklanır; ilk köşeye dönülünce şekil kapanır. Hazır şekiller (dikdörtgen, L, T, U…) de eklenip “Taşı” ile binanın üzerine oturtulabilir. Çatı dış hattan otomatik üretilir.",
+        run: async (page) => {
+          await press(page, await byText(page, "İlerle", "button"), 2000);
+          await press(page, await byText(page, "Boş Çiz", "button"), 800);
+          // Altlık görüntünün ekrandaki yeri; çatı köşeleri görüntüye göre oransal
+          const img = await page.evaluate(() => {
+            const el = [...document.querySelectorAll("main image, main img, main canvas")]
+              .map((n) => n.getBoundingClientRect())
+              .filter((r) => r.width > 300 && r.height > 300)
+              .sort((a, b) => b.width * b.height - a.width * a.height)[0];
+            return el && { x: el.left, y: el.top, w: el.width, h: el.height };
+          });
+          if (!img) throw new Error("Altlık görüntü bulunamadı");
+          const pts = [[0.36, 0.12], [0.73, 0.12], [0.73, 0.66], [0.36, 0.66]].map(([fx, fy]) => [img.x + fx * img.w, img.y + fy * img.h]);
+          for (const [x, y] of pts) {
+            await page.mouse.click(x, y);
+            await sleep(350);
+          }
+          await page.mouse.click(pts[0][0], pts[0][1]);
+          await settle(page, 1200);
+          await mark(page, await byText(page, "Boş Çiz", "button"));
+        },
+      },
+      {
+        title: "Çatı tipi ve yükseklik",
+        text: "Seçili kütle için duvar yüksekliği, çatı tipi (düz teras, beşik, kırma, tek eğim), eğim ve parapet ayarlanır. Depo ve fabrika çatıları için genellikle düz teras seçilir.",
+        run: async (page) => {
+          // Çatı tipi özel açılır liste: tetikleyiciye tıkla, "teras" içeren seçeneği seç
+          const trigger = await byText(page, "Kırma (Hip) — Tüm kenarlardan eğimli", "button, [role=combobox], div");
+          await trigger.click();
+          await sleep(500);
+          const opt = await page.evaluateHandle(() =>
+            [...document.querySelectorAll("[role=option], li, button, div")]
+              .filter((n) => /teras/i.test(n.textContent || "") && n.getBoundingClientRect().height > 0 && n.getBoundingClientRect().height < 80)
+              .sort((a, b) => a.textContent.length - b.textContent.length)[0] || null,
+          );
+          if (!opt.asElement()) throw new Error("Teras çatı seçeneği bulunamadı");
+          await opt.asElement().click();
+          await settle(page, 900);
+          await mark(page, await byText(page, "Çatı tipi", "p, span, label, div"));
+          await mark(page, await byText(page, "Tamamla & Kilitle", "button"), { click: true });
+        },
+      },
+      {
+        title: "Çatıyı kilitleyip panel yerleşimine geçin",
+        text: "“Tamamla & Kilitle” çatı modelini sabitler ve doğrudan panel yerleşimine geçer. Panel modeli katalogdan seçilir veya ölçüleri girilir; yön, panel arası, çatı kenar payı ve dizi arası boşluklar ayarlanır.",
+        run: async (page) => {
+          await press(page, await byText(page, "Tamamla & Kilitle", "button"), 2500);
+          await mark(page, await byText(page, "Panelleri Otomatik Yerleştir", "button"), { click: true });
+        },
+      },
+      {
+        title: "Paneller yerleşti",
+        text: "“Panelleri Otomatik Yerleştir” çatıya sığan en fazla paneli dizer. Paneller tek tek tıklanıp taşınabilir, döndürülebilir (R) veya silinebilir (Del); boş alanda dikdörtgen çizerek çoklu seçim yapılır.",
+        toast: true,
+        run: async (page) => {
+          await press(page, await byText(page, "Panelleri Otomatik Yerleştir", "button"), 3000);
+          await top(page);
+        },
+      },
+      {
+        title: "3B görünüm",
+        text: "“3B” düğmesi binayı, çatıyı ve panelleri uydu görüntüsü üzerinde üç boyutlu gösterir. Fareyle döndürülür, tekerlekle yakınlaştırılır.",
+        run: async (page) => {
+          await press(page, await byText(page, "3B", "button"), 4000);
+          await mark(page, await byText(page, "3B", "button"), { click: true });
+        },
+      },
+      {
+        title: "Analiz özeti",
+        text: "Toplam panel sayısı, kurulu güç, özgül üretim ve yaklaşık yıllık üretim gösterilir. Üretim tahmini şehir bazlı özgül üretimle yapılır.",
+        run: async (page) => {
+          await press(page, await byText(page, "Analiz", "button"), 2500);
         },
       },
     ],
