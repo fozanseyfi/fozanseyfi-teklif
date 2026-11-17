@@ -8,7 +8,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sun, LandPlot, Save, FileText, FileType2, Download, Package, Table2, RefreshCw, FileCheck2, Upload, Trash2, Briefcase, Wrench } from "lucide-react";
-import { saveSozlesme, uploadSignedContract, removeSignedContract } from "@/app/actions/sozlesme";
+import { saveSozlesme, prepareSignedContractUpload, confirmSignedContractUpload, removeSignedContract } from "@/app/actions/sozlesme";
+import { createSupabaseBrowser } from "@/lib/supabase/client";
 import {
   getTemplate,
   fieldKey,
@@ -220,9 +221,20 @@ export function SozlesmeEditor({ projectId, projectName, canEdit, tur, autofill,
     if (!file) return;
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const r = await uploadSignedContract(projectId, fd);
+      // PDF doğrudan depoya yüklenir (sunucu fonksiyonunun gövde sınırına takılmaz)
+      const prep = await prepareSignedContractUpload(projectId, { name: file.name, size: file.size, type: file.type });
+      if (prep.error || !prep.path || !prep.token) {
+        toast.error(prep.error ?? "Yükleme başlatılamadı");
+        return;
+      }
+      const up = await createSupabaseBrowser()
+        .storage.from("brand-logos")
+        .uploadToSignedUrl(prep.path, prep.token, file, { contentType: "application/pdf" });
+      if (up.error) {
+        toast.error(`Yüklenemedi: ${up.error.message}`);
+        return;
+      }
+      const r = await confirmSignedContractUpload(projectId, { path: prep.path, name: file.name, size: file.size });
       if (r.error) {
         toast.error(r.error);
       } else {
@@ -231,6 +243,8 @@ export function SozlesmeEditor({ projectId, projectName, canEdit, tur, autofill,
         setPdfKey((k) => k + 1);
         router.refresh();
       }
+    } catch (err) {
+      toast.error(err instanceof Error ? `Yüklenemedi: ${err.message}` : "Yüklenemedi");
     } finally {
       setUploading(false);
     }
@@ -338,7 +352,7 @@ export function SozlesmeEditor({ projectId, projectName, canEdit, tur, autofill,
               {canEdit && (
                 <label className={cn("inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border/60 bg-card px-3 py-1.5 text-[12px] font-semibold hover:bg-muted", uploading && "pointer-events-none opacity-60")}>
                   <Upload className="size-4" /> {uploading ? "Yükleniyor…" : signedLocal ? "Yeni yükle" : "PDF yükle"}
-                  <input type="file" accept="application/pdf" className="hidden" onChange={onPickSigned} />
+                  <input type="file" accept="application/pdf,.pdf" className="hidden" onChange={onPickSigned} />
                 </label>
               )}
               {canEdit && signedLocal && (
@@ -372,7 +386,7 @@ export function SozlesmeEditor({ projectId, projectName, canEdit, tur, autofill,
                 {canEdit && (
                   <label className="mt-1 inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground hover:opacity-90">
                     <Upload className="size-4" /> PDF seç
-                    <input type="file" accept="application/pdf" className="hidden" onChange={onPickSigned} />
+                    <input type="file" accept="application/pdf,.pdf" className="hidden" onChange={onPickSigned} />
                   </label>
                 )}
               </div>

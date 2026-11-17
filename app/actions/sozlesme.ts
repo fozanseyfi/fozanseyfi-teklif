@@ -54,32 +54,64 @@ export async function saveSozlesme(projectId: string, data: SozlesmeData) {
   revalidatePath(`/sozlesmeler/${projectId}`);
 }
 
-/** İmzalı sözleşme (tek tarama PDF) yükler. */
-export async function uploadSignedContract(projectId: string, formData: FormData): Promise<{ error?: string; success?: string }> {
-  const project = await loadEditableProject(projectId);
+const MAX_SIGNED = 30 * 1024 * 1024;
+const isPdf = (name: string, type: string) => type === "application/pdf" || /.pdf$/i.test(name);
+
+/**
+ * İmzalı sözleşme yükleme — 1. adım: depoya doğrudan yükleme için imzalı link üretir.
+ * Dosya sunucu fonksiyonundan geçmez (Vercel istek gövdesi ~4,5 MB ile sınırlı; taranmış
+ * sözleşmeler genelde daha büyük), tarayıcı bu linkle doğrudan Supabase Storage'a yükler.
+ */
+export async function prepareSignedContractUpload(
+  projectId: string,
+  file: { name: string; size: number; type: string },
+): Promise<{ error?: string; path?: string; token?: string }> {
+  await loadEditableProject(projectId);
   const user = await requireAuth();
-
-  const file = formData.get("file") as File | null;
-  if (!file || file.size === 0) return { error: "Dosya seçilmedi" };
-  if (file.type !== "application/pdf") return { error: "Sadece PDF (tek tarama imzalı sözleşme) kabul edilir" };
-  if (file.size > 30 * 1024 * 1024) return { error: "PDF 30 MB'tan büyük olamaz" };
-
-  const admin = createSupabaseAdmin();
-  const old = await readSozlesme(projectId);
-  const prev = old.imzali as ImzaliSozlesme | undefined;
+  if (!file.size) return { error: "Dosya seçilmedi" };
+  if (!isPdf(file.name, file.type)) return { error: "Sadece PDF (tek tarama imzalı sözleşme) kabul edilir" };
+  if (file.size > MAX_SIGNED) return { error: "PDF 30 MB'tan büyük olamaz" };
 
   const path = `org-${user.organizationId}/sozlesme/${projectId}/imzali-${Date.now()}.pdf`;
-  const { error } = await admin.storage.from(BUCKET).upload(path, file, { contentType: "application/pdf", upsert: true });
-  if (error) return { error: `Yüklenemedi: ${error.message}` };
+  const { data, error } = await createSupabaseAdmin().storage.from(BUCKET).createSignedUploadUrl(path);
+  if (error || !data) return { error: `Yükleme başlatılamadı: ${error?.message ?? "bilinmeyen hata"}` };
+  return { path: data.path, token: data.token };
+}
 
-  // Eski dosyayı temizle
-  if (prev?.path && prev.path !== path) {
+/** İmzalı sözleşme yükleme — 2. adım: depoya yüklenen dosyayı sözleşmeye bağlar, eskisini siler. */
+export async function confirmSignedContractUpload(
+  projectId: string,
+  file: { path: string; name: string; size: number },
+): Promise<{ error?: string; success?: string }> {
+  const project = await loadEditableProject(projectId);
+  const user = await requireAuth();
+  // Yalnız bu proje için üretilmiş yollar kabul edilir
+  const prefix = `org-${user.organizationId}/sozlesme/${projectId}/imzali-`;
+  if (!file.path.startsWith(prefix) || !file.path.endsWith(".pdf") || file.path.includes("..")) {
+    return { error: "Geçersiz dosya yolu" };
+  }
+
+  const admin = createSupabaseAdmin();
+  const folder = file.path.slice(0, file.path.lastIndexOf("/"));
+  const { data: list } = await admin.storage.from(BUCKET).list(folder, { search: file.path.slice(folder.length + 1) });
+  const stored = list?.find((o) => `${folder}/${o.name}` === file.path);
+  if (!stored) return { error: "Dosya depoya ulaşmadı, tekrar deneyin" };
+  const size = Number((stored.metadata as { size?: number } | null)?.size ?? file.size);
+  if (size > MAX_SIGNED) {
+    await admin.storage.from(BUCKET).remove([file.path]);
+    return { error: "PDF 30 MB'tan büyük olamaz" };
+  }
+
+  const old = await readSozlesme(projectId);
+  const prev = old.imzali as ImzaliSozlesme | undefined;
+  if (prev?.path && prev.path !== file.path) {
     try { await admin.storage.from(BUCKET).remove([prev.path]); } catch { /* yut */ }
   }
 
-  const imzali: ImzaliSozlesme = { path, name: file.name, uploadedAt: new Date().toISOString(), size: file.size };
+  const name = file.name.slice(0, 200);
+  const imzali: ImzaliSozlesme = { path: file.path, name, uploadedAt: new Date().toISOString(), size };
   await writeSozlesme(projectId, { ...old, imzali });
-  await logAudit(user, "upload_signed_contract", "project", projectId, project.name, { name: file.name });
+  await logAudit(user, "upload_signed_contract", "project", projectId, project.name, { name });
   revalidatePath(`/sozlesmeler/${projectId}`);
   return { success: "İmzalı sözleşme yüklendi" };
 }
