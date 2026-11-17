@@ -6,10 +6,11 @@ import { login } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Sun, Sparkles, Mail, Globe } from "lucide-react";
+import { Eye, EyeOff, Sun, Sparkles, Mail, Globe, PlayCircle } from "lucide-react";
 import { LoginDemo } from "@/components/auth/login-demo";
 import { PlatformNoteCard, PrivacyCard } from "@/components/auth/login-info";
 import { OtherPlatforms } from "@/components/auth/other-platforms";
+import { TourLink, TourPromo } from "@/components/auth/tour-promo";
 
 const DEV_LINKS = {
   linkedin: "https://www.linkedin.com/in/furkan-ozan-seyfi",
@@ -83,6 +84,14 @@ export default function LoginPage() {
             <div className="hidden sm:flex sm:items-center sm:gap-2">
               <SocialIcons />
             </div>
+            <Link
+              href="/tanitim"
+              className="inline-flex h-8 items-center gap-1 rounded-lg border border-border/70 bg-card px-2.5 text-[11px] font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary sm:ml-1.5 sm:h-9 sm:gap-1.5 sm:px-3.5 sm:text-xs"
+            >
+              <PlayCircle className="size-3 sm:size-3.5" />
+              <span className="hidden xs:inline">Platform Tanıtımı</span>
+              <span className="xs:hidden">Tanıtım</span>
+            </Link>
             <Link
               href="/register"
               className="inline-flex h-8 items-center gap-1 rounded-lg bg-primary px-2.5 text-[11px] font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 sm:ml-1.5 sm:h-9 sm:gap-1.5 sm:px-3.5 sm:text-xs"
@@ -171,6 +180,10 @@ export default function LoginPage() {
                 </Link>
               </p>
 
+              <div className="mt-4">
+                <TourLink />
+              </div>
+
               {/* Bilgi paylaşımı kartı — form genişliğinde (Giriş Yap butonu ile aynı) */}
               <div className="mt-5 sm:mt-6">
                 <PlatformNoteCard />
@@ -187,6 +200,9 @@ export default function LoginPage() {
           <PrivacyCard />
         </section>
       </main>
+
+      {/* PLATFORM TANITIMI — kayıt olmadan önce gerçek ekranlarla */}
+      <TourPromo />
 
       {/* DİĞER PLATFORMLAR — geliştirici footer'ının hemen üstü */}
       <OtherPlatforms />
