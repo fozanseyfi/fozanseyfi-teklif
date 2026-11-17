@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 
 /** Sol menüdeki “Platform Tanıtımı” — uygulama kabuğu içinde (üst bar 56px). */
 export default function PlatformTanitimiPage() {
-  return <TourView top={56 + 32} />;
+  return <TourView top={56 + 24} />;
 }
