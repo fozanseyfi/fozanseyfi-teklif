@@ -17,6 +17,8 @@ const VIEW_H = manifest.viewport?.h ?? 900;
 const RATIO = VIEW_W / VIEW_H;
 const TOTAL = MODULES.reduce((s, m) => s + m.steps.length, 0);
 const pad = (n: number) => String(n).padStart(2, "0");
+/** Ekran numarası: bölüm.adım — 01.01, 08.05 */
+const num = (m: number, s: number) => `${pad(m + 1)}.${pad(s + 1)}`;
 
 /** Galerideki kartlar: her bölüm bir giriş kartı + adım kartları. `g` = genel ekran sırası (1…TOTAL). */
 type IntroC = { kind: "intro"; m: number; k: number };
@@ -106,9 +108,7 @@ export function TourView({ top = 0 }: { top?: number }) {
       className="mx-auto min-w-0 max-w-[1560px] text-foreground"
       style={{ "--gallery-h": `calc(100vh - ${top + 24}px)` } as React.CSSProperties}
     >
-      <Hero onStart={() => goCard(0)} />
-
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
         <Navigator
           activeModule={card.m}
           activeStep={card.kind === "step" ? card.s : -1}
@@ -123,21 +123,30 @@ export function TourView({ top = 0 }: { top?: number }) {
           className="relative min-w-0 rounded-2xl border border-border bg-[linear-gradient(180deg,var(--color-secondary),var(--color-background)_40%)] px-3 pb-3 [scrollbar-width:thin] lg:h-[var(--gallery-h)] lg:min-h-[620px] lg:overflow-y-auto lg:px-5"
           aria-label="Ekran galerisi"
         >
-          {CARDS.map((c, i) => (
-            <div key={i} className="contents">
-              <div
-                ref={(el) => {
-                  markers.current[i] = el;
-                }}
-                className="h-0"
-                aria-hidden
-              />
-              {c.kind === "intro" ? (
-                <IntroCard c={c} onStep={(s) => goCard(cardOfStep(c.m, s))} />
-              ) : (
-                <StepCard c={c} onZoom={() => setZoom({ m: c.m, s: c.s })} />
+          {/* Her bölüm ayrı bir kap: yapışkan kartlar yalnız kendi bölümü boyunca üst üste biner,
+              bölüm bitince yığın birlikte yukarı çıkar. (Tek kapta 120+ yapışkan kart birikince
+              tarayıcı katmanları bozuluyordu.) */}
+          {MODULES.map((_, mi) => (
+            <section key={mi} className="pb-6">
+              {CARDS.map((c, i) =>
+                c.m !== mi ? null : (
+                  <div key={i} className="contents">
+                    <div
+                      ref={(el) => {
+                        markers.current[i] = el;
+                      }}
+                      className="h-0"
+                      aria-hidden
+                    />
+                    {c.kind === "intro" ? (
+                      <IntroCard c={c} onStep={(s) => goCard(cardOfStep(c.m, s))} />
+                    ) : (
+                      <StepCard c={c} onZoom={() => setZoom({ m: c.m, s: c.s })} />
+                    )}
+                  </div>
+                ),
               )}
-            </div>
+            </section>
           ))}
           <div className="py-10 text-center text-[13px] text-muted-foreground">
             Tanıtımın sonu — {MODULES.length} bölüm, {TOTAL} ekran.{" "}
@@ -153,48 +162,6 @@ export function TourView({ top = 0 }: { top?: number }) {
       </p>
 
       {zoom && <Lightbox pos={zoom} onMove={setZoom} onClose={() => setZoom(null)} />}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ üst tanıtım */
-
-function Hero({ onStart }: { onStart: () => void }) {
-  return (
-    <section className="rounded-2xl border border-border bg-card px-5 py-5 sm:px-7">
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Platform Tanıtımı · Çalışan ekranlar</p>
-          <h1 className="mt-1.5 text-[26px] font-semibold leading-tight tracking-tight sm:text-[30px]">
-            SolarTeklif’i ekran ekran tanıyın
-          </h1>
-          <p className="mt-2 max-w-3xl text-[14px] leading-relaxed text-muted-foreground">
-            Teklif hazırlamadan müşteriyle paylaşıma, sözleşmeden maliyet kontrolüne kadar platformun tüm modülleri gerçek
-            ekranlar üzerinden adım adım. Fareyi ekranların üzerine getirip tekerlekle kaydırın; her ekranda tıklanan veya
-            doldurulan yer kırmızı çerçeveyle işaretlidir.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-stretch gap-2">
-          <Stat value={MODULES.length} label="bölüm" />
-          <Stat value={TOTAL} label="çalışan ekran" />
-          <button
-            type="button"
-            onClick={onStart}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 text-[13px] font-semibold text-primary-foreground hover:opacity-90"
-          >
-            Baştan başla <ChevronRight className="size-4" />
-          </button>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Stat({ value, label }: { value: number; label: string }) {
-  return (
-    <div className="min-w-[96px] rounded-lg border border-border bg-secondary/60 px-3 py-2">
-      <div className="text-[22px] font-semibold leading-none tabular-nums">{value}</div>
-      <div className="mt-1 text-[11px] text-muted-foreground">{label}</div>
     </div>
   );
 }
@@ -284,7 +251,7 @@ function Navigator({
                             si === activeStep ? "border-primary bg-primary" : si < activeStep ? "border-primary/60 bg-primary/30" : "border-border bg-card",
                           )}
                         />
-                        <span className="w-5 shrink-0 tabular-nums opacity-70">{pad(si + 1)}</span>
+                        <span className="w-9 shrink-0 tabular-nums opacity-70">{num(mi, si)}</span>
                         <span>{s.title}</span>
                       </button>
                     </li>
@@ -306,14 +273,14 @@ const stickyStyle = (k: number) => ({ "--k": k }) as React.CSSProperties;
 const cardBase =
   "relative mt-4 flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[0_24px_60px_-28px_rgba(15,23,42,.45)] lg:sticky lg:top-[calc(12px+var(--k)*10px)] lg:h-[calc(var(--gallery-h)-78px)] lg:min-h-[540px]";
 
-function OutlineNum({ n, className }: { n: number; className?: string }) {
+function OutlineNum({ n, className }: { n: string; className?: string }) {
   return (
     <span
       aria-hidden
       className={cn("select-none font-semibold leading-none tracking-tight text-transparent tabular-nums", className)}
       style={{ WebkitTextStroke: "1.6px var(--color-primary)" }}
     >
-      {pad(n)}
+      {n}
     </span>
   );
 }
@@ -324,7 +291,7 @@ function IntroCard({ c, onStep }: { c: IntroC; onStep: (s: number) => void }) {
     <article className={cardBase} style={stickyStyle(c.k)}>
       <div className="flex h-full flex-col justify-center gap-6 bg-[radial-gradient(120%_80%_at_0%_0%,var(--color-primary-soft),transparent_60%)] px-6 py-8 sm:px-10">
         <div className="flex items-start gap-5">
-          <OutlineNum n={c.m + 1} className="text-[72px] sm:text-[96px]" />
+          <OutlineNum n={pad(c.m + 1)} className="text-[72px] sm:text-[96px]" />
           <div className="min-w-0 pt-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
               Bölüm {pad(c.m + 1)} / {pad(MODULES.length)} · {m.group}
@@ -341,7 +308,7 @@ function IntroCard({ c, onStep }: { c: IntroC; onStep: (s: number) => void }) {
                 onClick={() => onStep(i)}
                 className="group flex w-full items-center gap-3 rounded-lg border border-border bg-card/80 px-3 py-2 text-left transition-colors hover:border-primary/50"
               >
-                <span className="text-[12px] font-semibold tabular-nums text-primary">{pad(i + 1)}</span>
+                <span className="text-[12px] font-semibold tabular-nums text-primary">{num(c.m, i)}</span>
                 <span className="min-w-0 truncate text-[13px]">{s.title}</span>
                 <ArrowUpRight className="ml-auto size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
               </button>
@@ -361,7 +328,7 @@ function StepCard({ c, onZoom }: { c: StepC; onZoom: () => void }) {
     <article className={cardBase} style={stickyStyle(c.k)}>
       {/* Başlık */}
       <header className="flex flex-wrap items-start gap-x-5 gap-y-3 px-5 pb-3 pt-4 sm:px-7">
-        <OutlineNum n={c.s + 1} className="text-[52px] sm:text-[60px]" />
+        <OutlineNum n={num(c.m, c.s)} className="text-[44px] sm:text-[52px]" />
         <div className="min-w-0 flex-1 basis-[320px] pt-0.5">
           <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-primary">
             {pad(c.m + 1)} · {m.title}
@@ -384,7 +351,7 @@ function StepCard({ c, onZoom }: { c: StepC; onZoom: () => void }) {
           </span>
           <span className="ml-auto flex shrink-0 items-center gap-2">
             <span className="hidden font-mono text-[10.5px] tracking-wide text-white/55 md:inline">
-              EKRAN {pad(c.s + 1)}/{pad(m.steps.length)} · {pad(c.g)}/{TOTAL}
+              EKRAN {num(c.m, c.s)} · {pad(c.g)}/{TOTAL}
             </span>
             <button
               type="button"
@@ -490,7 +457,7 @@ function Lightbox({
       >
         <span className="min-w-0 truncate">
           <span className="text-white/60">
-            {pad(pos.m + 1)} · {mod.title} · Ekran {pos.s + 1}/{mod.steps.length} —{" "}
+            {num(pos.m, pos.s)} · {mod.title} —{" "}
           </span>
           <span className="font-semibold">{step.title}</span>
         </span>
