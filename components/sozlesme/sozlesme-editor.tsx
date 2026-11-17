@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Sun, LandPlot, Save, FileText, FileType2, Download, Package, Table2, RefreshCw, FileCheck2, Upload, Trash2, Briefcase, Wrench } from "lucide-react";
 import { saveSozlesme, prepareSignedContractUpload, confirmSignedContractUpload, removeSignedContract } from "@/app/actions/sozlesme";
 import { createSupabaseBrowser } from "@/lib/supabase/client";
+import { PdfPages } from "@/components/sozlesme/pdf-pages";
 import {
   getTemplate,
   fieldKey,
@@ -162,7 +163,8 @@ export function SozlesmeEditor({ projectId, projectName, canEdit, tur, autofill,
   );
 
   useEffect(() => {
-    if (effectiveView !== "metin") return;
+    // "imzali" bir Word belgesi değil (yüklenen PDF) — önizleme istenmez
+    if (effectiveView !== "metin" || activeId === "imzali") return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- önizlemeyi sunucudan çek (dış sistem senkronizasyonu)
     loadPreview(activeId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -367,13 +369,7 @@ export function SozlesmeEditor({ projectId, projectName, canEdit, tur, autofill,
                 <p className="text-[11.5px] text-muted-foreground">
                   {signedLocal.name} · yüklendi {new Date(signedLocal.uploadedAt).toLocaleString("tr-TR")}
                 </p>
-                <iframe
-                  key={pdfKey}
-                  src={`/api/sozlesme/imzali?projectId=${projectId}&v=${pdfKey}#view=FitH`}
-                  title="İmzalı Sözleşme"
-                  style={{ height: "min(85vh, 1100px)", minHeight: 700 }}
-                  className="w-full rounded-md border border-border bg-slate-100"
-                />
+                <PdfPages key={pdfKey} src={`/api/sozlesme/imzali?projectId=${projectId}&v=${pdfKey}`} title="imzali-sozlesme" />
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border py-14 text-center">
