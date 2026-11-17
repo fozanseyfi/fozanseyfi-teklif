@@ -26,8 +26,8 @@ export default function TanitimPage() {
           </nav>
         </div>
       </header>
-      <main className="px-4 py-6">
-        <TourView stickyTop={60} />
+      <main className="px-4 py-4">
+        <TourView top={48 + 32} />
       </main>
     </div>
   );

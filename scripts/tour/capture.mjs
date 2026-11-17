@@ -1321,7 +1321,7 @@ const { browser, page } = await launch({ width: VW, height: VH });
 const guestCtx = await browser.createBrowserContext();
 const guest = await guestCtx.newPage();
 await noSmoothScroll(guest);
-await guest.setViewport({ width: VW, height: VH });
+await guest.setViewport({ width: VW, height: VH, deviceScaleFactor: Number(process.env.TOUR_DPR || 2) });
 guest.setDefaultTimeout(45_000);
 
 try {
@@ -1353,7 +1353,7 @@ try {
           document.querySelectorAll("[data-sonner-toaster]").forEach((n) => (n.style.visibility = keep ? "" : "hidden"));
         }, !!st.toast);
         fs.mkdirSync(OUT, { recursive: true });
-        await pg.screenshot({ path: path.join(OUT, `${name}.webp`), type: "webp", quality: 78 });
+        await pg.screenshot({ path: path.join(OUT, `${name}.webp`), type: "webp", quality: 82 });
         steps.push({
           img: `/tanitim/${name}.webp`,
           title: st.title,

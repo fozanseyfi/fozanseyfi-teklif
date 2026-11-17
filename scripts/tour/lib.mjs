@@ -16,14 +16,14 @@ const BROWSERS = [
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export async function launch({ width = 1440, height = 900 } = {}) {
+export async function launch({ width = 1440, height = 900, scale = Number(process.env.TOUR_DPR || 2) } = {}) {
   const executablePath = BROWSERS.find((p) => fs.existsSync(p));
   if (!executablePath) throw new Error("Tarayıcı bulunamadı (TOUR_BROWSER ile yol verin)");
   const browser = await puppeteer.launch({
     executablePath,
     headless: true,
     args: [`--window-size=${width},${height}`, "--hide-scrollbars", "--lang=tr-TR"],
-    defaultViewport: { width, height, deviceScaleFactor: 1 },
+    defaultViewport: { width, height, deviceScaleFactor: scale },
   });
   const page = await browser.newPage();
   page.setDefaultTimeout(45_000);
