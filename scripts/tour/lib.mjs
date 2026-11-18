@@ -4,6 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import puppeteer from "puppeteer";
+import sharp from "sharp";
 
 export const BASE = process.env.TOUR_BASE_URL || "http://localhost:4000";
 export const OUT = path.resolve(process.env.TOUR_OUT || "public/tanitim");
@@ -13,6 +14,14 @@ const BROWSERS = [
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
   "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
 ].filter(Boolean);
+
+/**
+ * PNG ekran görüntüsünü kayıpsız WebP olarak kaydet: yazılar tamamen keskin kalır, dosya kayıplı
+ * WebP (q82) hâlinden bile küçük olur (arayüz görüntüleri düz renkli olduğu için).
+ */
+export async function saveLossless(png, file) {
+  await sharp(png).webp({ lossless: true, effort: 5 }).toFile(file);
+}
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -26,6 +35,7 @@ export async function launch({ width = 1440, height = 900, scale = Number(proces
     defaultViewport: { width, height, deviceScaleFactor: scale },
   });
   const page = await browser.newPage();
+  autoDialogs(page);
   page.setDefaultTimeout(45_000);
   await noSmoothScroll(page);
   await page.setExtraHTTPHeaders({ "Accept-Language": "tr-TR,tr;q=0.9" });
@@ -46,6 +56,11 @@ export async function noSmoothScroll(page) {
     if (document.head) add();
     else document.addEventListener("DOMContentLoaded", add, { once: true });
   });
+}
+
+/** Tarayıcı onay pencerelerini (kaydedilmemiş değişiklik, confirm) otomatik kabul et — yoksa gezinme takılır. */
+export function autoDialogs(page) {
+  page.on("dialog", (d) => d.accept().catch(() => {}));
 }
 
 /** Sayfa oturdu mu: ağ sakin + yükleniyor göstergesi yok. */
@@ -88,7 +103,7 @@ export async function shot(page, name, { keepToast = false, fullPage = false, di
     else document.querySelectorAll("[data-sonner-toaster]").forEach((n) => (n.style.visibility = ""));
   }, keepToast);
   const file = path.join(dir, `${name}.webp`);
-  await page.screenshot({ path: file, type: "webp", quality: 82, fullPage });
+  await saveLossless(await page.screenshot({ type: "png", fullPage }), file);
   console.log("✓", name);
   return file;
 }

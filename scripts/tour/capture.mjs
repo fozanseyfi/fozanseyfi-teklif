@@ -13,7 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
-import { launch, noSmoothScroll, login, go, settle, sleep, byText, clickText, clickOption, ensureChecked, fill, field, setValue, waitPath, OUT } from "./lib.mjs";
+import { saveLossless, launch, noSmoothScroll, login, go, settle, sleep, byText, clickText, clickOption, ensureChecked, fill, field, setValue, waitPath, OUT } from "./lib.mjs";
 
 const VW = 1440;
 const VH = 900;
@@ -1274,7 +1274,7 @@ const MODULES = [
   {
     id: "destek",
     group: "Destek",
-    title: "Nasıl Çalışır, İletişim ve Diğer Platformlar",
+    title: "Nasıl Çalışır, İletişim ve Platformlarım",
     intro: "Platform içi yardım sayfası, geliştiriciyle iletişim formu ve aynı hesapla kullanılabilen diğer platformlar.",
     steps: [
       {
@@ -1292,8 +1292,8 @@ const MODULES = [
         },
       },
       {
-        title: "Diğer Platformlar",
-        text: "Fizibilite, proje yönetimi, satınalma karar destek ve konstrüksiyon BoM platformlarına buradan geçilir.",
+        title: "Platformlarım",
+        text: "Sol menüdeki Platformlarım bölümünden bu tanıtıma ve fizibilite, proje yönetimi, satınalma karar destek ve konstrüksiyon BoM platformlarına geçilir.",
         run: async (page) => {
           await go(page, "/platforms", 900);
         },
@@ -1353,7 +1353,7 @@ try {
           document.querySelectorAll("[data-sonner-toaster]").forEach((n) => (n.style.visibility = keep ? "" : "hidden"));
         }, !!st.toast);
         fs.mkdirSync(OUT, { recursive: true });
-        await pg.screenshot({ path: path.join(OUT, `${name}.webp`), type: "webp", quality: 82 });
+        await saveLossless(await pg.screenshot({ type: "png" }), path.join(OUT, `${name}.webp`));
         steps.push({
           img: `/tanitim/${name}.webp`,
           title: st.title,

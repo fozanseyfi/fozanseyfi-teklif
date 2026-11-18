@@ -109,12 +109,11 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: "Tanıtım",
-    items: [{ href: "/platform-tanitimi", icon: PlayCircle, label: "Platform Tanıtımı" }],
-  },
-  {
-    label: "Diğer Platformlar",
-    items: [{ href: "/platforms", icon: Boxes, label: "Diğer Platformlar" }],
+    label: "Platformlarım",
+    items: [
+      { href: "/platform-tanitimi", icon: PlayCircle, label: "Platform Tanıtımı" },
+      { href: "/platforms", icon: Boxes, label: "Platformlarım" },
+    ],
   },
 ];
 

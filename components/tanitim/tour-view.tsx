@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUpRight, ChevronLeft, ChevronRight, Lock, MousePointer2, X } from "lucide-react";
+import { ArrowUpRight, Lock, Maximize2, Minimize2, MousePointer2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import manifest from "@/lib/tanitim/manifest.json";
+import { TOUR } from "@/lib/tanitim/config";
 
 /* Görüntüler scripts/tour/capture.mjs ile demo panelden çekilir (2x); manifest aynı betikle üretilir. */
 
@@ -16,6 +17,8 @@ const VIEW_W = manifest.viewport?.w ?? 1440;
 const VIEW_H = manifest.viewport?.h ?? 900;
 const RATIO = VIEW_W / VIEW_H;
 const TOTAL = MODULES.reduce((s, m) => s + m.steps.length, 0);
+/** Vurgu rengi (açık/koyu tema) — renk değişkenleri; Tailwind 3 ve 4'te aynı çalışır. */
+const ACCENT_CSS = `.tour-root{--ta:${TOUR.accent};--ta-soft:color-mix(in srgb,var(--ta) 12%,transparent);--ta-mid:color-mix(in srgb,var(--ta) 35%,transparent)}.dark .tour-root{--ta:${TOUR.accentDark}}`;
 const pad = (n: number) => String(n).padStart(2, "0");
 /** Ekran numarası: bölüm.adım — 01.01, 08.05 */
 const num = (m: number, s: number) => `${pad(m + 1)}.${pad(s + 1)}`;
@@ -33,7 +36,6 @@ const CARDS: Card[] = (() => {
   });
   return out;
 })();
-const STEPS = CARDS.filter((c): c is StepC => c.kind === "step");
 const firstCardOf = (m: number) => CARDS.findIndex((c) => c.m === m);
 const cardOfStep = (m: number, s: number) => CARDS.findIndex((c) => c.kind === "step" && c.m === m && c.s === s);
 
@@ -41,14 +43,17 @@ const cardOfStep = (m: number, s: number) => CARDS.findIndex((c) => c.kind === "
  * Platform tanıtımı — üst üste binen kart akışı.
  * Galeri kendi kaydırma kutusudur: fare ekranların üzerindeyken tekerlek kartları akıtır (yeni kart
  * öncekinin üstüne oturur, arkadakilerin kenarı görünür); yandaki boşlukta tekerlek sayfayı kaydırır.
- * Galerinin başına/sonuna gelince kaydırma doğal olarak sayfaya geçer.
+ * Sağdaki kaydırma çubuğu sürüklenebilir; üzerinde bölüm çizgileri ve o anki ekran numarası görünür.
+ * “Tam ekran” aynı görünümü (İçindekiler + kartlar) bütün ekrana büyütür.
  * `top`: sayfanın üstünde sabit bar varsa yüksekliği (px).
  */
 export function TourView({ top = 0 }: { top?: number }) {
+  const root = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const markers = useRef<(HTMLDivElement | null)[]>([]);
   const [active, setActive] = useState(0);
-  const [zoom, setZoom] = useState<{ m: number; s: number } | null>(null);
+  const [full, setFull] = useState(false);
+  const activeRef = useRef(0);
 
   // Etkin kart: kaydırma konumunu geçen son işaretçi (kartlar yapışkan olduğu için işaretçilerle ölçülür)
   useEffect(() => {
@@ -64,6 +69,7 @@ export function TourView({ top = 0 }: { top?: number }) {
         if (mk && mk.offsetTop <= y) i = k;
         else break;
       }
+      activeRef.current = i;
       setActive(i);
     };
     const onScroll = () => {
@@ -82,12 +88,53 @@ export function TourView({ top = 0 }: { top?: number }) {
     const mk = markers.current[Math.max(0, Math.min(CARDS.length - 1, i))];
     if (!el || !mk) return;
     // Dar ekranda galeri sayfanın parçasıdır (yapışkan değil): sayfayı kaydır
-    if (!window.matchMedia("(min-width: 1024px)").matches) {
+    if (el.scrollHeight <= el.clientHeight + 1) {
       mk.nextElementSibling?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
       return;
     }
     el.scrollTo({ top: mk.offsetTop, behavior: smooth ? "smooth" : "auto" });
   }, []);
+
+  // Tam ekran: aynı görünüm bütün ekranı kaplar (tarayıcı tam ekranı da denenir). Kart yükseklikleri
+  // değiştiği için geçişten sonra aynı karta geri konumlanılır.
+  const toggleFull = useCallback(
+    (on: boolean, card = activeRef.current) => {
+      setFull(on);
+      try {
+        if (on && !document.fullscreenElement) void root.current?.requestFullscreen?.().catch(() => {});
+        if (!on && document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+      } catch {}
+      requestAnimationFrame(() => requestAnimationFrame(() => goCard(card, false)));
+    },
+    [goCard],
+  );
+  useEffect(() => {
+    const onFs = () => {
+      if (!document.fullscreenElement && full) toggleFull(false);
+    };
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, [full, toggleFull]);
+  useEffect(() => {
+    if (!full) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") toggleFull(false);
+      if (e.key === "ArrowDown" || e.key === "ArrowRight" || e.key === "PageDown") {
+        e.preventDefault();
+        goCard(activeRef.current + 1);
+      }
+      if (e.key === "ArrowUp" || e.key === "ArrowLeft" || e.key === "PageUp") {
+        e.preventDefault();
+        goCard(activeRef.current - 1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [full, toggleFull, goCard]);
 
   // Adresteki #bolum ile aç; bölüm değişince adresi güncelle (paylaşılabilir link)
   useEffect(() => {
@@ -105,63 +152,245 @@ export function TourView({ top = 0 }: { top?: number }) {
 
   return (
     <div
-      className="mx-auto min-w-0 max-w-[1560px] text-foreground"
-      style={{ "--gallery-h": `calc(100vh - ${top + 24}px)` } as React.CSSProperties}
+      ref={root}
+      className={cn(
+        "tour-root min-w-0 text-foreground",
+        full ? "fixed inset-0 z-[1000] overflow-hidden bg-background p-3" : "mx-auto max-w-[1560px]",
+      )}
+      style={
+        {
+          "--gallery-h": full ? "calc(100vh - 24px)" : `calc(100vh - ${top + 24}px)`,
+        } as React.CSSProperties
+      }
     >
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
+      <style>{ACCENT_CSS}</style>
+      <div className={cn("grid grid-cols-1 gap-4", full ? "lg:grid-cols-[340px_minmax(0,1fr)]" : "lg:grid-cols-[300px_minmax(0,1fr)]")}>
         <Navigator
           activeModule={card.m}
           activeStep={card.kind === "step" ? card.s : -1}
           shown={shown}
+          full={full}
           onModule={(m) => goCard(firstCardOf(m))}
           onStep={(m, s) => goCard(cardOfStep(m, s))}
         />
 
-        {/* Galeri: kendi kaydırma kutusu */}
-        <div
-          ref={scroller}
-          className="relative min-w-0 rounded-2xl border border-border bg-[linear-gradient(180deg,var(--color-secondary),var(--color-background)_40%)] px-3 pb-3 [scrollbar-width:thin] lg:h-[var(--gallery-h)] lg:min-h-[620px] lg:overflow-y-auto lg:px-5"
-          aria-label="Ekran galerisi"
-        >
-          {/* Her bölüm ayrı bir kap: yapışkan kartlar yalnız kendi bölümü boyunca üst üste biner,
-              bölüm bitince yığın birlikte yukarı çıkar. (Tek kapta 120+ yapışkan kart birikince
-              tarayıcı katmanları bozuluyordu.) */}
-          {MODULES.map((_, mi) => (
-            <section key={mi} className="pb-6">
-              {CARDS.map((c, i) =>
-                c.m !== mi ? null : (
-                  <div key={i} className="contents">
-                    <div
-                      ref={(el) => {
-                        markers.current[i] = el;
-                      }}
-                      className="h-0"
-                      aria-hidden
-                    />
-                    {c.kind === "intro" ? (
-                      <IntroCard c={c} onStep={(s) => goCard(cardOfStep(c.m, s))} />
-                    ) : (
-                      <StepCard c={c} onZoom={() => setZoom({ m: c.m, s: c.s })} />
-                    )}
-                  </div>
-                ),
-              )}
-            </section>
-          ))}
-          <div className="py-10 text-center text-[13px] text-muted-foreground">
-            Tanıtımın sonu — {MODULES.length} bölüm, {TOTAL} ekran.{" "}
-            <button type="button" onClick={() => goCard(0)} className="font-medium text-primary hover:underline">
-              Başa dön ↑
-            </button>
+        {/* Galeri: kendi kaydırma kutusu + sağda sürüklenebilir kaydırma çubuğu */}
+        <div className="relative min-w-0">
+          <div
+            ref={scroller}
+            className={cn(
+              "relative min-w-0 rounded-2xl border border-border bg-secondary px-3 pb-3",
+              "lg:h-[var(--gallery-h)] lg:min-h-[620px] lg:overflow-y-auto lg:pl-5 lg:pr-12 lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden",
+              full && "h-[var(--gallery-h)] overflow-y-auto",
+            )}
+            id="tour-gallery"
+            aria-label="Ekran galerisi"
+          >
+            {/* Her bölüm ayrı bir kap: yapışkan kartlar yalnız kendi bölümü boyunca üst üste biner,
+                bölüm bitince yığın birlikte yukarı çıkar. (Tek kapta 120+ yapışkan kart birikince
+                tarayıcı katmanları bozuluyordu.) */}
+            {MODULES.map((_, mi) => (
+              <section key={mi} className="pb-6">
+                {CARDS.map((c, i) =>
+                  c.m !== mi ? null : (
+                    <div key={i} className="contents">
+                      <div
+                        ref={(el) => {
+                          markers.current[i] = el;
+                        }}
+                        className="h-0"
+                        aria-hidden
+                      />
+                      {c.kind === "intro" ? (
+                        <IntroCard c={c} onStep={(s) => goCard(cardOfStep(c.m, s))} />
+                      ) : (
+                        <StepCard c={c} full={full} onFull={() => toggleFull(!full, i)} />
+                      )}
+                    </div>
+                  ),
+                )}
+              </section>
+            ))}
+            <div className="py-10 text-center text-[13px] text-muted-foreground">
+              Tanıtımın sonu — {MODULES.length} bölüm, {TOTAL} ekran.{" "}
+              <button type="button" onClick={() => goCard(0)} className="font-medium text-[var(--ta)] hover:underline">
+                Başa dön ↑
+              </button>
+            </div>
           </div>
+          <ScrollRail scroller={scroller} markers={markers} active={active} />
         </div>
       </div>
 
-      <p className="mt-3 text-[11.5px] text-muted-foreground">
-        Ekran görüntüleri örnek verilerle doldurulmuş bir demo panelden alınmıştır; kişi, firma ve tutarlar gerçek değildir.
-      </p>
+      {!full && (
+        <p className="mt-3 text-[11.5px] text-muted-foreground">
+          Ekran görüntüleri örnek verilerle doldurulmuş bir demo panelden alınmıştır; kişi, firma ve tutarlar gerçek değildir.
+        </p>
+      )}
+    </div>
+  );
+}
 
-      {zoom && <Lightbox pos={zoom} onMove={setZoom} onClose={() => setZoom(null)} />}
+/* ------------------------------------------------------------------ kaydırma çubuğu */
+
+/**
+ * Galerinin sağındaki kaydırma çubuğu: tutup sürüklenir, raya tıklanınca oraya atlar, üzerinde
+ * tekerlek galeriyi kaydırır. Rayda her bölümün başı çizgiyle işaretli; tutamağın yanında o anki
+ * ekran numarası görünür.
+ */
+function ScrollRail({
+  scroller,
+  markers,
+  active,
+}: {
+  scroller: React.RefObject<HTMLDivElement | null>;
+  markers: React.RefObject<(HTMLDivElement | null)[]>;
+  active: number;
+}) {
+  const rail = useRef<HTMLDivElement>(null);
+  const [m, setM] = useState({ top: 0, h: 1, view: 1 });
+  const [ticks, setTicks] = useState<{ y: number; m: number }[]>([]);
+  const [drag, setDrag] = useState(false);
+  const [hover, setHover] = useState(false);
+
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    let raf = 0;
+    const read = () => {
+      raf = 0;
+      setM({ top: el.scrollTop, h: el.scrollHeight, view: el.clientHeight });
+    };
+    const measure = () => {
+      read();
+      const h = el.scrollHeight || 1;
+      setTicks(
+        MODULES.map((_, mi) => {
+          const mk = markers.current?.[firstCardOf(mi)];
+          return { y: mk ? mk.offsetTop / h : 0, m: mi };
+        }),
+      );
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(read);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    measure();
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+      cancelAnimationFrame(raf);
+    };
+  }, [scroller, markers]);
+
+  const canScroll = m.h > m.view + 1;
+  // Ray üzerinde tekerlek → galeri (sayfa değil)
+  useEffect(() => {
+    const r = rail.current;
+    const el = scroller.current;
+    if (!r || !el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      el.scrollBy({ top: e.deltaY });
+    };
+    r.addEventListener("wheel", onWheel, { passive: false });
+    return () => r.removeEventListener("wheel", onWheel);
+    // ray yalnız kaydırılabilir olunca DOM'a girer → o an yeniden bağlan
+  }, [scroller, canScroll]);
+
+  const scrollable = canScroll;
+  const thumbFrac = Math.min(1, Math.max(0.06, m.view / m.h));
+  const posFrac = scrollable ? m.top / (m.h - m.view) : 0;
+
+  // Rayın piksel ölçüsü üzerinden fare konumu → kaydırma konumu
+  const scrollToClientY = (clientY: number, grab: number) => {
+    const r = rail.current?.getBoundingClientRect();
+    const el = scroller.current;
+    if (!r || !el) return;
+    const thumbPx = r.height * thumbFrac;
+    const f = Math.min(1, Math.max(0, (clientY - r.top - grab) / (r.height - thumbPx)));
+    el.scrollTo({ top: f * (el.scrollHeight - el.clientHeight) });
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    const r = rail.current?.getBoundingClientRect();
+    if (!r) return;
+    e.preventDefault();
+    const thumbPx = r.height * thumbFrac;
+    const thumbTop = r.top + posFrac * (r.height - thumbPx);
+    // Tutamağın üstünde basıldıysa tuttuğu yerden sürüklenir; rayda basıldıysa tutamak oraya ortalanır
+    const onThumb = e.clientY >= thumbTop && e.clientY <= thumbTop + thumbPx;
+    const grab = onThumb ? e.clientY - thumbTop : thumbPx / 2;
+    if (!onThumb) scrollToClientY(e.clientY, grab);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    setDrag(true);
+    const move = (ev: PointerEvent) => scrollToClientY(ev.clientY, grab);
+    const up = () => {
+      setDrag(false);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
+  if (!scrollable) return null;
+  const c = CARDS[active];
+  const label = c.kind === "step" ? num(c.m, c.s) : `${pad(c.m + 1)} · ${MODULES[c.m].title}`;
+
+  return (
+    <div
+      ref={rail}
+      onPointerDown={onPointerDown}
+      onPointerEnter={() => setHover(true)}
+      onPointerLeave={() => setHover(false)}
+      className="absolute bottom-4 right-2.5 top-4 z-20 hidden w-5 cursor-pointer touch-none select-none lg:block"
+      role="scrollbar"
+      aria-controls="tour-gallery"
+      aria-orientation="vertical"
+      aria-valuenow={Math.round(posFrac * 100)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label="Tanıtımı kaydır"
+    >
+      {/* Ray */}
+      <div className="absolute inset-y-0 left-1/2 w-1.5 -translate-x-1/2 rounded-full bg-border" />
+      {/* Bölüm çizgileri */}
+      {ticks.map((t) => (
+        <span
+          key={t.m}
+          className={cn(
+            "absolute left-1/2 h-[2px] -translate-x-1/2 rounded-full transition-colors",
+            t.m === c.m ? "w-4 bg-[var(--ta)]" : "w-2.5 bg-muted-foreground opacity-40",
+          )}
+          style={{ top: `${t.y * 100}%` }}
+          title={`${pad(t.m + 1)} · ${MODULES[t.m].title}`}
+        />
+      ))}
+      {/* Tutamak */}
+      <div
+        className={cn(
+          "absolute left-1/2 flex w-3.5 -translate-x-1/2 flex-col items-center justify-center gap-[3px] rounded-full bg-[var(--ta)] shadow-[0_4px_14px_-4px_var(--ta)] ring-2 ring-card transition-[width] duration-150",
+          (drag || hover) && "w-[18px]",
+          drag ? "cursor-grabbing" : "cursor-grab",
+        )}
+        style={{ top: `calc(${posFrac} * (100% - ${thumbFrac * 100}%))`, height: `${thumbFrac * 100}%`, minHeight: 44 }}
+      >
+        <span className="h-[2px] w-1.5 rounded-full bg-white/80" />
+        <span className="h-[2px] w-1.5 rounded-full bg-white/80" />
+        <span className="h-[2px] w-1.5 rounded-full bg-white/80" />
+        {/* Konum etiketi */}
+        <span
+          className={cn(
+            "pointer-events-none absolute right-[calc(100%+10px)] top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-1 font-mono text-[11px] font-semibold text-background shadow-lg transition-opacity",
+            drag || hover ? "opacity-100" : "opacity-0",
+          )}
+        >
+          {label}
+        </span>
+      </div>
     </div>
   );
 }
@@ -172,12 +401,14 @@ function Navigator({
   activeModule,
   activeStep,
   shown,
+  full,
   onModule,
   onStep,
 }: {
   activeModule: number;
   activeStep: number;
   shown: number;
+  full: boolean;
   onModule: (m: number) => void;
   onStep: (m: number, s: number) => void;
 }) {
@@ -187,7 +418,7 @@ function Navigator({
   }, [activeModule]);
 
   return (
-    <aside className="hidden min-h-0 flex-col rounded-2xl border border-border bg-card lg:flex lg:h-[var(--gallery-h)] lg:min-h-[620px]">
+    <aside className={cn("hidden min-h-0 flex-col rounded-2xl border border-border bg-card lg:flex lg:h-[var(--gallery-h)]", !full && "lg:min-h-[620px]")}>
       <div className="border-b border-border px-4 py-3">
         <div className="flex items-baseline justify-between">
           <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">İçindekiler</span>
@@ -196,7 +427,7 @@ function Navigator({
           </span>
         </div>
         <div className="mt-2 h-1 rounded-full bg-border">
-          <div className="h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${(shown / TOTAL) * 100}%` }} />
+          <div className="h-full rounded-full bg-[var(--ta)] transition-[width] duration-300" style={{ width: `${(shown / TOTAL) * 100}%` }} />
         </div>
       </div>
 
@@ -211,19 +442,19 @@ function Navigator({
                 onClick={() => onModule(mi)}
                 className={cn(
                   "flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors",
-                  on ? "bg-primary-soft" : "hover:bg-secondary",
+                  on ? "bg-[var(--ta-soft)]" : "hover:bg-secondary",
                 )}
               >
                 <span
                   className={cn(
                     "flex size-7 shrink-0 items-center justify-center rounded-md text-[11px] font-bold tabular-nums",
-                    on ? "bg-primary text-primary-foreground" : done ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground",
+                    on ? "bg-[var(--ta)] text-white" : done ? "bg-[var(--ta-soft)] text-[var(--ta)]" : "bg-secondary text-muted-foreground",
                   )}
                 >
                   {pad(mi + 1)}
                 </span>
                 <span className="min-w-0">
-                  <span className={cn("block truncate text-[13px] leading-tight", on ? "font-semibold" : "text-foreground/80")}>{m.title}</span>
+                  <span className={cn("block truncate text-[13px] leading-tight", on ? "font-semibold" : "text-foreground opacity-80")}>{m.title}</span>
                   <span className="block text-[11px] text-muted-foreground">
                     {m.group} · {m.steps.length} ekran
                   </span>
@@ -239,16 +470,16 @@ function Navigator({
                         className={cn(
                           "relative flex w-full gap-2 py-1 text-left text-[12.5px] leading-snug transition-colors",
                           si === activeStep
-                            ? "font-semibold text-primary"
+                            ? "font-semibold text-[var(--ta)]"
                             : si < activeStep
-                              ? "text-foreground/70"
+                              ? "text-foreground opacity-70"
                               : "text-muted-foreground hover:text-foreground",
                         )}
                       >
                         <span
                           className={cn(
                             "absolute -left-[17px] top-[9px] size-[7px] rounded-full border",
-                            si === activeStep ? "border-primary bg-primary" : si < activeStep ? "border-primary/60 bg-primary/30" : "border-border bg-card",
+                            si === activeStep ? "border-[var(--ta)] bg-[var(--ta)]" : si < activeStep ? "border-[var(--ta-mid)] bg-[var(--ta-mid)]" : "border-border bg-card",
                           )}
                         />
                         <span className="w-9 shrink-0 tabular-nums opacity-70">{num(mi, si)}</span>
@@ -278,7 +509,7 @@ function OutlineNum({ n, className }: { n: string; className?: string }) {
     <span
       aria-hidden
       className={cn("select-none font-semibold leading-none tracking-tight text-transparent tabular-nums", className)}
-      style={{ WebkitTextStroke: "1.6px var(--color-primary)" }}
+      style={{ WebkitTextStroke: "1.6px var(--ta)" }}
     >
       {n}
     </span>
@@ -289,11 +520,11 @@ function IntroCard({ c, onStep }: { c: IntroC; onStep: (s: number) => void }) {
   const m = MODULES[c.m];
   return (
     <article className={cardBase} style={stickyStyle(c.k)}>
-      <div className="flex h-full flex-col justify-center gap-6 bg-[radial-gradient(120%_80%_at_0%_0%,var(--color-primary-soft),transparent_60%)] px-6 py-8 sm:px-10">
+      <div className="flex h-full flex-col justify-center gap-6 bg-[radial-gradient(120%_80%_at_0%_0%,var(--ta-soft),transparent_60%)] px-6 py-8 sm:px-10">
         <div className="flex items-start gap-5">
           <OutlineNum n={pad(c.m + 1)} className="text-[72px] sm:text-[96px]" />
           <div className="min-w-0 pt-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--ta)]">
               Bölüm {pad(c.m + 1)} / {pad(MODULES.length)} · {m.group}
             </p>
             <h2 className="mt-1 text-[26px] font-semibold leading-tight tracking-tight sm:text-[32px]">{m.title}</h2>
@@ -306,9 +537,9 @@ function IntroCard({ c, onStep }: { c: IntroC; onStep: (s: number) => void }) {
               <button
                 type="button"
                 onClick={() => onStep(i)}
-                className="group flex w-full items-center gap-3 rounded-lg border border-border bg-card/80 px-3 py-2 text-left transition-colors hover:border-primary/50"
+                className="group flex w-full items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 text-left transition-colors hover:border-[var(--ta)]"
               >
-                <span className="text-[12px] font-semibold tabular-nums text-primary">{num(c.m, i)}</span>
+                <span className="text-[12px] font-semibold tabular-nums text-[var(--ta)]">{num(c.m, i)}</span>
                 <span className="min-w-0 truncate text-[13px]">{s.title}</span>
                 <ArrowUpRight className="ml-auto size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
               </button>
@@ -321,7 +552,7 @@ function IntroCard({ c, onStep }: { c: IntroC; onStep: (s: number) => void }) {
   );
 }
 
-function StepCard({ c, onZoom }: { c: StepC; onZoom: () => void }) {
+function StepCard({ c, full, onFull }: { c: StepC; full: boolean; onFull: () => void }) {
   const m = MODULES[c.m];
   const st = m.steps[c.s];
   return (
@@ -330,7 +561,7 @@ function StepCard({ c, onZoom }: { c: StepC; onZoom: () => void }) {
       <header className="flex flex-wrap items-start gap-x-5 gap-y-3 px-5 pb-3 pt-4 sm:px-7">
         <OutlineNum n={num(c.m, c.s)} className="text-[44px] sm:text-[52px]" />
         <div className="min-w-0 flex-1 basis-[320px] pt-0.5">
-          <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-primary">
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[var(--ta)]">
             {pad(c.m + 1)} · {m.title}
           </p>
           <h3 className="mt-0.5 text-[19px] font-semibold leading-snug tracking-tight sm:text-[21px]">{st.title}</h3>
@@ -347,7 +578,7 @@ function StepCard({ c, onZoom }: { c: StepC; onZoom: () => void }) {
             <span className="size-2.5 rounded-full bg-[#22c55e]" />
           </span>
           <span className="mx-auto hidden min-w-0 items-center gap-1.5 truncate rounded-md bg-white/5 px-3 py-1 font-mono text-[11.5px] text-white/70 sm:inline-flex">
-            <Lock className="size-3 shrink-0" /> teklif.fozanseyfi.com
+            <Lock className="size-3 shrink-0" /> {TOUR.domain}
           </span>
           <span className="ml-auto flex shrink-0 items-center gap-2">
             <span className="hidden font-mono text-[10.5px] tracking-wide text-white/55 md:inline">
@@ -355,22 +586,32 @@ function StepCard({ c, onZoom }: { c: StepC; onZoom: () => void }) {
             </span>
             <button
               type="button"
-              onClick={onZoom}
-              className="inline-flex items-center gap-1 rounded-full border border-[#34d399]/40 bg-[#34d399]/10 px-2.5 py-0.5 font-mono text-[10.5px] font-semibold tracking-wide text-[#6ee7b7] hover:bg-[#34d399]/20"
+              onClick={onFull}
+              className="inline-flex items-center gap-1 rounded-full border border-[#34d399]/40 bg-[#34d399]/10 px-2.5 py-0.5 font-mono text-[10.5px] font-semibold tracking-wide hover:bg-[#34d399]/20"
+              // Renk satır içi: bazı platformlarda katmansız genel `button` stili Tailwind sınıfını eziyor
+              style={{ color: "#6ee7b7" }}
             >
-              TAM EKRAN <ArrowUpRight className="size-3" />
+              {full ? (
+                <>
+                  KÜÇÜLT <Minimize2 className="size-3" />
+                </>
+              ) : (
+                <>
+                  TAM EKRAN <Maximize2 className="size-3" />
+                </>
+              )}
             </button>
           </span>
         </div>
         <div className="flex aspect-[1440/900] min-h-0 items-center justify-center bg-[#0b1220] [container-type:size] lg:aspect-auto lg:flex-1">
           <button
             type="button"
-            onClick={onZoom}
-            className="relative block"
+            onClick={full ? undefined : onFull}
+            className={cn("relative block", full && "cursor-default")}
             style={{ width: `min(100cqw, calc(100cqh * ${RATIO}))`, aspectRatio: `${VIEW_W} / ${VIEW_H}` }}
-            aria-label={`${st.title} — tam ekran`}
+            aria-label={full ? st.title : `${st.title} — tam ekran`}
           >
-            <Shot step={st} />
+            <Shot step={st} zoomable={!full} />
           </button>
         </div>
       </div>
@@ -379,14 +620,14 @@ function StepCard({ c, onZoom }: { c: StepC; onZoom: () => void }) {
 }
 
 /** Ekran görüntüsü + işaret çerçeveleri + imleç (koordinatlar görüntüye göre %). */
-function Shot({ step, eager = false }: { step: Step; eager?: boolean }) {
+function Shot({ step, zoomable = true }: { step: Step; zoomable?: boolean }) {
   return (
-    <span className="keep-light absolute inset-0 block cursor-zoom-in overflow-hidden bg-white">
+    <span className={cn("keep-light absolute inset-0 block overflow-hidden bg-white", zoomable && "cursor-zoom-in")}>
       {/* eslint-disable-next-line @next/next/no-img-element -- statik 2x ekran görüntüsü, oran sabit */}
       <img
         src={step.img}
         alt={step.title}
-        loading={eager ? "eager" : "lazy"}
+        loading="lazy"
         decoding="async"
         draggable={false}
         className="absolute inset-0 size-full object-contain"
@@ -410,84 +651,5 @@ function Shot({ step, eager = false }: { step: Step; eager?: boolean }) {
         />
       )}
     </span>
-  );
-}
-
-/* ------------------------------------------------------------------ tam ekran */
-
-function Lightbox({
-  pos,
-  onMove,
-  onClose,
-}: {
-  pos: { m: number; s: number };
-  onMove: (p: { m: number; s: number }) => void;
-  onClose: () => void;
-}) {
-  const i = STEPS.findIndex((c) => c.m === pos.m && c.s === pos.s);
-  const mod = MODULES[pos.m];
-  const step = mod.steps[pos.s];
-  const move = useCallback(
-    (d: number) => {
-      const n = STEPS[i + d];
-      if (n) onMove({ m: n.m, s: n.s });
-    },
-    [i, onMove],
-  );
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-      if (e.key === "ArrowRight" || e.key === "ArrowDown") move(1);
-      if (e.key === "ArrowLeft" || e.key === "ArrowUp") move(-1);
-    };
-    window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [move, onClose]);
-
-  return (
-    <div className="fixed inset-0 z-[1000] flex flex-col bg-black/90" onClick={onClose} role="dialog" aria-modal="true">
-      <div
-        className="flex items-center justify-between gap-3 border-b border-white/10 bg-[#0b1220] px-4 py-2 text-[12.5px] text-white"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <span className="min-w-0 truncate">
-          <span className="text-white/60">
-            {num(pos.m, pos.s)} · {mod.title} —{" "}
-          </span>
-          <span className="font-semibold">{step.title}</span>
-        </span>
-        <span className="flex shrink-0 items-center gap-2">
-          <span className="hidden tabular-nums text-white/50 sm:inline">
-            {i + 1} / {TOTAL}
-          </span>
-          <button type="button" onClick={() => move(-1)} disabled={i === 0} className="rounded border border-white/20 px-2 py-0.5 disabled:opacity-30" aria-label="Önceki">
-            <ChevronLeft className="size-4" />
-          </button>
-          <button type="button" onClick={() => move(1)} disabled={i === STEPS.length - 1} className="rounded border border-white/20 px-2 py-0.5 disabled:opacity-30" aria-label="Sonraki">
-            <ChevronRight className="size-4" />
-          </button>
-          <button type="button" onClick={onClose} className="rounded border border-white/20 px-2 py-0.5" aria-label="Kapat">
-            <X className="size-4" />
-          </button>
-        </span>
-      </div>
-      <div className="flex min-h-0 flex-1 items-center justify-center p-3 [container-type:size] sm:p-6">
-        <div
-          className="relative"
-          style={{ width: `min(100cqw, calc(100cqh * ${RATIO}))`, aspectRatio: `${VIEW_W} / ${VIEW_H}` }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Shot step={step} eager />
-        </div>
-      </div>
-      <p className="border-t border-white/10 bg-[#0b1220] px-4 py-2.5 text-[13px] text-white/85" onClick={(e) => e.stopPropagation()}>
-        {step.text}
-      </p>
-    </div>
   );
 }

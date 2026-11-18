@@ -15,7 +15,7 @@ export function PlatformsView({ current }: { current: PlatformId }) {
         <div className="relative max-w-2xl">
           <div className="inline-flex items-center gap-1.5 rounded-full border border-[#f59e0b]/40 bg-[#f59e0b]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[#d97706] dark:text-[#fbbf24]">
             <Boxes className="size-3" />
-            Diğer Platformlar
+            Platformlarım
           </div>
           <h1 className={cn("mt-3 text-3xl font-extrabold leading-tight tracking-tight md:text-4xl", T.fg)}>
             Geliştirdiğim diğer platformlara da göz atın

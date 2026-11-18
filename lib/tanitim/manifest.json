@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-17T18:14:29.610Z",
+ "generatedAt": "2026-11-18T22:04:01.788Z",
  "viewport": {
   "w": 1440,
   "h": 900
@@ -1553,7 +1553,7 @@
   {
    "id": "destek",
    "group": "Destek",
-   "title": "Nasıl Çalışır, İletişim ve Diğer Platformlar",
+   "title": "Nasıl Çalışır, İletişim ve Platformlarım",
    "intro": "Platform içi yardım sayfası, geliştiriciyle iletişim formu ve aynı hesapla kullanılabilen diğer platformlar.",
    "steps": [
     {
@@ -1572,8 +1572,8 @@
     },
     {
      "img": "/tanitim/destek-03.webp",
-     "title": "Diğer Platformlar",
-     "text": "Fizibilite, proje yönetimi, satınalma karar destek ve konstrüksiyon BoM platformlarına buradan geçilir.",
+     "title": "Platformlarım",
+     "text": "Sol menüdeki Platformlarım bölümünden bu tanıtıma ve fizibilite, proje yönetimi, satınalma karar destek ve konstrüksiyon BoM platformlarına geçilir.",
      "marks": [],
      "cursor": null
     }
