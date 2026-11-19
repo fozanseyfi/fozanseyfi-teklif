@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-18T22:04:01.788Z",
+ "generatedAt": "2026-11-19T21:20:28.837Z",
  "viewport": {
   "w": 1440,
   "h": 900
@@ -18,33 +18,33 @@
      "marks": [
       {
        "x": 6.74,
-       "y": 46.44,
+       "y": 46.67,
        "w": 31.67,
        "h": 5.33
       }
      ],
      "cursor": {
       "x": 22.58,
-      "y": 49.11
+      "y": 49.34
      }
     },
     {
      "img": "/tanitim/giris-02.webp",
      "title": "Dashboard",
-     "text": "Girişten sonra Dashboard açılır. Üstte toplam teklif, devam eden, kazanılan teklif sayısı ve teklif verilen toplam güç; altında son projeler tablosu ve projelerin il bazında dağılımı yer alır.",
+     "text": "Girişten sonra Dashboard açılır. Üstte toplam ve kazanılan teklif sayısı, teklif verilen toplam güç, güncel kurla USD bazında toplam teklif ve kazanılan tutar, son 12 ayda aylık gönderilen teklif grafiği; altında aşama filtreli son projeler tablosu ve il bazında dağılım haritası yer alır.",
      "marks": [],
      "cursor": null
     },
     {
      "img": "/tanitim/giris-03.webp",
      "title": "Son projeler tablosu",
-     "text": "Tabloda her teklifin gücü, tutarı, satış aşaması ve tarihi görünür. Göz simgesi teklifi salt okunur açar, yanındaki düğme teklifi kopyalayıp yeni bir proje olarak başlatır.",
+     "text": "Üstteki aşama çipleri (her birinde o aşamadaki teklif sayısı) tabloyu süzer. Tabloda her teklifin gücü, tutarı, satış aşaması ve tarihi görünür. Göz simgesi teklifi salt okunur açar, yanındaki düğme teklifi kopyalayıp yeni bir proje olarak başlatır.",
      "marks": [
       {
        "x": 17.57,
-       "y": 12.61,
+       "y": 12.5,
        "w": 80.42,
-       "h": 74.78
+       "h": 74.89
       }
      ],
      "cursor": null
@@ -57,7 +57,7 @@
       {
        "x": 16.94,
        "y": 0.07,
-       "w": 24.05,
+       "w": 24.03,
        "h": 5.97
       },
       {
@@ -68,7 +68,7 @@
       }
      ],
      "cursor": {
-      "x": 28.97,
+      "x": 28.96,
       "y": 3.06
      }
     },
@@ -149,14 +149,14 @@
      "marks": [
       {
        "x": 33.75,
-       "y": 57.22,
+       "y": 49.22,
        "w": 21.81,
        "h": 5.33
       }
      ],
      "cursor": {
       "x": 44.66,
-      "y": 59.89
+      "y": 51.89
      }
     },
     {
@@ -179,15 +179,21 @@
      "text": "Açılan listeden müşteriyi seçince iletişim bilgileri otomatik dolar. Notlar ve riskler alanlarına yazdıklarınız teklif PDF’ine yansır.",
      "marks": [
       {
+       "x": 19.24,
+       "y": 97.58,
+       "w": 36.39,
+       "h": 2.42
+      },
+      {
        "x": 87.47,
-       "y": 30,
-       "w": 9.4,
+       "y": 29.11,
+       "w": 9.41,
        "h": 4.44
       }
      ],
      "cursor": {
-      "x": 92.17,
-      "y": 32.22
+      "x": 92.18,
+      "y": 31.33
      }
     },
     {
@@ -216,9 +222,9 @@
      "text": "“Güncel kuru çek” USD ve EUR kurunu otomatik getirir. Başlangıç tarihi ve inşaat süresi Cash Flow ve Timeline ekranlarının ay sayısını belirler.",
      "marks": [
       {
-       "x": 87.07,
+       "x": 87.05,
        "y": 60.81,
-       "w": 9.24,
+       "w": 9.27,
        "h": 3.83
       },
       {
@@ -237,14 +243,14 @@
      "marks": [
       {
        "x": 87.47,
-       "y": 30,
-       "w": 9.4,
+       "y": 29.11,
+       "w": 9.41,
        "h": 4.44
       }
      ],
      "cursor": {
-      "x": 92.17,
-      "y": 32.22
+      "x": 92.18,
+      "y": 31.33
      }
     },
     {
@@ -254,14 +260,14 @@
      "marks": [
       {
        "x": 19.24,
-       "y": 47.97,
-       "w": 12.18,
+       "y": 43.03,
+       "w": 12.5,
        "h": 3.33
       }
      ],
      "cursor": {
-      "x": 25.33,
-      "y": 49.64
+      "x": 25.49,
+      "y": 44.7
      }
     },
     {
@@ -270,9 +276,9 @@
      "text": "Personel, işletme-bakım, risk, teminat ve sigorta giderleri girilir. B.6 Finans Maliyeti Cash Flow sayfasındaki kredi faizinden otomatik hesaplanır; elle yazılmaz.",
      "marks": [
       {
-       "x": 38.12,
-       "y": 72.92,
-       "w": 8.26,
+       "x": 38.75,
+       "y": 72.97,
+       "w": 8.28,
        "h": 3
       }
      ],
@@ -285,8 +291,8 @@
      "marks": [
       {
        "x": 17.57,
-       "y": 50.64,
-       "w": 81.58,
+       "y": 45.08,
+       "w": 82.43,
        "h": 17.22
       }
      ],
@@ -314,8 +320,8 @@
      "marks": [
       {
        "x": 53.07,
-       "y": 19.22,
-       "w": 8.09,
+       "y": 18.33,
+       "w": 6.29,
        "h": 4.83
       }
      ],
@@ -352,14 +358,14 @@
      "marks": [
       {
        "x": 66.6,
-       "y": 46.19,
+       "y": 45.25,
        "w": 10.23,
        "h": 5.89
       }
      ],
      "cursor": {
       "x": 71.71,
-      "y": 49.14
+      "y": 48.2
      }
     },
     {
@@ -385,86 +391,56 @@
     },
     {
      "img": "/tanitim/proje-detay-08.webp",
-     "title": "BoQ: fiyatsız kapsam listesi",
-     "text": "Müşteriye gönderilebilecek temiz kalem listesidir. Fiyat sütunu tek tıkla açılıp kapanır; boş kalemler otomatik gizlenir. PDF veya Excel olarak indirilir.",
+     "title": "Teklif: ana teklif belgesi",
+     "text": "Çıktılar altındaki Teklif sekmesi, proje adı karşısında anahtar teslim fiyatı tek kalem olarak gösterir; KDV, genel toplam ve müşteri / teklif veren kaşe-imza alanlarıyla “PDF İndir” ile alınır. Paylaşım linkine de eklenebilir.",
      "marks": [
       {
-       "x": 77.94,
-       "y": 40.58,
+       "x": 89.55,
+       "y": 33.78,
+       "w": 7.33,
+       "h": 4.44
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/proje-detay-09.webp",
+     "title": "BoQ: fiyatsız kapsam listesi",
+     "text": "Müşteriye gönderilebilecek temiz kalem listesidir. Fiyat sütunu tek tıkla açılıp kapanır; miktarı veya fiyatı sıfır olan kalemler ve boş gruplar gösterilmez. PDF veya Excel olarak indirilir.",
+     "marks": [
+      {
+       "x": 77.93,
+       "y": 39.69,
        "w": 9.32,
        "h": 4.44
       }
      ],
      "cursor": {
-      "x": 82.6,
-      "y": 42.8
+      "x": 82.59,
+      "y": 41.91
      }
     },
     {
-     "img": "/tanitim/proje-detay-09.webp",
+     "img": "/tanitim/proje-detay-10.webp",
      "title": "P-BoQ: birim fiyat cetveli",
      "text": "Müşteriye gidecek fiyatlı belgedir. Bir kalemi “Karsız” yaparsanız üzerine kâr eklenmez; “Gizle” ile PDF’ten çıkarırsanız payı diğer kalemlere dağıtılır. Toplam satış fiyatı değişmez.",
      "marks": [
       {
-       "x": 90.83,
+       "x": 90.85,
        "y": 48.43,
        "w": 5.41,
        "h": 3.04
       }
      ],
      "cursor": {
-      "x": 93.54,
+      "x": 93.56,
       "y": 49.95
      }
     },
     {
-     "img": "/tanitim/proje-detay-10.webp",
+     "img": "/tanitim/proje-detay-11.webp",
      "title": "DoR: sorumluluk tablosu",
      "text": "Tedarik, montaj ve devreye alma işlerinin yüklenici, işveren veya ortak sorumlulukta olduğu madde madde belirlenir. Grup ve madde eklenip çıkarılabilir.",
-     "marks": [],
-     "cursor": null
-    },
-    {
-     "img": "/tanitim/proje-detay-11.webp",
-     "title": "Pipeline: satış süreci",
-     "text": "Teklifin satış aşaması (taslak, gönderildi, revizyon, kazanıldı, kaybedildi) buradan yönetilir. Müşterinin linki açması ve revizyon talepleri aktivite akışına otomatik düşer.",
-     "marks": [
-      {
-       "x": 23.68,
-       "y": 47.11,
-       "w": 45.09,
-       "h": 5.78
-      }
-     ],
-     "cursor": null
-    },
-    {
-     "img": "/tanitim/proje-detay-12.webp",
-     "title": "Aktivite ve not ekleme",
-     "text": "Telefon görüşmesi, gönderilen e-posta veya iç not kaydedilir. Kayıtlar tarih sırasıyla akışta listelenir; ekip arkadaşlarınız da görür.",
-     "marks": [
-      {
-       "x": 46.78,
-       "y": 35.11,
-       "w": 45.09,
-       "h": 12
-      },
-      {
-       "x": 85.65,
-       "y": 47.56,
-       "w": 6.23,
-       "h": 4.89
-      }
-     ],
-     "cursor": {
-      "x": 88.77,
-      "y": 50.01
-     }
-    },
-    {
-     "img": "/tanitim/proje-detay-13.webp",
-     "title": "Not kaydedildi",
-     "text": "“Ekle”ye basınca not, yazan kişi ve saatle birlikte akışın en üstüne eklenir.",
      "marks": [],
      "cursor": null
     }
@@ -490,7 +466,7 @@
      "marks": [
       {
        "x": 18.68,
-       "y": 42.58,
+       "y": 41.69,
        "w": 78.19,
        "h": 5.33
       }
@@ -509,14 +485,14 @@
        "h": 5.33
       },
       {
-       "x": 23.04,
+       "x": 23.86,
        "y": 48.47,
-       "w": 69.32,
+       "w": 68.5,
        "h": 3.11
       }
      ],
      "cursor": {
-      "x": 57.7,
+      "x": 58.11,
       "y": 50.03
      }
     },
@@ -556,7 +532,7 @@
       {
        "x": 18.68,
        "y": 48.45,
-       "w": 7.87,
+       "w": 6.34,
        "h": 3.11
       }
      ],
@@ -569,7 +545,7 @@
      "marks": [
       {
        "x": 89.55,
-       "y": 24.78,
+       "y": 23.89,
        "w": 7.33,
        "h": 4.44
       }
@@ -583,14 +559,14 @@
      "marks": [
       {
        "x": 85.54,
-       "y": 24.78,
+       "y": 23.89,
        "w": 11.34,
        "h": 4.44
       }
      ],
      "cursor": {
       "x": 91.21,
-      "y": 27
+      "y": 26.11
      }
     },
     {
@@ -600,7 +576,7 @@
      "marks": [
       {
        "x": 17.57,
-       "y": 41.61,
+       "y": 40.72,
        "w": 80.42,
        "h": 6.72
       }
@@ -618,29 +594,60 @@
     {
      "img": "/tanitim/teklifler-01.webp",
      "title": "Teklifler",
-     "text": "Her satırda müşteri, güç, fiyat ($/kWp ile), aşama ve tarih yer alır. Görüntüle salt okunur açar, Düzenle teklifi açar; kopyala ve sil düğmeleri satır sonundadır.",
+     "text": "Her teklif tek satırdır: müşteri, güç, fiyat, aşama ve tarih. Satır sonunda göz (salt okunur aç), kalem (düzenle), kopyala ve sil düğmeleri bulunur. Aşama çiplerinde her aşamadaki teklif sayısı yazar.",
      "marks": [],
      "cursor": null
     },
     {
      "img": "/tanitim/teklifler-02.webp",
-     "title": "Aşamaya göre filtre",
-     "text": "Üstteki sekmelerle yalnızca taslakları, müşteriye gönderilenleri, revizyon bekleyenleri ya da kazanılan / kaybedilen teklifleri listeleyebilirsiniz.",
+     "title": "Aşamayı listeden değiştirin",
+     "text": "Satırdaki aşama rozetine tıklayınca aşamalar açılır: Taslak, Müşteriye Gönderildi, Revizyon İstendi, Closed Won, Closed Lost, Proje İptal. Seçtiğiniz anda kaydedilir. Aşama elle yalnızca buradan değiştirilir; müşteri linkten onay verir ya da revizyon isterse otomatik güncellenir.",
      "marks": [
       {
-       "x": 28.08,
-       "y": 26.67,
-       "w": 10.96,
-       "h": 4.22
+       "x": 65.07,
+       "y": 28.57,
+       "w": 5.26,
+       "h": 3.74
       }
      ],
      "cursor": {
-      "x": 33.56,
-      "y": 28.78
+      "x": 67.7,
+      "y": 30.44
      }
     },
     {
      "img": "/tanitim/teklifler-03.webp",
+     "title": "Closed Lost: kayıp sebebi",
+     "text": "Closed Lost seçilince kayıp sebebi (fiyat, teknik, referans, zamanlama, müşteri ilişkisi) ve isterseniz kazanan rakip firma sorulur; bu bilgiler Firma Performansı raporlarına yansır.",
+     "marks": [
+      {
+       "x": 59.99,
+       "y": 39.93,
+       "w": 15.42,
+       "h": 4.44
+      }
+     ],
+     "cursor": null
+    },
+    {
+     "img": "/tanitim/teklifler-04.webp",
+     "title": "Aşamaya göre filtre",
+     "text": "Üstteki sekmelerle yalnızca taslakları, müşteriye gönderilenleri, revizyon bekleyenleri ya da kazanılan / kaybedilen teklifleri listeleyebilirsiniz.",
+     "marks": [
+      {
+       "x": 30.96,
+       "y": 17.56,
+       "w": 12.21,
+       "h": 4.22
+      }
+     ],
+     "cursor": {
+      "x": 37.07,
+      "y": 19.67
+     }
+    },
+    {
+     "img": "/tanitim/teklifler-05.webp",
      "title": "Şablonlar",
      "text": "10 kWp’den 100 MWp’ye dokuz hazır şablon vardır; kalemler, fiyatlar, timeline ve DoR önceden doludur. “İncele / Düzenle” şablonun kendisini açar.",
      "marks": [
@@ -657,7 +664,7 @@
      }
     },
     {
-     "img": "/tanitim/teklifler-04.webp",
+     "img": "/tanitim/teklifler-06.webp",
      "title": "Şablondan yeni proje",
      "text": "“Bu şablonu kullan” şablonun kopyasıyla yeni bir proje açar; şablon değişmez. Proje bilgilerini girip diğer sekmelerde yalnızca farkları düzeltmeniz yeterlidir.",
      "marks": [],
@@ -743,15 +750,15 @@
      "text": "Sayfanın altında sabit duran çubukta müşteri teklifi onaylayabilir, revizyon isteyebilir veya soru sorabilir.",
      "marks": [
       {
-       "x": 82.64,
-       "y": 93.76,
-       "w": 9.04,
+       "x": 82.62,
+       "y": 93.74,
+       "w": 9.05,
        "h": 4.89
       }
      ],
      "cursor": {
-      "x": 87.16,
-      "y": 96.21
+      "x": 87.15,
+      "y": 96.18
      }
     },
     {
@@ -786,14 +793,14 @@
     },
     {
      "img": "/tanitim/paylasim-11.webp",
-     "title": "Talep teklifin akışında",
-     "text": "Teklifin Pipeline sekmesinde aşama “Revizyon İstendi” olarak güncellenmiştir; müşterinin adı, e-postası ve mesajı aktivite akışının en üstündedir.",
+     "title": "Aşama otomatik güncellendi",
+     "text": "Müşteri revizyon isteyince teklifin aşaması Teklifler listesinde otomatik olarak “Revizyon İstendi” olur.",
      "marks": [
       {
-       "x": 26.11,
-       "y": 76.17,
-       "w": 64.86,
-       "h": 4.83
+       "x": 65.62,
+       "y": 28.57,
+       "w": 8.9,
+       "h": 3.74
       }
      ],
      "cursor": null
@@ -836,9 +843,9 @@
      "text": "Sözleşme ana metin ve eklerden (EK-0 … EK-14) oluşur; her biri üstteki sekmelerden açılır. Ana metin matbudur, projeye özgü bilgiler eklerden gelir. Altta Word belgesinin birebir önizlemesi görünür; “Tümünü indir (ZIP)” bütün belgeleri .docx olarak verir.",
      "marks": [
       {
-       "x": 80.66,
+       "x": 80.62,
        "y": 12,
-       "w": 11.29,
+       "w": 11.33,
        "h": 4.44
       }
      ],
@@ -850,14 +857,14 @@
      "text": "Taraflar, sözleşme bedeli, adres ve yetkililer gibi bilgiler bu formda girilir; tekliften gelenler otomatik doludur. Boş kalan zorunlu alanlar kırmızıyla işaretlenir. “Kaydet” ile tüm eklere işlenir.",
      "marks": [
       {
-       "x": 37.94,
+       "x": 38,
        "y": 17.33,
-       "w": 12.18,
+       "w": 12.56,
        "h": 4.36
       }
      ],
      "cursor": {
-      "x": 44.03,
+      "x": 44.28,
       "y": 19.51
      }
     },
@@ -867,9 +874,9 @@
      "text": "Islak veya e-imzalı sözleşmenin tamamı (ana metin + ekler) tek PDF olarak yüklenir ve burada sayfa sayfa görüntülenir.",
      "marks": [
       {
-       "x": 54.28,
+       "x": 55.04,
        "y": 65.92,
-       "w": 6.99,
+       "w": 5.47,
        "h": 4.22
       }
      ],
@@ -889,9 +896,9 @@
      "text": "Üstte tüm projelerin toplam satış, maliyet, vergi öncesi kâr ve kalan alacak/borç tutarları; altta her proje için tahsilat yüzdesiyle birlikte kart yer alır.",
      "marks": [
       {
-       "x": 70.84,
+       "x": 70.83,
        "y": 14.25,
-       "w": 12.11,
+       "w": 12.12,
        "h": 4.89
       }
      ],
@@ -961,14 +968,14 @@
      "text": "Müşteriden yapılan tahsilatlar ve planlanan tahsilatlar tarihleriyle girilir. Müşteriye ödeme ekstresi linki gönderilebilir; ekstre güncel bakiyeyi gösterir.",
      "marks": [
       {
-       "x": 42.44,
+       "x": 39.16,
        "y": 47.39,
-       "w": 9.89,
+       "w": 8.22,
        "h": 5.28
       }
      ],
      "cursor": {
-      "x": 47.39,
+      "x": 43.27,
       "y": 50.03
      }
     },
@@ -1001,14 +1008,14 @@
        "h": 4.44
       },
       {
-       "x": 56.62,
+       "x": 56.61,
        "y": 66.1,
        "w": 9.7,
        "h": 4.44
       }
      ],
      "cursor": {
-      "x": 61.47,
+      "x": 61.46,
       "y": 68.32
      }
     },
@@ -1075,14 +1082,14 @@
      "text": "Malzemeler MLZ, hizmetler HZM koduyla tutulur. Fiyat kataloğa değil teklife girilir; her kalemin hangi teklifte hangi fiyatla verildiği görülebilir.",
      "marks": [
       {
-       "x": 79.63,
+       "x": 79.62,
        "y": 10.33,
        "w": 9.54,
        "h": 4.89
       }
      ],
      "cursor": {
-      "x": 84.4,
+      "x": 84.39,
       "y": 12.78
      }
     },
@@ -1289,7 +1296,7 @@
       {
        "x": 19.17,
        "y": 24.31,
-       "w": 61.48,
+       "w": 60.99,
        "h": 5.14
       }
      ],
@@ -1317,12 +1324,12 @@
       {
        "x": 77.54,
        "y": 40.31,
-       "w": 10.16,
+       "w": 10.17,
        "h": 4.89
       }
      ],
      "cursor": {
-      "x": 82.62,
+      "x": 82.63,
       "y": 42.76
      }
     },
@@ -1338,9 +1345,9 @@
        "h": 4.44
       },
       {
-       "x": 42.48,
+       "x": 42.46,
        "y": 78.78,
-       "w": 11.88,
+       "w": 11.91,
        "h": 4.89
       }
      ],
@@ -1355,14 +1362,14 @@
      "text": "Alınan görüntüde köşeler sürüklenerek binanın çevresi seçilir ve “Kırp & Kullan”a basılır. İstenirse bunun yerine drone veya ekran görüntüsü de yüklenebilir.",
      "marks": [
       {
-       "x": 63.11,
+       "x": 63.08,
        "y": 23.11,
-       "w": 9.53,
+       "w": 9.56,
        "h": 4.67
       }
      ],
      "cursor": {
-      "x": 67.88,
+      "x": 67.86,
       "y": 25.45
      }
     },
@@ -1417,12 +1424,12 @@
       {
        "x": 62.41,
        "y": 23.44,
-       "w": 10.57,
+       "w": 10.58,
        "h": 4.44
       }
      ],
      "cursor": {
-      "x": 67.69,
+      "x": 67.7,
       "y": 25.66
      }
     },
@@ -1456,9 +1463,9 @@
      "text": "“3B” düğmesi binayı, çatıyı ve panelleri uydu görüntüsü üzerinde üç boyutlu gösterir. Fareyle döndürülür, tekerlekle yakınlaştırılır.",
      "marks": [
       {
-       "x": 68.25,
+       "x": 68.23,
        "y": 23.56,
-       "w": 4.39,
+       "w": 4.41,
        "h": 4.22
       }
      ],
@@ -1534,8 +1541,8 @@
      "marks": [
       {
        "x": 29.58,
-       "y": 48.5,
-       "w": 52.58,
+       "y": 48.58,
+       "w": 52.6,
        "h": 2.89
       }
      ],
