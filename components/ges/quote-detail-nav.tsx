@@ -35,7 +35,7 @@ function QuoteDetailNavView({
   const base = `/projects/${projectId}/detail`;
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
+    <div data-plain-icons className="flex flex-wrap items-center gap-1.5">
       {TABS.map((t) => {
         const full = `${base}${t.href}`;
         const isActive = t.href === "" ? pathname === base : pathname === full;

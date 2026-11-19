@@ -75,7 +75,7 @@ html.i18n-pending body { visibility: hidden; }
 .dark .bg-white,
 .dark .hover\:bg-white:hover { background-color: var(--color-card); }
 .dark .bg-white\/95, .dark .bg-white\/90, .dark .bg-white\/85, .dark .bg-white\/80 { background-color: color-mix(in oklab, var(--color-card) 92%, transparent); }
-.dark .bg-white\/70, .dark .bg-white\/60, .dark .bg-white\/50 { background-color: color-mix(in oklab, var(--color-card) 70%, transparent); }
+.dark .bg-white\/70, .dark .bg-white\/60, .dark .bg-white\/50, .dark .bg-white\/40, .dark .bg-white\/30 { background-color: color-mix(in oklab, var(--color-card) 70%, transparent); }
 .dark [class*="to-white"]   { --tw-gradient-to: var(--color-card); }
 .dark [class*="via-white"]  { --tw-gradient-via: var(--color-card); }
 .dark [class*="from-white"] { --tw-gradient-from: var(--color-card); }

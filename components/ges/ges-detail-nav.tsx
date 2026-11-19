@@ -179,7 +179,7 @@ export function GesDetailNav({ projectId, progress }: Props) {
   const viewSuffix = searchParams.get("view") === "1" ? "?view=1" : "";
 
   return (
-    <nav>
+    <nav data-plain-icons>
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.55fr_1fr_1.05fr]">
         {STAGES.map((stage) => (
           <div

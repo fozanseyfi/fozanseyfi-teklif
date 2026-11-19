@@ -560,11 +560,11 @@ export function Sidebar({ userName, userEmail, firmName, userRole, organizations
             onClick={() => window.dispatchEvent(new CustomEvent("solar:open-search"))}
             aria-label="Ara (Ctrl+K)"
             title="Ara — Ctrl+K"
-            className="hidden h-9 items-center gap-2 rounded-md border border-border bg-secondary px-2.5 text-xs text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground md:flex"
+            className="hidden h-9 w-56 items-center gap-2 rounded-md border border-border bg-secondary px-2.5 text-xs text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground md:flex lg:w-72 xl:w-80"
           >
-            <Search className="size-3.5" />
-            <span className="text-[11.5px]">Ara</span>
-            <kbd className="rounded border border-border bg-background/60 px-1 py-0 font-mono text-[9.5px] font-semibold" data-no-i18n>
+            <Search className="size-3.5 shrink-0" />
+            <span className="truncate text-[12px]">Proje, müşteri, kalem ara…</span>
+            <kbd className="ml-auto shrink-0 rounded border border-border bg-background/60 px-1 py-0 font-mono text-[9.5px] font-semibold" data-no-i18n>
               Ctrl+K
             </kbd>
           </button>

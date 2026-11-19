@@ -1857,7 +1857,7 @@ function RatioKpi({
   }
 
   return (
-    <div className={cn("rounded-xl border p-3 shadow-sm", t.card)}>
+    <div data-kpi className={cn("rounded-xl border p-3 shadow-sm", t.card)}>
       <p className={cn("text-[10px] font-semibold uppercase tracking-widest", t.label)}>
         {label}
       </p>

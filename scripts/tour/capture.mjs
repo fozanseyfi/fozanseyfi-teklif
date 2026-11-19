@@ -416,8 +416,16 @@ const MODULES = [
         },
       },
       {
+        title: "Teklif: ana teklif belgesi",
+        text: "Çıktılar altındaki Teklif sekmesi, proje adı karşısında anahtar teslim fiyatı tek kalem olarak gösterir; KDV, genel toplam ve müşteri / teklif veren kaşe-imza alanlarıyla “PDF İndir” ile alınır. Paylaşım linkine de eklenebilir.",
+        run: async (page) => {
+          await go(page, `${P}/ana-teklif`, 900);
+          await mark(page, await byText(page, "PDF İndir", "button"));
+        },
+      },
+      {
         title: "BoQ: fiyatsız kapsam listesi",
-        text: "Müşteriye gönderilebilecek temiz kalem listesidir. Fiyat sütunu tek tıkla açılıp kapanır; boş kalemler otomatik gizlenir. PDF veya Excel olarak indirilir.",
+        text: "Müşteriye gönderilebilecek temiz kalem listesidir. Fiyat sütunu tek tıkla açılıp kapanır; miktarı veya fiyatı sıfır olan kalemler ve boş gruplar gösterilmez. PDF veya Excel olarak indirilir.",
         run: async (page) => {
           await go(page, `${P}/boq`, 900);
           await mark(page, await byText(page, "Fiyatlar kapalı", "button"), { click: true });

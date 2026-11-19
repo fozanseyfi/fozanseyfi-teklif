@@ -531,7 +531,7 @@ export function CostProjectDetail({
       </div>
 
       {/* Sekmeler — segmented control, belirgin */}
-      <div className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-100/70 p-1.5 shadow-sm">
+      <div data-plain-icons className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-100/70 p-1.5 shadow-sm">
         {COST_TABS.map((t) => {
           const Icon = t.icon;
           const active = tab === t.key;

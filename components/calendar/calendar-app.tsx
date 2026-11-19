@@ -250,11 +250,18 @@ export function CalendarApp({
           const out = d.getMonth() !== cursor.getMonth();
           const today = sameDay(d, new Date());
           return (
-            <button
+            <div
               key={isoDay(d)}
-              type="button"
+              role="button"
+              tabIndex={0}
               onClick={() => openNew(d)}
-              className={cn("min-h-[104px] rounded-lg border p-1.5 text-left align-top transition-colors hover:border-primary/50",
+              onKeyDown={(ev) => {
+                if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) {
+                  ev.preventDefault();
+                  openNew(d);
+                }
+              }}
+              className={cn("cursor-pointer min-h-[104px] rounded-lg border p-1.5 text-left align-top transition-colors hover:border-primary/50",
                 out ? "border-border/40 bg-muted/20" : "border-border bg-card",
                 today && "border-primary ring-1 ring-primary")}
             >
@@ -265,7 +272,7 @@ export function CalendarApp({
                 {fds.slice(0, 2).map((f) => feedPill(f))}
                 {fds.length > 2 && <span className="block px-1.5 text-[10.5px] text-muted-foreground">+{fds.length - 2} not</span>}
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
@@ -280,11 +287,18 @@ export function CalendarApp({
           const evs = dayEvents(d);
           const today = sameDay(d, new Date());
           return (
-            <button
+            <div
               key={isoDay(d)}
-              type="button"
+              role="button"
+              tabIndex={0}
               onClick={() => openNew(d)}
-              className={cn("min-h-[260px] rounded-lg border border-border bg-card p-2 text-left transition-colors hover:border-primary/50", today && "border-primary ring-1 ring-primary")}
+              onKeyDown={(ev) => {
+                if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) {
+                  ev.preventDefault();
+                  openNew(d);
+                }
+              }}
+              className={cn("cursor-pointer min-h-[260px] rounded-lg border border-border bg-card p-2 text-left transition-colors hover:border-primary/50", today && "border-primary ring-1 ring-primary")}
             >
               <div className="mb-1.5 text-[11.5px] font-semibold text-muted-foreground">
                 {DOWS[(d.getDay() + 6) % 7]} <span className="text-foreground tabular-nums">{d.getDate()}</span>
@@ -294,7 +308,7 @@ export function CalendarApp({
                 {dayFeed(d).map((f) => feedPill(f))}
                 {!evs.length && !dayFeed(d).length && <span className="px-1 text-[11px] text-muted-foreground">—</span>}
               </div>
-            </button>
+            </div>
           );
         })}
       </div>

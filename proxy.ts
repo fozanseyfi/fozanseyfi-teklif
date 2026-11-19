@@ -63,7 +63,8 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Statik asset'ler ve favicon disindaki tum istekleri kapsa.
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Statik asset'ler ve favicon disindaki tum istekleri kapsa. manifest.webmanifest ve sw.js'i
+    // tarayici cerezsiz ister; giris sayfasina yonlenirse PWA kurulumu bozulur.
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

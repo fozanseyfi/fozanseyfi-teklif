@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import "./dark.css";
+// Klasik (sade) görünüm — geri dönmek için <html> etiketindeki "classic" sınıfını kaldırın.
+import "./classic.css";
 import { PwaRegister } from "@/components/shared/pwa-register";
 import { I18nRoot } from "@/components/shared/i18n-root";
 
@@ -35,7 +37,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="tr" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="tr" className={`${inter.variable} classic h-full antialiased`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: BOOT_SCRIPT }} />
       </head>

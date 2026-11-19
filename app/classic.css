@@ -1,0 +1,185 @@
+/*
+ * KLASİK GÖRÜNÜM (html.classic) — sade, kurumsal, "eski usul" yazılım görünümü.
+ * Fizibilite platformundaki klasik katmanla aynı yaklaşım:
+ *   - az yuvarlak köşe, gölge / degrade / parlama yok
+ *   - kutu ve başlık yanlarındaki süs simgeleri yok (düğme ve menü simgeleri kalır)
+ *   - Excel benzeri ızgara çizgili tablolar
+ *   - ölçülü, koyu kurumsal yeşil
+ *
+ * Katmansızdır; Tailwind'in @layer utilities kurallarını her zaman ezer (dark.css gibi).
+ * GERİ DÖNÜŞ: app/layout.tsx'te <html> etiketindeki "classic" sınıfını kaldırmak yeterli
+ * (ayrıca git etiketi: gorunum-oncesi-2026-11-19).
+ */
+
+/* ---------------------------------------------------------------
+   1) Renk ve ölçü
+   --------------------------------------------------------------- */
+html.classic { font-variant-numeric: tabular-nums; }
+/* Açık tema renkleri (gece modu kendi renklerini dark.css'ten alır; yalnız marka yeşili aşağıda) */
+html.classic:not(.dark) {
+  --color-background: #f3f4f6;
+  --color-primary: #1d6b47;
+  --color-primary-foreground: #ffffff;
+  --color-primary-soft: #eef4f0;
+  --color-primary-soft-foreground: #1d5c3e;
+  --color-accent: #eef4f0;
+  --color-accent-foreground: #1d5c3e;
+  --color-success: #1d6b47;
+  --color-success-soft: #eef4f0;
+  --color-success-soft-foreground: #1d5c3e;
+  --color-info: #2b5a8c;
+  --color-info-soft: #eff3f8;
+  --color-info-soft-foreground: #2b4f78;
+  --color-warning: #a8650f;
+  --color-warning-soft: #fbf6ee;
+  --color-warning-soft-foreground: #8a530c;
+  --color-border: #d7dbe1;
+  --color-input: #c9ced6;
+  --color-ring: #1d6b47;
+}
+html.classic.dark {
+  --color-primary: #3f9b6f;
+  --color-ring: #3f9b6f;
+}
+
+/* Tailwind'in sabit emerald tonları: parlak yerine kurumsal yeşil */
+html.classic .bg-emerald-600, html.classic .bg-emerald-500 { background-color: var(--color-primary); }
+html.classic .hover\:bg-emerald-700:hover, html.classic .bg-emerald-700 { background-color: #175a3b; }
+html.classic .text-emerald-600, html.classic .text-emerald-700 { color: var(--color-primary); }
+
+/* ---------------------------------------------------------------
+   2) Köşeler: az yuvarlak. Nokta, avatar, ilerleme çubuğu yuvarlak kalır.
+   --------------------------------------------------------------- */
+html.classic .rounded-md, html.classic .rounded-lg, html.classic .rounded-xl,
+html.classic .rounded-2xl, html.classic .rounded-3xl { border-radius: 4px; }
+html.classic .rounded { border-radius: 3px; }
+/* Hap şeklindeki rozet / çip / düğmeler → hafif yuvarlak dikdörtgen */
+html.classic .rounded-full:is(a, button, span, label, div):not([class*="size-"]):not([class*="h-1"]):not([class*="h-2"]):not([class*="h-1.5"]):not([class*="w-1"]):not([class*="w-2"]):not(.animate-spin):not([role="switch"]):not([data-state]) {
+  border-radius: 3px;
+}
+
+/* ---------------------------------------------------------------
+   3) Gölge, degrade, parlama yok
+   --------------------------------------------------------------- */
+html.classic .shadow, html.classic .shadow-xs, html.classic .shadow-sm, html.classic .shadow-md,
+html.classic .shadow-lg, html.classic .shadow-xl, html.classic .shadow-2xl,
+html.classic [class*="shadow-[0"], html.classic [class*="hover:shadow"]:hover,
+html.classic [class*="shadow-emerald"], html.classic [class*="shadow-primary"] {
+  box-shadow: none !important;
+}
+/* Açılır pencere / menü / bildirim kutuları ayrışsın diye ince bir gölge */
+html.classic [role="dialog"], html.classic [role="menu"], html.classic [role="listbox"],
+html.classic [data-radix-popper-content-wrapper] > *, html.classic [data-map-popover],
+html.classic [data-sonner-toast] {
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.14) !important;
+}
+html.classic [class*="bg-gradient-to-"] { background-image: none !important; }
+html.classic .bg-soft-gradient { background: var(--color-background); }
+html.classic .backdrop-blur-sm, html.classic .backdrop-blur, html.classic .backdrop-blur-md { backdrop-filter: none; }
+/* Halka (ring) yalnız klavye odağında; süs halkaları ince çizgiye */
+html.classic [class*="ring-emerald"], html.classic [class*="ring-primary"]:not(:focus-visible) { --tw-ring-color: var(--color-border); }
+
+/* ---------------------------------------------------------------
+   4) Yazı: geniş harf aralıklı "kicker"lar sakinleşir
+   --------------------------------------------------------------- */
+html.classic .tracking-widest, html.classic .tracking-wider, html.classic [class*="tracking-[0."] { letter-spacing: 0.02em; }
+html.classic .tracking-tight { letter-spacing: -0.005em; }
+html.classic .shimmer-text { animation: none; background: none; -webkit-text-fill-color: currentColor; color: inherit; }
+html.classic h1 { letter-spacing: 0; }
+
+/* ---------------------------------------------------------------
+   5) Süs simgeleri
+   - Renkli kare/daire içinde tek başına duran simge kutuları (kart ve sayfa başlıkları)
+   - Başlık, etiket ve tablo başlığı içindeki simgeler
+   - "Yapay zekâ" çağrışımlı parıltı / sihirli değnek simgeleri
+   Düğmelerdeki, menüdeki ve durum (onay / kilit) simgeleri kalır.
+   --------------------------------------------------------------- */
+html.classic :is(div, span):is([class*="size-5"], [class*="size-6"], [class*="size-7"], [class*="size-8"], [class*="size-9"], [class*="size-10"], [class*="size-11"], [class*="size-12"], [class*="size-14"], [class*="size-16"]):has(> svg.lucide:only-child):not(button *):not(a *) {
+  display: none !important;
+}
+html.classic :is(h1, h2, h3, h4) > svg.lucide,
+html.classic :is(h1, h2, h3, h4) > span > svg.lucide:only-child,
+html.classic label > svg.lucide,
+html.classic th svg.lucide,
+html.classic p:is(.uppercase) > svg.lucide,
+html.classic svg.lucide-sparkles, html.classic svg.lucide-sparkle, html.classic svg.lucide-wand-sparkles,
+html.classic svg.lucide-wand-2, html.classic svg.lucide-bot {
+  display: none !important;
+}
+
+/* ---------------------------------------------------------------
+   6) Tablolar: Excel benzeri ızgara (veri tabloları)
+   --------------------------------------------------------------- */
+html.classic main table { border-collapse: collapse; }
+html.classic main table > thead > tr { background: #eceff3 !important; }
+html.classic main table > thead th {
+  color: #2b3440;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border-bottom: 1px solid #c9ced6;
+}
+html.classic main table td, html.classic main table th { border-right: 1px solid #e3e6eb; }
+html.classic main table td:last-child, html.classic main table th:last-child { border-right: 0; }
+html.classic:not(.dark) main table > tbody > tr { border-color: #e3e6eb; }
+html.classic.dark main table > tbody > tr { border-color: #263142; }
+html.classic main table > tbody > tr:hover > td { background-color: #f3f7fb; }
+html.classic.dark main table > thead > tr { background: #1b2433 !important; }
+html.classic.dark main table > thead th { color: #d5dde8; border-bottom-color: #2c3747; }
+html.classic.dark main table td, html.classic.dark main table th { border-right-color: #263142; }
+html.classic.dark main table > tbody > tr:hover > td { background-color: #172131; }
+
+/* ---------------------------------------------------------------
+   7) Hareket: süs animasyonları kapalı (yükleniyor dönen simge kalır)
+   --------------------------------------------------------------- */
+html.classic .animate-pulse:not([class*="bg-muted"]):not([class*="bg-slate"]), html.classic .animate-bounce, html.classic .animate-ping { animation: none; }
+html.classic .brand-loader-pulse, html.classic .brand-loader-ring { display: none; }
+html.classic .brand-loader-badge { animation: none; box-shadow: none; }
+html.classic .common-flow { animation: none; background-image: none; }
+
+/* ---------------------------------------------------------------
+   8) Degradeli dolgu düğmeleri (ör. ANALİZ): degrade kalkınca düz marka rengi
+   --------------------------------------------------------------- */
+html.classic [class*="bg-gradient-to-"]:is([class*="text-primary-foreground"], [class*="text-white"]) {
+  background-color: var(--color-primary) !important;
+}
+html.classic.dark [class*="bg-gradient-to-"]:not(:is([class*="text-primary-foreground"], [class*="text-white"])) {
+  background-color: transparent;
+}
+
+/* Büyüme / zıplama efektleri yok */
+html.classic [class*="scale-["], html.classic [class*="hover:scale"]:hover { scale: none !important; }
+html.classic [class*="hover:-translate-y"]:hover { translate: none !important; }
+html.classic .font-extrabold { font-weight: 700; }
+
+/* ---------------------------------------------------------------
+   9) Bilgi kutularının yeşil çerçeveleri nötr (seçili öğeler border-primary ile kalır)
+   --------------------------------------------------------------- */
+html.classic .border-emerald-100, html.classic .border-emerald-200,
+html.classic [class*="border-emerald-200/"], html.classic [class*="border-primary/20"],
+html.classic [class*="border-primary/25"], html.classic [class*="border-primary/30"]:not(button):not(a) {
+  border-color: var(--color-border);
+}
+html.classic .bg-emerald-50, html.classic [class*="bg-emerald-50/"] { background-color: #f6f8f7; }
+html.classic.dark .bg-emerald-50, html.classic.dark [class*="bg-emerald-50/"] { background-color: var(--color-card); }
+
+/* ---------------------------------------------------------------
+   10) Göstergeler (data-kpi): beyaz kutu, renk yalnız rakamda
+   --------------------------------------------------------------- */
+html.classic:not(.dark) [data-kpi] { background: var(--color-card) !important; border-color: var(--color-border) !important; }
+
+/* ---------------------------------------------------------------
+   11) "Kod" yazı tipi (font-mono) normal yazıya — kısayol tuşu (kbd) hariç
+   --------------------------------------------------------------- */
+html.classic .font-mono:not(kbd) { font-family: inherit; letter-spacing: 0; }
+
+/* ---------------------------------------------------------------
+   12) Sekme / adım menülerinde (data-plain-icons) baştaki süs simgeleri yok;
+       tamamlandı (✓) ve kilit işaretleri kalır.
+       "Simge + kalın başlık" kalıbındaki başlık simgeleri de yok.
+   --------------------------------------------------------------- */
+html.classic [data-plain-icons] svg.lucide:not(.lucide-circle-check):not(.lucide-circle-check-big):not(.lucide-check):not(.lucide-lock):not(.lucide-loader-circle) {
+  display: none !important;
+}
+html.classic :is(p, div, span):is(.font-semibold, .font-bold):is(.flex, .inline-flex) > svg.lucide:first-child:not(.animate-spin) {
+  display: none;
+}
