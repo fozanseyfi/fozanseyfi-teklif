@@ -104,6 +104,8 @@ export interface GesSettings {
   // override edilmemis aktif kalemlere maliyetleri orantisinda dagitilir.
   // Cikti PDF/Excel'de gozukmez — sadece editor icin.
   pboqMargins?: Record<string, number>;
+  /** Çıktılar → Teklif: teklifin geçerlilik süresi (gün). Yoksa 30. */
+  quoteValidityDays?: number;
 }
 
 export const DEF_KA: KesifGroup[] = [

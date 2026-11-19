@@ -45,6 +45,7 @@ export default async function AnaTeklifPage({ params }: Props) {
       userEmail={user.email ?? ""}
       backHref={`/projects/${id}/detail/analiz`}
       emptyHint="Satış fiyatı henüz oluşmadı. Önce Keşif ve Analiz adımlarını tamamlayın."
+      editableValidity
     />
   );
 }

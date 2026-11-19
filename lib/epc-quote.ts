@@ -66,6 +66,7 @@ export function buildEpcQuote(
     eur: s.eur || 0,
     outputCurrency: "USD",
     quoteDate: new Date().toISOString().slice(0, 10),
+    validityDays: s.quoteValidityDays && s.quoteValidityDays > 0 ? s.quoteValidityDays : 30,
   };
 
   return { items: salePriceUsd > 0 ? [item] : [], meta, salePriceUsd };

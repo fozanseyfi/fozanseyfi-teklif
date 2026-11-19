@@ -1,11 +1,13 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
-import Link from "next/link";
+import { Fragment, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { saveGesSettings } from "@/app/actions/ges";
+import { useReadOnly } from "@/lib/readonly-context";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { FileDown, Share2 } from "lucide-react";
+import { FileDown } from "lucide-react";
 import { DetailPageHeader } from "@/components/ges/detail-page-header";
 import { resolveBrand, type BrandSettings } from "@/lib/pdf-brand";
 import { buildQuotePrintHtml } from "@/lib/share-print/quote";
@@ -38,19 +40,32 @@ interface Props {
   backHref?: string;
   /** Kalem yokken gösterilecek açıklama */
   emptyHint?: string;
+  /** Anahtar teslim teklif: geçerlilik süresi burada sorulur ve projeye kaydedilir */
+  editableValidity?: boolean;
 }
 
 function fmt(n: number, d = 0) {
   return n.toLocaleString("tr-TR", { minimumFractionDigits: d, maximumFractionDigits: d });
 }
 
-export function QuoteOutput({ projectId, quoteTitle, customer, revisions, brand, firmName, userEmail, backHref, emptyHint }: Props) {
+export function QuoteOutput({ projectId, quoteTitle, customer, revisions, brand, firmName, userEmail, backHref, emptyHint, editableValidity = false }: Props) {
   const brandCtx = useMemo(() => resolveBrand(brand), [brand]);
   const [selId, setSelId] = useState(revisions[revisions.length - 1]?.id ?? "");
   const selected = revisions.find((r) => r.id === selId) ?? revisions[revisions.length - 1];
 
   const items = selected?.items ?? [];
-  const meta = selected?.meta;
+  const readOnly = useReadOnly();
+  const [validity, setValidity] = useState<number>(selected?.meta.validityDays ?? 30);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function changeValidity(raw: string) {
+    const v = Math.max(1, Math.min(365, Math.round(Number(raw) || 0)));
+    setValidity(v);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveGesSettings(projectId, { quoteValidityDays: v }).catch(() => toast.error("Geçerlilik süresi kaydedilemedi"));
+    }, 400);
+  }
+  const meta = selected?.meta && editableValidity ? { ...selected.meta, validityDays: validity } : selected?.meta;
   const totals = meta ? computeQuoteTotals(items, meta) : null;
   const out: QuoteOutputCurrency = meta?.outputCurrency || "TRY";
   const rates = { usd: meta?.usd ?? 0, eur: meta?.eur ?? 0 };
@@ -85,17 +100,36 @@ export function QuoteOutput({ projectId, quoteTitle, customer, revisions, brand,
         backHref={backHref ?? `/projects/${projectId}/detail/quote-analiz`}
         actions={
           <>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/admin/share-links">
-                <Share2 className="size-3.5" /> Paylaşım Linki
-              </Link>
-            </Button>
             <Button size="sm" onClick={downloadPdf} disabled={empty}>
               <FileDown className="size-3.5" /> PDF İndir
             </Button>
           </>
         }
       />
+
+      {editableValidity && (
+        <Card>
+          <CardContent className="flex flex-wrap items-center gap-3 p-4">
+            <Label htmlFor="quote-validity" className="text-sm font-medium">
+              Teklifin geçerlilik süresi
+            </Label>
+            <div className="flex items-center gap-2">
+              <input
+                id="quote-validity"
+                type="number"
+                min={1}
+                max={365}
+                value={validity}
+                disabled={readOnly}
+                onChange={(e) => changeValidity(e.target.value)}
+                className="h-9 w-20 rounded-md border bg-card px-2 text-center text-sm font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+              />
+              <span className="text-sm text-muted-foreground">gün</span>
+            </div>
+            <span className="text-xs text-muted-foreground">PDF&apos;te ve paylaşım linkinde bu süre yazar. Varsayılan 30 gün.</span>
+          </CardContent>
+        </Card>
+      )}
 
       {hasRevisions && (
         <Card>
