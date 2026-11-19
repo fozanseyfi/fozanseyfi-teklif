@@ -1,4 +1,4 @@
-import { Sun } from "lucide-react";
+import { BrandMark } from "@/components/shared/brand-mark";
 
 /**
  * Kurumsal sayfa-geçişi yükleniyor ekranı — dönen logo halkası + marka adı
@@ -13,7 +13,7 @@ export function BrandLoader({ label = "Yükleniyor" }: { label?: string }) {
         <span className="brand-loader-pulse" aria-hidden />
         <span className="brand-loader-ring" aria-hidden />
         <span className="brand-loader-badge">
-          <Sun className="size-7" />
+          <BrandMark className="size-full" />
         </span>
       </div>
       <p className="shimmer-text brand-loader-title">Teklif Platformu</p>

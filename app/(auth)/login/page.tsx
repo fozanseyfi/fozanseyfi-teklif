@@ -6,11 +6,12 @@ import { login } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Sun, Sparkles, Mail, Globe, PlayCircle } from "lucide-react";
+import { Eye, EyeOff, Sparkles, Mail, Globe, PlayCircle } from "lucide-react";
 import { LoginDemo } from "@/components/auth/login-demo";
 import { PlatformNoteCard, PrivacyCard } from "@/components/auth/login-info";
 import { OtherPlatforms } from "@/components/auth/other-platforms";
 import { TourLink, TourPromo } from "@/components/auth/tour-promo";
+import { BrandMark } from "@/components/shared/brand-mark";
 
 const DEV_LINKS = {
   linkedin: "https://www.linkedin.com/in/furkan-ozan-seyfi",
@@ -68,9 +69,7 @@ export default function LoginPage() {
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-2 px-4 py-2.5 sm:gap-4 sm:px-6 sm:py-3 lg:px-10">
           <div className="flex items-center gap-2 sm:gap-2.5">
-            <div className="flex size-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm sm:size-9">
-              <Sun className="size-4" />
-            </div>
+            <BrandMark className="size-8 shrink-0 rounded-xl shadow-sm sm:size-9" />
             <div className="leading-tight">
               <p className="text-[13px] font-bold tracking-tight text-foreground sm:text-sm">
                 SolarTeklif

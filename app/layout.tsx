@@ -27,7 +27,6 @@ export const metadata: Metadata = {
   description: "Solar EPC projelerinde maliyet, kapsam ve teklif kalemlerini düzenli tutmak için bireysel inisiyatifle geliştirilmiş bir araç.",
   applicationName: "SolarTeklif",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "SolarTeklif" },
-  icons: { apple: "/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {

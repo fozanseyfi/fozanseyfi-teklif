@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   FolderOpen,
   LogOut,
-  Sun,
   Users,
   MessageCircle,
   LayoutTemplate,
@@ -42,6 +41,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { LocaleToggle } from "@/components/shared/locale-toggle";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { BrandMark } from "@/components/shared/brand-mark";
 
 interface OrganizationOption {
   id: string;
@@ -531,9 +531,7 @@ export function Sidebar({ userName, userEmail, firmName, userRole, organizations
             aria-label="Dashboard'a git"
             className="flex min-w-0 items-center gap-2 rounded-lg transition-opacity hover:opacity-80"
           >
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-              <Sun className="size-4" />
-            </div>
+            <BrandMark className="size-8 shrink-0 rounded-lg shadow-sm" />
             <p className="shimmer-text truncate text-sm font-semibold text-foreground">
               Teklif Platformu
             </p>
@@ -654,9 +652,7 @@ export function Sidebar({ userName, userEmail, firmName, userRole, organizations
               showCollapsed ? "lg:flex-none lg:gap-0" : "flex-1",
             )}
           >
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-              <Sun className="size-5" />
-            </div>
+            <BrandMark className="size-9 shrink-0 rounded-lg shadow-sm" />
             <div className={cn("min-w-0 flex-1", showCollapsed ? "lg:hidden" : "")}>
               <p className="truncate text-sm font-semibold tracking-tight text-white">
                 Teklif Platformu

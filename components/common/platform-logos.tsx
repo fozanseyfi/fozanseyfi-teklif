@@ -2,7 +2,7 @@ import { Wrench } from "lucide-react";
 
 /**
  * Platformların GERÇEK logoları — her biri kendi projesinden birebir alındı:
- * - teklif      : teklif/app/icon.svg (emerald kare + Sun)
+ * - teklif      : teklif/app/icon.svg (zümrüt degrade + güneşli teklif belgesi)
  * - proje       : proje-takip/src/components/brand/logo.tsx LogoMark (slate gradient + 3 sütun + emerald nokta)
  * - karardestek : https://karardestek.fozanseyfi.com/icon.svg (sarı gradient + kupa)
  * - fizibilite  : bu projenin src/app/icon.svg
@@ -16,12 +16,19 @@ export function PlatformLogo({ id, size = 40, className }: { id: PlatformId; siz
   switch (id) {
     case "teklif":
       return (
-        <svg {...p} viewBox="0 0 32 32">
-          <rect width="32" height="32" rx="7" fill="#059669" />
-          <g transform="translate(4 4)" stroke="#ffffff" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="4" />
-            <path d="M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-          </g>
+        <svg {...p} viewBox="0 0 64 64">
+          <defs>
+            <linearGradient id="pl-teklif" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#064E3B" />
+              <stop offset="1" stopColor="#059669" />
+            </linearGradient>
+          </defs>
+          <rect width="64" height="64" rx="14" fill="url(#pl-teklif)" />
+          <path d="M19 10h18l12 12v28a4 4 0 0 1-4 4H19a4 4 0 0 1-4-4V14a4 4 0 0 1 4-4z" fill="#FFFFFF" />
+          <path d="M37 10v9a3 3 0 0 0 3 3h9z" fill="#A7F3D0" />
+          <circle cx="26" cy="26" r="6.5" fill="#F5A524" />
+          <rect x="22" y="37" width="22" height="5" rx="2.5" fill="#059669" />
+          <rect x="22" y="46" width="14" height="5" rx="2.5" fill="#059669" opacity="0.55" />
         </svg>
       );
     case "proje":

@@ -2,9 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { ROLE_LABELS, type Role } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Sun, Mail, ShieldAlert, Sparkles } from "lucide-react";
+import { Mail, ShieldAlert, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { InviteAcceptForm } from "./client";
+import { BrandMark } from "@/components/shared/brand-mark";
 
 interface Props {
   params: Promise<{ token: string }>;
@@ -115,9 +116,7 @@ function Shell({
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mb-3 inline-flex items-center gap-2.5">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-              <Sun className="size-5" />
-            </div>
+            <BrandMark className="size-10 shrink-0 rounded-xl shadow-sm" />
             <span className="text-2xl font-semibold tracking-tight text-foreground">SolarTeklif</span>
           </div>
         </div>

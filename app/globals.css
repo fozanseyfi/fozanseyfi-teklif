@@ -681,7 +681,8 @@
   width: 54px;
   height: 54px;
   border-radius: 15px;
-  background: linear-gradient(145deg, #059669, #047857);
+  overflow: hidden;
+  background: linear-gradient(145deg, #064e3b, #059669);
   color: #fff;
   box-shadow: 0 12px 30px -10px rgba(5, 150, 105, 0.65);
   animation: brand-loader-breathe 2.4s ease-in-out infinite;
