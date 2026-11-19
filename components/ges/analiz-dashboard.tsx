@@ -24,7 +24,7 @@ import {
 import {
   DollarSign, Zap, FileDown, Save, Plus, X,
   TrendingUp, ChevronRight, Edit2, BarChart2,
-  ChevronDown, ChevronUp, Minus,
+  ChevronDown, ChevronUp, Minus, Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -776,15 +776,17 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
         <Card className="relative overflow-hidden bg-primary text-primary-foreground shadow-sm">
           <CardContent className="p-4">
             <div className="absolute right-3 top-3 opacity-15"><DollarSign className="size-12" /></div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest opacity-80">
-              Toplam EPC Satış Fiyatı
-            </p>
-            <p className="mt-2 flex items-baseline gap-2 tracking-tight tabular-nums">
-              <span className="text-3xl font-bold">${fmt(result.salePriceUsd)}</span>
+            <EditableSalePrice
+              cost={maliyet}
+              sale={result.salePriceUsd}
+              otherRates={s.contingency + s.genelGider}
+              readOnly={isReadOnly}
+              onApply={(rate) => saveOneMargin("netKar", rate)}
+            >
               <span className="text-base font-semibold">
                 / {Math.round(result.perKwUsd).toLocaleString("tr-TR")} USD/kWp
               </span>
-            </p>
+            </EditableSalePrice>
             <div className="mt-1 flex items-center gap-3 text-xs opacity-85 tabular-nums">
               <span>₺{fmt(result.salePriceTry)}</span>
               <span className="size-1 rounded-full bg-primary-foreground/40" />
@@ -902,14 +904,6 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
               minRate={-(100 - s.contingency - s.genelGider - 1)}
               maxRate={Math.max(0, 99 - s.contingency - s.genelGider)}
               onRateChange={(v) => saveOneMargin("netKar", v)}
-              footer={
-                <SalePriceSetter
-                  cost={maliyet}
-                  sale={result.salePriceUsd}
-                  otherRates={s.contingency + s.genelGider}
-                  onApply={(rate) => saveOneMargin("netKar", rate)}
-                />
-              }
             />
             <RatioKpi
               tone="warning"
@@ -1839,7 +1833,6 @@ function RatioKpi({
   onRateChange,
   minRate = 0,
   maxRate = 30,
-  footer,
 }: {
   tone: keyof typeof RATIO_TONE;
   label: string;
@@ -1853,8 +1846,6 @@ function RatioKpi({
   onRateChange?: (newRate: number) => Promise<void> | void;
   minRate?: number;
   maxRate?: number;
-  /** Stepper'ın altına eklenen ek düzenleme alanı (salt-okunurda gizlenir). */
-  footer?: React.ReactNode;
 }) {
   const t = RATIO_TONE[tone];
   const editable = ratePct !== undefined && !!onRateChange;
@@ -1926,7 +1917,6 @@ function RatioKpi({
             <span className={cn(t.sub)}>{rateLabel ?? "Oran"}</span>
             <span className={cn("tabular-nums", t.sub)}>%{pct.toFixed(1)} satış</span>
           </div>
-          {footer && <div data-edit-only>{footer}</div>}
           {/* Salt-okunur fallback: stepper gizliyken degeri ve % bar'i goster */}
           <div className="readonly-only mt-2 hidden flex-col gap-1.5">
             <p className={cn("text-base font-bold tabular-nums", t.value)}>
@@ -1969,27 +1959,39 @@ function RatioKpi({
 }
 
 /**
- * Net Kâr kartının altındaki "Satış fiyatını belirle" alanı.
+ * Hero kartındaki satış fiyatı — tıklanınca aynı puntoda düzenlenebilir.
  * Girilen hedef satış fiyatı P için net kâr oranı geri hesaplanır:
  *   P = maliyet / (1 − (cont + ohc + net)/100)  ⇒  net = 100·(1 − maliyet/P) − cont − ohc
  * Contingency ve OHC satışın aynı yüzdesi olarak kalır; yalnız net kâr değişir.
+ * Kart ölçüsünü değiştirmemek için ipucu mutlak konumlu gösterilir.
  */
-function SalePriceSetter({
+function EditableSalePrice({
   cost,
   sale,
   otherRates,
+  readOnly,
   onApply,
+  children,
 }: {
   cost: number;
   sale: number;
   otherRates: number;
+  readOnly: boolean;
   onApply: (netRate: number) => void;
+  children?: React.ReactNode;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
-  const shown = draft ?? (sale > 0 ? Math.round(sale).toLocaleString("tr-TR") : "");
+  const inputRef = useRef<HTMLInputElement>(null);
   const target = draft === null ? NaN : parseMoney(draft);
   const valid = Number.isFinite(target) && target > cost && cost > 0;
   const previewRate = valid ? 100 * (1 - cost / target) - otherRates : null;
+  const editing = draft !== null;
+
+  function start() {
+    if (readOnly) return;
+    setDraft(sale > 0 ? String(Math.round(sale)) : "");
+    requestAnimationFrame(() => inputRef.current?.select());
+  }
 
   function apply() {
     if (draft === null) return;
@@ -2008,37 +2010,66 @@ function SalePriceSetter({
   }
 
   return (
-    <div className="mt-2.5 border-t border-success/25 pt-2">
-      <label className="text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap text-success-soft-foreground/80">
-        Satış fiyatı belirle
-      </label>
-      <div className="mt-1 flex items-center gap-1">
-        <div className="relative min-w-0 flex-1">
-          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs font-semibold text-success-soft-foreground/70">$</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={shown}
-            onFocus={(e) => { setDraft(sale > 0 ? String(Math.round(sale)) : ""); requestAnimationFrame(() => e.target.select()); }}
-            onChange={(e) => setDraft(e.target.value.replace(/[^0-9.,]/g, ""))}
-            onBlur={apply}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-              if (e.key === "Escape") { setDraft(null); (e.target as HTMLInputElement).blur(); }
-            }}
-            className="h-8 w-full rounded-md border border-success/30 bg-background pl-5 pr-1.5 text-right text-[13px] font-bold tabular-nums text-success-soft-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            title="Hedef satış fiyatı (USD). Enter ile uygulanır; net kâr oranı buna göre hesaplanır."
-          />
-        </div>
+    <>
+      <div className="flex items-center gap-2">
+        <p className="text-[10px] font-semibold uppercase tracking-widest opacity-80">
+          Toplam EPC Satış Fiyatı
+        </p>
+        {!readOnly && !editing && (
+          <button
+            type="button"
+            data-edit-only
+            onClick={start}
+            className="inline-flex h-4 items-center gap-1 rounded-full bg-primary-foreground/15 px-1.5 text-[9.5px] font-semibold uppercase tracking-wider transition-colors hover:bg-primary-foreground/30"
+            title="Satış fiyatını yazın; contingency ve OHC oranı sabit kalır, net kâr oranı buna göre hesaplanır."
+          >
+            <Pencil className="size-2.5" />
+            Belirle
+          </button>
+        )}
       </div>
-      <p className="mt-1 text-[10px] tabular-nums text-success-soft-foreground/75">
-        {draft !== null
-          ? previewRate !== null
-            ? `→ Net kâr %${previewRate.toFixed(2)}`
-            : `Maliyet $${Math.round(cost).toLocaleString("tr-TR")} üstü girin`
-          : `Cont.+OHC %${otherRates.toFixed(1)} sabit`}
-      </p>
-    </div>
+      <div className="relative mt-2 flex items-baseline gap-2 tracking-tight tabular-nums">
+        {editing ? (
+          <span className="inline-flex h-9 items-center self-center text-3xl font-bold leading-9">
+            $
+            <input
+              ref={inputRef}
+              autoFocus
+              type="text"
+              inputMode="decimal"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value.replace(/[^0-9.,]/g, ""))}
+              onBlur={apply}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                if (e.key === "Escape") { setDraft(null); }
+              }}
+              style={{ width: `${Math.max(6, draft.length + 1)}ch` }}
+              className="ml-0.5 h-8 rounded-md border-0 bg-primary-foreground/15 px-1 text-3xl leading-8 font-bold tabular-nums text-primary-foreground outline-none ring-2 ring-primary-foreground/60"
+            />
+          </span>
+        ) : (
+          <span
+            className={cn(
+              "text-3xl font-bold",
+              !readOnly && "cursor-text rounded-md decoration-primary-foreground/40 decoration-dashed underline-offset-4 hover:underline",
+            )}
+            onClick={start}
+            title={readOnly ? undefined : "Tıklayıp satış fiyatını belirleyin"}
+          >
+            ${fmt(sale)}
+          </span>
+        )}
+        {!editing && children}
+        {editing && (
+          <span className="pointer-events-none absolute left-0 top-full z-10 mt-1 whitespace-nowrap rounded-full bg-primary-foreground px-2 py-0.5 text-[11px] font-semibold tracking-normal text-primary shadow-sm">
+            {previewRate !== null
+              ? `→ Net kâr %${previewRate.toFixed(2)} · Cont.+OHC %${otherRates.toFixed(1)} sabit · Enter`
+              : `Maliyet $${Math.round(cost).toLocaleString("tr-TR")} üstünde bir fiyat girin`}
+          </span>
+        )}
+      </div>
+    </>
   );
 }
 
