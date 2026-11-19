@@ -247,7 +247,7 @@ export async function globalSearch(rawQuery: string): Promise<SearchResult[]> {
           itemResults.push({
             kind: "item",
             id: `${p.id}-${it.id}`,
-            title: it.code ? `${it.name} · ${it.code}` : it.name,
+            title: [it.name, it.desc, it.code].filter(Boolean).join(" · "),
             subtitle: sub.join(" · "),
             href: `/projects/${p.id}/detail/items`,
           });
@@ -269,6 +269,7 @@ export async function globalSearch(rawQuery: string): Promise<SearchResult[]> {
               : it.rawFiyat;
             const totalUsd = usdUnit * it.miktar;
             const titleParts = [it.tanim];
+            if (it.tip) titleParts.push(it.tip);
             if (it.marka) titleParts.push(it.marka);
             const subtitleParts: string[] = [];
             subtitleParts.push(p.name);

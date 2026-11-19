@@ -899,8 +899,17 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
               perKw={perKw(result.netKarAmt)}
               pct={pctOf(result.netKarAmt)}
               ratePct={s.netKar}
-              maxRate={30}
+              minRate={-(100 - s.contingency - s.genelGider - 1)}
+              maxRate={Math.max(0, 99 - s.contingency - s.genelGider)}
               onRateChange={(v) => saveOneMargin("netKar", v)}
+              footer={
+                <SalePriceSetter
+                  cost={maliyet}
+                  sale={result.salePriceUsd}
+                  otherRates={s.contingency + s.genelGider}
+                  onApply={(rate) => saveOneMargin("netKar", rate)}
+                />
+              }
             />
             <RatioKpi
               tone="warning"
@@ -1828,7 +1837,9 @@ function RatioKpi({
   rateLabel,
   sub,
   onRateChange,
+  minRate = 0,
   maxRate = 30,
+  footer,
 }: {
   tone: keyof typeof RATIO_TONE;
   label: string;
@@ -1840,14 +1851,17 @@ function RatioKpi({
   rateLabel?: string;
   sub?: string;
   onRateChange?: (newRate: number) => Promise<void> | void;
+  minRate?: number;
   maxRate?: number;
+  /** Stepper'ın altına eklenen ek düzenleme alanı (salt-okunurda gizlenir). */
+  footer?: React.ReactNode;
 }) {
   const t = RATIO_TONE[tone];
   const editable = ratePct !== undefined && !!onRateChange;
 
   function bump(delta: number) {
     if (!onRateChange) return;
-    const next = Math.max(0, Math.min(maxRate, parseFloat(((ratePct ?? 0) + delta).toFixed(2))));
+    const next = Math.max(minRate, Math.min(maxRate, parseFloat(((ratePct ?? 0) + delta).toFixed(2))));
     if (Math.abs(next - (ratePct ?? 0)) > 0.001) onRateChange(next);
   }
 
@@ -1884,15 +1898,15 @@ function RatioKpi({
             <input
               type="number"
               step="0.1"
-              min={0}
+              min={minRate}
               max={maxRate}
               value={(ratePct ?? 0).toFixed(1)}
               onChange={(e) => {
                 const v = parseFloat(e.target.value);
-                if (!isNaN(v)) onRateChange?.(Math.max(0, Math.min(maxRate, v)));
+                if (!isNaN(v)) onRateChange?.(Math.max(minRate, Math.min(maxRate, v)));
               }}
               className={cn(
-                "h-7 w-full min-w-0 rounded-md border bg-background px-1 text-center text-sm font-bold tabular-nums shadow-sm focus:outline-none focus:ring-2 focus:ring-ring",
+                "h-7 w-full min-w-0 rounded-md border bg-background px-1 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none text-sm font-bold tabular-nums shadow-sm focus:outline-none focus:ring-2 focus:ring-ring",
                 t.value,
               )}
             />
@@ -1912,6 +1926,7 @@ function RatioKpi({
             <span className={cn(t.sub)}>{rateLabel ?? "Oran"}</span>
             <span className={cn("tabular-nums", t.sub)}>%{pct.toFixed(1)} satış</span>
           </div>
+          {footer && <div data-edit-only>{footer}</div>}
           {/* Salt-okunur fallback: stepper gizliyken degeri ve % bar'i goster */}
           <div className="readonly-only mt-2 hidden flex-col gap-1.5">
             <p className={cn("text-base font-bold tabular-nums", t.value)}>
@@ -1951,4 +1966,86 @@ function RatioKpi({
       )}
     </div>
   );
+}
+
+/**
+ * Net Kâr kartının altındaki "Satış fiyatını belirle" alanı.
+ * Girilen hedef satış fiyatı P için net kâr oranı geri hesaplanır:
+ *   P = maliyet / (1 − (cont + ohc + net)/100)  ⇒  net = 100·(1 − maliyet/P) − cont − ohc
+ * Contingency ve OHC satışın aynı yüzdesi olarak kalır; yalnız net kâr değişir.
+ */
+function SalePriceSetter({
+  cost,
+  sale,
+  otherRates,
+  onApply,
+}: {
+  cost: number;
+  sale: number;
+  otherRates: number;
+  onApply: (netRate: number) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? (sale > 0 ? Math.round(sale).toLocaleString("tr-TR") : "");
+  const target = draft === null ? NaN : parseMoney(draft);
+  const valid = Number.isFinite(target) && target > cost && cost > 0;
+  const previewRate = valid ? 100 * (1 - cost / target) - otherRates : null;
+
+  function apply() {
+    if (draft === null) return;
+    // Değiştirilmeden çıkıldıysa oranı yuvarlayıp yeniden kaydetme
+    if (Number.isFinite(target) && Math.round(target) === Math.round(sale)) {
+      setDraft(null);
+      return;
+    }
+    if (!valid || previewRate === null) {
+      if (draft.trim()) toast.error("Satış fiyatı maliyetten büyük olmalı");
+      setDraft(null);
+      return;
+    }
+    onApply(previewRate);
+    setDraft(null);
+  }
+
+  return (
+    <div className="mt-2.5 border-t border-success/25 pt-2">
+      <label className="text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap text-success-soft-foreground/80">
+        Satış fiyatı belirle
+      </label>
+      <div className="mt-1 flex items-center gap-1">
+        <div className="relative min-w-0 flex-1">
+          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs font-semibold text-success-soft-foreground/70">$</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={shown}
+            onFocus={(e) => { setDraft(sale > 0 ? String(Math.round(sale)) : ""); requestAnimationFrame(() => e.target.select()); }}
+            onChange={(e) => setDraft(e.target.value.replace(/[^0-9.,]/g, ""))}
+            onBlur={apply}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              if (e.key === "Escape") { setDraft(null); (e.target as HTMLInputElement).blur(); }
+            }}
+            className="h-8 w-full rounded-md border border-success/30 bg-background pl-5 pr-1.5 text-right text-[13px] font-bold tabular-nums text-success-soft-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            title="Hedef satış fiyatı (USD). Enter ile uygulanır; net kâr oranı buna göre hesaplanır."
+          />
+        </div>
+      </div>
+      <p className="mt-1 text-[10px] tabular-nums text-success-soft-foreground/75">
+        {draft !== null
+          ? previewRate !== null
+            ? `→ Net kâr %${previewRate.toFixed(2)}`
+            : `Maliyet $${Math.round(cost).toLocaleString("tr-TR")} üstü girin`
+          : `Cont.+OHC %${otherRates.toFixed(1)} sabit`}
+      </p>
+    </div>
+  );
+}
+
+/** "1.250.000", "1250000,5", "1250000.5" → sayı (TR binlik ayırıcıları tolere eder). */
+function parseMoney(raw: string): number {
+  let t = raw.trim();
+  if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".");
+  else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, "");
+  return parseFloat(t);
 }
