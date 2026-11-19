@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { X } from "lucide-react";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } = require("react-simple-maps") as {
   ComposableMap: React.ComponentType<Record<string, unknown>>;
@@ -110,8 +112,26 @@ interface Tooltip {
   y: number;
 }
 
+export interface MapProject {
+  id: string;
+  name: string;
+  customer: string | null;
+  mwp: number;
+}
+
 interface Props {
   provinceCounts: Record<string, number>;
+  /** İl → o ildeki projeler; sayıya tıklayınca liste olarak açılır. */
+  provinceProjects?: Record<string, MapProject[]>;
+}
+
+interface Picked {
+  name: string;
+  /** Harita kutusuna göre piksel konumu */
+  left: number;
+  top: number;
+  /** Pencere sağa sığmıyorsa sola açılır */
+  flip: boolean;
 }
 
 // Başlangıç görünümü: Türkiye'yi çerçeveye sığacak şekilde merkezle.
@@ -120,8 +140,40 @@ interface Props {
 const INITIAL_CENTER: [number, number] = [35.5, 39.0];
 const INITIAL_ZOOM = 1;
 
-export function TurkeyMap({ provinceCounts }: Props) {
+export function TurkeyMap({ provinceCounts, provinceProjects = {} }: Props) {
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
+  const [picked, setPicked] = useState<Picked | null>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  // Dışarı tıklayınca / Esc ile kapat
+  useEffect(() => {
+    if (!picked) return;
+    function onDown(e: MouseEvent) {
+      const t = e.target as Element;
+      if (t.closest("[data-map-popover]") || t.closest("[data-map-marker]")) return;
+      setPicked(null);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setPicked(null);
+    }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [picked]);
+
+  function pick(name: string, e: React.MouseEvent) {
+    const box = boxRef.current?.getBoundingClientRect();
+    if (!box) return;
+    if (picked?.name === name) { setPicked(null); return; }
+    const left = e.clientX - box.left;
+    setTooltip(null);
+    setPicked({ name, left, top: e.clientY - box.top, flip: left > box.width - 280 });
+  }
+
+  const pickedList = picked ? provinceProjects[picked.name] ?? [] : [];
   const [zoom, setZoom] = useState(INITIAL_ZOOM);
   const [center, setCenter] = useState<[number, number]>(INITIAL_CENTER);
 
@@ -131,7 +183,7 @@ export function TurkeyMap({ provinceCounts }: Props) {
   const markerScale = 1 / zoom;
 
   return (
-    <div className="relative w-full select-none">
+    <div ref={boxRef} className="relative w-full select-none">
       <ComposableMap
         projection="geoMercator"
         projectionConfig={{ center: INITIAL_CENTER, scale: 2100 }}
@@ -186,6 +238,8 @@ export function TurkeyMap({ provinceCounts }: Props) {
                   stroke="#ffffff"
                   strokeWidth={1.5 * markerScale}
                   style={{ cursor: "pointer" }}
+                  data-map-marker
+                  onClick={(e: React.MouseEvent<SVGCircleElement>) => pick(p.name, e)}
                   onMouseEnter={(e: React.MouseEvent<SVGCircleElement>) => {
                     const svgEl = e.currentTarget.closest("svg") as SVGSVGElement | null;
                     if (!svgEl) return;
@@ -195,6 +249,7 @@ export function TurkeyMap({ provinceCounts }: Props) {
                     const ctm = svgEl.getScreenCTM();
                     if (!ctm) return;
                     const svgP = pt.matrixTransform(ctm.inverse());
+                    if (picked) return;
                     setTooltip({ name: p.name, count, x: svgP.x, y: svgP.y });
                   }}
                   onMouseLeave={() => setTooltip(null)}
@@ -250,6 +305,49 @@ export function TurkeyMap({ provinceCounts }: Props) {
           </g>
         )}
       </ComposableMap>
+
+      {/* Tıklanan ilin projeleri */}
+      {picked && (
+        <div
+          data-map-popover
+          className="absolute z-20 w-[260px] max-w-[calc(100%-16px)] overflow-hidden rounded-xl border bg-card text-card-foreground shadow-lg"
+          style={{
+            top: Math.max(8, picked.top - 20),
+            ...(picked.flip ? { right: 8 } : { left: Math.max(8, picked.left + 14) }),
+          }}
+        >
+          <div className="flex items-center justify-between gap-2 border-b bg-muted/50 px-3 py-2">
+            <div className="min-w-0">
+              <p className="truncate text-[13px] font-semibold">{picked.name}</p>
+              <p className="text-[11px] text-muted-foreground">{pickedList.length} proje</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPicked(null)}
+              className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label="Kapat"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+          <ul className="max-h-[220px] divide-y overflow-y-auto">
+            {pickedList.map((pr) => (
+              <li key={pr.id}>
+                <Link
+                  href={`/projects/${pr.id}/detail`}
+                  className="block px-3 py-2 transition-colors hover:bg-muted/60"
+                >
+                  <p className="truncate text-[12.5px] font-medium" data-no-i18n>{pr.name}</p>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    <span data-no-i18n>{pr.customer ?? "—"}</span>
+                    {pr.mwp > 0 && <> · {pr.mwp.toLocaleString("tr-TR", { maximumFractionDigits: 2 })} MWp</>}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Reset zoom button */}
       {(zoom > INITIAL_ZOOM + 0.01 || zoom < INITIAL_ZOOM - 0.01) && (

@@ -107,9 +107,17 @@ export default async function DashboardPage() {
   const totalMWp = allVisibleProjects.reduce((s, p) => s + Math.max(p.totalPowerKw, 0) / 1000, 0);
 
   const provinceCounts: Record<string, number> = {};
+  const provinceProjects: Record<string, { id: string; name: string; customer: string | null; mwp: number }[]> = {};
   for (const p of allVisibleProjects) {
     const il = (p.projectDetail?.settings as GesSettings | null)?.il;
-    if (il) provinceCounts[il] = (provinceCounts[il] ?? 0) + 1;
+    if (!il) continue;
+    provinceCounts[il] = (provinceCounts[il] ?? 0) + 1;
+    (provinceProjects[il] ??= []).push({
+      id: p.id,
+      name: p.name,
+      customer: p.customerName ?? null,
+      mwp: Math.max(p.totalPowerKw, 0) / 1000,
+    });
   }
 
   return (
@@ -249,10 +257,10 @@ export default async function DashboardPage() {
         <Card className="overflow-hidden">
           <div className="flex items-center justify-between border-b px-5 py-3">
             <h2 className="text-sm font-semibold">Proje Dağılımı</h2>
-            <p className="text-xs text-muted-foreground">Kaydır: yakınlaştır · Sürükle: taşı</p>
+            <p className="text-xs text-muted-foreground">Sayıya tıkla: projeler · Kaydır: yakınlaştır · Sürükle: taşı</p>
           </div>
           <CardContent className="bg-muted/30 p-0">
-            <TurkeyMap provinceCounts={provinceCounts} />
+            <TurkeyMap provinceCounts={provinceCounts} provinceProjects={provinceProjects} />
           </CardContent>
         </Card>
       )}
