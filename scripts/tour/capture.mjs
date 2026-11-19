@@ -137,14 +137,14 @@ const MODULES = [
       },
       {
         title: "Dashboard",
-        text: "Girişten sonra Dashboard açılır. Üstte toplam teklif, devam eden, kazanılan teklif sayısı ve teklif verilen toplam güç; altında son projeler tablosu ve projelerin il bazında dağılımı yer alır.",
+        text: "Girişten sonra Dashboard açılır. Üstte toplam ve kazanılan teklif sayısı, teklif verilen toplam güç, güncel kurla USD bazında toplam teklif ve kazanılan tutar, son 12 ayda aylık gönderilen teklif grafiği; altında aşama filtreli son projeler tablosu ve il bazında dağılım haritası yer alır.",
         run: async (page) => {
           await go(page, "/dashboard", 900);
         },
       },
       {
         title: "Son projeler tablosu",
-        text: "Tabloda her teklifin gücü, tutarı, satış aşaması ve tarihi görünür. Göz simgesi teklifi salt okunur açar, yanındaki düğme teklifi kopyalayıp yeni bir proje olarak başlatır.",
+        text: "Üstteki aşama çipleri (her birinde o aşamadaki teklif sayısı) tabloyu süzer. Tabloda her teklifin gücü, tutarı, satış aşaması ve tarihi görünür. Göz simgesi teklifi salt okunur açar, yanındaki düğme teklifi kopyalayıp yeni bir proje olarak başlatır.",
         run: async (page) => {
           await mark(page, await page.$("table"));
         },
@@ -543,7 +543,7 @@ const MODULES = [
     steps: [
       {
         title: "Teklifler",
-        text: "Her satırda müşteri, güç, fiyat ($/kWp ile), aşama ve tarih yer alır. Görüntüle salt okunur açar, Düzenle teklifi açar; kopyala ve sil düğmeleri satır sonundadır.",
+        text: "Her teklif tek satırdır: müşteri, güç, fiyat, aşama ve tarih. Satır sonunda göz (salt okunur aç), kalem (düzenle), kopyala ve sil düğmeleri bulunur. Aşama çiplerinde her aşamadaki teklif sayısı yazar.",
         run: async (page) => {
           await go(page, "/projects", 900);
         },

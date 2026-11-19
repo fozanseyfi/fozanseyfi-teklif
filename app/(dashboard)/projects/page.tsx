@@ -5,12 +5,8 @@ import { isAdmin } from "@/lib/permissions";
 import { getHiddenResourceIds } from "@/lib/permission-server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  formatCurrency,
-  formatDate,
-  INSTALLATION_TYPE_LABELS,
-} from "@/lib/utils";
-import { Plus, FolderOpen, Eye, Search } from "lucide-react";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { Plus, FolderOpen, Eye, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isProjectVisible } from "@/lib/project-status";
 import { parseQuoteItems, parseQuoteMeta, computeQuoteTotals } from "@/lib/quote";
@@ -18,11 +14,10 @@ import { calc } from "@/lib/ges-engine";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
 import { DeleteProjectButton } from "@/components/project/delete-project-button";
 import { CopyProjectButton } from "@/components/project/copy-project-button";
-import { PIPELINE_STAGE_LABELS } from "@/lib/pipeline-labels";
 import { StageSelect } from "@/components/projects/stage-select";
-import type { PipelineStage } from "@prisma/client";
+import { StageFilters, countStages, matchesStage, parseStage } from "@/components/projects/stage-filters";
 
-// Sol kenar renk şeridi — pipeline aşamasına göre.
+// Satır başındaki aşama noktası rengi.
 const PIPELINE_BAR_COLOR: Record<string, string> = {
   DRAFT: "bg-muted-foreground/40",
   SENT: "bg-info",
@@ -37,7 +32,8 @@ interface Props {
 }
 
 export default async function ProjectsPage({ searchParams }: Props) {
-  const { q, stage } = await searchParams;
+  const { q, stage: rawStage } = await searchParams;
+  const stage = parseStage(rawStage);
   const user = await requireAuth();
 
   // Admin disindaki kullanicilar icin gizli proje + gizli musteri ID'lerini al.
@@ -65,13 +61,6 @@ export default async function ProjectsPage({ searchParams }: Props) {
             ],
           }
         : {}),
-      // Pipeline aşaması filtresi. "DRAFT" hem yeni enum DRAFT'ı hem de
-      // henüz pipeline'a girmemiş eski projeleri (null) kapsar.
-      ...(stage
-        ? stage === "DRAFT"
-          ? { AND: [{ OR: [{ pipelineStage: "DRAFT" as const }, { pipelineStage: null }] }] }
-          : { pipelineStage: stage as PipelineStage }
-        : {}),
     },
     include: {
       pricingSnapshot: true,
@@ -82,7 +71,10 @@ export default async function ProjectsPage({ searchParams }: Props) {
 
   // Yarim kalmis projeleri (Proje + Teknik tamamlanmadan terkedilenler)
   // listeden gizle. DB'de durur, kullanici icin yokmus gibi davranir.
-  const projects = allProjects.filter(isProjectVisible);
+  // Aşama filtresi bellekte uygulanır; çiplerdeki sayılar filtre öncesi listeden hesaplanır.
+  const visibleProjects = allProjects.filter(isProjectVisible);
+  const stageCounts = countStages(visibleProjects);
+  const projects = visibleProjects.filter((p) => matchesStage(p, stage));
 
   // GES engine ile gercek satis fiyati. Esik kaldirildi — fiyat 0'dan buyukse
   // ne kadar dusuk olursa olsun goster (kullanici yarim-doldurulmus projede
@@ -110,26 +102,36 @@ export default async function ProjectsPage({ searchParams }: Props) {
     return { value: t.subtotal, symbol: t.symbol };
   }
 
-  const filters = [
-    { value: undefined, label: "Tümü" },
-    { value: "DRAFT", label: PIPELINE_STAGE_LABELS.DRAFT },
-    { value: "SENT", label: PIPELINE_STAGE_LABELS.SENT },
-    { value: "REVISED", label: PIPELINE_STAGE_LABELS.REVISED },
-    { value: "WON", label: PIPELINE_STAGE_LABELS.WON },
-    { value: "LOST", label: PIPELINE_STAGE_LABELS.LOST },
-    { value: "CANCELLED", label: PIPELINE_STAGE_LABELS.CANCELLED },
-  ];
+
+  // Fiyat hücresi — tek satır: ana tutar + soluk ikinci bilgi ($/kWp veya KDV hariç)
+  function price(project: (typeof projects)[number]): { main: string; sub?: string } | null {
+    if (project.quoteKind === "MATERIAL_SERVICE") {
+      const m = getQuoteExVat(project);
+      return m ? { main: `${m.symbol}${m.value.toLocaleString("tr-TR", { maximumFractionDigits: 0 })}`, sub: "KDV hariç" } : null;
+    }
+    const epc = getEpcPrice(project);
+    if (epc) {
+      return {
+        main: `$${epc.salePriceUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}`,
+        sub: `$${Math.round(epc.perKwUsd).toLocaleString("en-US")}/kWp`,
+      };
+    }
+    if (project.pricingSnapshot) return { main: formatCurrency(project.pricingSnapshot.finalSalePrice) };
+    return null;
+  }
+
+  const TH = "px-3 py-2.5 font-medium whitespace-nowrap";
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Projeler</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Teklifler</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            {projects.length} proje bulundu
+            {projects.length} teklif{stage || q ? " listeleniyor" : ""}
           </p>
         </div>
-        <Button asChild>
+        <Button asChild size="sm">
           <Link href="/projects/new">
             <Plus className="size-4" />
             Yeni Proje
@@ -137,197 +139,126 @@ export default async function ProjectsPage({ searchParams }: Props) {
         </Button>
       </div>
 
-      {/* Ctrl+K kısayol ipucu — her sayfadan açılan global arama */}
-      <div className="flex items-center gap-2 rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-3 py-2 text-[12px] text-slate-600">
-        <Search className="size-3.5 shrink-0 text-emerald-600" />
-        <span>
-          Hızlı arama için her sayfada{" "}
-          <kbd className="mx-0.5 rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">
-            Ctrl
-          </kbd>
-          <span className="text-slate-400">+</span>
-          <kbd className="mx-0.5 rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">
-            K
-          </kbd>{" "}
-          tuşlarına basabilir veya üst bardaki büyüteç ikonunu kullanabilirsin —
-          proje adı, müşteri, lokasyon veya{" "}
-          <strong className="text-slate-700">kalem</strong> ("Solar Panel" gibi)
-          ile arama yapar. Sadece görüntüleme — hangi projede ne fiyat, kaç MWp
-          olduğunu hızlıca görmek için.
-        </span>
-      </div>
-
-      {/* Filtreler */}
-      <div className="flex flex-wrap gap-2">
-        {filters.map((f) => {
-          const isActive = stage === f.value || (!stage && !f.value);
-          return (
-            <Link
-              key={f.value ?? "all"}
-              href={f.value ? `/projects?stage=${f.value}` : "/projects"}
-              className={cn(
-                "rounded-full px-4 py-1.5 text-xs font-medium transition-colors",
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground"
-              )}
-            >
-              {f.label}
-            </Link>
-          );
-        })}
-      </div>
+      {/* Filtreler — her çipte o aşamadaki teklif sayısı */}
+      <StageFilters basePath="/projects" active={stage} counts={stageCounts} total={visibleProjects.length} params={{ q }} />
 
       {projects.length === 0 ? (
         <Card>
-          <CardContent className="py-16 text-center">
-            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-secondary">
-              <FolderOpen className="size-7 text-muted-foreground" />
-            </div>
-            <p className="font-semibold text-foreground">Proje bulunamadı</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Yeni bir proje oluşturarak başlayın
+          <CardContent className="py-14 text-center">
+            <FolderOpen className="mx-auto mb-3 size-9 text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">
+              {stage || q ? "Bu filtrede teklif yok." : "İlk projenizi oluşturarak başlayın."}
             </p>
-            <Button asChild className="mt-5">
-              <Link href="/projects/new">
-                <Plus className="size-4" />
-                İlk Projeyi Oluştur
-              </Link>
-            </Button>
+            {!stage && !q && (
+              <Button asChild size="sm" className="mt-4">
+                <Link href="/projects/new">
+                  <Plus className="size-4" /> Yeni Proje
+                </Link>
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
         <Card className="overflow-hidden">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Proje
-                    </th>
-                    <th className="hidden px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground md:table-cell">
-                      Müşteri
-                    </th>
-                    <th className="hidden px-6 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground lg:table-cell">
-                      Güç
-                    </th>
-                    <th className="hidden px-6 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground lg:table-cell">
-                      Fiyat
-                    </th>
-                    <th className="px-6 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Aşama
-                    </th>
-                    <th className="hidden px-6 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:table-cell">
-                      Tarih
-                    </th>
-                    <th className="px-6 py-3" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {projects.map((project) => {
-                    const isMs = project.quoteKind === "MATERIAL_SERVICE";
-                    const epc = isMs ? null : getEpcPrice(project);
-                    const msPrice = isMs ? getQuoteExVat(project) : null;
-                    return (
-                      <tr
-                        key={project.id}
-                        className="transition-colors hover:bg-muted/30"
-                      >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={cn(
-                                "h-8 w-1 shrink-0 rounded-full",
-                                PIPELINE_BAR_COLOR[project.pipelineStage ?? "DRAFT"] ??
-                                  "bg-muted-foreground/40"
-                              )}
-                            />
-                            <div>
-                              <p className="font-medium text-foreground">{project.name}</p>
-                              <p className="mt-0.5 text-xs text-muted-foreground">
-                                {project.quoteKind === "MATERIAL_SERVICE"
-                                  ? "Malzeme & Hizmet"
-                                  : INSTALLATION_TYPE_LABELS[project.installationType]}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="hidden px-6 py-4 font-medium text-muted-foreground md:table-cell">
-                          {project.customerName}
-                        </td>
-                        <td className="hidden px-6 py-4 text-right font-medium text-muted-foreground lg:table-cell">
-                          {project.totalPowerKw > 0
-                            ? project.totalPowerKw >= 1000
-                              ? `${(project.totalPowerKw / 1000).toFixed(2)} MWp`
-                              : `${project.totalPowerKw.toFixed(1)} kWp`
-                            : "—"}
-                        </td>
-                        <td className="hidden px-6 py-4 text-right lg:table-cell">
-                          {isMs ? (
-                            msPrice ? (
-                              <div>
-                                <p className="font-semibold text-foreground">
-                                  {msPrice.symbol}
-                                  {msPrice.value.toLocaleString("tr-TR", { maximumFractionDigits: 0 })}
-                                </p>
-                                <p className="text-[11px] text-muted-foreground">KDV hariç</p>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )
-                          ) : epc ? (
-                            <div>
-                              <p className="font-semibold text-foreground">
-                                ${epc.salePriceUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                              </p>
-                              <p className="text-[11px] text-muted-foreground">
-                                ${Math.round(epc.perKwUsd).toLocaleString("en-US")}/kWp
-                              </p>
-                            </div>
-                          ) : project.pricingSnapshot ? (
-                            <span className="font-semibold text-foreground">
-                              {formatCurrency(project.pricingSnapshot.finalSalePrice)}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <StageSelect
-                            projectId={project.id}
-                            stage={project.pipelineStage}
-                            lostReason={project.lostReason}
-                            competitorName={project.competitorName}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-secondary/50 text-left text-xs text-muted-foreground">
+                  <th className={cn(TH, "pl-5")}>Proje</th>
+                  <th className={cn(TH, "hidden 2xl:table-cell")}>Tip</th>
+                  <th className={cn(TH, "hidden md:table-cell")}>Müşteri</th>
+                  <th className={cn(TH, "hidden text-right lg:table-cell")}>Güç</th>
+                  <th className={cn(TH, "hidden text-right sm:table-cell")}>Fiyat</th>
+                  <th className={TH}>Aşama</th>
+                  <th className={cn(TH, "hidden text-right xl:table-cell")}>Güncellendi</th>
+                  <th className={cn(TH, "pr-5")} />
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {projects.map((project) => {
+                  const pr = price(project);
+                  const kind =
+                    project.quoteKind === "MATERIAL_SERVICE"
+                      ? "Malzeme & Hizmet"
+                      : project.installationType === "ROOFTOP"
+                        ? "Çatı"
+                        : "Arazi";
+                  return (
+                    <tr key={project.id} className="whitespace-nowrap hover:bg-secondary/30">
+                      <td className="max-w-[250px] py-2.5 pl-5 pr-3 2xl:max-w-[380px]">
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className={cn(
+                              "size-2 shrink-0 rounded-full",
+                              PIPELINE_BAR_COLOR[project.pipelineStage ?? "DRAFT"] ?? "bg-muted-foreground/40",
+                            )}
                           />
-                        </td>
-                        <td className="hidden px-6 py-4 text-right text-xs text-muted-foreground sm:table-cell">
-                          {formatDate(project.updatedAt)}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button variant="outline" size="sm" asChild title="Salt-okunur olarak görüntüle">
-                              <Link href={`/projects/${project.id}/detail?view=1`}>
-                                <Eye className="size-3.5" />
-                                Görüntüle
-                              </Link>
-                            </Button>
-                            <Button variant="outline" size="sm" asChild>
-                              <Link href={`/projects/${project.id}/detail`}>
-                                Düzenle
-                              </Link>
-                            </Button>
-                            <CopyProjectButton projectId={project.id} />
-                            <DeleteProjectButton projectId={project.id} />
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
+                          <Link
+                            href={`/projects/${project.id}/detail`}
+                            className="truncate font-medium text-foreground hover:text-primary hover:underline"
+                            title={project.name}
+                            data-no-i18n
+                          >
+                            {project.name}
+                          </Link>
+                        </div>
+                      </td>
+                      <td className="hidden px-3 py-2.5 text-xs text-muted-foreground 2xl:table-cell">{kind}</td>
+                      <td className="hidden max-w-[200px] px-3 py-2.5 md:table-cell">
+                        <span className="block truncate text-muted-foreground" title={project.customerName ?? undefined} data-no-i18n>
+                          {project.customerName || "—"}
+                        </span>
+                      </td>
+                      <td className="hidden px-3 py-2.5 text-right tabular-nums text-muted-foreground lg:table-cell">
+                        {project.totalPowerKw > 0
+                          ? project.totalPowerKw >= 1000
+                            ? `${(project.totalPowerKw / 1000).toFixed(2)} MWp`
+                            : `${project.totalPowerKw.toFixed(1)} kWp`
+                          : "—"}
+                      </td>
+                      <td className="hidden px-3 py-2.5 text-right tabular-nums sm:table-cell">
+                        {pr ? (
+                          <>
+                            <span className="font-medium text-foreground">{pr.main}</span>
+                            {pr.sub && <span className="ml-1.5 hidden text-xs text-muted-foreground 2xl:inline">{pr.sub}</span>}
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
+                        <StageSelect
+                          projectId={project.id}
+                          stage={project.pipelineStage}
+                          lostReason={project.lostReason}
+                          competitorName={project.competitorName}
+                        />
+                      </td>
+                      <td className="hidden px-3 py-2.5 text-right text-xs text-muted-foreground xl:table-cell">
+                        {formatDate(project.updatedAt)}
+                      </td>
+                      <td className="py-2 pl-3 pr-5">
+                        <div className="flex justify-end gap-1.5">
+                          <Button variant="outline" size="sm" asChild title="Salt-okunur olarak görüntüle">
+                            <Link href={`/projects/${project.id}/detail?view=1`} aria-label="Görüntüle">
+                              <Eye className="size-3.5" />
+                            </Link>
+                          </Button>
+                          <Button variant="outline" size="sm" asChild title="Düzenle">
+                            <Link href={`/projects/${project.id}/detail`} aria-label="Düzenle">
+                              <Pencil className="size-3.5" />
+                            </Link>
+                          </Button>
+                          <CopyProjectButton projectId={project.id} />
+                          <DeleteProjectButton projectId={project.id} />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
     </div>

@@ -15,9 +15,16 @@ import { isProjectVisible } from "@/lib/project-status";
 import { parseQuoteItems, parseQuoteMeta, computeQuoteTotals } from "@/lib/quote";
 import { PIPELINE_STAGE_LABELS, PIPELINE_STAGE_TONE } from "@/lib/pipeline-labels";
 import { CopyProjectButton } from "@/components/project/copy-project-button";
+import { StageFilters, countStages, matchesStage, parseStage } from "@/components/projects/stage-filters";
+import { getLatestFx } from "@/lib/fx";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ stage?: string }>;
+}) {
   const user = await requireAuth();
+  const stage = parseStage((await searchParams).stage);
 
   // Admin disindaki kullanicilar icin gizlenmis proje + musteri ID'lerini al.
   // Gizli musteri => o musteriye bagli projeler de listede cikmaz. Bu
@@ -50,7 +57,8 @@ export default async function DashboardPage() {
     },
   });
   const allVisibleProjects = allRawProjects.filter(isProjectVisible);
-  const projects = allVisibleProjects.slice(0, 10);
+  const stageCounts = countStages(allVisibleProjects);
+  const projects = allVisibleProjects.filter((p) => matchesStage(p, stage)).slice(0, 10);
 
   function getEpcPrice(p: {
     projectDetail?: { kesifA: unknown; kesifB: unknown; settings: unknown } | null;
@@ -95,13 +103,65 @@ export default async function DashboardPage() {
   // KPI'lar pipeline aşamasına göre, tüm görünür projeler üzerinden (sadece son 10 değil).
   const totalCount = allVisibleProjects.length;
   const wonCount = allVisibleProjects.filter((p) => p.pipelineStage === "WON").length;
-  // "Devam Eden": kapanmamış her şey (pipeline'a hiç girmemiş taslaklar dahil).
-  const ongoingCount = allVisibleProjects.filter(
-    (p) =>
-      p.pipelineStage !== "WON" &&
-      p.pipelineStage !== "LOST" &&
-      p.pipelineStage !== "CANCELLED",
-  ).length;
+
+  // Teklif tutarları USD — TL/EUR kalemler HER ZAMAN güncel kurdan yeniden çevrilir
+  // (projede kayıtlı eski kur değil). KDV hariç.
+  const fx = await getLatestFx();
+  function offerUsd(p: (typeof allVisibleProjects)[number]): number {
+    if (p.quoteKind === "MATERIAL_SERVICE") {
+      const items = parseQuoteItems(p.projectDetail?.quoteItems);
+      if (!items.length || !fx.usd) return 0;
+      const meta = { ...parseQuoteMeta(p.projectDetail?.settings), usd: fx.usd, eur: fx.eur };
+      return computeQuoteTotals(items, meta).saleExKdvTRY / fx.usd;
+    }
+    if (p.projectDetail?.settings) {
+      try {
+        const r = calc(
+          p.projectDetail.kesifA as unknown as KesifGroup[],
+          p.projectDetail.kesifB as unknown as KesifGroup[],
+          { ...(p.projectDetail.settings as unknown as GesSettings), usd: fx.usd, eur: fx.eur },
+        );
+        if (r.salePriceUsd >= 100) return r.salePriceUsd;
+      } catch {
+        /* eski kayıt — aşağıdaki yedeğe düş */
+      }
+    }
+    if (p.pricingSnapshot && fx.usd) return p.pricingSnapshot.finalSalePrice / fx.usd; // TL
+    return 0;
+  }
+  const totalOfferUsd = allVisibleProjects.reduce((sum, p) => sum + offerUsd(p), 0);
+  const wonOfferUsd = allVisibleProjects
+    .filter((p) => p.pipelineStage === "WON")
+    .reduce((sum, p) => sum + offerUsd(p), 0);
+
+  // Aylık gönderilen teklif sayısı (son 12 ay). Gönderim tarihi = ilk "SENT" aşama
+  // kaydı; kaydı olmayan (eski) gönderilmiş tekliflerde oluşturma tarihi. Taslaklar sayılmaz.
+  const stageActs = await prisma.projectActivity.findMany({
+    where: { projectId: { in: allVisibleProjects.map((p) => p.id) }, type: "STAGE_CHANGE" },
+    select: { projectId: true, createdAt: true, details: true },
+    orderBy: { createdAt: "asc" },
+  });
+  const sentAt = new Map<string, Date>();
+  for (const a of stageActs) {
+    if ((a.details as { to?: string } | null)?.to === "SENT" && !sentAt.has(a.projectId)) {
+      sentAt.set(a.projectId, a.createdAt);
+    }
+  }
+  const now = new Date();
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
+    return {
+      key: `${d.getFullYear()}-${d.getMonth()}`,
+      label: d.toLocaleDateString("tr-TR", { month: "short", year: "numeric" }),
+      count: 0,
+    };
+  });
+  for (const p of allVisibleProjects) {
+    if ((p.pipelineStage ?? "DRAFT") === "DRAFT") continue;
+    const d = sentAt.get(p.id) ?? p.createdAt;
+    const m = months.find((x) => x.key === `${d.getFullYear()}-${d.getMonth()}`);
+    if (m) m.count++;
+  }
   // Kazanma oranı = kazanılan / TÜM teklifler.
   const winRate = totalCount > 0 ? Math.round((wonCount / totalCount) * 100) : null;
   const totalMWp = allVisibleProjects.reduce((s, p) => s + Math.max(p.totalPowerKw, 0) / 1000, 0);
@@ -140,11 +200,10 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI — dört sade kart */}
+      {/* KPI — altı sade kart */}
       {totalCount > 0 && (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           <Stat label="Toplam Teklif" value={String(totalCount)} />
-          <Stat label="Devam Eden" value={String(ongoingCount)} />
           <Stat
             label="Kazanılan"
             value={String(wonCount)}
@@ -155,12 +214,33 @@ export default async function DashboardPage() {
             label="Toplam Güç"
             value={totalMWp.toLocaleString("tr-TR", { maximumFractionDigits: totalMWp < 10 ? 1 : 0 })}
             unit="MWp"
+            className="col-span-2 lg:col-span-1"
           />
+          <Stat label="Toplam Teklif Tutarı" value={usd(totalOfferUsd)} hint={fxHint(fx)} className="col-span-2 lg:col-span-1" />
+          <Stat
+            label="Kazanılan Tutar"
+            value={usd(wonOfferUsd)}
+            className="col-span-2 lg:col-span-1"
+            hint={totalOfferUsd > 0 ? `teklif tutarının %${Math.round((wonOfferUsd / totalOfferUsd) * 100)}'i` : undefined}
+            accent
+          />
+          <MonthlyStat months={months} />
         </div>
       )}
 
+      {/* Aşama filtresi — Son Projeler tablosunu süzer */}
+      {totalCount > 0 && (
+        <StageFilters basePath="/dashboard" active={stage} counts={stageCounts} total={totalCount} />
+      )}
+
       {/* Son Projeler */}
-      {projects.length === 0 ? (
+      {projects.length === 0 && totalCount > 0 ? (
+        <Card>
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+            Bu aşamada teklif yok.
+          </CardContent>
+        </Card>
+      ) : projects.length === 0 ? (
         <Card>
           <CardContent className="py-14 text-center">
             <FolderOpen className="mx-auto mb-3 size-9 text-muted-foreground/40" />
@@ -277,15 +357,17 @@ function Stat({
   unit,
   hint,
   accent = false,
+  className,
 }: {
   label: string;
   value: string;
   unit?: string;
   hint?: string;
   accent?: boolean;
+  className?: string;
 }) {
   return (
-    <Card>
+    <Card className={className}>
       <CardContent className="p-4">
         <p className="text-xs font-medium text-muted-foreground">{label}</p>
         <p
@@ -298,6 +380,57 @@ function Stat({
           {unit && <span className="ml-1 text-xs font-medium text-muted-foreground">{unit}</span>}
         </p>
         {hint && <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+function usd(v: number): string {
+  return "$" + Math.round(v).toLocaleString("en-US");
+}
+
+function fxHint(fx: { usd: number; source: string }): string {
+  const rate = fx.usd.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `KDV hariç · güncel kur 1 USD = ${rate} ₺${fx.source === "fallback" ? " (yaklaşık)" : ""}`;
+}
+
+// Aylık gönderilen teklif — küçük çubuk grafik (son 12 ay). Sunucuda SVG; her çubukta ipucu.
+function MonthlyStat({ months }: { months: { key: string; label: string; count: number }[] }) {
+  const max = Math.max(1, ...months.map((m) => m.count));
+  const thisMonth = months[months.length - 1]?.count ?? 0;
+  const total = months.reduce((sum, m) => sum + m.count, 0);
+  const W = 12 * 10;
+  const H = 34;
+  return (
+    <Card className="col-span-2 lg:col-span-1">
+      <CardContent className="flex items-end justify-between gap-3 p-4">
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-muted-foreground">Gönderilen Teklif</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">
+            {thisMonth}
+            <span className="ml-1 text-xs font-medium text-muted-foreground">bu ay</span>
+          </p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">son 12 ayda {total}</p>
+        </div>
+        <svg viewBox={`0 0 ${W} ${H}`} className="h-11 w-32 shrink-0" role="img" aria-label="Aylık gönderilen teklif sayısı">
+          {months.map((m, i) => {
+            const h = m.count > 0 ? Math.max(3, (m.count / max) * (H - 2)) : 1.5;
+            const last = i === months.length - 1;
+            return (
+              <rect
+                key={m.key}
+                x={i * 10 + 1.5}
+                y={H - h}
+                width={7}
+                height={h}
+                rx={1.5}
+                className={last ? "fill-primary" : m.count > 0 ? "fill-primary/45" : "fill-muted-foreground/20"}
+              >
+                <title>{`${m.label}: ${m.count} teklif`}</title>
+              </rect>
+            );
+          })}
+        </svg>
       </CardContent>
     </Card>
   );
