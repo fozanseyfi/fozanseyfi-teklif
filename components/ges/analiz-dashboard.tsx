@@ -690,10 +690,10 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                   <tr>
                     <th className="px-4 py-2.5 text-left text-muted-foreground font-semibold w-16">Kod</th>
                     <th className="px-4 py-2.5 text-left text-muted-foreground font-semibold">Tanım</th>
-                    <th className="px-4 py-2.5 text-center text-muted-foreground font-semibold min-w-[90px]">Birim</th>
+                    <th className="px-4 py-2.5 text-center text-muted-foreground font-semibold w-14">Birim</th>
                     <th className="px-4 py-2.5 text-center text-muted-foreground font-semibold w-24">Miktar</th>
-                    <th className="px-4 py-2.5 text-center text-muted-foreground font-semibold w-28">Birim Fiyat</th>
-                    <th className="px-4 py-2.5 text-center text-muted-foreground font-semibold w-20">Para</th>
+                    <th className="px-4 py-2.5 text-center text-muted-foreground font-semibold w-32">Birim Fiyat</th>
+                    <th className="px-4 py-2.5 text-center text-muted-foreground font-semibold w-24">Para</th>
                     <th className="px-4 py-2.5 text-right text-muted-foreground font-semibold w-28">Toplam USD</th>
                   </tr>
                 </thead>
@@ -706,13 +706,13 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                         <td className="px-4 py-2 text-foreground">{it.tanim}</td>
                         <td className="px-4 py-2 text-center text-muted-foreground whitespace-nowrap">{it.birim}</td>
                         <td className="px-4 py-2">
-                          <Input type="number" step="any" value={it.miktar || ""} onChange={(e) => updateEditItem(i, "miktar", parseFloat(e.target.value) || 0)} className="h-7 text-xs text-center w-full" />
+                          <Input type="number" step="any" value={it.miktar || ""} onChange={(e) => updateEditItem(i, "miktar", parseFloat(e.target.value) || 0)} className="h-7 w-full px-1.5 text-xs text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
+                        </td>
+                        <td className="px-2 py-2">
+                          <Input type="number" step="any" value={it.rawFiyat || ""} onChange={(e) => updateEditItem(i, "rawFiyat", parseFloat(e.target.value) || 0)} className="h-7 w-full min-w-[96px] px-1.5 text-xs text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
                         </td>
                         <td className="px-4 py-2">
-                          <Input type="number" step="any" value={it.rawFiyat || ""} onChange={(e) => updateEditItem(i, "rawFiyat", parseFloat(e.target.value) || 0)} className="h-7 text-xs text-center w-full" />
-                        </td>
-                        <td className="px-4 py-2">
-                          <select value={it.fiyatCur} onChange={(e) => updateEditItem(i, "fiyatCur", e.target.value)} className="h-7 w-full text-xs border rounded-md px-1 bg-card">
+                          <select value={it.fiyatCur} onChange={(e) => updateEditItem(i, "fiyatCur", e.target.value)} className="h-7 w-full min-w-[68px] text-xs border rounded-md pl-1.5 pr-0.5 bg-card">
                             <option value="USD">USD</option><option value="EUR">EUR</option><option value="TRY">TRY</option>
                           </select>
                         </td>

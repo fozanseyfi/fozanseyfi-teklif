@@ -384,10 +384,10 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
                         <th className="w-20 px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:w-24">
                           Miktar
                         </th>
-                        <th className={cn("w-16 px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden sm:table-cell")}>
+                        <th className={cn("w-[84px] px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden sm:table-cell")}>
                           Para
                         </th>
-                        <th className={cn("w-24 px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden sm:table-cell")}>
+                        <th className={cn("w-28 px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden sm:table-cell")}>
                           Birim Fiyat
                         </th>
                         <th className="w-24 px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:w-28">
@@ -510,7 +510,7 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
                                 </span>
                               ) : (
                                 <Input
-                                  className={cn(inputRowClass, "w-22 text-right")}
+                                  className={cn(inputRowClass, "w-24 min-w-[92px] text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none")}
                                   type="number"
                                   step={item.code.startsWith("A.3") ? "0.001" : "any"}
                                   value={item.miktar}
@@ -532,7 +532,7 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
                                 </span>
                               ) : (
                                 <select
-                                  className="h-7 w-full rounded-md border bg-card px-1 text-xs"
+                                  className="h-7 w-full min-w-[68px] rounded-md border bg-card pl-1.5 pr-0.5 text-xs"
                                   value={item.fiyatCur}
                                   onChange={(e) =>
                                     updateItem(
@@ -558,7 +558,7 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
                                 </span>
                               ) : (
                                 <Input
-                                  className={cn(inputRowClass, "w-22 text-right")}
+                                  className={cn(inputRowClass, "w-24 min-w-[92px] text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none")}
                                   type="number"
                                   step="0.001"
                                   value={item.rawFiyat}
