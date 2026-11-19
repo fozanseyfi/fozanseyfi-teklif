@@ -17,7 +17,7 @@ import {
   Lock,
   CheckCircle2,
   Sparkles,
-  GitBranch,
+
 } from "lucide-react";
 
 export interface DetailNavProgress {
@@ -140,11 +140,6 @@ const STAGES: Stage[] = [
         icon: ClipboardCheck,
         isUnlocked: downstream("timeline"),
         lockHint: "Önce CF Timeline'ı doldurup kaydedin",
-      },
-      {
-        label: "Pipeline",
-        href: "/pipeline",
-        icon: GitBranch,
       },
     ],
   },

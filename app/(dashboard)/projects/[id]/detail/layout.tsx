@@ -172,14 +172,14 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
           ) : null}
 
           {/* Durum = yalnızca pipeline aşaması (proje status'ü gösterilmez).
-              Detaylı yönetim Pipeline sekmesinde. */}
+              Aşama yalnızca Teklifler listesinden değiştirilir. */}
           {!isTemplate && (
             <span
               className={cn(
                 "inline-flex h-5 items-center gap-0.5 rounded-full border px-1.5 text-[9.5px] font-semibold uppercase tracking-wider",
                 PIPELINE_STAGE_TONE[project.pipelineStage ?? "DRAFT"],
               )}
-              title="Pipeline aşaması — Pipeline sekmesinden yönetin"
+              title="Aşama — Teklifler listesinden değiştirilir"
             >
               <GitBranch className="mr-0.5 size-2.5" />
               {PIPELINE_STAGE_LABELS[project.pipelineStage ?? "DRAFT"]}

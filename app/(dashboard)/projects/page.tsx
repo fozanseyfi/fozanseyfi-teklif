@@ -18,7 +18,8 @@ import { calc } from "@/lib/ges-engine";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
 import { DeleteProjectButton } from "@/components/project/delete-project-button";
 import { CopyProjectButton } from "@/components/project/copy-project-button";
-import { PIPELINE_STAGE_LABELS, PIPELINE_STAGE_TONE } from "@/lib/pipeline-labels";
+import { PIPELINE_STAGE_LABELS } from "@/lib/pipeline-labels";
+import { StageSelect } from "@/components/projects/stage-select";
 import type { PipelineStage } from "@prisma/client";
 
 // Sol kenar renk şeridi — pipeline aşamasına göre.
@@ -293,15 +294,12 @@ export default async function ProjectsPage({ searchParams }: Props) {
                           )}
                         </td>
                         <td className="px-6 py-4 text-center">
-                          <span
-                            className={cn(
-                              "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold",
-                              PIPELINE_STAGE_TONE[project.pipelineStage ?? "DRAFT"],
-                            )}
-                            title="Pipeline aşaması — projenin satış sürecindeki yeri"
-                          >
-                            {PIPELINE_STAGE_LABELS[project.pipelineStage ?? "DRAFT"]}
-                          </span>
+                          <StageSelect
+                            projectId={project.id}
+                            stage={project.pipelineStage}
+                            lostReason={project.lostReason}
+                            competitorName={project.competitorName}
+                          />
                         </td>
                         <td className="hidden px-6 py-4 text-right text-xs text-muted-foreground sm:table-cell">
                           {formatDate(project.updatedAt)}

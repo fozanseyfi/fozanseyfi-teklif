@@ -226,7 +226,7 @@ export default async function DashboardPage() {
                           "inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium",
                           PIPELINE_STAGE_TONE[project.pipelineStage ?? "DRAFT"],
                         )}
-                        title="Pipeline aşaması — sadece proje Pipeline sekmesinden değiştirilir"
+                        title="Aşama — yalnızca Teklifler listesinden değiştirilir"
                       >
                         {PIPELINE_STAGE_LABELS[project.pipelineStage ?? "DRAFT"]}
                       </span>

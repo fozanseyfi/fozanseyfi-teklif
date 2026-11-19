@@ -440,34 +440,6 @@ const MODULES = [
           await press(page, "Tümünü Aç", 500);
         },
       },
-      {
-        title: "Pipeline: satış süreci",
-        text: "Teklifin satış aşaması (taslak, gönderildi, revizyon, kazanıldı, kaybedildi) buradan yönetilir. Müşterinin linki açması ve revizyon talepleri aktivite akışına otomatik düşer.",
-        run: async (page) => {
-          await go(page, `${P}/pipeline`, 900);
-          await mark(page, await byText(page, "Revizyon İstendi", "button"));
-        },
-      },
-      {
-        title: "Aktivite ve not ekleme",
-        text: "Telefon görüşmesi, gönderilen e-posta veya iç not kaydedilir. Kayıtlar tarih sırasıyla akışta listelenir; ekip arkadaşlarınız da görür.",
-        run: async (page) => {
-          const ta = await page.$("textarea");
-          await ta.click();
-          await ta.type("Revize teklif Huawei inverter ile hazırlandı, Perşembe sunulacak.", { delay: 8 });
-          await mark(page, ta);
-          await mark(page, await byText(page, "Ekle", "button"), { click: true });
-        },
-      },
-      {
-        title: "Not kaydedildi",
-        text: "“Ekle”ye basınca not, yazan kişi ve saatle birlikte akışın en üstüne eklenir.",
-        toast: true,
-        run: async (page) => {
-          await press(page, await byText(page, "Ekle", "button"), 1200);
-          await scrollTo(page, "Aktivite Akışı", "start");
-        },
-      },
     ],
   },
 
@@ -577,9 +549,31 @@ const MODULES = [
         },
       },
       {
+        title: "Aşamayı listeden değiştirin",
+        text: "Satırdaki aşama rozetine tıklayınca aşamalar açılır: Taslak, Müşteriye Gönderildi, Revizyon İstendi, Closed Won, Closed Lost, Proje İptal. Seçtiğiniz anda kaydedilir. Aşama elle yalnızca buradan değiştirilir; müşteri linkten onay verir ya da revizyon isterse otomatik güncellenir.",
+        run: async (page) => {
+          const b = await page.$('button[title="Aşamayı değiştirmek için tıklayın"]');
+          await mark(page, b, { click: true });
+          await b.click();
+          await sleep(500);
+        },
+      },
+      {
+        title: "Closed Lost: kayıp sebebi",
+        text: "Closed Lost seçilince kayıp sebebi (fiyat, teknik, referans, zamanlama, müşteri ilişkisi) ve isterseniz kazanan rakip firma sorulur; bu bilgiler Firma Performansı raporlarına yansır.",
+        run: async (page) => {
+          const it = await byText(page, "Closed Lost", "[role=menuitem]");
+          await it.click();
+          await sleep(400);
+          await mark(page, await page.$("[role=menu] select"));
+        },
+      },
+      {
         title: "Aşamaya göre filtre",
         text: "Üstteki sekmelerle yalnızca taslakları, müşteriye gönderilenleri, revizyon bekleyenleri ya da kazanılan / kaybedilen teklifleri listeleyebilirsiniz.",
         run: async (page) => {
+          await page.keyboard.press("Escape");
+          await sleep(300);
           await press(page, await byText(page, "Müşteriye Gönderildi", "a"), 900);
           await mark(page, await byText(page, "Müşteriye Gönderildi", "a"), { click: true });
         },
@@ -706,12 +700,11 @@ const MODULES = [
         },
       },
       {
-        title: "Talep teklifin akışında",
-        text: "Teklifin Pipeline sekmesinde aşama “Revizyon İstendi” olarak güncellenmiştir; müşterinin adı, e-postası ve mesajı aktivite akışının en üstündedir.",
+        title: "Aşama otomatik güncellendi",
+        text: "Müşteri revizyon isteyince teklifin aşaması Teklifler listesinde otomatik olarak “Revizyon İstendi” olur.",
         run: async (page) => {
-          await go(page, `/projects/${ID.manisa}/detail/pipeline`, 1200);
-          await scrollTo(page, "Aktivite Akışı", "start");
-          await mark(page, await byText(page, "Panel markasının alternatifli verilmesini ve teslim süresinin 6 haftaya çekilmesini rica ederiz.", "p, div, span"));
+          await go(page, "/projects?stage=REVISED", 1200);
+          await mark(page, await page.$('button[title="Aşamayı değiştirmek için tıklayın"]'));
         },
       },
     ],
