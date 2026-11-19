@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import type { Project } from "@prisma/client";
 import { saveGesSettings } from "@/app/actions/ges";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
-import { calc, toUSD } from "@/lib/ges-engine";
+import { calc, toUSD, nonEmptyGroups } from "@/lib/ges-engine";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -209,7 +209,8 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
     } as never).catch(() => {});
   }
 
-  const allGroups = useMemo(() => [...kesifA, ...kesifB], [kesifA, kesifB]);
+  // Sıfır kalemler (miktar/fiyat 0, ör. Finans Maliyeti) ve boş gruplar P-BoQ'da hiç gösterilmez.
+  const allGroups = useMemo(() => nonEmptyGroups([...kesifA, ...kesifB]), [kesifA, kesifB]);
 
   const result = useMemo(() => calc(kesifA, kesifB, settings), [kesifA, kesifB, settings]);
   const salePrice = result.salePriceUsd;

@@ -17,7 +17,7 @@ import {
   Lock,
   CheckCircle2,
   Sparkles,
-
+  Stamp,
 } from "lucide-react";
 
 export interface DetailNavProgress {
@@ -120,6 +120,13 @@ const STAGES: Stage[] = [
     label: "ÇIKTILAR",
     accent: "output",
     items: [
+      {
+        label: "Teklif",
+        href: "/ana-teklif",
+        icon: Stamp,
+        isUnlocked: downstream("timeline"),
+        lockHint: "Önce CF Timeline'ı doldurup kaydedin",
+      },
       {
         label: "BoQ",
         href: "/boq",

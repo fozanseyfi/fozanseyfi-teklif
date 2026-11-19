@@ -27,7 +27,7 @@ export const SHARE_TABS: ShareTabInfo[] = [
   { id: "firma", label: "Firma Tanıtımı" },
   { id: "referanslar", label: "Referanslar" },
   { id: "belgeler", label: "Belgeler" },
-  { id: "teklif", label: "Malzeme & Hizmet Teklifi" },
+  { id: "teklif", label: "Teklif (ana teklif)" },
   { id: "kesif-a", label: "Keşif-A", sensitive: true },
   { id: "kesif-b", label: "Keşif-B", sensitive: true },
   { id: "boq-unpriced", label: "Fiyatsız BoQ" },
@@ -54,7 +54,7 @@ export const CUSTOMER_TAB_INFO: Record<ShareTab, CustomerTabInfo> = {
   firma: { label: "Firma Tanıtımı", desc: "Bizi tanıyın — faaliyet alanlarımız ve uzmanlığımız" },
   referanslar: { label: "Referanslarımız", desc: "Tamamladığımız projeler ve müşterilerimiz" },
   belgeler: { label: "Belgeler", desc: "Sertifikalar ve ek belgeler" },
-  teklif: { label: "Fiyat Teklifi", desc: "Teklifimize dahil kalemler ve toplam tutar" },
+  teklif: { label: "Fiyat Teklifi", desc: "Teklif tutarı, KDV ve onay alanı" },
   "boq-unpriced": {
     label: "Malzeme Listesi",
     desc: "Teklifimize dahil tüm malzeme ve işler (fiyatsız kapsam listesi)",

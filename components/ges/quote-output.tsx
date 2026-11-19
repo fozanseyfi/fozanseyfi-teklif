@@ -34,13 +34,17 @@ interface Props {
   brand: BrandSettings;
   firmName: string;
   userEmail: string;
+  /** Geri dönüş adresi (varsayılan: Malzeme & Hizmet analiz sekmesi) */
+  backHref?: string;
+  /** Kalem yokken gösterilecek açıklama */
+  emptyHint?: string;
 }
 
 function fmt(n: number, d = 0) {
   return n.toLocaleString("tr-TR", { minimumFractionDigits: d, maximumFractionDigits: d });
 }
 
-export function QuoteOutput({ projectId, quoteTitle, customer, revisions, brand, firmName, userEmail }: Props) {
+export function QuoteOutput({ projectId, quoteTitle, customer, revisions, brand, firmName, userEmail, backHref, emptyHint }: Props) {
   const brandCtx = useMemo(() => resolveBrand(brand), [brand]);
   const [selId, setSelId] = useState(revisions[revisions.length - 1]?.id ?? "");
   const selected = revisions.find((r) => r.id === selId) ?? revisions[revisions.length - 1];
@@ -78,7 +82,7 @@ export function QuoteOutput({ projectId, quoteTitle, customer, revisions, brand,
       <DetailPageHeader
         kicker="Teklif Çıktısı"
         title={quoteTitle}
-        backHref={`/projects/${projectId}/detail/quote-analiz`}
+        backHref={backHref ?? `/projects/${projectId}/detail/quote-analiz`}
         actions={
           <>
             <Button variant="outline" size="sm" asChild>
@@ -116,7 +120,11 @@ export function QuoteOutput({ projectId, quoteTitle, customer, revisions, brand,
       {empty || !totals ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
-            Henüz kalem yok. Önce <strong>Kalemler</strong> sekmesinden kalem ekleyin.
+            {emptyHint ?? (
+              <>
+                Henüz kalem yok. Önce <strong>Kalemler</strong> sekmesinden kalem ekleyin.
+              </>
+            )}
           </CardContent>
         </Card>
       ) : (

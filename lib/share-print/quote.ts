@@ -38,6 +38,8 @@ export interface BuildQuoteHtmlArgs {
   brand: BrandContext;
   firmName: string;
   userEmail: string;
+  /** Açılınca yazdırma penceresini kendiliğinden aç (paylaşım önizlemesinde false) */
+  autoPrint?: boolean;
 }
 
 export function buildQuotePrintHtml({
@@ -48,6 +50,7 @@ export function buildQuotePrintHtml({
   brand,
   firmName,
   userEmail,
+  autoPrint = true,
 }: BuildQuoteHtmlArgs): string {
   // Diğer PDF'lerle aynı standart başlık: koyu slate gradyan + renkli accent bar.
   const accent = brand.primary;
@@ -160,7 +163,7 @@ export function buildQuotePrintHtml({
   .dim { color:#94a3b8; }
   .strong { font-weight:700; }
   .code { color:#94a3b8; font-size:10px; }
-  .desc { color:#64748b; font-size:10px; margin-top:2px; }
+  .desc { color:#64748b; font-size:10px; margin-top:2px; white-space:pre-line; }
   .grp { background:${accentLight}; color:${accent}; font-weight:700; font-size:10px; text-transform:uppercase; letter-spacing:0.04em; padding:5px 9px; }
   .totals { margin-top:14px; margin-left:auto; width:48%; }
   .totals .row { display:flex; justify-content:space-between; padding:4px 9px; font-size:12px; }
@@ -257,9 +260,9 @@ export function buildQuotePrintHtml({
   </div>
 
   ${brandFooterHtml(brand, firmName, userEmail, docId)}
-  <script>
+  ${autoPrint ? `<script>
     // Logo/görseller yüklendikten sonra yazdır (logo eksik çıkmasın).
     window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 200); });
-  </script>
+  </script>` : ""}
 </body></html>`;
 }

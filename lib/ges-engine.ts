@@ -1,5 +1,20 @@
 import type { KesifGroup, KesifItem, GesSettings, TimelineData } from "./ges-defaults";
 
+/**
+ * Çıktılarda (BoQ, P-BoQ, PDF, paylaşım) gösterilecek kalem mi? Miktarı veya fiyatı
+ * sıfır olan kalemler (ör. hesaplanmamış Finans Maliyeti) gösterilmez.
+ */
+export function hasValue(it: KesifItem): boolean {
+  return it.miktar > 0 && it.rawFiyat > 0;
+}
+
+/** Sıfır kalemleri ve hiç kalemi kalmayan grupları (ör. boş A.4) çıkarır. */
+export function nonEmptyGroups(groups: KesifGroup[]): KesifGroup[] {
+  return groups
+    .map((g) => ({ ...g, items: g.items.filter(hasValue) }))
+    .filter((g) => g.items.length > 0);
+}
+
 export function toUSD(rawFiyat: number, fiyatCur: string, s: GesSettings): number {
   if (fiyatCur === "USD") return rawFiyat;
   if (fiyatCur === "EUR") return (rawFiyat * s.eur) / s.usd;

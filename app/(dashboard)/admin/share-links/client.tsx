@@ -120,8 +120,8 @@ export function ShareLinksClient({ projects, links, organizationName, customDocu
   const isMaterialService = selectedKind === "MATERIAL_SERVICE";
   function tabAllowed(id: string): boolean {
     if (isMaterialService) return MATERIAL_SERVICE_ALLOWED.has(id);
-    // Anahtar teslim proje (veya henüz seçilmemiş): "teklif" yalnız malzeme/hizmete özel.
-    return id !== "teklif";
+    // Anahtar teslim proje: tüm sekmeler ("teklif" = tek kalemli ana teklif).
+    return true;
   }
 
   // Proje değişince, artık izin verilmeyen seçili sekmeleri temizle.

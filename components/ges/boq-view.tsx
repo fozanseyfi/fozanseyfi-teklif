@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import type { Project } from "@prisma/client";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
-import { calc, toUSD } from "@/lib/ges-engine";
+import { calc, toUSD, hasValue } from "@/lib/ges-engine";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,13 +67,13 @@ export function BoQView({
 
   const result = useMemo(() => calc(kesifA, kesifB, settings), [kesifA, kesifB, settings]);
 
-  // Boş kalemler (miktar = 0) BoQ'da hep gizlenir — yatırımcıyla paylaşılan
+  // Boş kalemler (miktar veya fiyat = 0) BoQ'da hep gizlenir — yatırımcıyla paylaşılan
   // kapsam listesinde kullanılmamış kalem olmamalı. Hem GRUP kodları (A.7 boş
   // olduğu için silindi → A.8 yeni A.7 olur) hem de KALEM kodları görünür
   // sırayla yeniden numaralanır.
   const visibleGroups = useMemo(() => {
     const filtered = allGroups
-      .map((g) => ({ ...g, items: g.items.filter((it) => it.miktar > 0) }))
+      .map((g) => ({ ...g, items: g.items.filter(hasValue) }))
       .filter((g) => g.items.length > 0);
     // Grup kodlarını harf-bazında (A vs B) ardışık numaralandır
     let aIdx = 0;
@@ -106,7 +106,7 @@ export function BoQView({
   const totalItems = visibleGroups.reduce((s, g) => s + g.items.length, 0);
   const emptyCount =
     allGroups.reduce((s, g) => s + g.items.length, 0) -
-    allGroups.reduce((s, g) => s + g.items.filter((it) => it.miktar > 0).length, 0);
+    allGroups.reduce((s, g) => s + g.items.filter(hasValue).length, 0);
 
   // A+B+Genel toplamlar (sadece visible items üzerinden)
   const totals = useMemo(() => {

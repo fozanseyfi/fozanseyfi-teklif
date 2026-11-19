@@ -1,6 +1,6 @@
 import type { Project } from "@prisma/client";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
-import { toUSD } from "@/lib/ges-engine";
+import { toUSD, hasValue } from "@/lib/ges-engine";
 import {
   generateDocId,
   brandRowHtml,
@@ -52,7 +52,7 @@ export function buildBoqPrintHtml({
   // Visible groups — miktar=0 elenir, gruplar harf-bazında yeniden numaralandırılır
   const allGroups = [...kesifA, ...kesifB];
   const filtered = allGroups
-    .map((g) => ({ ...g, items: g.items.filter((it) => it.miktar > 0) }))
+    .map((g) => ({ ...g, items: g.items.filter(hasValue) }))
     .filter((g) => g.items.length > 0);
   let aIdx = 0;
   let bIdx = 0;

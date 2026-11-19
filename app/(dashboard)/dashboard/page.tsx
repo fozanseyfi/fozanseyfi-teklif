@@ -200,9 +200,9 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      {/* KPI — altı sade kart */}
+      {/* KPI — tek satır, beş sade kart */}
       {totalCount > 0 && (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           <Stat label="Toplam Teklif" value={String(totalCount)} />
           <Stat
             label="Kazanılan"
@@ -214,16 +214,8 @@ export default async function DashboardPage({
             label="Toplam Güç"
             value={totalMWp.toLocaleString("tr-TR", { maximumFractionDigits: totalMWp < 10 ? 1 : 0 })}
             unit="MWp"
-            className="col-span-2 lg:col-span-1"
           />
-          <Stat label="Toplam Teklif Tutarı" value={usd(totalOfferUsd)} hint={fxHint(fx)} className="col-span-2 lg:col-span-1" />
-          <Stat
-            label="Kazanılan Tutar"
-            value={usd(wonOfferUsd)}
-            className="col-span-2 lg:col-span-1"
-            hint={totalOfferUsd > 0 ? `teklif tutarının %${Math.round((wonOfferUsd / totalOfferUsd) * 100)}'i` : undefined}
-            accent
-          />
+          <AmountStat total={totalOfferUsd} won={wonOfferUsd} fx={fx} />
           <MonthlyStat months={months} />
         </div>
       )}
@@ -403,16 +395,16 @@ function MonthlyStat({ months }: { months: { key: string; label: string; count: 
   const H = 34;
   return (
     <Card className="col-span-2 lg:col-span-1">
-      <CardContent className="flex items-end justify-between gap-3 p-4">
+      <CardContent className="flex items-end justify-between gap-2 p-4">
         <div className="min-w-0">
-          <p className="text-xs font-medium text-muted-foreground">Gönderilen Teklif</p>
+          <p className="whitespace-nowrap text-xs font-medium text-muted-foreground">Gönderilen Teklif</p>
           <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">
             {thisMonth}
             <span className="ml-1 text-xs font-medium text-muted-foreground">bu ay</span>
           </p>
           <p className="mt-0.5 text-[11px] text-muted-foreground">son 12 ayda {total}</p>
         </div>
-        <svg viewBox={`0 0 ${W} ${H}`} className="h-11 w-32 shrink-0" role="img" aria-label="Aylık gönderilen teklif sayısı">
+        <svg viewBox={`0 0 ${W} ${H}`} className="h-10 w-24 shrink sm:w-28 lg:w-16 xl:w-20" role="img" aria-label="Aylık gönderilen teklif sayısı">
           {months.map((m, i) => {
             const h = m.count > 0 ? Math.max(3, (m.count / max) * (H - 2)) : 1.5;
             const last = i === months.length - 1;
@@ -431,6 +423,23 @@ function MonthlyStat({ months }: { months: { key: string; label: string; count: 
             );
           })}
         </svg>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Teklif tutarı (USD, güncel kur) — toplam ve kazanılan aynı kartta.
+function AmountStat({ total, won, fx }: { total: number; won: number; fx: { usd: number; source: string } }) {
+  const pct = total > 0 ? Math.round((won / total) * 100) : null;
+  return (
+    <Card title={fxHint(fx)}>
+      <CardContent className="p-4">
+        <p className="text-xs font-medium text-muted-foreground">Teklif Tutarı</p>
+        <p className="mt-1 text-xl font-semibold tabular-nums tracking-tight sm:text-2xl lg:text-xl xl:text-2xl">{usd(total)}</p>
+        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+          kazanılan <span className="font-semibold text-primary">{usd(won)}</span>
+          {pct !== null && <> · %{pct}</>}
+        </p>
       </CardContent>
     </Card>
   );

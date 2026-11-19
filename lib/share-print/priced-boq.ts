@@ -1,6 +1,6 @@
 import type { Project } from "@prisma/client";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
-import { calc, toUSD } from "@/lib/ges-engine";
+import { calc, toUSD, nonEmptyGroups } from "@/lib/ges-engine";
 import {
   generateDocId,
   brandRowHtml,
@@ -205,7 +205,8 @@ function buildMeta(project: Project, projectName: string, settings: GesSettings)
 
 function preparePricedData(args: BuildPricedBoqArgs) {
   const { kesifA, kesifB, settings } = args;
-  const allGroups = [...kesifA, ...kesifB];
+  // Sıfır kalemler ve boş gruplar çıktıda yer almaz
+  const allGroups = nonEmptyGroups([...kesifA, ...kesifB]);
   const excludedCodes = new Set<string>(settings.pboqExcluded ?? []);
   const hiddenCodes = new Set<string>(settings.pboqHidden ?? []);
   const marginOverrides: Record<string, number> = settings.pboqMargins ?? {};
