@@ -488,12 +488,18 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
   const colTip = mode ? "hidden md:table-cell" : "";
   const colBirim = mode ? "hidden sm:table-cell" : "";
   const subTotals = { a: 0, b: 0 };
+  // Maliyet (gizli kalemler hariç) — grup/ara toplam/genel toplam kar %'si için
+  const groupCosts = new Map<string, number>();
+  const subCosts = { a: 0, b: 0 };
   for (const g of allGroups) {
     const t = groupSaleTotals.get(g.code) ?? 0;
-    if (g.code.startsWith("A")) subTotals.a += t;
-    else subTotals.b += t;
+    const c = g.items.reduce((acc, it) => (hiddenCodes.has(it.code) ? acc : acc + it.miktar * toUSD(it.rawFiyat, it.fiyatCur, settings)), 0);
+    groupCosts.set(g.code, c);
+    if (g.code.startsWith("A")) { subTotals.a += t; subCosts.a += c; }
+    else { subTotals.b += t; subCosts.b += c; }
   }
-  function summaryRow(label: string, value: number, cls: string, alt?: string) {
+  const karPct = (sale: number, cost: number) => (cost > 0 && sale > 0 ? `%${((sale / cost - 1) * 100).toFixed(1)}` : "—");
+  function summaryRow(label: string, value: number, cls: string, alt?: string, cost?: number) {
     return (
       <tr className={cls}>
         <td colSpan={2} className="px-2.5 py-1.5 font-semibold">{label}</td>
@@ -503,8 +509,10 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
         <td />
         <td className={colBirim} />
         <td className="whitespace-nowrap px-2.5 py-1.5 text-right font-bold tabular-nums">${fmt(value)}</td>
+        <td data-edit-only className="whitespace-nowrap px-2.5 py-1.5 text-center font-semibold tabular-nums" title="Kar % (satış / maliyet − 1)">
+          {cost !== undefined ? karPct(value, cost) : ""}
+        </td>
         <td data-edit-only className="whitespace-nowrap px-2.5 py-1.5 text-center text-xs font-normal opacity-80">{alt}</td>
-        <td data-edit-only />
       </tr>
     );
   }
@@ -763,7 +771,7 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                           <td colSpan={99} className="h-2 !border-0 bg-background p-0" />
                         </tr>
                       )}
-                      {showASub && summaryRow("Keşif-A Ara Toplam", subTotals.a, "border-y-2 border-primary/30 bg-primary-soft text-primary-soft-foreground")}
+                      {showASub && summaryRow("Keşif-A Ara Toplam", subTotals.a, "border-y-2 border-primary/30 bg-primary-soft text-primary-soft-foreground", undefined, subCosts.a)}
                       <tr
                         className="cursor-pointer select-none bg-muted transition-colors hover:bg-[#e4e8ee] dark:hover:bg-muted/70"
                         onClick={() => setCollapsed((p) => ({ ...p, [group.code]: !p[group.code] }))}
@@ -788,7 +796,7 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                         <td />
                         <td className={colBirim} />
                         <td className="whitespace-nowrap px-2.5 py-1.5 text-right font-semibold tabular-nums text-foreground">${fmt(grpTotal)}</td>
-                        <td data-edit-only />
+                        <td data-edit-only className="whitespace-nowrap px-2.5 py-1.5 text-center font-semibold tabular-nums text-foreground" title="Grubun kar %'si (satış / maliyet − 1)">{karPct(grpTotal, groupCosts.get(group.code) ?? 0)}</td>
                         <td data-edit-only />
                       </tr>
                       {!isCollapsed &&
@@ -895,12 +903,12 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                 {!search && (
                   <>
                     {!filteredGroups.some((g) => g.code.startsWith("B")) &&
-                      summaryRow("Keşif-A Ara Toplam", subTotals.a, "border-y-2 border-primary/30 bg-primary-soft text-primary-soft-foreground")}
+                      summaryRow("Keşif-A Ara Toplam", subTotals.a, "border-y-2 border-primary/30 bg-primary-soft text-primary-soft-foreground", undefined, subCosts.a)}
                     {filteredGroups.some((g) => g.code.startsWith("B")) &&
-                      summaryRow("Keşif-B Ara Toplam", subTotals.b, "border-y-2 border-info/30 bg-info-soft text-info-soft-foreground")}
+                      summaryRow("Keşif-B Ara Toplam", subTotals.b, "border-y-2 border-info/30 bg-info-soft text-info-soft-foreground", undefined, subCosts.b)}
                   </>
                 )}
-                {summaryRow("Genel Toplam (KDV Hariç)", salePrice, "bg-success-soft text-sm text-success-soft-foreground", `₺${fmt(salePrice * settings.usd)}`)}
+                {summaryRow("Genel Toplam (KDV Hariç)", salePrice, "bg-success-soft text-sm text-success-soft-foreground", `₺${fmt(salePrice * settings.usd)}`, subCosts.a + subCosts.b)}
               </tbody>
             </table>
           </div>
