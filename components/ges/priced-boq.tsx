@@ -716,15 +716,15 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
               <thead>
                 <tr className="border-b bg-muted">
                   <th className="w-20 px-2.5 py-1.5 text-left font-medium text-muted-foreground">Kod</th>
-                  <th className="md:min-w-[220px] px-2.5 py-1.5 text-left font-medium text-muted-foreground">Tanım</th>
-                  <th className={cn("w-32 px-2.5 py-1.5 text-left font-medium text-muted-foreground", colTip)}>Tip/Model</th>
-                  <th className={cn("w-28 px-2.5 py-1.5 text-left font-medium text-muted-foreground", colTip)}>Marka</th>
+                  <th className="md:min-w-[140px] px-2.5 py-1.5 text-left font-medium text-muted-foreground">Tanım</th>
+                  <th className={cn("whitespace-nowrap px-2.5 py-1.5 text-left font-medium text-muted-foreground", colTip)}>Tip/Model</th>
+                  <th className={cn("whitespace-nowrap px-2.5 py-1.5 text-left font-medium text-muted-foreground", colTip)}>Marka</th>
                   <th className={cn("w-16 px-2.5 py-1.5 text-center font-medium text-muted-foreground", colBirim)}>Birim</th>
                   <th className="w-20 px-2.5 py-1.5 text-right font-medium text-muted-foreground">Miktar</th>
-                  <th className={cn("w-28 px-2.5 py-1.5 text-right font-medium text-muted-foreground", colBirim)}>Birim Fiyat</th>
-                  <th className="w-28 px-2.5 py-1.5 text-right font-medium text-muted-foreground">Tutar (USD)</th>
-                  <th data-edit-only className="w-28 px-2.5 py-1.5 text-center font-medium text-muted-foreground">Kar %</th>
-                  <th data-edit-only className="w-44 px-2.5 py-1.5 text-center font-medium text-muted-foreground">Durum</th>
+                  <th className={cn("whitespace-nowrap px-2.5 py-1.5 text-right font-medium text-muted-foreground", colBirim)}>Birim Fiyat</th>
+                  <th className="whitespace-nowrap px-2.5 py-1.5 text-right font-medium text-muted-foreground">Tutar (USD)</th>
+                  <th data-edit-only className="w-20 px-2 py-1.5 text-center font-medium text-muted-foreground">Kar %</th>
+                  <th data-edit-only className="px-2 py-1.5 text-center font-medium text-muted-foreground">Durum</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -778,8 +778,8 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                         <td />
                         <td className={colBirim} />
                         <td className="whitespace-nowrap px-2.5 py-1.5 text-right font-semibold tabular-nums text-foreground">${fmt(grpTotal)}</td>
-                        <td data-edit-only className="px-2.5 py-1.5 text-center text-muted-foreground">
-                          {salePrice > 0 ? `satışın %${((grpTotal / salePrice) * 100).toFixed(1)}` : ""}
+                        <td data-edit-only className="px-2 py-1.5 text-center text-muted-foreground" title="Grubun satış fiyatındaki payı">
+                          {salePrice > 0 ? `%${((grpTotal / salePrice) * 100).toFixed(1)}` : ""}
                         </td>
                         <td data-edit-only />
                       </tr>
@@ -818,8 +818,8 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                                   )}
                                 </span>
                               </td>
-                              <td className={cn("px-2.5 py-1 align-top text-muted-foreground", colTip)}>{item.tip}</td>
-                              <td className={cn("px-2.5 py-1 align-top text-muted-foreground", colTip)}>{item.marka}</td>
+                              <td className={cn("whitespace-nowrap px-2.5 py-1 align-top text-muted-foreground", colTip)}>{item.tip}</td>
+                              <td className={cn("whitespace-nowrap px-2.5 py-1 align-top text-muted-foreground", colTip)}>{item.marka}</td>
                               <td className={cn("whitespace-nowrap px-2.5 py-1 text-center align-top text-muted-foreground", colBirim)}>{item.birim}</td>
                               <td className="whitespace-nowrap px-2.5 py-1 text-right align-top tabular-nums text-foreground">
                                 {fmt(item.miktar, item.miktar < 100 ? 2 : 0)}
@@ -845,8 +845,8 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                                   />
                                 )}
                               </td>
-                              <td data-edit-only className="px-2.5 py-1">
-                                <div className="flex items-center justify-center gap-1.5">
+                              <td data-edit-only className="px-2 py-1">
+                                <div className="flex items-center justify-center gap-1">
                                   <button
                                     data-edit-only
                                     type="button"

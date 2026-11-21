@@ -305,15 +305,15 @@ export function BoQView({
               <thead>
                 <tr className="border-b bg-muted">
                   <th className="w-20 px-2.5 py-1.5 text-left font-medium text-muted-foreground">Kod</th>
-                  <th className="md:min-w-[220px] px-2.5 py-1.5 text-left font-medium text-muted-foreground">Tanım</th>
-                  <th className={cn("w-32 px-2.5 py-1.5 text-left font-medium text-muted-foreground", colTip)}>Tip/Model</th>
-                  <th className={cn("w-28 px-2.5 py-1.5 text-left font-medium text-muted-foreground", colTip)}>Marka</th>
+                  <th className="md:min-w-[180px] px-2.5 py-1.5 text-left font-medium text-muted-foreground">Tanım</th>
+                  <th className={cn("whitespace-nowrap px-2.5 py-1.5 text-left font-medium text-muted-foreground", colTip)}>Tip/Model</th>
+                  <th className={cn("whitespace-nowrap px-2.5 py-1.5 text-left font-medium text-muted-foreground", colTip)}>Marka</th>
                   <th className={cn("w-16 px-2.5 py-1.5 text-center font-medium text-muted-foreground", colBirim)}>Birim</th>
                   <th className="w-20 px-2.5 py-1.5 text-right font-medium text-muted-foreground">Miktar</th>
                   {showPrices && (
                     <>
-                      <th className={cn("w-28 px-2.5 py-1.5 text-right font-medium text-muted-foreground", colBirim)}>Birim Fiyat</th>
-                      <th className="w-28 px-2.5 py-1.5 text-right font-medium text-muted-foreground">Tutar (USD)</th>
+                      <th className={cn("whitespace-nowrap px-2.5 py-1.5 text-right font-medium text-muted-foreground", colBirim)}>Birim Fiyat</th>
+                      <th className="whitespace-nowrap px-2.5 py-1.5 text-right font-medium text-muted-foreground">Tutar (USD)</th>
                     </>
                   )}
                 </tr>
@@ -377,8 +377,8 @@ export function BoQView({
                                   )}
                                 </span>
                               </td>
-                              <td className={cn("px-2.5 py-1 align-top text-muted-foreground", colTip)}>{item.tip}</td>
-                              <td className={cn("px-2.5 py-1 align-top text-muted-foreground", colTip)}>{item.marka}</td>
+                              <td className={cn("whitespace-nowrap px-2.5 py-1 align-top text-muted-foreground", colTip)}>{item.tip}</td>
+                              <td className={cn("whitespace-nowrap px-2.5 py-1 align-top text-muted-foreground", colTip)}>{item.marka}</td>
                               <td className={cn("whitespace-nowrap px-2.5 py-1 text-center align-top text-muted-foreground", colBirim)}>{item.birim}</td>
                               <td className="whitespace-nowrap px-2.5 py-1 text-right align-top tabular-nums text-foreground">
                                 {fmt(item.miktar, item.miktar < 100 ? 2 : 0)}
