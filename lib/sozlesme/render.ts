@@ -77,3 +77,14 @@ export function finalDocText(
   }
   return staticTexts[meta.id] ?? "";
 }
+
+/** Projenin DoR'u sözleşme eki olarak: Arazi GES şablonunda EK-11 zaten "Sorumluluk Matrisi"dir
+ *  (matbu yerine projenin DoR'u kullanılır); diğer türlerde son ekten sonra EK-4. */
+export const DOR_DOC_ID = "dor";
+export function dorEkFor(tur: string): string {
+  return tur === "arazi" ? "EK-11" : "EK-4";
+}
+/** DoR ekinin yerine geçtiği matbu belge (varsa) */
+export function dorReplaces(tur: string): string | null {
+  return tur === "arazi" ? "ek11" : null;
+}

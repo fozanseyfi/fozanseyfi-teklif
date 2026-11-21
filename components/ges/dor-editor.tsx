@@ -67,9 +67,11 @@ interface Props {
   firmName: string;
   brand: BrandSettings;
   userEmail: string;
+  /** Sözleşme içinde ek olarak: proje üst başlığı yerine sade araç çubuğu */
+  embedded?: { ek: string; onWord?: () => void; wordBusy?: boolean };
 }
 
-export function DorEditor({ projectId, projectName, data, firmName, brand, userEmail }: Props) {
+export function DorEditor({ projectId, projectName, data, firmName, brand, userEmail, embedded }: Props) {
   const isReadonly = useReadOnly();
   // Mevcut kayıtlarda madde tanımlarında "1.1 Sözleşme..." gibi prefix
   // bulunan veriler temizlenerek state'e yükleniyor; kullanıcı kaydedince
@@ -195,6 +197,40 @@ export function DorEditor({ projectId, projectName, data, firmName, brand, userE
       {(() => {
         const allOpen = filteredGroups.every((_, i) => !collapsed[i]);
         const totalCount = groups.reduce((s, g) => s + g.items.length, 0);
+        if (embedded) {
+          return (
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2 border-b border-border/50 pb-2">
+                <h2 className="mr-auto text-[14px] font-semibold text-foreground">
+                  {embedded.ek} · Sorumluluk Matrisi (DoR)
+                  <span className="ml-2 text-[12px] font-normal text-muted-foreground">{totalCount} madde · {groups.length} grup</span>
+                </h2>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input type="search" className="h-8 w-40 pl-8 text-sm" placeholder="Ara..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setCollapsed(Object.fromEntries(groups.map((_, i) => [i, allOpen])))}>
+                  {allOpen ? "Tümünü Kapat" : "Tümünü Aç"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={handlePrint}>
+                  <FileDown className="size-3.5" /> PDF
+                </Button>
+                {embedded.onWord && (
+                  <Button variant="outline" size="sm" onClick={embedded.onWord} disabled={embedded.wordBusy || isDirty} title={isDirty ? "Önce kaydedin" : undefined}>
+                    <FileDown className="size-3.5" /> Word
+                  </Button>
+                )}
+                <Button data-edit-only onClick={handleSave} disabled={saving || !isDirty} size="sm">
+                  <Save className="size-3.5" />
+                  {saving ? "Kaydediliyor..." : "Kaydet"}
+                </Button>
+              </div>
+              <p className="text-[11.5px] text-muted-foreground">
+                Teklifte kararlaştırılan DoR ile aynı kayıttır; burada yaptığınız değişiklik teklifin DoR sekmesine de yansır.
+              </p>
+            </div>
+          );
+        }
         return (
           <DetailPageHeader
             kicker="Division of Responsibilities"

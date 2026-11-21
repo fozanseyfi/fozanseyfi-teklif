@@ -4,6 +4,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { getProjectAccess } from "@/lib/project-access";
 import { fillDocx, packageZip, contractFilename } from "@/lib/sozlesme/fill";
 import type { SozlesmeTur } from "@/lib/sozlesme/schema";
+import { prisma } from "@/lib/prisma";
+import { buildDorDocx } from "@/lib/sozlesme/dor-docx";
+import { dorEkFor } from "@/lib/sozlesme/render";
+import { DEF_DOR, type DorGroup } from "@/lib/ges-defaults";
 
 export const runtime = "nodejs";
 
@@ -34,6 +38,23 @@ export async function POST(req: NextRequest) {
   const values = body.values && typeof body.values === "object" ? body.values : {};
   const name = body.projectName || "sozlesme";
 
+  // Projenin DoR'u (teklifteki ile aynı kayıt) → sözleşme eki
+  async function dorDocx(): Promise<Buffer> {
+    const detail = await prisma.projectDetail.findUnique({ where: { projectId: projectId! }, select: { dor: true } });
+    const groups = (Array.isArray(detail?.dor) && (detail!.dor as unknown[]).length ? detail!.dor : DEF_DOR) as unknown as DorGroup[];
+    return buildDorDocx({ groups, ek: dorEkFor(tur), projectName: name });
+  }
+
+  if (docId === "dor") {
+    const buf = await dorDocx();
+    return new NextResponse(new Uint8Array(buf), {
+      headers: {
+        "Content-Type": DOCX,
+        "Content-Disposition": `attachment; filename="${contractFilename(name, "DoR_Sorumluluk_Matrisi", "docx")}"`,
+      },
+    });
+  }
+
   // HTML önizleme — dolu .docx'i (orijinal biçim) mammoth ile HTML'e çevir.
   if (format === "html") {
     const buf = await fillDocx(tur, docId && docId !== "all" ? docId : "ana", values);
@@ -52,7 +73,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const zip = await packageZip(tur, values);
+  const zip = await packageZip(tur, values, await dorDocx());
   const TUR_AD: Record<SozlesmeTur, string> = { cati: "Cati_GES", arazi: "Arazi_GES", malzeme: "Malzeme", hizmet: "Hizmet", iscilik: "Iscilik" };
   const suffix = `${TUR_AD[tur]}_Sozlesme_Paketi`;
   return new NextResponse(new Uint8Array(zip), {

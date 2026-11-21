@@ -3,7 +3,7 @@ import { readFile } from "fs/promises";
 import path from "path";
 import PizZip from "pizzip";
 import { getTemplate, fieldKey, type SozlesmeTur } from "./schema";
-import { docList } from "./render";
+import { docList, dorEkFor, dorReplaces } from "./render";
 
 /**
  * Orijinal .docx şablonlarını (Sözleşme Taslağı) form değerleriyle doldurur —
@@ -382,12 +382,20 @@ export async function fillDocx(tur: SozlesmeTur, docId: string, values: Vals): P
 }
 
 /** Tüm belgeleri (ana metin + EK'ler) ayrı .docx olarak bir ZIP içinde döndür. */
-export async function packageZip(tur: SozlesmeTur, values: Vals): Promise<Buffer> {
+export async function packageZip(tur: SozlesmeTur, values: Vals, dorDocx?: Buffer): Promise<Buffer> {
   const zip = new PizZip();
-  const list = docList(getTemplate(tur));
+  const replaced = dorDocx ? dorReplaces(tur) : null;
+  const list = docList(getTemplate(tur)).filter((m) => m.id !== replaced);
+  // Projenin DoR'u: yerine geçtiği matbu ekin sırasına, yoksa sona
+  if (dorDocx) {
+    const dorMeta = { id: "dor", ek: dorEkFor(tur), title: "Sorumluluk Matrisi (DoR)", kind: "static" as const };
+    const at = replaced ? docList(getTemplate(tur)).findIndex((m) => m.id === replaced) : -1;
+    if (at >= 0) list.splice(at, 0, dorMeta);
+    else list.push(dorMeta);
+  }
   let i = 0;
   for (const meta of list) {
-    const buf = await fillDocx(tur, meta.id, values);
+    const buf = meta.id === "dor" && dorDocx ? dorDocx : await fillDocx(tur, meta.id, values);
     // ZIP içi dosya adı — Türkçe harfler korunur, sıra numarası ile sıralı.
     const prefix = String(++i).padStart(2, "0");
     const label = `${meta.ek ? meta.ek.replace(/[\\/]/g, "-") + " " : ""}${meta.title}`.replace(/[^\p{L}\p{N} ._-]+/gu, "").trim().slice(0, 70);

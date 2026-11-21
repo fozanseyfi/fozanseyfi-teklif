@@ -6,6 +6,7 @@ import { parseBrandSettings } from "@/lib/pdf-brand";
 import { SozlesmeEditor } from "@/components/sozlesme/sozlesme-editor";
 import { SOZLESME_TURS, type SozlesmeData, type SozlesmeTur } from "@/lib/sozlesme/schema";
 import { loadStaticTexts } from "@/lib/sozlesme/content";
+import { DEF_DOR, type DorGroup } from "@/lib/ges-defaults";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -76,6 +77,10 @@ export default async function SozlesmeEditPage({ params, searchParams }: Props) 
       saved={saved}
       staticTexts={staticTexts}
       signed={signed}
+      dor={(Array.isArray(detail?.dor) && (detail!.dor as unknown[]).length ? detail!.dor : DEF_DOR) as unknown as DorGroup[]}
+      firmName={project.organization?.name ?? "Firma"}
+      brand={brand}
+      userEmail={user.email ?? ""}
     />
   );
 }

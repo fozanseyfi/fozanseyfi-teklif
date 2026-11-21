@@ -21,7 +21,11 @@ import {
   type SozlesmeField,
   type SozlesmeDoc,
 } from "@/lib/sozlesme/schema";
-import { docList, finalDocText, computedAmount } from "@/lib/sozlesme/render";
+import { docList, finalDocText, computedAmount, dorEkFor, dorReplaces, DOR_DOC_ID } from "@/lib/sozlesme/render";
+import { DorEditor } from "@/components/ges/dor-editor";
+import { ReadOnlyProvider } from "@/lib/readonly-context";
+import type { DorGroup } from "@/lib/ges-defaults";
+import type { BrandSettings } from "@/lib/pdf-brand";
 import { useDirtyTracker } from "@/lib/unsaved-changes";
 
 /** Nihai metni düzgün belge görünümünde (salt okunur) render eder. */
@@ -74,6 +78,11 @@ interface Props {
   saved: SozlesmeData | null;
   staticTexts: Record<string, string>;
   signed: { name: string; uploadedAt: string } | null;
+  /** Projenin DoR'u (teklifte kararlaştırılan) — sözleşme eki olarak gösterilir ve buradan da düzenlenir */
+  dor: DorGroup[];
+  firmName: string;
+  brand: BrandSettings;
+  userEmail: string;
 }
 
 const TUR_META: { tur: SozlesmeTur; label: string; icon: typeof Sun }[] = [
@@ -106,7 +115,7 @@ function buildInitialValues(saved: SozlesmeData | null, autofill: Record<string,
   return values;
 }
 
-export function SozlesmeEditor({ projectId, projectName, canEdit, tur, autofill, saved, staticTexts, signed }: Props) {
+export function SozlesmeEditor({ projectId, projectName, canEdit, tur, autofill, saved, staticTexts, signed, dor, firmName, brand, userEmail }: Props) {
   const router = useRouter();
   const [values, setValues] = useState<Record<string, string>>(() => buildInitialValues(saved, autofill));
   const [saving, setSaving] = useState(false);
@@ -120,7 +129,18 @@ export function SozlesmeEditor({ projectId, projectName, canEdit, tur, autofill,
   useDirtyTracker(dirty);
 
   const template = getTemplate(tur);
-  const list = docList(template);
+  // Projenin DoR'u bir sözleşme eki: Arazi GES'te matbu EK-11'in yerine, diğerlerinde EK-4 olarak
+  const dorEk = dorEkFor(tur);
+  const replacedId = dorReplaces(tur);
+  const list = (() => {
+    const base = docList(template);
+    const out = base.filter((d) => d.id !== replacedId);
+    const dorMeta = { id: DOR_DOC_ID, ek: dorEk, title: "Sorumluluk Matrisi (DoR)", kind: "static" as const };
+    const at = replacedId ? base.findIndex((d) => d.id === replacedId) : -1;
+    if (at >= 0) out.splice(at, 0, dorMeta);
+    else out.push(dorMeta);
+    return out;
+  })();
   const [activeId, setActiveId] = useState<string>(list[0]?.id ?? "");
   const [docView, setDocView] = useState<"form" | "metin">("form");
 
@@ -164,7 +184,7 @@ export function SozlesmeEditor({ projectId, projectName, canEdit, tur, autofill,
 
   useEffect(() => {
     // "imzali" bir Word belgesi değil (yüklenen PDF) — önizleme istenmez
-    if (effectiveView !== "metin" || activeId === "imzali") return;
+    if (effectiveView !== "metin" || activeId === "imzali" || activeId === DOR_DOC_ID) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- önizlemeyi sunucudan çek (dış sistem senkronizasyonu)
     loadPreview(activeId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -264,6 +284,7 @@ export function SozlesmeEditor({ projectId, projectName, canEdit, tur, autofill,
   }
 
   const isImzali = activeId === "imzali";
+  const isDor = activeId === DOR_DOC_ID;
 
   function renderField(doc: SozlesmeDoc, f: SozlesmeField) {
     const amount = computedAmount(doc, f, values);
@@ -391,7 +412,27 @@ export function SozlesmeEditor({ projectId, projectName, canEdit, tur, autofill,
         </Card>
       )}
 
-      {!isImzali && meta && (
+      {isDor && (
+        <Card>
+          <CardContent className="p-4 sm:p-5">
+            <ReadOnlyProvider value={!canEdit}>
+              <div className={cn(!canEdit && "template-readonly")} data-readonly-reason={!canEdit ? "view" : undefined}>
+                <DorEditor
+                  projectId={projectId}
+                  projectName={projectName}
+                  data={dor}
+                  firmName={firmName}
+                  brand={brand}
+                  userEmail={userEmail}
+                  embedded={{ ek: dorEk, onWord: () => download(DOR_DOC_ID), wordBusy: busy }}
+                />
+              </div>
+            </ReadOnlyProvider>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isImzali && !isDor && meta && (
         <Card>
           <CardContent className="space-y-4 p-4 sm:p-5">
             <div className="flex flex-wrap items-center gap-2 border-b border-border/50 pb-2">
