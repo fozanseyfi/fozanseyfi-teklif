@@ -479,6 +479,11 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
     downloadExcel(`Birim-Fiyat-Cetveli-${projectName.replace(/[^a-zA-Z0-9_-]/g, "_")}`, html);
   }
 
+  const liveCodes = new Set(allGroups.flatMap((g) => g.items.map((it) => it.code)));
+  const excludedCount = [...excludedCodes].filter((c) => liveCodes.has(c) && !hiddenCodes.has(c)).length;
+  const hiddenCount = [...hiddenCodes].filter((c) => liveCodes.has(c)).length;
+  const overrideCount = Object.keys(marginOverrides).filter((c) => liveCodes.has(c) && !hiddenCodes.has(c) && !excludedCodes.has(c)).length;
+
   // Sütun görünürlüğü (paylaşımda telefonda Tip/Marka/Birim gizli) — grup ve toplam satırları da aynı hücre düzenini kullanır
   const colTip = mode ? "hidden md:table-cell" : "";
   const colBirim = mode ? "hidden sm:table-cell" : "";
@@ -547,19 +552,19 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                     <span className="text-[11px] text-muted-foreground">
                       · varsayılan kar %{defaultMarginPct.toFixed(1)}
                     </span>
-                    {excludedCodes.size > 0 && (
+                    {excludedCount > 0 && (
                       <span className="text-[11px] text-muted-foreground">
-                        · {excludedCodes.size} karsız
+                        · {excludedCount} karsız
                       </span>
                     )}
-                    {hiddenCodes.size > 0 && (
+                    {hiddenCount > 0 && (
                       <span className="text-[11px] text-muted-foreground">
-                        · {hiddenCodes.size} gizli
+                        · {hiddenCount} gizli
                       </span>
                     )}
-                    {Object.keys(marginOverrides).length > 0 && (
+                    {overrideCount > 0 && (
                       <span className="text-[11px] text-info-soft-foreground">
-                        · {Object.keys(marginOverrides).length} kalemde özel kar
+                        · {overrideCount} kalemde özel kar
                       </span>
                     )}
                   </>
@@ -634,9 +639,9 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
             notice={
               // Editor bilgilendirmesi — public share'de gizli (musteri zaten
               // pozisyon-bazli numaralari "dogal" siralama olarak alir).
-              !mode && hiddenCodes.size > 0 ? (
+              !mode && hiddenCount > 0 ? (
                 <span>
-                  <strong>Bilgi:</strong> Gizlenen {hiddenCodes.size} kalem listede görünmüyor; kod
+                  <strong>Bilgi:</strong> Gizlenen {hiddenCount} kalem listede görünmüyor; kod
                   numaraları görünür kalemlere göre <strong>yeniden sıralandı</strong>. Orijinal
                   kodlar yerine pozisyon-bazlı numaralar gösterilir, böylece müşteri kod boşluğu
                   görmez.
@@ -753,9 +758,14 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
 
                   return (
                     <Fragment key={group.code}>
+                      {gi > 0 && !showASub && (
+                        <tr aria-hidden className="!border-0">
+                          <td colSpan={99} className="h-2 !border-0 bg-background p-0" />
+                        </tr>
+                      )}
                       {showASub && summaryRow("Keşif-A Ara Toplam", subTotals.a, "border-y-2 border-primary/30 bg-primary-soft text-primary-soft-foreground")}
                       <tr
-                        className="cursor-pointer select-none bg-muted/40 transition-colors hover:bg-muted"
+                        className="cursor-pointer select-none bg-muted transition-colors hover:bg-[#e4e8ee] dark:hover:bg-muted/70"
                         onClick={() => setCollapsed((p) => ({ ...p, [group.code]: !p[group.code] }))}
                       >
                         <td className="whitespace-nowrap px-2.5 py-1.5 font-semibold text-foreground">
@@ -778,9 +788,7 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                         <td />
                         <td className={colBirim} />
                         <td className="whitespace-nowrap px-2.5 py-1.5 text-right font-semibold tabular-nums text-foreground">${fmt(grpTotal)}</td>
-                        <td data-edit-only className="px-2 py-1.5 text-center text-muted-foreground" title="Grubun satış fiyatındaki payı">
-                          {salePrice > 0 ? `%${((grpTotal / salePrice) * 100).toFixed(1)}` : ""}
-                        </td>
+                        <td data-edit-only />
                         <td data-edit-only />
                       </tr>
                       {!isCollapsed &&

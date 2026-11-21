@@ -196,6 +196,8 @@ export function BoQView({
   // Sütun görünürlüğü (paylaşımda telefonda Tip/Marka/Birim gizli) — grup ve toplam satırları da aynı hücre düzenini kullanır
   const colTip = isReadonly ? "hidden md:table-cell" : "";
   const colBirim = isReadonly ? "hidden sm:table-cell" : "";
+  const showPct = showPrices && !isReadonly && result.salePriceUsd > 0;
+  const pctOfSale = (v: number) => `%${((v / result.salePriceUsd) * 100).toFixed(1)}`;
   function summaryRow(label: string, value: number, cls: string) {
     return (
       <tr className={cls}>
@@ -206,6 +208,7 @@ export function BoQView({
         <td />
         <td className={colBirim} />
         <td className="whitespace-nowrap px-2.5 py-1.5 text-right font-bold tabular-nums">${fmt(value)}</td>
+        {showPct && <td className="whitespace-nowrap px-2.5 py-1.5 text-right font-semibold tabular-nums">{pctOfSale(value)}</td>}
       </tr>
     );
   }
@@ -314,6 +317,7 @@ export function BoQView({
                     <>
                       <th className={cn("whitespace-nowrap px-2.5 py-1.5 text-right font-medium text-muted-foreground", colBirim)}>Birim Fiyat</th>
                       <th className="whitespace-nowrap px-2.5 py-1.5 text-right font-medium text-muted-foreground">Tutar (USD)</th>
+                      {showPct && <th className="whitespace-nowrap px-2.5 py-1.5 text-right font-medium text-muted-foreground" title="Satış fiyatının yüzde kaçı">% Satış</th>}
                     </>
                   )}
                 </tr>
@@ -329,9 +333,14 @@ export function BoQView({
                   const showASub = showPrices && !search && group.code.startsWith("B") && (!prev || prev.code.startsWith("A"));
                   return (
                     <Fragment key={group.code}>
+                      {gi > 0 && !showASub && (
+                        <tr aria-hidden className="!border-0">
+                          <td colSpan={99} className="h-2 !border-0 bg-background p-0" />
+                        </tr>
+                      )}
                       {showASub && summaryRow("Keşif-A Ara Toplam", totals.kaTotal, "border-y-2 border-primary/30 bg-primary-soft text-primary-soft-foreground")}
                       <tr
-                        className="cursor-pointer select-none bg-muted/40 transition-colors hover:bg-muted"
+                        className="cursor-pointer select-none bg-muted transition-colors hover:bg-[#e4e8ee] dark:hover:bg-muted/70"
                         onClick={() => setCollapsed((p) => ({ ...p, [group.code]: !p[group.code] }))}
                       >
                         <td className="whitespace-nowrap px-2.5 py-1.5 font-semibold text-foreground">
@@ -356,6 +365,7 @@ export function BoQView({
                           <>
                             <td className={colBirim} />
                             <td className="whitespace-nowrap px-2.5 py-1.5 text-right font-semibold tabular-nums text-foreground">${fmt(grpTotal)}</td>
+                            {showPct && <td className="whitespace-nowrap px-2.5 py-1.5 text-right font-semibold tabular-nums text-foreground">{pctOfSale(grpTotal)}</td>}
                           </>
                         )}
                       </tr>
@@ -392,6 +402,7 @@ export function BoQView({
                                     ${fmt(unitUsd, item.code.startsWith("A.1") ? 3 : 2)}
                                   </td>
                                   <td className="whitespace-nowrap px-2.5 py-1 text-right align-top tabular-nums text-foreground">${fmt(cost)}</td>
+                                  {showPct && <td className="whitespace-nowrap px-2.5 py-1 text-right align-top tabular-nums text-muted-foreground">{pctOfSale(cost)}</td>}
                                 </>
                               )}
                             </tr>
