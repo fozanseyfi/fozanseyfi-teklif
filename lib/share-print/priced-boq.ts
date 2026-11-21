@@ -144,7 +144,7 @@ function buildShellHtml(
         <div class="date">${new Date().toLocaleDateString("tr-TR", { dateStyle: "long" })}</div>
       </div>
       <div class="badge-r">
-        <div class="label">Toplam Tutar</div>
+        <div class="label">Toplam Tutar (KDV Hariç)</div>
         <div class="amount">$${fmt(salePrice)}</div>
         <div class="alt">₺${fmt(salePrice * usd)}</div>
       </div>

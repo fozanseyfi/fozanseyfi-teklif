@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { Fragment, useState, useMemo } from "react";
 import type { Project } from "@prisma/client";
 import { saveGesSettings } from "@/app/actions/ges";
 import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
 import { calc, toUSD, nonEmptyGroups } from "@/lib/ges-engine";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
   Search,
@@ -480,6 +479,31 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
     downloadExcel(`Birim-Fiyat-Cetveli-${projectName.replace(/[^a-zA-Z0-9_-]/g, "_")}`, html);
   }
 
+  // Sütun görünürlüğü (paylaşımda telefonda Tip/Marka/Birim gizli) — grup ve toplam satırları da aynı hücre düzenini kullanır
+  const colTip = mode ? "hidden md:table-cell" : "";
+  const colBirim = mode ? "hidden sm:table-cell" : "";
+  const subTotals = { a: 0, b: 0 };
+  for (const g of allGroups) {
+    const t = groupSaleTotals.get(g.code) ?? 0;
+    if (g.code.startsWith("A")) subTotals.a += t;
+    else subTotals.b += t;
+  }
+  function summaryRow(label: string, value: number, cls: string, alt?: string) {
+    return (
+      <tr className={cls}>
+        <td colSpan={2} className="px-2.5 py-1.5 font-semibold">{label}</td>
+        <td className={colTip} />
+        <td className={colTip} />
+        <td className={colBirim} />
+        <td />
+        <td className={colBirim} />
+        <td className="whitespace-nowrap px-2.5 py-1.5 text-right font-bold tabular-nums">${fmt(value)}</td>
+        <td data-edit-only className="whitespace-nowrap px-2.5 py-1.5 text-center text-xs font-normal opacity-80">{alt}</td>
+        <td data-edit-only />
+      </tr>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Editor uyari banner — sadece dahili kullanim icin, public share'de
@@ -514,7 +538,7 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
             stats={
               <>
                 <span className="inline-flex items-center gap-1 rounded-md bg-primary-soft px-2 py-0.5 font-bold text-primary-soft-foreground">
-                  Toplam ${fmt(salePrice)} / ₺{fmt(salePrice * settings.usd)}
+                  KDV Hariç Toplam: ${fmt(salePrice)} / ₺{fmt(salePrice * settings.usd)}
                 </span>
                 {/* Kar % ve editor-ozel meta yazilari sadece dashboard
                     editorde gozukur. Public share (mode set) icin gizli. */}
@@ -627,15 +651,15 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
           gorunumun yerini alir. Yalnizca mode === "summary" oldugunda render
           edilir; dashboard editoru ve detayli paylasimda atlanir. */}
       {mode === "summary" && (
-        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
-          <table className="w-full text-sm">
+        <div className="overflow-hidden rounded-xl border bg-card">
+          <table className="w-full text-[11px] sm:text-xs">
             <thead>
               <tr className="bg-muted text-muted-foreground">
-                <th className="w-16 px-3 py-2.5 text-left font-medium">Kod</th>
-                <th className="px-3 py-2.5 text-left font-medium">Grup</th>
-                <th className="w-20 px-3 py-2.5 text-center font-medium">Kalem</th>
-                <th className="w-32 px-3 py-2.5 text-right font-medium">USD</th>
-                <th className="w-32 px-3 py-2.5 text-right font-medium">TRY</th>
+                <th className="w-16 px-3 py-1.5 text-left font-medium">Kod</th>
+                <th className="px-3 py-1.5 text-left font-medium">Grup</th>
+                <th className="w-20 px-3 py-1.5 text-center font-medium">Kalem</th>
+                <th className="w-32 px-3 py-1.5 text-right font-medium">USD</th>
+                <th className="w-32 px-3 py-1.5 text-right font-medium">TRY</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -647,31 +671,18 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                 .filter((g) => g.items.length > 0)
                 .map((g) => {
                   const grpTotal = groupSaleTotals.get(g.code) ?? 0;
-                  const isA = g.code.startsWith("A");
                   const dispCode = getDisplayGroupCode(g.code);
                   return (
                     <tr key={g.code} className="hover:bg-muted/40">
-                      <td className="px-3 py-2.5">
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "font-mono text-xs",
-                            isA
-                              ? "border-primary/30 bg-primary-soft text-primary-soft-foreground"
-                              : "border-info/30 bg-info-soft text-info-soft-foreground",
-                          )}
-                        >
-                          {dispCode}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-2.5 font-medium text-foreground">{g.name}</td>
-                      <td className="px-3 py-2.5 text-center text-xs text-muted-foreground">
+                      <td className="px-3 py-1.5 text-muted-foreground">{dispCode}</td>
+                      <td className="px-3 py-1.5 font-medium text-foreground">{g.name}</td>
+                      <td className="px-3 py-1.5 text-center text-xs text-muted-foreground">
                         {g.items.length}
                       </td>
-                      <td className="px-3 py-2.5 text-right font-bold text-foreground tabular-nums">
+                      <td className="px-3 py-1.5 text-right font-bold text-foreground tabular-nums">
                         ${fmt(grpTotal)}
                       </td>
-                      <td className="px-3 py-2.5 text-right text-muted-foreground tabular-nums">
+                      <td className="px-3 py-1.5 text-right text-muted-foreground tabular-nums">
                         ₺{fmt(grpTotal * settings.usd)}
                       </td>
                     </tr>
@@ -681,7 +692,7 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
             <tfoot>
               <tr className="border-t-2 border-primary/30 bg-primary-soft">
                 <td colSpan={3} className="px-3 py-3 text-right font-semibold text-primary-soft-foreground">
-                  GENEL TOPLAM
+                  GENEL TOPLAM (KDV HARİÇ)
                 </td>
                 <td className="px-3 py-3 text-right font-bold text-primary-soft-foreground tabular-nums">
                   ${fmt(salePrice)}
@@ -695,121 +706,85 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
         </div>
       )}
 
-      {/* Detailed groups view — public share detailed + dashboard editor.
+      {/* Detaylı görünüm — tek tablo (Analiz "Tüm Kalemler Özet" düzeni): grup satırı + altında içeri girik kalemler.
           mode === "summary" oldugunda atlanir. */}
       {mode !== "summary" && (
-      <div className="space-y-2">
-        {filteredGroups.map((group) => {
-          const isA = group.code.startsWith("A");
-          const isCollapsed = collapsed[group.code];
-          const grpTotal = groupSaleTotals.get(group.code) ?? 0;
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-[11px] sm:text-xs">
+              <thead>
+                <tr className="border-b bg-muted">
+                  <th className="w-20 px-2.5 py-1.5 text-left font-medium text-muted-foreground">Kod</th>
+                  <th className="md:min-w-[220px] px-2.5 py-1.5 text-left font-medium text-muted-foreground">Tanım</th>
+                  <th className={cn("w-32 px-2.5 py-1.5 text-left font-medium text-muted-foreground", colTip)}>Tip/Model</th>
+                  <th className={cn("w-28 px-2.5 py-1.5 text-left font-medium text-muted-foreground", colTip)}>Marka</th>
+                  <th className={cn("w-16 px-2.5 py-1.5 text-center font-medium text-muted-foreground", colBirim)}>Birim</th>
+                  <th className="w-20 px-2.5 py-1.5 text-right font-medium text-muted-foreground">Miktar</th>
+                  <th className={cn("w-28 px-2.5 py-1.5 text-right font-medium text-muted-foreground", colBirim)}>Birim Fiyat</th>
+                  <th className="w-28 px-2.5 py-1.5 text-right font-medium text-muted-foreground">Tutar (USD)</th>
+                  <th data-edit-only className="w-28 px-2.5 py-1.5 text-center font-medium text-muted-foreground">Kar %</th>
+                  <th data-edit-only className="w-44 px-2.5 py-1.5 text-center font-medium text-muted-foreground">Durum</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {filteredGroups.map((group, gi) => {
+                  const isCollapsed = collapsed[group.code];
+                  const grpTotal = groupSaleTotals.get(group.code) ?? 0;
 
-          // Editor'de gizli kalemler showHidden ile filtrelenir
-          const renderedItems = showHidden
-            ? group.items
-            : group.items.filter((it) => !hiddenCodes.has(it.code));
+                  // Editor'de gizli kalemler showHidden ile filtrelenir
+                  const renderedItems = showHidden
+                    ? group.items
+                    : group.items.filter((it) => !hiddenCodes.has(it.code));
 
-          if (renderedItems.length === 0) return null;
+                  if (renderedItems.length === 0) return null;
 
-          // Goruntu kodu: gizli kalemler atlanir, sadece visible'lar
-          // ardisik numaralanir. Grup kodu da yeniden numaralandırılmış
-          // displayGroupCode kullanır (örn. orijinal A.6 boş kaldıysa A.5).
-          const dispGroupCode = getDisplayGroupCode(group.code);
-          const displayCodeMap = new Map<string, string>();
-          let visIdx = 0;
-          for (const it of group.items) {
-            if (hiddenCodes.has(it.code)) continue;
-            visIdx += 1;
-            displayCodeMap.set(it.code, `${dispGroupCode}.${visIdx}`);
-          }
+                  // Goruntu kodu: gizli kalemler atlanir, sadece visible'lar ardisik numaralanir.
+                  const dispGroupCode = getDisplayGroupCode(group.code);
+                  const displayCodeMap = new Map<string, string>();
+                  let visIdx = 0;
+                  for (const it of group.items) {
+                    if (hiddenCodes.has(it.code)) continue;
+                    visIdx += 1;
+                    displayCodeMap.set(it.code, `${dispGroupCode}.${visIdx}`);
+                  }
+                  const prev = filteredGroups[gi - 1];
+                  const showASub = !search && group.code.startsWith("B") && (!prev || prev.code.startsWith("A"));
 
-          return (
-            <Card key={group.code} className="overflow-hidden shadow-sm">
-              <CardHeader
-                className="cursor-pointer select-none py-2.5 transition-colors hover:bg-muted/40"
-                onClick={() => setCollapsed((p) => ({ ...p, [group.code]: !p[group.code] }))}
-              >
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex min-w-0 items-center gap-2">
-                    {isCollapsed ? (
-                      <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
-                    )}
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "shrink-0 font-mono text-xs",
-                        isA
-                          ? "border-primary/30 bg-primary-soft text-primary-soft-foreground"
-                          : "border-info/30 bg-info-soft text-info-soft-foreground",
-                      )}
-                    >
-                      {dispGroupCode}
-                    </Badge>
-                    <CardTitle className="min-w-0 text-sm font-semibold text-foreground">
-                      {group.name}
-                    </CardTitle>
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      ({renderedItems.length} kalem)
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2 pl-6 sm:pl-0">
-                    <span className="text-sm font-semibold text-primary">${fmt(grpTotal)}</span>
-                    <span className="hidden text-xs text-muted-foreground sm:inline">
-                      ₺{fmt(grpTotal * settings.usd)}
-                    </span>
-                    {salePrice > 0 && (
-                      <span className="hidden text-xs text-info-soft-foreground sm:inline">
-                        {((grpTotal / salePrice) * 100).toFixed(1)}%
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-
-              {!isCollapsed && (
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    {/* Mobile (sm/md altı): public share modunda (mode set) Tip/Marka/Birim
-                        sütunları gizli, müşteri sadece Kod-Tanım-Miktar-Fiyat görür. */}
-                    <table className="w-full text-[12px] sm:text-xs">
-                      <thead>
-                        <tr className="border-b bg-muted">
-                          <th className="w-14 px-2 py-2 text-left font-medium text-muted-foreground sm:w-20 sm:px-3">
-                            Kod
-                          </th>
-                          <th className="px-2 py-2 text-left font-medium text-muted-foreground sm:px-3">
-                            Tanım
-                          </th>
-                          <th className={cn("w-32 px-3 py-2 text-left font-medium text-muted-foreground", mode && "hidden md:table-cell")}>
-                            Tip/Model
-                          </th>
-                          <th className={cn("w-28 px-3 py-2 text-left font-medium text-muted-foreground", mode && "hidden md:table-cell")}>
-                            Marka
-                          </th>
-                          <th className={cn("w-16 px-3 py-2 text-center font-medium text-muted-foreground", mode && "hidden sm:table-cell")}>
-                            Birim
-                          </th>
-                          <th className="w-20 px-2 py-2 text-right font-medium text-muted-foreground sm:w-24 sm:px-3">
-                            Miktar
-                          </th>
-                          <th className={cn("w-28 px-3 py-2 text-right font-medium text-muted-foreground", mode && "hidden sm:table-cell")}>
-                            Birim Fiyat
-                          </th>
-                          <th className="w-20 px-2 py-2 text-right font-medium text-muted-foreground sm:w-28 sm:px-3">
-                            Tutar (USD)
-                          </th>
-                          <th data-edit-only className="w-28 px-3 py-2 text-center font-medium text-muted-foreground">
-                            Kar %
-                          </th>
-                          <th data-edit-only className="w-44 px-3 py-2 text-center font-medium text-muted-foreground">
-                            Durum
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {renderedItems.map((item) => {
+                  return (
+                    <Fragment key={group.code}>
+                      {showASub && summaryRow("Keşif-A Ara Toplam", subTotals.a, "border-y-2 border-primary/30 bg-primary-soft text-primary-soft-foreground")}
+                      <tr
+                        className="cursor-pointer select-none bg-muted/40 transition-colors hover:bg-muted"
+                        onClick={() => setCollapsed((p) => ({ ...p, [group.code]: !p[group.code] }))}
+                      >
+                        <td className="whitespace-nowrap px-2.5 py-1.5 font-semibold text-foreground">
+                          <span className="inline-flex items-center gap-1">
+                            {isCollapsed ? (
+                              <ChevronRight className="size-3 shrink-0 text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
+                            )}
+                            {dispGroupCode}
+                          </span>
+                        </td>
+                        <td colSpan={mode ? 1 : 3} className="px-2.5 py-1.5 font-semibold text-foreground">
+                          {group.name}
+                          <span className="ml-1.5 font-normal text-muted-foreground">({renderedItems.length} kalem)</span>
+                        </td>
+                        {mode && <td className={colTip} />}
+                        {mode && <td className={colTip} />}
+                        <td className={colBirim} />
+                        <td />
+                        <td className={colBirim} />
+                        <td className="whitespace-nowrap px-2.5 py-1.5 text-right font-semibold tabular-nums text-foreground">${fmt(grpTotal)}</td>
+                        <td data-edit-only className="px-2.5 py-1.5 text-center text-muted-foreground">
+                          {salePrice > 0 ? `satışın %${((grpTotal / salePrice) * 100).toFixed(1)}` : ""}
+                        </td>
+                        <td data-edit-only />
+                      </tr>
+                      {!isCollapsed &&
+                        renderedItems.map((item) => {
                           const sp = salePriceMap.get(item.code) ?? 0;
                           const cost = item.miktar * toUSD(item.rawFiyat, item.fiyatCur, settings);
                           const excluded = excludedCodes.has(item.code);
@@ -817,6 +792,7 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                           const overrideVal = marginOverrides[item.code];
                           const hasOverride = overrideVal !== undefined;
                           const currentKarPct = cost > 0 ? (sp / cost - 1) * 100 : 0;
+                          const dim = hidden || excluded;
                           return (
                             <tr
                               key={item.code}
@@ -826,73 +802,39 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                                   ? "bg-destructive-soft/20 line-through opacity-60"
                                   : excluded
                                     ? "bg-muted/40"
-                                    : "hover:bg-primary-soft/40",
+                                    : "hover:bg-muted/40",
                               )}
                             >
-                              <td
-                                className={cn(
-                                  "whitespace-nowrap px-2 py-2 align-top font-mono text-[11px] sm:px-3 sm:py-1.5 sm:text-xs",
-                                  hidden || excluded
-                                    ? "text-muted-foreground/60"
-                                    : "text-muted-foreground",
-                                )}
-                              >
+                              <td className={cn("whitespace-nowrap py-1 pl-7 pr-2.5 align-top", dim ? "text-muted-foreground/60" : "text-muted-foreground")}>
                                 {hidden ? item.code : (displayCodeMap.get(item.code) ?? item.code)}
                               </td>
-                              <td
-                                className={cn(
-                                  "px-2 py-2 align-top sm:px-3 sm:py-1.5",
-                                  hidden || excluded ? "text-muted-foreground" : "text-foreground",
-                                )}
-                              >
-                                {item.tanim}
-                                {/* Mobile fallback: Tip/Marka public share modunda Tanım altına */}
-                                {mode && (item.tip || item.marka) && (
-                                  <span className="mt-0.5 block text-[10.5px] text-muted-foreground md:hidden">
-                                    {[item.tip, item.marka].filter(Boolean).join(" · ")}
-                                  </span>
-                                )}
+                              <td className={cn("py-1 pl-5 pr-2.5 align-top", dim ? "text-muted-foreground" : "text-foreground")}>
+                                <span className="block border-l-2 border-border pl-2">
+                                  {item.tanim}
+                                  {mode && (item.tip || item.marka) && (
+                                    <span className="mt-0.5 block text-[10.5px] text-muted-foreground md:hidden">
+                                      {[item.tip, item.marka].filter(Boolean).join(" · ")}
+                                    </span>
+                                  )}
+                                </span>
                               </td>
-                              <td className={cn("px-3 py-1.5 align-top text-muted-foreground", mode && "hidden md:table-cell")}>{item.tip}</td>
-                              <td className={cn("px-3 py-1.5 align-top text-muted-foreground", mode && "hidden md:table-cell")}>{item.marka}</td>
-                              <td className={cn("whitespace-nowrap px-3 py-1.5 text-center align-top text-muted-foreground", mode && "hidden sm:table-cell")}>
-                                {item.birim}
-                              </td>
-                              <td className="whitespace-nowrap px-2 py-2 text-right align-top tabular-nums text-foreground sm:px-3 sm:py-1.5">
+                              <td className={cn("px-2.5 py-1 align-top text-muted-foreground", colTip)}>{item.tip}</td>
+                              <td className={cn("px-2.5 py-1 align-top text-muted-foreground", colTip)}>{item.marka}</td>
+                              <td className={cn("whitespace-nowrap px-2.5 py-1 text-center align-top text-muted-foreground", colBirim)}>{item.birim}</td>
+                              <td className="whitespace-nowrap px-2.5 py-1 text-right align-top tabular-nums text-foreground">
                                 {fmt(item.miktar, item.miktar < 100 ? 2 : 0)}
                                 {mode && (
-                                  <span className="ml-1 text-[10.5px] font-normal text-muted-foreground sm:hidden">
-                                    {item.birim}
-                                  </span>
+                                  <span className="ml-1 text-[10.5px] text-muted-foreground sm:hidden">{item.birim}</span>
                                 )}
                               </td>
-                              <td
-                                className={cn(
-                                  "whitespace-nowrap px-3 py-1.5 text-right align-top tabular-nums",
-                                  mode && "hidden sm:table-cell",
-                                  hidden
-                                    ? "text-muted-foreground line-through"
-                                    : excluded
-                                      ? "text-muted-foreground"
-                                      : "text-foreground",
-                                )}
-                              >
+                              <td className={cn("whitespace-nowrap px-2.5 py-1 text-right align-top tabular-nums", colBirim, dim ? "text-muted-foreground" : "text-foreground")}>
                                 ${fmt(item.miktar > 0 ? sp / item.miktar : 0, item.code.startsWith("A.1") ? 3 : 2)}
                               </td>
-                              <td
-                                className={cn(
-                                  "whitespace-nowrap px-2 py-2 text-right align-top font-semibold tabular-nums sm:px-3 sm:py-1.5",
-                                  hidden
-                                    ? "text-muted-foreground line-through"
-                                    : excluded
-                                      ? "text-muted-foreground"
-                                      : "text-foreground",
-                                )}
-                              >
+                              <td className={cn("whitespace-nowrap px-2.5 py-1 text-right align-top tabular-nums", dim ? "text-muted-foreground" : "text-foreground")}>
                                 ${fmt(sp)}
                               </td>
-                              <td data-edit-only className="px-2 py-1.5">
-                                {hidden || excluded ? (
+                              <td data-edit-only className="px-2 py-1">
+                                {dim ? (
                                   <span className="block text-center text-[11px] text-muted-foreground/60">—</span>
                                 ) : (
                                   <KarPctEditor
@@ -903,7 +845,7 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                                   />
                                 )}
                               </td>
-                              <td data-edit-only className="px-3 py-1.5">
+                              <td data-edit-only className="px-2.5 py-1">
                                 <div className="flex items-center justify-center gap-1.5">
                                   <button
                                     data-edit-only
@@ -911,16 +853,12 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                                     onClick={() => toggleExclude(item.code)}
                                     disabled={hidden}
                                     className={cn(
-                                      "rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors disabled:opacity-40",
+                                      "whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors disabled:opacity-40",
                                       excluded
                                         ? "border-border bg-muted text-muted-foreground"
                                         : "border-success/30 bg-success-soft text-success-soft-foreground hover:bg-success-soft/80",
                                     )}
-                                    title={
-                                      excluded
-                                        ? "Kar yansıtılmıyor (Karsız)"
-                                        : "Kar yansıtılıyor (Karlı)"
-                                    }
+                                    title={excluded ? "Kar yansıtılmıyor (Karsız)" : "Kar yansıtılıyor (Karlı)"}
                                   >
                                     {excluded ? "⊘ Karsız" : "✓ Karlı"}
                                   </button>
@@ -929,16 +867,12 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                                     type="button"
                                     onClick={() => toggleHidden(item.code)}
                                     className={cn(
-                                      "rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors",
+                                      "whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors",
                                       hidden
                                         ? "border-destructive/30 bg-destructive-soft text-destructive-soft-foreground"
                                         : "border-border bg-card text-muted-foreground hover:bg-muted",
                                     )}
-                                    title={
-                                      hidden
-                                        ? "Gizli — PDF'te gözükmez"
-                                        : "Görünür — PDF'te gözükür"
-                                    }
+                                    title={hidden ? "Gizli — PDF'te gözükmez" : "Görünür — PDF'te gözükür"}
                                   >
                                     {hidden ? "🚫 Gizli" : "👁 Görünür"}
                                   </button>
@@ -947,44 +881,23 @@ export function PricedBoQ({ projectId, projectName, project, kesifA, kesifB, set
                             </tr>
                           );
                         })}
-                      </tbody>
-                      <tfoot>
-                        <tr className="border-t-2 border-primary/30 bg-primary-soft">
-                          <td colSpan={7} className="px-3 py-2 text-right font-semibold text-primary-soft-foreground">
-                            {dispGroupCode} Toplam:
-                          </td>
-                          <td className="px-3 py-2 text-right font-bold text-primary-soft-foreground">
-                            ${fmt(grpTotal)}
-                          </td>
-                          <td data-edit-only />
-                          <td data-edit-only />
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </CardContent>
-              )}
-            </Card>
-          );
-        })}
-
-        {/* Grand total */}
-        <div className="overflow-hidden rounded-xl border border-primary/40 bg-primary-soft">
-          <div className="flex items-center justify-between px-5 py-3">
-            <span className="text-sm font-semibold text-primary-soft-foreground">
-              GENEL TOPLAM
-            </span>
-            <div className="text-right">
-              <span className="text-base font-bold text-primary-soft-foreground">
-                ${fmt(salePrice)}
-              </span>
-              <span className="ml-3 text-sm text-primary-soft-foreground/80">
-                ₺{fmt(salePrice * settings.usd)}
-              </span>
-            </div>
+                    </Fragment>
+                  );
+                })}
+                {!search && (
+                  <>
+                    {!filteredGroups.some((g) => g.code.startsWith("B")) &&
+                      summaryRow("Keşif-A Ara Toplam", subTotals.a, "border-y-2 border-primary/30 bg-primary-soft text-primary-soft-foreground")}
+                    {filteredGroups.some((g) => g.code.startsWith("B")) &&
+                      summaryRow("Keşif-B Ara Toplam", subTotals.b, "border-y-2 border-info/30 bg-info-soft text-info-soft-foreground")}
+                  </>
+                )}
+                {summaryRow("Genel Toplam (KDV Hariç)", salePrice, "bg-success-soft text-sm text-success-soft-foreground", `₺${fmt(salePrice * settings.usd)}`)}
+              </tbody>
+            </table>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
       )}
     </div>
   );
@@ -1136,7 +1049,7 @@ function buildPrintHtml(
         <div class="date">${new Date().toLocaleDateString("tr-TR", { dateStyle: "long" })}</div>
       </div>
       <div class="badge-r">
-        <div class="label">Toplam Tutar</div>
+        <div class="label">Toplam Tutar (KDV Hariç)</div>
         <div class="amount">$${fmt2(salePrice)}</div>
         <div class="alt">₺${fmt2(salePrice * usd)}</div>
       </div>

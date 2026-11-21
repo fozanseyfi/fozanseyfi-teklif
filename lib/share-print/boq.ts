@@ -164,7 +164,7 @@ export function buildBoqPrintHtml({
           <div class="date">${new Date().toLocaleDateString("tr-TR", { dateStyle: "long" })}</div>
         </div>
         <div class="badge-r">
-          <div class="label">${showPrices ? "Toplam Tutar" : "Toplam Kalem"}</div>
+          <div class="label">${showPrices ? "Toplam Tutar (KDV Hariç)" : "Toplam Kalem"}</div>
           <div class="count">${showPrices ? `$${fmt(grandTotal)}` : totalItems}</div>
           ${showPrices ? `<div class="alt">${visibleGroups.length} grup · ${totalItems} kalem</div>` : `<div class="alt">${visibleGroups.length} grup</div>`}
         </div>

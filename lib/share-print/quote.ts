@@ -197,8 +197,8 @@ export function buildQuotePrintHtml({
       <div class="sub">${dateStr} · ${items.length} kalem · Teklif para birimi: ${out === "TRY" ? "TL" : out}</div>
     </div>
     <div class="total-badge">
-      <div class="label">Genel Toplam</div>
-      <div class="amount">${sym}${fmt(totals.grandTotal)}</div>
+      <div class="label">Toplam (KDV Hariç)</div>
+      <div class="amount">${sym}${fmt(totals.subtotal)}</div>
     </div>
   </div>
   <div class="accent-bar"></div>

@@ -98,6 +98,13 @@ export function QuoteOutput({ projectId, quoteTitle, customer, revisions, brand,
         kicker="Teklif Çıktısı"
         title={quoteTitle}
         backHref={backHref ?? `/projects/${projectId}/detail/quote-analiz`}
+        stats={
+          totals && !empty ? (
+            <span className="inline-flex items-center gap-1 rounded-md bg-primary-soft px-2 py-0.5 font-bold text-primary-soft-foreground">
+              KDV Hariç Toplam: {sym}{fmt(totals.subtotal)}
+            </span>
+          ) : undefined
+        }
         actions={
           <>
             <Button size="sm" onClick={downloadPdf} disabled={empty}>
