@@ -272,9 +272,10 @@ export function buildAnalizPrintHtml({ project, settings: s, kesifA, kesifB, tim
   table.ozet tr.strong td{font-weight:700}
   table.ozet tr.sale td{background:#d1fae5;color:#065f46;font-weight:800;font-size:10.5px;border-top:2px solid #10b981}
   table.ozet tr.sale-sub td{background:#ecfdf5;color:#065f46}
-  .cover table.mkb{width:auto;margin-top:8px;margin-left:auto;border-collapse:collapse;font-size:10px;background:rgba(255,255,255,0.15);border-radius:6px}
-  .cover table.mkb td{padding:2px 6px;border:0;color:rgba(236,253,245,0.92);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
-  .cover table.mkb td:first-child{text-align:left}
+  .cover table.mkb{width:auto;margin-top:6px;margin-left:auto;border-collapse:separate;border-spacing:0 3px;font-size:10px}
+  .cover table.mkb td{background:rgba(255,255,255,0.15);padding:2px 6px;border:0;color:rgba(236,253,245,0.92);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .cover table.mkb td:first-child{text-align:left;border-radius:5px 0 0 5px}
+  .cover table.mkb td:last-child{border-radius:0 5px 5px 0}
   .cover table.mkb tr.b td{color:#fff;font-weight:800}
   .footer{margin-top:18px;padding-top:8px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:8.5px;color:#94a3b8}
 
@@ -304,10 +305,10 @@ ${watermarkHtml(brandCtx, firmName)}
       ${[
         { l: "Maliyet", v: sale - result.brutKar, pct: pctOf(sale - result.brutKar) },
         { l: "Brüt Kâr Marjı", v: result.brutKar, pct: pctOf(result.brutKar), b: true },
-        { l: "Satış Fiyatı", v: sale },
+        { l: "Satış Fiyatı", v: sale, pct: 100 },
       ]
         .map(
-          (r) => `<tr${r.b ? ' class="b"' : ""}><td>${r.l}</td><td>${r.pct !== undefined ? `%${r.pct.toFixed(1)}` : ""}</td><td>${r.pct !== undefined ? "| " : ""}$${fmt(r.v)}</td><td>| ₺${fmt(r.v * s.usd)}</td><td>| €${fmt(s.eur > 0 ? (r.v * s.usd) / s.eur : 0)}</td></tr>`,
+          (r) => `<tr${r.b ? ' class="b"' : ""}><td>${r.l}</td><td>%${r.pct.toFixed(r.pct === 100 ? 0 : 1)}</td><td>| $${fmt(r.v)}</td><td>| ₺${fmt(r.v * s.usd)}</td><td>| €${fmt(s.eur > 0 ? (r.v * s.usd) / s.eur : 0)}</td></tr>`,
         )
         .join("")}
     </table>

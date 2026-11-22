@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef } from "react";
 import { saveGesSettings, saveKesifA, saveKesifB } from "@/app/actions/ges";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -800,21 +800,22 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
               const sale = result.salePriceUsd;
               const cost = sale - result.brutKar; // doğrudan maliyet + contingency
               const eurOf = (usd: number) => (s.eur > 0 ? (usd * s.usd) / s.eur : 0);
-              const rows: { label: string; usd: number; pct?: number; strong?: boolean }[] = [
+              const rows: { label: string; usd: number; pct: number; strong?: boolean }[] = [
                 { label: "Maliyet", usd: cost, pct: pctOf(cost) },
                 { label: "Brüt Kâr Marjı", usd: result.brutKar, pct: pctOf(result.brutKar), strong: true },
-                { label: "Satış Fiyatı", usd: sale },
+                { label: "Satış Fiyatı", usd: sale, pct: 100 },
               ];
+              // 3 ayrı kutu (aralarında küçük boşluk); sütunlar subgrid ile kutular arasında hizalı
               return (
-                <div className="mt-2 grid grid-cols-[auto_auto_auto_auto_auto] justify-start gap-x-2 rounded-md bg-primary-foreground/15 px-2.5 py-1.5 text-[11px] leading-[16px] tabular-nums">
+                <div className="mt-2 grid grid-cols-[auto_auto_auto_auto_auto] justify-start gap-y-1 text-[11px] leading-[15px] tabular-nums">
                   {rows.map((r) => (
-                    <Fragment key={r.label}>
+                    <div key={r.label} className="col-span-5 grid grid-cols-subgrid gap-x-2 rounded-md bg-primary-foreground/15 px-2.5 py-0.5">
                       <span className={cn("opacity-85", r.strong && "font-semibold opacity-100")}>{r.label}</span>
-                      <span className="text-right opacity-85">{r.pct !== undefined ? `%${r.pct.toFixed(1)}` : ""}</span>
-                      <span className="text-right font-semibold">{r.pct !== undefined ? "| " : ""}${fmt(r.usd)}</span>
+                      <span className="text-right opacity-85">%{r.pct.toFixed(r.pct === 100 ? 0 : 1)}</span>
+                      <span className="text-right font-semibold">| ${fmt(r.usd)}</span>
                       <span className="text-right">| ₺{fmt(r.usd * s.usd)}</span>
                       <span className="text-right">| €{fmt(eurOf(r.usd))}</span>
-                    </Fragment>
+                    </div>
                   ))}
                 </div>
               );
