@@ -1183,13 +1183,13 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                   <tr className="bg-primary-soft text-primary-soft-foreground">
                     <td colSpan={2} className="px-2.5 py-1">KDV (%{KDV_RATE})</td>
                     <td className="px-2.5 py-1 text-right font-semibold">${fmt(saleKdv)}</td>
-                    <td className="px-2.5 py-1 text-right text-muted-foreground text-xs">{dcWp > 0 ? `$${(saleKdv/dcWp).toFixed(4)}/Wp` : ""}</td>
+                    <td />
                     <td colSpan={3} />
                   </tr>
                   <tr className="bg-primary-soft border-b-2 border-primary/30">
                     <td colSpan={2} className="px-2.5 py-1.5 font-semibold text-primary-soft-foreground">KDV Dahil Toplam</td>
                     <td className="px-2.5 py-1.5 text-right font-bold text-primary-soft-foreground">${fmt(saleInclKdv)}</td>
-                    <td className="px-2.5 py-1.5 text-right text-muted-foreground font-medium text-xs">{dcWp > 0 ? `$${(saleInclKdv/dcWp).toFixed(4)}/Wp` : ""}</td>
+                    <td />
                     <td colSpan={3} />
                   </tr>
                   {[
