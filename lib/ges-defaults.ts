@@ -72,6 +72,8 @@ export interface GesSettings {
   selPanel: number;
   selKonstr: number;
   selInv: number;
+  /** Konstrüksiyon (A.3.1) fiyat birimi: MW başına ya da panel adedi başına. Yoksa "MW". */
+  konstrBirim?: "MW" | "panel";
   notes: string[];
   risks: string[];
   customerInsights: string[];

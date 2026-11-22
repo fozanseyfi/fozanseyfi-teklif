@@ -170,6 +170,48 @@ export function getRowAmount(
   return groupTotals[match[1]] || 0;
 }
 
+// ── Konstrüksiyon (A.3.1) birimi ─────────────────────────────────────────────
+// Fiyat bazen MW başına, bazen panel adedi başına gelir. Seçim settings.konstrBirim'de
+// durur (yoksa MW — eski projeler aynen kalır). Alternatif fiyatları seçili birimdedir.
+export type KonstrBirim = "MW" | "panel";
+
+export function konstrBirim(s: Pick<GesSettings, "konstrBirim">): KonstrBirim {
+  return s.konstrBirim === "panel" ? "panel" : "MW";
+}
+
+/** Keşif satırındaki birim yazısı */
+export function konstrItemUnit(s: Pick<GesSettings, "konstrBirim">): string {
+  return konstrBirim(s) === "panel" ? "adet" : "MW";
+}
+
+/** Alternatif fiyat etiketi: "$/MW" | "$/panel" */
+export function konstrPriceUnit(s: Pick<GesSettings, "konstrBirim">): string {
+  return konstrBirim(s) === "panel" ? "$/panel" : "$/MW";
+}
+
+/** Birim değişince fiyatı çevir — toplam maliyet aynı kalsın ($/MW ↔ $/panel). */
+export function convertKonstrPrice(price: number, from: KonstrBirim, to: KonstrBirim, panelGucWp: number): number {
+  if (from === to) return price;
+  const wp = panelGucWp > 0 ? panelGucWp : 625;
+  const v = to === "panel" ? (price * wp) / 1e6 : (price * 1e6) / wp;
+  return Math.round(v * 1e4) / 1e4; // 4 hane: MW ↔ panel gidiş-dönüşte kayma olmasın
+}
+
+/** A.3.1 kalemine seçili alternatifi + birimi + birime uygun miktarı uygular. */
+export function applyKonstrAlt(
+  item: KesifItem,
+  alt: { name: string; price: number } | undefined,
+  s: GesSettings,
+): KesifItem {
+  const qty = calcQty("A.3.1", s);
+  return {
+    ...item,
+    ...(alt ? { marka: alt.name, tip: alt.name, rawFiyat: alt.price, birimFiyat: alt.price, fiyatCur: "USD" as const } : {}),
+    birim: konstrItemUnit(s),
+    miktar: qty ?? item.miktar,
+  };
+}
+
 export function calcQty(code: string, s: GesSettings): number | null {
   const dc = s.dcGuc || 1;
   const ia = s.invAdet || 3;
@@ -183,7 +225,8 @@ export function calcQty(code: string, s: GesSettings): number | null {
     "A.1.1": dc * 1000000,
     "A.2.1": ia,
     "A.2.2": Math.max(1, Math.ceil(ia / 28)),
-    "A.3.1": dc,
+    // Konstrüksiyon: birim MW (DC güç) ya da panel adedi — bkz. konstrBirim()
+    "A.3.1": konstrBirim(s) === "panel" ? (s.panelAdet || pa) : dc,
     "A.4.1": Math.round(9000 * dc),
     "A.4.5": Math.round(1080 * dc),
     "A.4.6": Math.round(540 * dc),

@@ -516,7 +516,7 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
                             <td className="whitespace-nowrap px-2 py-2 align-top sm:py-1.5">
                               {isReadOnly ? (
                                 <span className="block px-1 text-right text-xs text-muted-foreground">
-                                  {fmt(item.miktar, item.code.startsWith("A.3") ? 3 : 0)}
+                                  {fmt(item.miktar, item.birim === "MW" ? 3 : 0)}
                                   {/* Birim mobile'da gizli; miktar yanına ekle */}
                                   {isReadonly && (
                                     <span className="ml-1 text-[10.5px] font-normal sm:hidden">
@@ -528,7 +528,7 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
                                 <Input
                                   className={cn(inputRowClass, "w-24 min-w-[92px] text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none")}
                                   type="number"
-                                  step={item.code.startsWith("A.3") ? "0.001" : "any"}
+                                  step={item.birim === "MW" ? "0.001" : "any"}
                                   value={item.miktar}
                                   onChange={(e) =>
                                     updateItem(

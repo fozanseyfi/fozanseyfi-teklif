@@ -12,6 +12,11 @@ import {
   toUSD,
   buildGroupTotals,
   getRowAmount,
+  applyKonstrAlt,
+  konstrBirim,
+  konstrPriceUnit,
+  convertKonstrPrice,
+  type KonstrBirim,
 } from "@/lib/ges-engine";
 import type { KesifGroup, KesifItem, GesSettings, TimelineData } from "@/lib/ges-defaults";
 import type { Project } from "@prisma/client";
@@ -24,7 +29,7 @@ import {
 import {
   DollarSign, Zap, FileDown, Save, Plus, X,
   TrendingUp, ChevronRight, Edit2, BarChart2,
-  ChevronDown, ChevronUp, Minus, Pencil,
+  ChevronDown, ChevronUp, Minus, Pencil, Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -49,6 +54,30 @@ const SECTION_TONE: Record<SectionTone, { iconBg: string; iconText: string }> = 
 
 function fmt(n: number, d = 0) {
   return n.toLocaleString("tr-TR", { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+
+/** Kritik malzeme kalemleri — yalnız Kritik Malzeme Seçimi'nden değişir, grup düzenlemede kilitli. */
+const CRITICAL_CODES = new Set(["A.1.1", "A.2.1", "A.3.1"]);
+
+/** Konstrüksiyon fiyat birimi seçici: MW başına / panel başına. */
+function KonstrUnitToggle({ value, onChange }: { value: KonstrBirim; onChange: (v: KonstrBirim) => void }) {
+  return (
+    <div data-edit-only className="inline-flex rounded-md border bg-muted p-0.5 text-[10.5px] font-semibold" title="Fiyat birimi — değiştirince fiyatlar yeni birime çevrilir">
+      {([["MW", "$/MW"], ["panel", "$/panel"]] as const).map(([v, l]) => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => onChange(v)}
+          className={cn(
+            "rounded px-2 py-0.5 transition-colors",
+            value === v ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {l}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 interface Props {
@@ -117,7 +146,10 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
     }
     return localKesifA.map((g) => {
       if (g.code === "A.1") return applyAlt(g, "A.1.1", s.panelAlts[s.selPanel]);
-      if (g.code === "A.3") return applyAlt(g, "A.3.1", s.konstrAlts[s.selKonstr]);
+      if (g.code === "A.3") {
+        const alt = s.konstrAlts[s.selKonstr];
+        return { ...g, items: g.items.map((it) => (it.code === "A.3.1" ? applyKonstrAlt(it, alt, s) : it)) };
+      }
       if (g.code === "A.2") {
         const alt = s.invAlts[s.selInv];
         if (!alt || alt.price === 0) return g;
@@ -239,7 +271,9 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
               items: g.items.map((it) =>
                 it.code !== itemCode
                   ? it
-                  : { ...it, marka: alt.name, tip: alt.name, birimFiyat: alt.price, rawFiyat: alt.price, fiyatCur: "USD" as const },
+                  : itemCode === "A.3.1"
+                    ? applyKonstrAlt(it, alt, newS)
+                    : { ...it, marka: alt.name, tip: alt.name, birimFiyat: alt.price, rawFiyat: alt.price, fiyatCur: "USD" as const },
               ),
             },
       );
@@ -377,7 +411,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
 
   const altModalConfig = {
     panel: { title: "Panel Alternatifi Ekle", placeholder: "Örn: LONGi Hi-MO 6", pricePlaceholder: "0.185", priceUnit: "USD/Wp" },
-    konstr: { title: "Konstrüksiyon Alternatifi Ekle", placeholder: "Örn: Tek Eksen İzleyici", pricePlaceholder: "85000", priceUnit: "$/MW" },
+    konstr: { title: "Konstrüksiyon Alternatifi Ekle", placeholder: "Örn: Tek Eksen İzleyici", pricePlaceholder: konstrBirim(s) === "panel" ? "20" : "31000", priceUnit: konstrPriceUnit(s) },
     inv: { title: "İnverter Alternatifi Ekle", placeholder: "Örn: Huawei SUN2000", pricePlaceholder: "4200", priceUnit: "$/adet" },
   };
 
@@ -473,13 +507,32 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
               {([
                 { label: "Panel Alternatifleri", key: "panelAlts" as const, sel: "selPanel" as const, unit: "$/Wp" },
                 { label: "İnverter Alternatifleri", key: "invAlts" as const, sel: "selInv" as const, unit: "$/adet" },
-                { label: "Konstrüksiyon Alternatifleri", key: "konstrAlts" as const, sel: "selKonstr" as const, unit: "$/MW" },
+                { label: "Konstrüksiyon Alternatifleri", key: "konstrAlts" as const, sel: "selKonstr" as const, unit: konstrPriceUnit(s) },
               ] as const).map(({ label, key, sel, unit }) => (
                 <div key={key}>
                   <div className="mb-2 flex items-center justify-between">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      {label}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {label}
+                      </p>
+                      {key === "konstrAlts" && (
+                        <KonstrUnitToggle
+                          value={konstrBirim(s)}
+                          onChange={(to) =>
+                            setS((p) => {
+                              const from = konstrBirim(p);
+                              if (from === to) return p;
+                              // Fiyatlar yeni birime cevrilir — toplam maliyet degismez, sonra elle duzeltilir.
+                              return {
+                                ...p,
+                                konstrBirim: to,
+                                konstrAlts: p.konstrAlts.map((a) => ({ ...a, price: convertKonstrPrice(a.price, from, to, p.panelGuc) })),
+                              };
+                            })
+                          }
+                        />
+                      )}
+                    </div>
                     <button
                       data-edit-only
                       type="button"
@@ -604,9 +657,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                       }
                       if (g.code === "A.3") {
                         const alt = s.konstrAlts[s.selKonstr];
-                        return alt
-                          ? { ...g, items: g.items.map((it) => it.code === "A.3.1" ? { ...it, marka: alt.name, tip: alt.name, rawFiyat: alt.price, birimFiyat: alt.price, fiyatCur: "USD" as const } : it) }
-                          : g;
+                        return { ...g, items: g.items.map((it) => (it.code === "A.3.1" ? applyKonstrAlt(it, alt, s) : it)) };
                       }
                       return g;
                     });
@@ -619,6 +670,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                         selPanel: s.selPanel,
                         selInv: s.selInv,
                         selKonstr: s.selKonstr,
+                        konstrBirim: konstrBirim(s),
                       } as never),
                       saveKesifA(projectId, updatedKesifA as never),
                     ]);
@@ -708,6 +760,27 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                 <tbody className="divide-y">
                   {editItems.map((it, i) => {
                     const totalUsd = it.miktar * toUSD(it.rawFiyat, it.fiyatCur, s);
+                    // Kritik malzeme (panel / inverter / konstruksiyon) burada duzenlenmez —
+                    // Kritik Malzeme Secimi'nden yonetilir. Finansman (B.6) da kilitli.
+                    const locked = CRITICAL_CODES.has(it.code) || it.code.startsWith("B.6.");
+                    if (locked) {
+                      return (
+                        <tr key={it.code} className="bg-info-soft/30" title="Kritik malzeme — Kritik Malzeme Seçimi'nden değiştirilir">
+                          <td className="px-4 py-2 font-mono text-muted-foreground">{it.code}</td>
+                          <td className="px-4 py-2 text-foreground">
+                            {it.tanim}
+                            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded border border-border bg-muted px-1 text-[9.5px] font-semibold text-muted-foreground">
+                              <Lock className="size-2.5" /> Kritik
+                            </span>
+                          </td>
+                          <td className="px-4 py-2 text-center text-muted-foreground whitespace-nowrap">{it.birim}</td>
+                          <td className="px-4 py-2 text-center tabular-nums text-muted-foreground">{fmt(it.miktar, it.birim === "MW" ? 3 : 0)}</td>
+                          <td className="px-4 py-2 text-center tabular-nums text-muted-foreground">{fmt(it.rawFiyat, 2)}</td>
+                          <td className="px-4 py-2 text-center text-muted-foreground">{it.fiyatCur}</td>
+                          <td className="px-4 py-2 text-right font-semibold text-foreground">${fmt(totalUsd)}</td>
+                        </tr>
+                      );
+                    }
                     return (
                       <tr key={it.code} className="hover:bg-muted/60">
                         <td className="px-4 py-2 font-mono text-muted-foreground">{it.code}</td>
@@ -973,8 +1046,8 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                   priceLabel: (p: number) => `$${p}/Wp` },
                 { label: "Konstrüksiyon", category: "konstr" as const, field: "selKonstr" as const,
                   alts: s.konstrAlts, selIdx: s.selKonstr,
-                  makeTestKesif: (alt: { price: number }) => localKesifA.map((g) => g.code === "A.3" ? { ...g, items: g.items.map((it) => it.code === "A.3.1" ? { ...it, rawFiyat: alt.price } : it) } : g),
-                  priceLabel: (p: number) => `$${fmt(p)}/MW` },
+                  makeTestKesif: (alt: { price: number }) => localKesifA.map((g) => g.code === "A.3" ? { ...g, items: g.items.map((it) => it.code === "A.3.1" ? applyKonstrAlt(it, { name: it.marka ?? "", price: alt.price }, s) : it) } : g),
+                  priceLabel: (p: number) => (konstrBirim(s) === "panel" ? `$${fmt(p, 2)}/panel` : `$${fmt(p)}/MW`) },
                 { label: "İnverter", category: "inv" as const, field: "selInv" as const,
                   alts: s.invAlts.filter((a) => a.price > 0), selIdx: s.selInv,
                   makeTestKesif: (alt: { price: number }) => localKesifA.map((g) => g.code === "A.2" ? { ...g, items: g.items.map((it) => it.code === "A.2.1" ? { ...it, rawFiyat: alt.price } : it) } : g),
