@@ -1,20 +1,20 @@
 import Link from "next/link";
 import type { PipelineStage } from "@prisma/client";
-import { PIPELINE_STAGE_LABELS } from "@/lib/pipeline-labels";
+import { ACTIVE_STAGES, PIPELINE_STAGE_LABELS, effectiveStage } from "@/lib/pipeline-labels";
 import { cn } from "@/lib/utils";
 
-export const STAGE_ORDER: PipelineStage[] = ["DRAFT", "SENT", "REVISED", "WON", "LOST", "CANCELLED"];
+export const STAGE_ORDER: PipelineStage[] = ACTIVE_STAGES;
 
-/** Aşama sayıları — pipeline'a hiç girmemiş (null) projeler Taslak sayılır. */
+/** Aşama sayıları — eski Taslak / Revizyon / null kayıtlar "Müşteriye Gönderildi" sayılır. */
 export function countStages(projects: { pipelineStage: PipelineStage | null }[]) {
   const counts = Object.fromEntries(STAGE_ORDER.map((s) => [s, 0])) as Record<PipelineStage, number>;
-  for (const p of projects) counts[p.pipelineStage ?? "DRAFT"]++;
+  for (const p of projects) counts[effectiveStage(p.pipelineStage)]++;
   return counts;
 }
 
 export function matchesStage(p: { pipelineStage: PipelineStage | null }, stage: string | undefined) {
   if (!stage) return true;
-  return (p.pipelineStage ?? "DRAFT") === stage;
+  return effectiveStage(p.pipelineStage) === stage;
 }
 
 export function parseStage(raw: string | string[] | undefined): PipelineStage | undefined {
@@ -23,7 +23,7 @@ export function parseStage(raw: string | string[] | undefined): PipelineStage | 
 }
 
 /**
- * Aşama filtre çipleri (Tümü, Taslak, …) — her birinde o aşamadaki teklif sayısı.
+ * Aşama filtre çipleri (Tümü, Müşteriye Gönderildi, …) — her birinde o aşamadaki teklif sayısı.
  * Teklifler ve Dashboard sayfalarında ortak kullanılır.
  */
 export function StageFilters({

@@ -558,7 +558,7 @@ const MODULES = [
       },
       {
         title: "Aşamayı listeden değiştirin",
-        text: "Satırdaki aşama rozetine tıklayınca aşamalar açılır: Taslak, Müşteriye Gönderildi, Revizyon İstendi, Closed Won, Closed Lost, Proje İptal. Seçtiğiniz anda kaydedilir. Aşama elle yalnızca buradan değiştirilir; müşteri linkten onay verir ya da revizyon isterse otomatik güncellenir.",
+        text: "Satırdaki aşama rozetine tıklayınca aşamalar açılır: Müşteriye Gönderildi, Closed Won, Closed Lost, Proje İptal. Seçtiğiniz anda kaydedilir. Aşama elle yalnızca buradan değiştirilir; müşteri linkten onay verirse otomatik Closed Won olur.",
         run: async (page) => {
           const b = await page.$('button[title="Aşamayı değiştirmek için tıklayın"]');
           await mark(page, b, { click: true });
@@ -697,7 +697,7 @@ const MODULES = [
       },
       {
         title: "Talep iletildi",
-        text: "Talep teklifin aktivite akışına kaydedilir, aşaması otomatik “Revizyon İstendi” olur ve teklifi hazırlayan kişiye e-posta gider. Müşteri aynı linki tekrar açtığında yanıtının iletildiğini görür.",
+        text: "Talep teklifin aktivite akışına kaydedilir ve teklifi hazırlayan kişiye e-posta gider. Müşteri aynı linki tekrar açtığında yanıtının iletildiğini görür.",
         guest: true,
         toast: true,
         run: async (page) => {
@@ -709,7 +709,7 @@ const MODULES = [
       },
       {
         title: "Aşama otomatik güncellendi",
-        text: "Müşteri revizyon isteyince teklifin aşaması Teklifler listesinde otomatik olarak “Revizyon İstendi” olur.",
+        text: "Müşterinin revizyon talebi teklifin aktivite akışında görünür; teklifin aşaması “Müşteriye Gönderildi” olarak kalır.",
         run: async (page) => {
           await go(page, "/projects?stage=REVISED", 1200);
           await mark(page, await page.$('button[title="Aşamayı değiştirmek için tıklayın"]'));

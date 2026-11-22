@@ -2839,7 +2839,7 @@
 "Müşteri revizyon talebini yazar":"The customer writes a revision request",
 "Açılan pencerede müşteri adını ve revize edilmesini istediği noktaları yazar; e-posta ve telefon isteğe bağlıdır.":"In the dialog the customer enters their name and the points to revise; email and phone are optional.",
 "Talep iletildi":"Request sent",
-"Talep teklifin aktivite akışına kaydedilir, aşaması otomatik “Revizyon İstendi” olur ve teklifi hazırlayan kişiye e-posta gider. Müşteri aynı linki tekrar açtığında yanıtının iletildiğini görür.":"The request is logged in the quote's activity feed, the stage changes to “Revision Requested” and the quote owner is emailed. Reopening the link, the customer sees the response was delivered.",
+"Talep teklifin aktivite akışına kaydedilir ve teklifi hazırlayan kişiye e-posta gider. Müşteri aynı linki tekrar açtığında yanıtının iletildiğini görür.":"The request is logged in the quote's activity feed and the quote owner is emailed. Reopening the link, the customer sees the response was delivered.",
 "Talep teklifin akışında":"The request in the quote's feed",
 "Teklifin Pipeline sekmesinde aşama “Revizyon İstendi” olarak güncellenmiştir; müşterinin adı, e-postası ve mesajı aktivite akışının en üstündedir.":"On the quote's Pipeline tab the stage is now “Revision Requested”; the customer's name, email and message top the activity feed.",
 "Kazanılan (Closed Won) teklifler için çatı veya arazi EPC sözleşmesi hazırlanır, Word olarak indirilir; imzalı nüsha PDF olarak yüklenip arşivlenir.":"For won (Closed Won) quotes a rooftop or ground EPC contract is prepared and downloaded as Word; the signed copy is uploaded as PDF and archived.",

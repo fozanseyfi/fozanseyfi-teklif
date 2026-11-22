@@ -15,6 +15,7 @@ import type { KesifGroup, GesSettings } from "@/lib/ges-defaults";
 import { DeleteProjectButton } from "@/components/project/delete-project-button";
 import { CopyProjectButton } from "@/components/project/copy-project-button";
 import { StageSelect } from "@/components/projects/stage-select";
+import { effectiveStage } from "@/lib/pipeline-labels";
 import { StageFilters, countStages, matchesStage, parseStage } from "@/components/projects/stage-filters";
 
 // Satır başındaki aşama noktası rengi.
@@ -190,7 +191,7 @@ export default async function ProjectsPage({ searchParams }: Props) {
                           <span
                             className={cn(
                               "size-2 shrink-0 rounded-full",
-                              PIPELINE_BAR_COLOR[project.pipelineStage ?? "DRAFT"] ?? "bg-muted-foreground/40",
+                              PIPELINE_BAR_COLOR[effectiveStage(project.pipelineStage)] ?? "bg-muted-foreground/40",
                             )}
                           />
                           <Link

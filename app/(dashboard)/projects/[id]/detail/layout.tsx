@@ -6,7 +6,7 @@ import { GesDetailNav } from "@/components/ges/ges-detail-nav";
 import { QuoteDetailNav } from "@/components/ges/quote-detail-nav";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, User, Zap, Sparkles, LayoutTemplate, Lock, Unlock, GitBranch, Package } from "lucide-react";
-import { PIPELINE_STAGE_LABELS, PIPELINE_STAGE_TONE } from "@/lib/pipeline-labels";
+import { PIPELINE_STAGE_LABELS, effectiveStage, PIPELINE_STAGE_TONE } from "@/lib/pipeline-labels";
 import type { GesSettings, KesifGroup } from "@/lib/ges-defaults";
 import { useTemplate, setTemplateLock } from "@/app/actions/templates";
 import { cn } from "@/lib/utils";
@@ -177,12 +177,12 @@ export default async function ProjectDetailLayout({ children, params }: Props) {
             <span
               className={cn(
                 "inline-flex h-5 items-center gap-0.5 rounded-full border px-1.5 text-[9.5px] font-semibold uppercase tracking-wider",
-                PIPELINE_STAGE_TONE[project.pipelineStage ?? "DRAFT"],
+                PIPELINE_STAGE_TONE[effectiveStage(project.pipelineStage)],
               )}
               title="Aşama — Teklifler listesinden değiştirilir"
             >
               <GitBranch className="mr-0.5 size-2.5" />
-              {PIPELINE_STAGE_LABELS[project.pipelineStage ?? "DRAFT"]}
+              {PIPELINE_STAGE_LABELS[effectiveStage(project.pipelineStage)]}
             </span>
           )}
 

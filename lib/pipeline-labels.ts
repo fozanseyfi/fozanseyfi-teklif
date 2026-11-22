@@ -12,6 +12,17 @@ export const PIPELINE_STAGE_LABELS: Record<PipelineStage, string> = {
   CANCELLED: "Proje İptal",
 };
 
+/**
+ * Kullanılan aşamalar. Taslak ve Revizyon İstendi kaldırıldı: teklif oluşturulduğu anda
+ * "Müşteriye Gönderildi" sayılır; müşterinin revizyon talebi aşamayı değiştirmez (aktivite olarak kalır).
+ * Eski kayıtlarda DRAFT / REVISED / null olabilir — effectiveStage() hepsini SENT'e çevirir.
+ */
+export const ACTIVE_STAGES: PipelineStage[] = ["SENT", "WON", "LOST", "CANCELLED"];
+
+export function effectiveStage(s: PipelineStage | null | undefined): PipelineStage {
+  return !s || s === "DRAFT" || s === "REVISED" ? "SENT" : s;
+}
+
 export const PIPELINE_STAGE_TONE: Record<PipelineStage, string> = {
   DRAFT: "border-slate-200 bg-slate-50 text-slate-600",
   SENT: "border-sky-200 bg-sky-50 text-sky-700",

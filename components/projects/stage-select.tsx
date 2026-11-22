@@ -11,10 +11,12 @@ import {
   LOST_REASON_LABELS,
   PIPELINE_STAGE_LABELS,
   PIPELINE_STAGE_TONE,
+  ACTIVE_STAGES,
+  effectiveStage,
 } from "@/lib/pipeline-labels";
 import { cn } from "@/lib/utils";
 
-const STAGES: PipelineStage[] = ["DRAFT", "SENT", "REVISED", "WON", "LOST", "CANCELLED"];
+const STAGES: PipelineStage[] = ACTIVE_STAGES;
 
 const DOT: Record<PipelineStage, string> = {
   DRAFT: "bg-slate-400",
@@ -41,7 +43,7 @@ export function StageSelect({
   lostReason?: string | null;
   competitorName?: string | null;
 }) {
-  const current = stage ?? "DRAFT";
+  const current = effectiveStage(stage);
   const router = useRouter();
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);

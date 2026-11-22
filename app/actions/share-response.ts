@@ -17,7 +17,7 @@ const KIND_TO_ACTIVITY: Record<CustomerResponseKind, ActivityType> = {
 
 const KIND_TO_STAGE: Record<CustomerResponseKind, PipelineStage | null> = {
   accept: "WON",
-  revision: "REVISED",
+  revision: null, // revizyon talebi aşamayı değiştirmez (aktivite + e-posta olarak kalır)
   question: null, // soru sorma pipeline aşamasını değiştirmez
 };
 
@@ -36,7 +36,7 @@ function getAppUrl(): string {
  * Public müşteri paylaşım sayfasından gelen yanıtları işler.
  * - Token'ı validate eder
  * - ProjectActivity satırı atar
- * - Pipeline stage'i otomatik günceller (accept→WON, revision→REVISED)
+ * - Pipeline stage'i otomatik günceller (accept→WON; revizyon/soru aşamayı değiştirmez)
  * - Proje sahibine mail bildirimi gönderir
  * - Audit log girer (actor = müşteri snapshot'ı; internal user değil)
  *

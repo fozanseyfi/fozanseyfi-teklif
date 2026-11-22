@@ -13,7 +13,7 @@ import { isAdmin } from "@/lib/permissions";
 import { getHiddenResourceIds } from "@/lib/permission-server";
 import { isProjectVisible } from "@/lib/project-status";
 import { parseQuoteItems, parseQuoteMeta, computeQuoteTotals } from "@/lib/quote";
-import { PIPELINE_STAGE_LABELS, PIPELINE_STAGE_TONE } from "@/lib/pipeline-labels";
+import { PIPELINE_STAGE_LABELS, effectiveStage, PIPELINE_STAGE_TONE } from "@/lib/pipeline-labels";
 import { CopyProjectButton } from "@/components/project/copy-project-button";
 import { StageFilters, countStages, matchesStage, parseStage } from "@/components/projects/stage-filters";
 import { getLatestFx } from "@/lib/fx";
@@ -157,7 +157,6 @@ export default async function DashboardPage({
     };
   });
   for (const p of allVisibleProjects) {
-    if ((p.pipelineStage ?? "DRAFT") === "DRAFT") continue;
     const d = sentAt.get(p.id) ?? p.createdAt;
     const m = months.find((x) => x.key === `${d.getFullYear()}-${d.getMonth()}`);
     if (m) m.count++;
@@ -296,11 +295,11 @@ export default async function DashboardPage({
                       <span
                         className={cn(
                           "inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium",
-                          PIPELINE_STAGE_TONE[project.pipelineStage ?? "DRAFT"],
+                          PIPELINE_STAGE_TONE[effectiveStage(project.pipelineStage)],
                         )}
                         title="Aşama — yalnızca Teklifler listesinden değiştirilir"
                       >
-                        {PIPELINE_STAGE_LABELS[project.pipelineStage ?? "DRAFT"]}
+                        {PIPELINE_STAGE_LABELS[effectiveStage(project.pipelineStage)]}
                       </span>
                     </td>
                     <td className="hidden whitespace-nowrap px-3 py-3 text-right text-xs text-muted-foreground lg:table-cell">
