@@ -32,6 +32,7 @@ import { NavActions } from "@/components/ges/nav-actions";
 import { printAnaliz } from "@/components/ges/analiz-print";
 import type { BrandSettings } from "@/lib/pdf-brand";
 import { useReadOnly } from "@/lib/readonly-context";
+import { DEFAULT_QUOTE_META } from "@/lib/quote";
 
 // Maliyet Halkası dilim renkleri — komşu dilimler ayırt edilsin diye kategorik palet
 const RING_PALETTE = ["#2563eb", "#059669", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#65a30d", "#ea580c", "#4f46e5", "#0d9488", "#ca8a04", "#9333ea", "#e11d48", "#16a34a", "#64748b"];
@@ -436,6 +437,10 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
   const finansMaliyeti = totalInterestCost;
   const sale = result.salePriceUsd;
   const pctOf = (x: number) => (sale > 0 ? (x / sale) * 100 : 0);
+  // EPC teklifindeki KDV oranıyla aynı (lib/quote DEFAULT_QUOTE_META)
+  const KDV_RATE = DEFAULT_QUOTE_META.kdvRate;
+  const saleKdv = result.salePriceUsd * KDV_RATE / 100;
+  const saleInclKdv = result.salePriceUsd + saleKdv;
 
   return (
     <div className="space-y-6">
@@ -1168,25 +1173,43 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                     <td />
                   </tr>
                   <tr className="bg-primary-soft border-t-2 border-primary/30">
-                    <td colSpan={2} className="px-2.5 py-2 font-semibold text-primary-soft-foreground">EPC SATIŞ FİYATI</td>
+                    <td colSpan={2} className="px-2.5 py-2 font-semibold text-primary-soft-foreground">EPC SATIŞ FİYATI (KDV Hariç)</td>
                     <td className="px-2.5 py-2 text-right font-bold text-primary-soft-foreground text-sm">${fmt(result.salePriceUsd)}</td>
                     <td className="px-2.5 py-2 text-right text-muted-foreground font-medium text-xs">{dcWp > 0 ? `$${(result.salePriceUsd/dcWp).toFixed(4)}/Wp` : ""}</td>
                     <td />
                     <td className="px-2.5 py-2 text-right font-semibold text-success-soft-foreground">100%</td>
                     <td />
                   </tr>
-                  <tr className="bg-primary-soft">
-                    <td colSpan={2} className="px-3 py-1.5 text-xs text-primary-soft-foreground">TL Karşılığı</td>
-                    <td className="px-3 py-1.5 text-right text-xs text-primary-soft-foreground">₺{fmt(result.salePriceTry)}</td>
-                    <td colSpan={4} />
+                  <tr className="bg-primary-soft text-primary-soft-foreground">
+                    <td colSpan={2} className="px-2.5 py-1">KDV (%{KDV_RATE})</td>
+                    <td className="px-2.5 py-1 text-right font-semibold">${fmt(saleKdv)}</td>
+                    <td className="px-2.5 py-1 text-right text-muted-foreground text-xs">{dcWp > 0 ? `$${(saleKdv/dcWp).toFixed(4)}/Wp` : ""}</td>
+                    <td colSpan={3} />
                   </tr>
-                  <tr className="bg-primary-soft">
-                    <td colSpan={2} className="px-3 py-1.5 text-xs text-primary-soft-foreground">EUR Karşılığı</td>
-                    <td className="px-3 py-1.5 text-right text-xs text-primary-soft-foreground">
-                      €{fmt(s.eur > 0 ? result.salePriceTry / s.eur : 0)}
-                    </td>
-                    <td colSpan={4} />
+                  <tr className="bg-primary-soft border-b-2 border-primary/30">
+                    <td colSpan={2} className="px-2.5 py-1.5 font-semibold text-primary-soft-foreground">KDV Dahil Toplam</td>
+                    <td className="px-2.5 py-1.5 text-right font-bold text-primary-soft-foreground">${fmt(saleInclKdv)}</td>
+                    <td className="px-2.5 py-1.5 text-right text-muted-foreground font-medium text-xs">{dcWp > 0 ? `$${(saleInclKdv/dcWp).toFixed(4)}/Wp` : ""}</td>
+                    <td colSpan={3} />
                   </tr>
+                  {[
+                    { label: "TL Karşılığı", sym: "₺", rate: s.usd > 0 ? s.usd : 0, dec: 2 },
+                    { label: "EUR Karşılığı", sym: "€", rate: s.eur > 0 && s.usd > 0 ? s.usd / s.eur : 0, dec: 4 },
+                  ].map((c) => (
+                    <tr key={c.label} className="bg-primary-soft text-xs text-primary-soft-foreground">
+                      <td colSpan={2} className="px-2.5 py-1.5">
+                        {c.label} <span className="text-muted-foreground">(KDV hariç)</span>
+                      </td>
+                      <td className="px-2.5 py-1.5 text-right font-semibold">{c.sym}{fmt(result.salePriceUsd * c.rate)}</td>
+                      <td className="px-2.5 py-1.5 text-right text-muted-foreground">
+                        {dcWp > 0 && c.rate > 0 ? `${c.sym}${((result.salePriceUsd * c.rate) / dcWp).toFixed(c.dec)}/Wp` : ""}
+                      </td>
+                      <td colSpan={3} className="whitespace-nowrap px-2.5 py-1.5 text-right">
+                        <span className="text-muted-foreground">KDV dahil </span>
+                        <span className="font-semibold">{c.sym}{fmt(saleInclKdv * c.rate)}</span>
+                      </td>
+                    </tr>
+                  ))}
                 </tfoot>
               </table>
             </div>
