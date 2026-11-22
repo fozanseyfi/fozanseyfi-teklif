@@ -802,7 +802,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
               const eurOf = (usd: number) => (s.eur > 0 ? (usd * s.usd) / s.eur : 0);
               const rows: { label: string; usd: number; pct: number; strong?: boolean }[] = [
                 { label: "Maliyet", usd: cost, pct: pctOf(cost) },
-                { label: "Brüt Kâr Marjı", usd: result.brutKar, pct: pctOf(result.brutKar), strong: true },
+                { label: "Brüt Kâr Marjı", usd: result.brutKar, pct: pctOf(result.brutKar) },
                 { label: "Satış Fiyatı", usd: sale, pct: 100 },
               ];
               // 3 ayrı kutu (aralarında küçük boşluk); sütunlar subgrid ile kutular arasında hizalı

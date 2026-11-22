@@ -304,11 +304,11 @@ ${watermarkHtml(brandCtx, firmName)}
     <table class="mkb">
       ${[
         { l: "Maliyet", v: sale - result.brutKar, pct: pctOf(sale - result.brutKar) },
-        { l: "Brüt Kâr Marjı", v: result.brutKar, pct: pctOf(result.brutKar), b: true },
+        { l: "Brüt Kâr Marjı", v: result.brutKar, pct: pctOf(result.brutKar) },
         { l: "Satış Fiyatı", v: sale, pct: 100 },
       ]
         .map(
-          (r) => `<tr${r.b ? ' class="b"' : ""}><td>${r.l}</td><td>%${r.pct.toFixed(r.pct === 100 ? 0 : 1)}</td><td>| $${fmt(r.v)}</td><td>| ₺${fmt(r.v * s.usd)}</td><td>| €${fmt(s.eur > 0 ? (r.v * s.usd) / s.eur : 0)}</td></tr>`,
+          (r) => `<tr><td>${r.l}</td><td>%${r.pct.toFixed(r.pct === 100 ? 0 : 1)}</td><td>| $${fmt(r.v)}</td><td>| ₺${fmt(r.v * s.usd)}</td><td>| €${fmt(s.eur > 0 ? (r.v * s.usd) / s.eur : 0)}</td></tr>`,
         )
         .join("")}
     </table>
