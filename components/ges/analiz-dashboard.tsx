@@ -802,7 +802,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
             </div>
             <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary-foreground/15 px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm">
               <TrendingUp className="size-3" />
-              Brüt Kâr Marjı %{pctOf(result.brutKar).toFixed(1)} · ${fmt(result.brutKar)}
+              Brüt Kâr Marjı %{pctOf(result.brutKar).toFixed(1)} · ${fmt(result.brutKar)} | ₺{fmt(result.brutKar * s.usd)} | €{fmt(s.eur > 0 ? (result.brutKar * s.usd) / s.eur : 0)}
             </div>
           </CardContent>
         </Card>

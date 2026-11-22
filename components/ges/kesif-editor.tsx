@@ -317,7 +317,7 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
             )}
           >
             <CardHeader
-              className={cn("cursor-pointer select-none bg-muted py-3 transition-colors hover:bg-[#e4e8ee] dark:hover:bg-muted/70", !isCollapsed && "border-b")}
+              className={cn("cursor-pointer select-none bg-[#e4e8ee] py-3 transition-colors hover:bg-[#d8dde5] dark:bg-muted dark:hover:bg-muted/70", !isCollapsed && "border-b")}
               onClick={() =>
                 setCollapsed((p) => ({ ...p, [group.code]: !p[group.code] }))
               }
@@ -381,35 +381,35 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
                 <div className="overflow-x-auto">
                   <table className="w-full text-[12px] sm:text-xs">
                     <thead>
-                      <tr className="border-b bg-muted/50">
-                        <th className="w-14 px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:w-16">
+                      <tr className="border-b bg-[#e4e8ee] dark:bg-muted">
+                        <th className="w-14 px-2 py-1 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:w-16">
                           Kod
                         </th>
-                        <th className="min-w-[120px] px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:min-w-[140px]">
+                        <th className="min-w-[120px] px-2 py-1 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:min-w-[140px]">
                           Tanım
                         </th>
-                        <th className={cn("min-w-[120px] px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden md:table-cell")}>
+                        <th className={cn("min-w-[120px] px-2 py-1 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden md:table-cell")}>
                           Tip/Model
                         </th>
-                        <th className={cn("min-w-[100px] px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden md:table-cell")}>
+                        <th className={cn("min-w-[100px] px-2 py-1 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden md:table-cell")}>
                           Marka
                         </th>
-                        <th className={cn("w-14 px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden sm:table-cell")}>
+                        <th className={cn("w-14 px-2 py-1 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden sm:table-cell")}>
                           Birim
                         </th>
-                        <th className="w-20 px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:w-24">
+                        <th className="w-20 px-2 py-1 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:w-24">
                           Miktar
                         </th>
-                        <th className={cn("w-[84px] px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden sm:table-cell")}>
+                        <th className={cn("w-[84px] px-2 py-1 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden sm:table-cell")}>
                           Para
                         </th>
-                        <th className={cn("w-28 px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden sm:table-cell")}>
+                        <th className={cn("w-28 px-2 py-1 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden sm:table-cell")}>
                           Birim Fiyat
                         </th>
-                        <th className="w-24 px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:w-28">
+                        <th className="w-24 px-2 py-1 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:w-28">
                           Toplam USD
                         </th>
-                        <th className={cn("w-24 px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden lg:table-cell")}>
+                        <th className={cn("w-24 px-2 py-1 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", isReadonly && "hidden lg:table-cell")}>
                           $/Wp
                         </th>
                         <th className="w-8 px-2 py-2" data-edit-only />
@@ -629,23 +629,6 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
                         );
                       })}
                     </tbody>
-                    <tfoot>
-                      <tr className="border-t bg-primary-soft/50">
-                        <td
-                          colSpan={8}
-                          className="px-3 py-2 text-right text-xs font-semibold text-primary-soft-foreground"
-                        >
-                          {group.code} Toplam:
-                        </td>
-                        <td className="px-2 py-2 text-right font-semibold text-primary-soft-foreground">
-                          ${fmt(grpTotal)}
-                        </td>
-                        <td className="px-2 py-2 text-right text-xs font-medium text-info-soft-foreground">
-                          {dcWp > 0 ? `$${(grpTotal / dcWp).toFixed(4)}/Wp` : ""}
-                        </td>
-                        <td />
-                      </tr>
-                    </tfoot>
                   </table>
                 </div>
               </CardContent>
