@@ -67,6 +67,11 @@ export function buildEpcQuote(
     outputCurrency: "USD",
     quoteDate: new Date().toISOString().slice(0, 10),
     validityDays: s.quoteValidityDays && s.quoteValidityDays > 0 ? s.quoteValidityDays : 30,
+    // Proje sekmesindeki "Teklif Detay Notları" → teklif çıktısının Notlar bölümü (her madde ayrı satır)
+    notes: (Array.isArray(s.notes) ? s.notes : [])
+      .map((n) => String(n ?? "").trim())
+      .filter(Boolean)
+      .join("\n") || undefined,
   };
 
   return { items: salePriceUsd > 0 ? [item] : [], meta, salePriceUsd };
