@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { Fragment, useState, useMemo, useRef } from "react";
 import { saveGesSettings, saveKesifA, saveKesifB } from "@/app/actions/ges";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -795,15 +795,30 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                 / {Math.round(result.perKwUsd).toLocaleString("tr-TR")} USD/kWp
               </span>
             </EditableSalePrice>
-            <div className="mt-1 flex items-center gap-3 text-xs opacity-85 tabular-nums">
-              <span>₺{fmt(result.salePriceTry)}</span>
-              <span className="size-1 rounded-full bg-primary-foreground/40" />
-              <span>€{fmt(s.eur > 0 ? (result.salePriceTry / s.eur) : 0)}</span>
-            </div>
-            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary-foreground/15 px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm">
-              <TrendingUp className="size-3" />
-              Brüt Kâr Marjı %{pctOf(result.brutKar).toFixed(1)} · ${fmt(result.brutKar)} | ₺{fmt(result.brutKar * s.usd)} | €{fmt(s.eur > 0 ? (result.brutKar * s.usd) / s.eur : 0)}
-            </div>
+            {/* Maliyet · Brüt Kâr · Satış — 3 para biriminde (kart boyu sabit; eski ₺/€ satırı ve kâr rozeti yerine) */}
+            {(() => {
+              const sale = result.salePriceUsd;
+              const cost = sale - result.brutKar; // doğrudan maliyet + contingency
+              const eurOf = (usd: number) => (s.eur > 0 ? (usd * s.usd) / s.eur : 0);
+              const rows: { label: string; usd: number; pct?: number; strong?: boolean }[] = [
+                { label: "Maliyet", usd: cost, pct: pctOf(cost) },
+                { label: "Brüt Kâr Marjı", usd: result.brutKar, pct: pctOf(result.brutKar), strong: true },
+                { label: "Satış Fiyatı", usd: sale },
+              ];
+              return (
+                <div className="mt-2 grid grid-cols-[auto_auto_auto_auto_auto] justify-start gap-x-2 rounded-md bg-primary-foreground/15 px-2.5 py-1.5 text-[11px] leading-[16px] tabular-nums">
+                  {rows.map((r) => (
+                    <Fragment key={r.label}>
+                      <span className={cn("opacity-85", r.strong && "font-semibold opacity-100")}>{r.label}</span>
+                      <span className="text-right opacity-85">{r.pct !== undefined ? `%${r.pct.toFixed(1)}` : ""}</span>
+                      <span className="text-right font-semibold">{r.pct !== undefined ? "| " : ""}${fmt(r.usd)}</span>
+                      <span className="text-right">| ₺{fmt(r.usd * s.usd)}</span>
+                      <span className="text-right">| €{fmt(eurOf(r.usd))}</span>
+                    </Fragment>
+                  ))}
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
 
