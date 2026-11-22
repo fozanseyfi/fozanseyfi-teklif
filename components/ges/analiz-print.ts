@@ -122,10 +122,11 @@ export function buildAnalizPrintHtml({ project, settings: s, kesifA, kesifB, tim
   }));
 
   // Donut SVG (cost ring)
-  const donutData = groupTotals.map((g) => ({
+  const RING_PALETTE = ["#2563eb", "#059669", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#65a30d", "#ea580c", "#4f46e5", "#0d9488", "#ca8a04", "#9333ea", "#e11d48", "#16a34a", "#64748b"];
+  const donutData = groupTotals.map((g, i) => ({
     label: `${g.code} ${g.name}`,
     value: g.total,
-    color: g.code.startsWith("A") ? "#059669" : "#3b82f6",
+    color: RING_PALETTE[i % RING_PALETTE.length],
     isA: g.code.startsWith("A"),
   }));
   const donutTotal = donutData.reduce((s, d) => s + d.value, 0);

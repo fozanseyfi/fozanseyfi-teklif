@@ -33,6 +33,9 @@ import { printAnaliz } from "@/components/ges/analiz-print";
 import type { BrandSettings } from "@/lib/pdf-brand";
 import { useReadOnly } from "@/lib/readonly-context";
 
+// Maliyet Halkası dilim renkleri — komşu dilimler ayırt edilsin diye kategorik palet
+const RING_PALETTE = ["#2563eb", "#059669", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#65a30d", "#ea580c", "#4f46e5", "#0d9488", "#ca8a04", "#9333ea", "#e11d48", "#16a34a", "#64748b"];
+
 type SectionTone = "primary" | "info" | "success" | "warning" | "destructive";
 
 const SECTION_TONE: Record<SectionTone, { iconBg: string; iconText: string }> = {
@@ -1347,7 +1350,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                     <h3 className="text-sm font-semibold text-foreground">Maliyet Halkası</h3>
                     <p className="text-[10.5px] leading-tight text-muted-foreground">
                       {drilledGroupCode
-                        ? "Kalem detayı — tek renk tonlaması"
+                        ? "Kalem detayı — her kalem ayrı renk"
                         : "Yandaki Maliyet Dağılımı'ndan detayını görmek istediğiniz grup başlığına tıklayın."}
                     </p>
                   </div>
@@ -1377,30 +1380,17 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                         outerRadius={130} innerRadius={92} paddingAngle={1} stroke="#fff" strokeWidth={2}
                         onClick={((d: { key?: string | null }) => { if (d?.key) setDrilledGroupCode(d.key); }) as never}
                         style={{ cursor: "pointer" }}>
-                        {donutOuter.map((d) => (
-                          <Cell key={d.key} fill={d.isA ? "#059669" : "#2563eb"}
+                        {donutOuter.map((d, i) => (
+                          <Cell key={d.key} fill={RING_PALETTE[i % RING_PALETTE.length]}
                             opacity={drilledGroupCode && drilledGroupCode !== d.key ? 0.35 : 1} />
                         ))}
                       </Pie>
                       {drilledGroupCode && donutInner.length > 0 && (
                         <Pie data={donutInner} dataKey="value" nameKey="name" cx="50%" cy="50%"
                           outerRadius={88} innerRadius={50} paddingAngle={1} stroke="#fff" strokeWidth={1.5}>
-                          {donutInner.map((d, i) => {
-                            // Tek renk tonlamasi — A icin emerald, B icin slate
-                            // varyasyonu. Kac kalem varsa o kadar shade uretilir
-                            // (light → dark). Coklu renk yerine disiplinli paletti.
-                            const baseHue = d.isA ? "16 185 129" : "100 116 139"; // emerald-500 / slate-500
-                            const n = donutInner.length;
-                            const t = n > 1 ? i / (n - 1) : 0; // 0 → 1
-                            // Lightness 35% → 75% arasi
-                            const alpha = 1 - 0.45 * (1 - t);
-                            return (
-                              <Cell
-                                key={d.key}
-                                fill={`rgba(${baseHue} / ${alpha.toFixed(2)})`}
-                              />
-                            );
-                          })}
+                          {donutInner.map((d, i) => (
+                            <Cell key={d.key} fill={RING_PALETTE[(i + 3) % RING_PALETTE.length]} />
+                          ))}
                         </Pie>
                       )}
                     </PieChart>
@@ -1449,11 +1439,7 @@ export function AnalizDashboard({ projectId, project, kesifA: kesifAInit, kesifB
                   </div>
                 )}
                 <div className="mt-2 flex items-center justify-center gap-4 border-t pt-2 text-[10px] text-muted-foreground">
-                  <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm" style={{ backgroundColor: "#059669" }} /> Keşif-A</span>
-                  <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm" style={{ backgroundColor: "#2563eb" }} /> Keşif-B</span>
-                  {drilledGroupCode && (
-                    <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm" style={{ backgroundColor: drilledGroup?.code.startsWith("A") ? "#a7f3d0" : "#bfdbfe" }} /> Kalem</span>
-                  )}
+                  <span>Dış halka: gruplar · iç halka: seçili grubun kalemleri — her dilim ayrı renk</span>
                 </div>
 
                 {/* Top 10 Kalemler — donut'un altindaki tam genislikte

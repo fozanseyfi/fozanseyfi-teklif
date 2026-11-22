@@ -523,9 +523,9 @@ export const DEF_DOR: DorGroup[] = [
   {
     name: "VERGİ, SGK, İZİNLER",
     items: [
-      { description: "Sözleşme damga vergisi", tedarik: "Paylaşımlı", montaj: "—", devreAma: "—", notes: "Yarı yarıya ödenecektir." },
-      { description: "Arazi Mülkiyeti İzinleri", tedarik: "İşveren", montaj: "—", devreAma: "—", notes: "Hukuki, arazi mülkiyeti ve şirket evraklarının temini." },
-      { description: "Atık Bedeli", tedarik: "İşveren", montaj: "—", devreAma: "—", notes: "Saha içi eritilemeyen hafriyatın depolama yeri tahsisi ve döküm bedelinin ödenmesi." },
+      { description: "Sözleşme damga vergisi", tedarik: "Paylaşımlı", montaj: "—", devreAma: "—", notes: "" },
+      { description: "Arazi Mülkiyeti İzinleri", tedarik: "İşveren", montaj: "—", devreAma: "—", notes: "" },
+      { description: "Atık Bedeli", tedarik: "İşveren", montaj: "—", devreAma: "—", notes: "" },
       { description: "ÇED Raporu", tedarik: "İşveren", montaj: "—", devreAma: "—", notes: "" },
       { description: "Önlisans ve Lisanslama", tedarik: "İşveren", montaj: "—", devreAma: "—", notes: "" },
       { description: "Bağlantı Anlaşması - Görüşü", tedarik: "İşveren", montaj: "—", devreAma: "—", notes: "" },
@@ -543,7 +543,7 @@ export const DEF_DOR: DorGroup[] = [
     items: [
       { description: "Ücretler (Maaş, izin, mesai, tazminat, prim)", tedarik: "Yüklenici", montaj: "—", devreAma: "—", notes: "" },
       { description: "Teknik ve saha personeli konaklama yeri", tedarik: "Yüklenici", montaj: "—", devreAma: "—", notes: "" },
-      { description: "Personel yemek giderleri", tedarik: "Yüklenici", montaj: "—", devreAma: "—", notes: "Yemekler sahada verilecektir." },
+      { description: "Personel yemek giderleri", tedarik: "Yüklenici", montaj: "—", devreAma: "—", notes: "" },
       { description: "Personelin saha içi ve dışı ulaşımı", tedarik: "Yüklenici", montaj: "—", devreAma: "—", notes: "" },
     ],
   },
@@ -567,12 +567,12 @@ export const DEF_DOR: DorGroup[] = [
   {
     name: "PV MODÜL, DC KABLOLAR VE KONNEKTÖRLER",
     items: [
-      { description: "PV Modül", tedarik: "Yüklenici", montaj: "Yüklenici", devreAma: "Yüklenici", notes: "1500 V" },
-      { description: "DC kablo ve Bağlantısı", tedarik: "Yüklenici", montaj: "Yüklenici", devreAma: "Yüklenici", notes: "1x6 H1Z2Z2-K DC kablo temin ve montajı" },
+      { description: "PV Modül", tedarik: "Yüklenici", montaj: "Yüklenici", devreAma: "Yüklenici", notes: "" },
+      { description: "DC kablo ve Bağlantısı", tedarik: "Yüklenici", montaj: "Yüklenici", devreAma: "Yüklenici", notes: "" },
       { description: "UV kablo bağı", tedarik: "Yüklenici", montaj: "Yüklenici", devreAma: "Yüklenici", notes: "" },
       { description: "HDPE - Spiral boru", tedarik: "Yüklenici", montaj: "Yüklenici", devreAma: "Yüklenici", notes: "" },
       { description: "DC kablo kazısı", tedarik: "Yüklenici", montaj: "Yüklenici", devreAma: "Yüklenici", notes: "" },
-      { description: "DC Konnektörler", tedarik: "Yüklenici", montaj: "Yüklenici", devreAma: "Yüklenici", notes: "Staubli 1500V" },
+      { description: "DC Konnektörler", tedarik: "Yüklenici", montaj: "Yüklenici", devreAma: "Yüklenici", notes: "" },
       { description: "DC kablo tavası", tedarik: "Yüklenici", montaj: "Yüklenici", devreAma: "Yüklenici", notes: "" },
     ],
   },
