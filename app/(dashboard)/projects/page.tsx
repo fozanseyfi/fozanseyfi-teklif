@@ -39,12 +39,13 @@ export default async function ProjectsPage({ searchParams }: Props) {
 
   // Admin disindaki kullanicilar icin gizli proje + gizli musteri ID'lerini al.
   // Gizli musteri => o musteriye bagli projeler de listede cikmaz.
-  const hiddenProjectIds = isAdmin(user)
-    ? []
-    : await getHiddenResourceIds(user.id, user.organizationId, "project");
-  const hiddenCustomerNames = isAdmin(user)
-    ? []
-    : await getHiddenResourceIds(user.id, user.organizationId, "customer");
+  // Gizli proje + gizli musteri listeleri paralel (ardisik = ekstra DB gidis-donusu).
+  const [hiddenProjectIds, hiddenCustomerNames]: [string[], string[]] = isAdmin(user)
+    ? [[], []]
+    : await Promise.all([
+        getHiddenResourceIds(user.id, user.organizationId, "project"),
+        getHiddenResourceIds(user.id, user.organizationId, "customer"),
+      ]);
 
   const allProjects = await prisma.project.findMany({
     where: {

@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { getUnreadCount } from "@/app/actions/notifications";
 import {
   LayoutDashboard,
   FolderOpen,
@@ -479,8 +478,10 @@ export function Sidebar({ userName, userEmail, firmName, userRole, organizations
   useEffect(() => {
     let alive = true;
     const tick = () => {
-      getUnreadCount()
-        .then((n) => { if (alive) setUnread(n); })
+      // Duz GET (server action degil) — router kuyruguna girip diger aksiyonlari bekletmez.
+      fetch("/api/notifications/unread", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d: { count?: number } | null) => { if (alive && d && typeof d.count === "number") setUnread(d.count); })
         .catch(() => {});
     };
     tick();

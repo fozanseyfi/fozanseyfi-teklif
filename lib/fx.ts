@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 
 /**
  * USD/EUR → TRY kuru. Server-side; çoklu provider fallback + 30 dk cache
@@ -30,13 +31,32 @@ const FALLBACK_EUR = 43.0;
 /** Güncel USD/EUR → TRY kuru (30 dk süreç içi önbellek). Sunucu bileşenlerinden doğrudan çağrılır. */
 export async function getLatestFx(): Promise<FxResult> {
   if (cached && cached.expiresAt > Date.now()) return cached.value;
-  const result = await fetchFresh();
+  let result: FxResult;
+  try {
+    // Next Data Cache: tüm sunucu örnekleri (Vercel soğuk başlangıçları dahil) ortak 30 dk
+    // önbellek paylaşır — her yeni örnek TCMB'ye gidip (8 sn'ye kadar) beklemez.
+    result = await fetchProvidersShared();
+  } catch {
+    // Hiçbiri çalışmadı — fallback (paylaşılan önbelleğe yazılmaz)
+    result = { usd: FALLBACK_USD, eur: FALLBACK_EUR, source: "fallback", fetchedAt: new Date().toISOString() };
+  }
   // Yedek değere düşüldüyse kısa önbellekle, servis dönünce hemen güncellensin
   cached = { value: result, expiresAt: Date.now() + (result.source === "fallback" ? 60_000 : CACHE_MS) };
   return result;
 }
 
-async function fetchFresh(): Promise<FxResult> {
+// Hata fırlatırsa unstable_cache sonucu saklamaz → fallback değer önbelleğe girmez.
+const fetchProvidersShared = unstable_cache(
+  async (): Promise<FxResult> => {
+    const r = await fetchFresh();
+    if (!r) throw new Error("fx: tüm sağlayıcılar başarısız");
+    return r;
+  },
+  ["fx-latest-v1"],
+  { revalidate: CACHE_MS / 1000 },
+);
+
+async function fetchFresh(): Promise<FxResult | null> {
   const providers: Array<() => Promise<{ usd: number; eur: number; source: string }>> = [
     fetchTcmb,
     fetchOpenErApi,
@@ -44,32 +64,31 @@ async function fetchFresh(): Promise<FxResult> {
     fetchFrankfurter,
   ];
 
-  for (const provider of providers) {
-    try {
-      const r = await provider();
-      if (r.usd > 0 && r.eur > 0) {
-        return { ...r, fetchedAt: new Date().toISOString() };
-      }
-    } catch (e) {
-      console.warn(`[fx-api] provider failed:`, (e as Error).message);
-    }
+  // Hepsi AYNI ANDA başlar (eskiden sırayla: TCMB ~9 sn yanıt verip 8 sn'lik zaman aşımına
+  // düşünce her soğuk başlangıç 8+ sn bekliyordu). Öncelik sırası korunur: TCMB yanıt
+  // verirse o kullanılır; vermezse diğerleri zaten hazır beklemektedir.
+  const inFlight = providers.map((p) =>
+    p().then(
+      (r) => (r.usd > 0 && r.eur > 0 ? r : null),
+      (e) => {
+        console.warn(`[fx-api] provider failed:`, (e as Error).message);
+        return null;
+      },
+    ),
+  );
+  for (const pr of inFlight) {
+    const r = await pr;
+    if (r) return { ...r, fetchedAt: new Date().toISOString() };
   }
 
-  // Hiçbiri çalışmadı — fallback
-  return {
-    usd: FALLBACK_USD,
-    eur: FALLBACK_EUR,
-    source: "fallback",
-    fetchedAt: new Date().toISOString(),
-  };
+  return null;
 }
 
 // TCMB (Türkiye Merkez Bankası) — XML feed, iş günleri 15:30'da güncellenir.
 // En sağlam ve resmi kaynak. Hafta sonu cuma kuru gözükür.
 async function fetchTcmb(): Promise<{ usd: number; eur: number; source: string }> {
   const res = await fetch("https://www.tcmb.gov.tr/kurlar/today.xml", {
-    cache: "no-store",
-    signal: AbortSignal.timeout(8000),
+    signal: AbortSignal.timeout(12_000), // TCMB yavaş (~9-10 sn); paylaşılan önbellek sayesinde nadiren beklenir
   });
   if (!res.ok) throw new Error("TCMB HTTP " + res.status);
   const xml = await res.text();
@@ -96,8 +115,7 @@ function extractTcmbRate(xml: string, code: string): number | null {
 
 async function fetchOpenErApi(): Promise<{ usd: number; eur: number; source: string }> {
   const res = await fetch("https://open.er-api.com/v6/latest/TRY", {
-    cache: "no-store",
-    signal: AbortSignal.timeout(8000),
+    signal: AbortSignal.timeout(5000),
   });
   if (!res.ok) throw new Error("open.er-api HTTP " + res.status);
   const data = await res.json();
@@ -112,8 +130,7 @@ async function fetchExchangerateHost(): Promise<{ usd: number; eur: number; sour
   const res = await fetch(
     "https://api.exchangerate.host/latest?base=TRY&symbols=USD,EUR",
     {
-      cache: "no-store",
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(5000),
     },
   );
   if (!res.ok) throw new Error("exchangerate.host HTTP " + res.status);
@@ -127,12 +144,10 @@ async function fetchExchangerateHost(): Promise<{ usd: number; eur: number; sour
 async function fetchFrankfurter(): Promise<{ usd: number; eur: number; source: string }> {
   const [usdRes, eurRes] = await Promise.all([
     fetch("https://api.frankfurter.dev/v1/latest?base=USD&symbols=TRY", {
-      cache: "no-store",
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(5000),
     }),
     fetch("https://api.frankfurter.dev/v1/latest?base=EUR&symbols=TRY", {
-      cache: "no-store",
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(5000),
     }),
   ]);
   const usdData = await usdRes.json();

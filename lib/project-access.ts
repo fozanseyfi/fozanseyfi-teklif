@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/permissions";
 import { requireAuth, type ProfileWithOrg } from "@/lib/auth";
 import type { Project } from "@prisma/client";
+import { cache } from "react";
 
 export interface ProjectAccess {
   project: Project;
@@ -23,7 +24,9 @@ export interface ProjectAccess {
 // - Viewer: canEdit her zaman false
 // - Owner (createdById === user.id): hide/lock yine gecerli — admin tarafindan
 //   uygulanan yasaklar owner'a da uygulanir (admin ozellikle istemis demek)
-export async function getProjectAccess(
+// React cache(): detay layout'u ve sayfa ayni istekte ayni (user, projectId) icin
+// tekrar sorgu atmaz (user nesnesi cache'li getCurrentUser'dan geldigi icin ayni referans).
+export const getProjectAccess = cache(async function getProjectAccess(
   user: ProfileWithOrg,
   projectId: string,
 ): Promise<ProjectAccess | null> {
@@ -36,7 +39,8 @@ export async function getProjectAccess(
     return { project, isHidden: false, isLocked: false, canView: true, canEdit: true };
   }
 
-  const [hidden, locked] = await Promise.all([
+  // Proje gizli mi / kilitli mi / musterisi gizli mi — uc sorgu paralel.
+  const [hidden, locked, ch] = await Promise.all([
     prisma.userHiddenResource.findUnique({
       where: {
         userId_resourceType_resourceId: {
@@ -55,22 +59,20 @@ export async function getProjectAccess(
         },
       },
     }),
+    // Musterisi gizliyse de proje gizli sayilir.
+    project.customerName
+      ? prisma.userHiddenResource.findUnique({
+          where: {
+            userId_resourceType_resourceId: {
+              userId: user.id,
+              resourceType: "customer",
+              resourceId: project.customerName,
+            },
+          },
+        })
+      : Promise.resolve(null),
   ]);
-
-  // Musterisi gizliyse de proje gizli sayilir.
-  let customerHidden = false;
-  if (project.customerName) {
-    const ch = await prisma.userHiddenResource.findUnique({
-      where: {
-        userId_resourceType_resourceId: {
-          userId: user.id,
-          resourceType: "customer",
-          resourceId: project.customerName,
-        },
-      },
-    });
-    customerHidden = !!ch;
-  }
+  const customerHidden = !!ch;
 
   const isHidden = !!hidden || customerHidden;
   const isLocked = !!locked;
@@ -83,7 +85,7 @@ export async function getProjectAccess(
     canView: !isHidden,
     canEdit: !isHidden && !isLocked && !isViewer,
   };
-}
+});
 
 // Sayfa entry'leri icin: erisilemiyorsa notFound() at.
 export async function loadViewableProject(

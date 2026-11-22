@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import type { Profile, Organization } from "@prisma/client";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 
 const PLATFORM_OWNER_EMAIL = "fozanseyfi@gmail.com";
 
@@ -21,10 +22,14 @@ async function ensureProfile(authUser: {
   email?: string | null;
   user_metadata?: { name?: unknown; full_name?: unknown } | null;
 }): Promise<ProfileWithOrg | null> {
-  const existing = await prisma.profile.findUnique({
-    where: { id: authUser.id },
-    include: { organization: true },
-  });
+  // Profil ve tum uyelikler tek seferde, paralel — ardisik sorgu = ekstra DB gidis-donusu.
+  const [existing, memberships] = await Promise.all([
+    prisma.profile.findUnique({
+      where: { id: authUser.id },
+      include: { organization: true },
+    }),
+    fetchMemberships(authUser.id),
+  ]);
 
   if (!existing) {
     const email = (authUser.email ?? "").trim();
@@ -61,26 +66,15 @@ async function ensureProfile(authUser: {
     return { ...created, platformRole: "admin" as const };
   }
 
-  // Profile var — aktif org icin uyelik var mi?
-  const membership = await prisma.organizationMember.findUnique({
-    where: {
-      userId_organizationId: {
-        userId: authUser.id,
-        organizationId: existing.organizationId,
-      },
-    },
-  });
+  // Profile var — aktif org icin uyelik var mi? (Uyelikler profille paralel cekildi.)
+  const membership = memberships.find((m) => m.organizationId === existing.organizationId);
 
   if (membership) {
     return { ...existing, platformRole: membership.role as "admin" | "user" | "viewer" };
   }
 
   // Aktif org icin uyelik yok — kullanicinin uye oldugu ilk org'a tasi.
-  const fallback = await prisma.organizationMember.findFirst({
-    where: { userId: authUser.id },
-    orderBy: { joinedAt: "asc" },
-    include: { organization: true },
-  });
+  const fallback = memberships[0];
 
   if (fallback) {
     await prisma.profile.update({
@@ -106,12 +100,25 @@ async function ensureProfile(authUser: {
   return { ...existing, platformRole: "admin" as const };
 }
 
-export async function getCurrentUser(): Promise<ProfileWithOrg | null> {
+// Uyelikler (panel switcher + aktif rol icin). Istek basina tek sorgu: ensureProfile ve
+// layout'taki getUserOrganizations ayni cache'i paylasir.
+const fetchMemberships = cache((userId: string) =>
+  prisma.organizationMember.findMany({
+    where: { userId },
+    include: { organization: true },
+    orderBy: { joinedAt: "asc" },
+  }),
+);
+
+// React cache(): ayni istekteki layout(lar) + sayfa ayni sonucu paylasir — Supabase
+// getUser + profil sorgusu istek basina 1 kez calisir (onceden her katmanda tekrar ediyordu).
+// Server action'larda cache devrede degildir, her cagri taze okur.
+export const getCurrentUser = cache(async (): Promise<ProfileWithOrg | null> => {
   const supabase = await createSupabaseServer();
   const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) return null;
   return await ensureProfile(authUser);
-}
+});
 
 export async function requireAuth(): Promise<ProfileWithOrg> {
   const user = await getCurrentUser();
@@ -128,7 +135,11 @@ export async function requireRole(allowed: Role[]): Promise<ProfileWithOrg> {
 }
 
 // Bu platformda kullanicinin uye oldugu tum organizasyonlar (panel switcher icin).
+// ensureProfile ile ayni istek-ici cache'i kullanir (ek sorgu yok). Liste bossa ensureProfile
+// bu istekte uyelik yaratmis olabilir (ilk giris) — o durumda taze oku.
 export async function getUserOrganizations(userId: string) {
+  const cached = await fetchMemberships(userId);
+  if (cached.length > 0) return cached;
   return prisma.organizationMember.findMany({
     where: { userId },
     include: { organization: true },

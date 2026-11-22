@@ -1,4 +1,5 @@
 {
+  "regions": ["dub1"],
   "functions": {
     "app/api/pdf/**": {
       "maxDuration": 60

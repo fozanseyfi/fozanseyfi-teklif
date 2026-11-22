@@ -23,6 +23,8 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ stage?: string }>;
 }) {
+  // Kur (harici servis) beklenmeden DB sorgulari ile paralel baslar.
+  const fxPromise = getLatestFx();
   const user = await requireAuth();
   const stage = parseStage((await searchParams).stage);
 
@@ -30,12 +32,13 @@ export default async function DashboardPage({
   // Gizli musteri => o musteriye bagli projeler de listede cikmaz. Bu
   // /projects sayfasiyla ayni filter mantigi — dashboard'da da gecerli
   // olmaliki KPI sayilari (toplam, MWp), Son Projeler ve harita tutarli.
-  const hiddenProjectIds = isAdmin(user)
-    ? []
-    : await getHiddenResourceIds(user.id, user.organizationId, "project");
-  const hiddenCustomerNames = isAdmin(user)
-    ? []
-    : await getHiddenResourceIds(user.id, user.organizationId, "customer");
+  // Gizli proje + gizli musteri listeleri paralel (ardisik = ekstra DB gidis-donusu).
+  const [hiddenProjectIds, hiddenCustomerNames]: [string[], string[]] = isAdmin(user)
+    ? [[], []]
+    : await Promise.all([
+        getHiddenResourceIds(user.id, user.organizationId, "project"),
+        getHiddenResourceIds(user.id, user.organizationId, "customer"),
+      ]);
 
   // Tum gercek projeleri tek sorguda cek; sonra isProjectVisible ile yarim
   // kalmislari filtrele. Yarim kalmis projeler temizleyici tarafindan
@@ -106,7 +109,7 @@ export default async function DashboardPage({
 
   // Teklif tutarları USD — TL/EUR kalemler HER ZAMAN güncel kurdan yeniden çevrilir
   // (projede kayıtlı eski kur değil). KDV hariç.
-  const fx = await getLatestFx();
+  const fx = await fxPromise;
   function offerUsd(p: (typeof allVisibleProjects)[number]): number {
     if (p.quoteKind === "MATERIAL_SERVICE") {
       const items = parseQuoteItems(p.projectDetail?.quoteItems);

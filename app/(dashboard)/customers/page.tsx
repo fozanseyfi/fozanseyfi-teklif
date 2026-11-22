@@ -11,12 +11,13 @@ import type { GesSettings } from "@/lib/ges-defaults";
 export default async function CustomersPage() {
   const user = await requireAuth();
 
-  const hiddenProjectIds = isAdmin(user)
-    ? []
-    : await getHiddenResourceIds(user.id, user.organizationId, "project");
-  const hiddenCustomerNames = isAdmin(user)
-    ? []
-    : await getHiddenResourceIds(user.id, user.organizationId, "customer");
+  // Gizli proje + gizli musteri listeleri paralel (ardisik = ekstra DB gidis-donusu).
+  const [hiddenProjectIds, hiddenCustomerNames]: [string[], string[]] = isAdmin(user)
+    ? [[], []]
+    : await Promise.all([
+        getHiddenResourceIds(user.id, user.organizationId, "project"),
+        getHiddenResourceIds(user.id, user.organizationId, "customer"),
+      ]);
 
   const projects = await prisma.project.findMany({
     where: {
