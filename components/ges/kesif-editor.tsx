@@ -274,6 +274,21 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
             </span>
           )}
         </p>
+        <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const anyOpen = groups.some((g) => !collapsed[g.code]);
+            setCollapsed(Object.fromEntries(groups.map((g) => [g.code, anyOpen])));
+          }}
+        >
+          {groups.some((g) => !collapsed[g.code]) ? (
+            <><ChevronRight className="size-3.5" /> Tümünü Kapat</>
+          ) : (
+            <><ChevronDown className="size-3.5" /> Tümünü Aç</>
+          )}
+        </Button>
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -283,6 +298,7 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+        </div>
         </div>
       </div>
 
@@ -301,7 +317,7 @@ export function KesifEditor({ projectId, projectName, type, data, settings, firm
             )}
           >
             <CardHeader
-              className="cursor-pointer select-none py-3"
+              className={cn("cursor-pointer select-none bg-muted py-3 transition-colors hover:bg-[#e4e8ee] dark:hover:bg-muted/70", !isCollapsed && "border-b")}
               onClick={() =>
                 setCollapsed((p) => ({ ...p, [group.code]: !p[group.code] }))
               }
