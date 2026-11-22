@@ -9,6 +9,7 @@ import {
   watermarkHtml,
   type BrandSettings,
 } from "@/lib/pdf-brand";
+import { DEFAULT_QUOTE_META } from "@/lib/quote";
 
 interface PrintArgs {
   project: Project;
@@ -184,6 +185,21 @@ export function buildAnalizPrintHtml({ project, settings: s, kesifA, kesifB, tim
     highlight: "background:linear-gradient(135deg,#059669,#047857);color:#fff",
   };
 
+  // Tüm Kalemler Özet yardımcıları
+  const KDV_RATE = DEFAULT_QUOTE_META.kdvRate;
+  const saleKdv = (sale * KDV_RATE) / 100;
+  const perWp = (x: number) => (dcWp > 0 ? `$${(x / dcWp).toFixed(4)}` : "—");
+  const pctDirect = (x: number) => (result.directCost > 0 ? `${((x / result.directCost) * 100).toFixed(1)}%` : "—");
+  const pctSale = (x: number) => (sale > 0 ? `${((x / sale) * 100).toFixed(1)}%` : "—");
+  const ozetRows = (letter: "A" | "B") =>
+    (letter === "A" ? kesifA : kesifB)
+      .map((g) => ({ g, total: getGrpTot(g, s) }))
+      .filter((r) => r.total > 0)
+      .map(
+        (r) => `<tr><td class="code">${r.g.code}</td><td>${escapeHtml(r.g.name)}</td><td class="num"><strong>$${fmt(r.total)}</strong></td><td class="num">${perWp(r.total)}</td><td class="num">${pctDirect(r.total)}</td><td class="num" style="color:#047857">${pctSale(r.total)}</td></tr>`,
+      )
+      .join("");
+
   // EUR
   const salePriceEur = s.eur > 0 ? (sale * s.usd) / s.eur : 0;
 
@@ -216,7 +232,7 @@ export function buildAnalizPrintHtml({ project, settings: s, kesifA, kesifB, tim
   .kpi .perKw{font-size:8.5px;font-weight:600;opacity:0.7;margin-top:1px}
 
   table{width:100%;border-collapse:collapse;font-size:9.5px}
-  th{background:#1e293b;color:#fff;padding:6px 8px;text-align:left;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em}
+  th{background:#e4e8ee;color:#334155;padding:6px 8px;text-align:left;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em}
   td{padding:5px 8px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
   tr.alt td{background:#fafbfc}
   .num{text-align:right;font-variant-numeric:tabular-nums}
@@ -248,6 +264,18 @@ export function buildAnalizPrintHtml({ project, settings: s, kesifA, kesifB, tim
   .row-bar .bar{flex-basis:40%;height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden}
   .row-bar .bar .fill{height:100%;background:linear-gradient(90deg,#10b981,#059669);border-radius:4px}
 
+  table.ozet td{padding:3px 8px;border-bottom:1px solid #e2e8f0}
+  table.ozet td.code{color:#64748b;font-family:ui-monospace,Consolas,monospace;font-size:9px}
+  table.ozet tr.sub-a td{background:#ecfdf5;color:#047857;font-weight:700;border-top:1.5px solid #6ee7b7;border-bottom:1.5px solid #6ee7b7}
+  table.ozet tr.sub-b td{background:#eff6ff;color:#1d4ed8;font-weight:700;border-top:1.5px solid #93c5fd;border-bottom:1.5px solid #93c5fd}
+  table.ozet tr.foot td{background:#f1f5f9;color:#334155}
+  table.ozet tr.strong td{font-weight:700}
+  table.ozet tr.sale td{background:#d1fae5;color:#065f46;font-weight:800;font-size:10.5px;border-top:2px solid #10b981}
+  table.ozet tr.sale-sub td{background:#ecfdf5;color:#065f46}
+  .cover table.mkb{width:auto;margin-top:8px;margin-left:auto;border-collapse:collapse;font-size:10px;background:rgba(255,255,255,0.15);border-radius:6px}
+  .cover table.mkb td{padding:2px 6px;border:0;color:rgba(236,253,245,0.92);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .cover table.mkb td:first-child{text-align:left}
+  .cover table.mkb tr.b td{color:#fff;font-weight:800}
   .footer{margin-top:18px;padding-top:8px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:8.5px;color:#94a3b8}
 
   @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
@@ -272,10 +300,17 @@ ${watermarkHtml(brandCtx, firmName)}
   <div class="price">
     <div class="label">Toplam EPC Satış Fiyatı</div>
     <div class="amount">$${fmt(sale)}</div>
-    <div class="alt">₺${fmt(sale * s.usd)}${salePriceEur > 0 ? ` · €${fmt(salePriceEur)}` : ""}</div>
-    <div class="alt" style="margin-top:6px;font-size:10px;background:rgba(255,255,255,0.18);padding:3px 9px;border-radius:99px;display:inline-block">
-      Brüt Kâr Marjı %${pctOf(result.brutKar).toFixed(1)} · $${fmt(result.brutKar)}
-    </div>
+    <table class="mkb">
+      ${[
+        { l: "Maliyet", v: sale - result.brutKar, pct: pctOf(sale - result.brutKar) },
+        { l: "Brüt Kâr Marjı", v: result.brutKar, pct: pctOf(result.brutKar), b: true },
+        { l: "Satış Fiyatı", v: sale },
+      ]
+        .map(
+          (r) => `<tr${r.b ? ' class="b"' : ""}><td>${r.l}</td><td>${r.pct !== undefined ? `%${r.pct.toFixed(1)}` : ""}</td><td>${r.pct !== undefined ? "| " : ""}$${fmt(r.v)}</td><td>| ₺${fmt(r.v * s.usd)}</td><td>| €${fmt(s.eur > 0 ? (r.v * s.usd) / s.eur : 0)}</td></tr>`,
+        )
+        .join("")}
+    </table>
   </div>
 </div>
 
@@ -345,38 +380,39 @@ ${watermarkHtml(brandCtx, firmName)}
     </div>
   </div>
 
-  <!-- Grup Bazlı Maliyet Tablosu -->
-  <h2 class="section">Maliyet Kırılımı <span class="sub">Grup Bazlı</span></h2>
-  <table>
+  <!-- Tüm Kalemler Özet (ekrandaki tabloyla aynı düzen) -->
+  <h2 class="section">Tüm Kalemler Özet <span class="sub">Grup Bazlı · KDV</span></h2>
+  <table class="ozet">
     <thead>
       <tr>
         <th style="width:50px">Kod</th>
         <th>Grup</th>
-        <th class="num">Tutar (USD)</th>
-        <th class="num">USD/Wp</th>
-        <th class="num">% Direkt</th>
+        <th class="num">Toplam USD</th>
+        <th class="num">$/Wp</th>
+        <th class="num">Pay %</th>
         <th class="num">% Satış</th>
       </tr>
     </thead>
     <tbody>
-      ${groupTotals
-        .map((g, i) => {
-          const isA = g.code.startsWith("A");
-          return `<tr${i % 2 ? ' class="alt"' : ""}>
-            <td><span class="${isA ? "badge-a" : "badge-b"}">${g.code}</span></td>
-            <td>${escapeHtml(g.name)}</td>
-            <td class="num"><strong>$${fmt(g.total)}</strong></td>
-            <td class="num">${dcWp > 0 ? `$${(g.total / dcWp).toFixed(4)}` : "—"}</td>
-            <td class="num">${result.directCost > 0 ? ((g.total / result.directCost) * 100).toFixed(1) : "0"}%</td>
-            <td class="num" style="color:#047857">${sale > 0 ? ((g.total / sale) * 100).toFixed(1) : "0"}%</td>
-          </tr>`;
-        })
+      ${ozetRows("A")}
+      <tr class="sub-a"><td colspan="2">Keşif-A Ara Toplam</td><td class="num">$${fmt(result.kaTotal)}</td><td class="num">${perWp(result.kaTotal)}</td><td class="num">${pctDirect(result.kaTotal)}</td><td class="num">${pctSale(result.kaTotal)}</td></tr>
+      ${ozetRows("B")}
+      <tr class="sub-b"><td colspan="2">Keşif-B Ara Toplam</td><td class="num">$${fmt(result.kbTotal)}</td><td class="num">${perWp(result.kbTotal)}</td><td class="num">${pctDirect(result.kbTotal)}</td><td class="num">${pctSale(result.kbTotal)}</td></tr>
+      <tr class="foot strong"><td colspan="2">Maliyet (A + B)</td><td class="num">$${fmt(result.directCost)}</td><td class="num">${perWp(result.directCost)}</td><td></td><td class="num">${pctSale(result.directCost)}</td></tr>
+      <tr class="foot"><td colspan="2">Contingency (%${s.contingency})</td><td class="num">$${fmt(result.contingencyAmt)}</td><td class="num">${perWp(result.contingencyAmt)}</td><td></td><td class="num">${pctSale(result.contingencyAmt)}</td></tr>
+      <tr class="foot"><td colspan="2">Overhead Cost (%${s.genelGider})</td><td class="num">$${fmt(result.genelGiderAmt)}</td><td class="num">${perWp(result.genelGiderAmt)}</td><td></td><td class="num">${pctSale(result.genelGiderAmt)}</td></tr>
+      <tr class="foot strong"><td colspan="2">Net Kar (%${s.netKar})</td><td class="num">$${fmt(result.netKarAmt)}</td><td class="num">${perWp(result.netKarAmt)}</td><td></td><td class="num">${pctSale(result.netKarAmt)}</td></tr>
+      <tr class="sale"><td colspan="2">EPC SATIŞ FİYATI (KDV Hariç)</td><td class="num">$${fmt(sale)}</td><td class="num">${perWp(sale)}</td><td></td><td class="num">100%</td></tr>
+      <tr class="sale-sub"><td colspan="2">KDV (%${KDV_RATE})</td><td class="num">$${fmt(saleKdv)}</td><td colspan="3"></td></tr>
+      <tr class="sale-sub strong"><td colspan="2">KDV Dahil Toplam</td><td class="num">$${fmt(sale + saleKdv)}</td><td colspan="3"></td></tr>
+      ${[
+        { label: "TL Karşılığı", sym: "₺", rate: s.usd > 0 ? s.usd : 0, dec: 2 },
+        { label: "EUR Karşılığı", sym: "€", rate: s.eur > 0 && s.usd > 0 ? s.usd / s.eur : 0, dec: 4 },
+      ]
+        .map(
+          (c) => `<tr class="sale-sub"><td colspan="2">${c.label} <span style="color:#64748b">(KDV hariç)</span></td><td class="num">${c.sym}${fmt(sale * c.rate)}</td><td class="num">${dcWp > 0 && c.rate > 0 ? `${c.sym}${((sale * c.rate) / dcWp).toFixed(c.dec)}/Wp` : ""}</td><td colspan="2" class="num"><span style="color:#64748b">KDV dahil</span> <strong>${c.sym}${fmt((sale + saleKdv) * c.rate)}</strong></td></tr>`,
+        )
         .join("")}
-      <tr class="total"><td colspan="2">MALİYET (A + B)</td><td class="num">$${fmt(result.directCost)}</td><td class="num">${dcWp > 0 ? `$${(result.directCost / dcWp).toFixed(4)}` : "—"}</td><td class="num">100.0%</td><td class="num">${sale > 0 ? ((result.directCost / sale) * 100).toFixed(1) : "0"}%</td></tr>
-      <tr><td colspan="2">Contingency (%${s.contingency})</td><td class="num">$${fmt(result.contingencyAmt)}</td><td colspan="2"></td><td class="num">${pctOf(result.contingencyAmt).toFixed(1)}%</td></tr>
-      <tr><td colspan="2">Overhead Cost (%${s.genelGider})</td><td class="num">$${fmt(result.genelGiderAmt)}</td><td colspan="2"></td><td class="num">${pctOf(result.genelGiderAmt).toFixed(1)}%</td></tr>
-      <tr><td colspan="2">Net Kâr (%${s.netKar})</td><td class="num">$${fmt(result.netKarAmt)}</td><td colspan="2"></td><td class="num">${pctOf(result.netKarAmt).toFixed(1)}%</td></tr>
-      <tr class="grand"><td colspan="2">EPC SATIŞ FİYATI</td><td class="num">$${fmt(sale)}</td><td class="num">${dcWp > 0 ? `$${(sale / dcWp).toFixed(4)}` : "—"}</td><td colspan="2" class="num">100.0%</td></tr>
     </tbody>
   </table>
 
