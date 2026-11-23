@@ -104,7 +104,7 @@ const PLATFORMS: {
   { id: "bom", logo: "bom", name: "Konstrüksiyon BoM", color: "#1a4a94",
     text: "Sehpa parça listesi, tonaj ve konstrüksiyon maliyeti hesabı." },
   { id: "muhendislik", logo: "ges-muh", name: "GES Mühendislik", color: "#e11d48",
-    text: "Tasarım hesapları ve teknik dokümantasyon; hazırlanıyor." },
+    text: "GES tasarım hesapları ve teknik dokümantasyon." },
 ];
 
 function kitCss(accent: string, accentDark: string) {
@@ -410,52 +410,60 @@ function TourStrip({ p }: { p: LoginPlatform }) {
 
 function PlatformList({ current }: { current: PlatformId }) {
   return (
-    <section id="platformlar" className="border-t border-[var(--lk-line)]">
-      <div className="mx-auto max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
-        <div className="flex flex-wrap items-end justify-between gap-2">
+    <section id="platformlar" className="border-t border-[var(--lk-line)] bg-[var(--lk-panel)]">
+      <div className="mx-auto max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-[18px] font-bold tracking-tight">Diğer platformlarım</h2>
-            <p className="mt-1 text-[13px] text-[var(--lk-muted)]">
-              Aynı ailenin araçları — tek hesapla hepsine girebilirsiniz.
+            <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--lk-accent)]">Platform ailesi</p>
+            <h2 className="mt-1.5 text-[22px] font-bold tracking-tight">Diğer platformlarım</h2>
+            <p className="mt-1 max-w-[60ch] text-[13.5px] text-[var(--lk-muted)]">
+              GES projelerinin farklı aşamaları için yazdığım araçlar. Tek hesapla hepsine girebilirsiniz.
             </p>
           </div>
+          <a href={DEV.site} target="_blank" rel="noopener noreferrer" className="lk-link text-[13px]">
+            fozanseyfi.com →
+          </a>
         </div>
-        <ul className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+
+        <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {PLATFORMS.map((x) => {
             const isCurrent = x.id === current;
             const live = !!x.href && !isCurrent;
+            const domain = x.href?.replace("https://", "");
             const body = (
               <>
-                <span className="block h-1 w-full" style={{ background: x.color }} />
-                <span className="flex flex-1 flex-col px-3.5 pb-3.5 pt-3">
-                  <span className="flex items-center justify-between gap-2">
-                    <PlatformLogo id={x.logo} size={40} className="shrink-0 rounded-[10px]" />
-                    {isCurrent ? (
-                      <span
-                        className="rounded px-1.5 py-0.5 text-[10.5px] font-semibold text-white"
-                        style={{ background: x.color }}
-                      >
+                <PlatformLogo id={x.logo} size={48} className="shrink-0 rounded-[11px] shadow-sm" />
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="flex items-start justify-between gap-2">
+                    <span className="min-w-0">
+                      <span className="block text-[14.5px] font-bold leading-tight">{x.name}</span>
+                      <span className="mt-0.5 block truncate text-[12px] text-[var(--lk-muted)]">
+                        {domain ?? "Hazırlanıyor"}
+                      </span>
+                    </span>
+                    {isCurrent && (
+                      <span className="shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold text-white" style={{ background: x.color }}>
                         Buradasınız
                       </span>
-                    ) : !x.href ? (
-                      <span className="rounded border border-[var(--lk-line)] px-1.5 py-0.5 text-[10.5px] font-semibold text-[var(--lk-muted)]">
+                    )}
+                    {!x.href && (
+                      <span className="shrink-0 rounded-full border border-[var(--lk-line)] px-2 py-0.5 text-[10.5px] font-semibold text-[var(--lk-muted)]">
                         Yakında
                       </span>
-                    ) : null}
+                    )}
                   </span>
-                  <span className="mt-2.5 block text-[13.5px] font-bold leading-snug">{x.name}</span>
-                  <span className="mt-1 block flex-1 text-[12px] leading-snug text-[var(--lk-muted)]">{x.text}</span>
-                  {x.href && (
-                    <span className="mt-2.5 block truncate text-[11.5px] font-semibold" style={{ color: x.color }}>
-                      {x.href.replace("https://", "")}
-                      {live && " ↗"}
+                  <span className="mt-2 block flex-1 text-[13px] leading-snug text-[var(--lk-muted)]">{x.text}</span>
+                  {live && (
+                    <span className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-semibold" style={{ color: x.color }}>
+                      Platforma git
+                      <span aria-hidden="true" className="transition-transform duration-150 group-hover:translate-x-0.5">→</span>
                     </span>
                   )}
                 </span>
               </>
             );
-            const cls =
-              "group flex h-full flex-col overflow-hidden rounded border bg-[var(--lk-panel)] transition-[border-color,box-shadow,transform] duration-150";
+            const cls = "group flex h-full gap-4 rounded-md border p-4 transition-[border-color,box-shadow] duration-150";
+            const vars = { "--pc": x.color } as React.CSSProperties;
             return (
               <li key={x.id} className="min-w-0">
                 {live ? (
@@ -463,16 +471,15 @@ function PlatformList({ current }: { current: PlatformId }) {
                     href={x.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`${cls} border-[var(--lk-line)] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_-8px_rgba(0,0,0,.25)]`}
-                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = x.color)}
-                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = "")}
+                    style={vars}
+                    className={`${cls} border-[var(--lk-line)] bg-[var(--lk-panel)] hover:border-[var(--pc)] hover:shadow-[0_8px_24px_-14px_rgba(0,0,0,.35)]`}
                   >
                     {body}
                   </a>
                 ) : (
                   <div
-                    className={`${cls} ${isCurrent ? "" : "border-[var(--lk-line)] opacity-80"}`}
-                    style={isCurrent ? { borderColor: x.color } : undefined}
+                    style={isCurrent ? { ...vars, borderColor: x.color, background: `color-mix(in srgb, ${x.color} 6%, var(--lk-panel))` } : vars}
+                    className={`${cls} ${isCurrent ? "" : "border-dashed border-[var(--lk-line)] bg-[var(--lk-soft)]"}`}
                   >
                     {body}
                   </div>
