@@ -8,13 +8,17 @@
  * ad, logo, renk, sağ sütundaki tanıtım ve tanıtım ekran görüntüleri. Üst bar, form,
  * geliştirici notu, platform listesi ve alt bar her yerde aynı kalır.
  *
- * Dış bağımlılık yok (yalnız react + next/link); renkler kendi CSS değişkenlerinden
- * gelir, böylece Tailwind 3 / 4 ve farklı tema dosyalarında aynı görünür.
+ * Bağımlılık: react, next/link ve her repoda aynı yolda duran components/common/platform-logos.
+ * Renkler kendi CSS değişkenlerinden gelir; Tailwind 3 / 4 ve farklı temalarda aynı görünür.
  * Değiştirince diğer repolara da aynen kopyalayın.
  */
 
 import { useState } from "react";
 import Link from "next/link";
+// Her platform reposunda aynı yolda bulunan gerçek platform logoları
+import { PlatformLogo } from "@/components/common/platform-logos";
+
+type LogoId = React.ComponentProps<typeof PlatformLogo>["id"];
 
 // ─── Platforma özgü yapılandırma ─────────────────────────────────────────────
 
@@ -80,13 +84,27 @@ const DEV = {
   email: "mailto:fozanseyfi@gmail.com",
 };
 
-const PLATFORMS: { id: PlatformId | "muhendislik"; name: string; text: string; href?: string }[] = [
-  { id: "teklif", name: "Solar Teklif", text: "GES EPC teklifi, keşif, sözleşme ve maliyet kontrolü", href: "https://teklif.fozanseyfi.com" },
-  { id: "pm", name: "Proje Yönetim", text: "WBS, planlama, günlük gerçekleşme, puantaj ve hakediş", href: "https://pm.fozanseyfi.com" },
-  { id: "karar", name: "Satınalma Karar Destek", text: "Tedarikçi tekliflerini ölçütlere göre puanlama", href: "https://karardestek.fozanseyfi.com" },
-  { id: "fizibilite", name: "Solar Fizibilite", text: "GES ve batarya yatırımında getiri ve geri ödeme", href: "https://fizibilite.fozanseyfi.com" },
-  { id: "bom", name: "Konstrüksiyon BoM", text: "Sehpa parçaları, tonaj ve konstrüksiyon maliyeti" },
-  { id: "muhendislik", name: "GES Mühendislik", text: "Tasarım hesapları ve teknik dokümantasyon" },
+/** Platform ailesi — logo (components/common/platform-logos), marka rengi ve kısa tanıtım. */
+const PLATFORMS: {
+  id: PlatformId | "muhendislik";
+  logo: LogoId;
+  name: string;
+  text: string;
+  color: string;
+  href?: string;
+}[] = [
+  { id: "teklif", logo: "teklif", name: "Solar Teklif", color: "#059669", href: "https://teklif.fozanseyfi.com",
+    text: "GES EPC teklifi: keşif, analiz, teklif belgesi, sözleşme ve maliyet kontrolü." },
+  { id: "pm", logo: "proje", name: "Proje Yönetim", color: "#4f46e5", href: "https://pm.fozanseyfi.com",
+    text: "Şantiye planlama, günlük gerçekleşme, puantaj, satınalma ve hakediş takibi." },
+  { id: "karar", logo: "karardestek", name: "Satınalma Karar Destek", color: "#d97706", href: "https://karardestek.fozanseyfi.com",
+    text: "Tedarikçi tekliflerini ağırlıklı ölçütlerle puanlayıp karşılaştırma." },
+  { id: "fizibilite", logo: "fizibilite", name: "Solar Fizibilite", color: "#1f4e8c", href: "https://fizibilite.fozanseyfi.com",
+    text: "GES ve batarya yatırımında nakit akışı, getiri ve geri ödeme analizi." },
+  { id: "bom", logo: "bom", name: "Konstrüksiyon BoM", color: "#1a4a94",
+    text: "Sehpa parça listesi, tonaj ve konstrüksiyon maliyeti hesabı." },
+  { id: "muhendislik", logo: "ges-muh", name: "GES Mühendislik", color: "#e11d48",
+    text: "Tasarım hesapları ve teknik dokümantasyon; hazırlanıyor." },
 ];
 
 function kitCss(accent: string, accentDark: string) {
@@ -393,32 +411,71 @@ function TourStrip({ p }: { p: LoginPlatform }) {
 function PlatformList({ current }: { current: PlatformId }) {
   return (
     <section id="platformlar" className="border-t border-[var(--lk-line)]">
-      <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:px-8">
-        <h2 className="text-[15px] font-bold">Aynı ailenin diğer platformları</h2>
-        <p className="mt-1 text-[13px] text-[var(--lk-muted)]">Tek hesapla hepsine girebilirsiniz.</p>
-        <ul className="mt-4 grid border-l border-t border-[var(--lk-line)] sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mx-auto max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="text-[18px] font-bold tracking-tight">Diğer platformlarım</h2>
+            <p className="mt-1 text-[13px] text-[var(--lk-muted)]">
+              Aynı ailenin araçları — tek hesapla hepsine girebilirsiniz.
+            </p>
+          </div>
+        </div>
+        <ul className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           {PLATFORMS.map((x) => {
             const isCurrent = x.id === current;
+            const live = !!x.href && !isCurrent;
             const body = (
               <>
-                <span className="flex items-baseline justify-between gap-2">
-                  <span className="text-[13.5px] font-semibold">{x.name}</span>
-                  <span className="shrink-0 text-[11.5px] text-[var(--lk-muted)]">
-                    {isCurrent ? "Buradasınız" : x.href ? x.href.replace("https://", "") : "Yakında"}
+                <span className="block h-1 w-full" style={{ background: x.color }} />
+                <span className="flex flex-1 flex-col px-3.5 pb-3.5 pt-3">
+                  <span className="flex items-center justify-between gap-2">
+                    <PlatformLogo id={x.logo} size={40} className="shrink-0 rounded-[10px]" />
+                    {isCurrent ? (
+                      <span
+                        className="rounded px-1.5 py-0.5 text-[10.5px] font-semibold text-white"
+                        style={{ background: x.color }}
+                      >
+                        Buradasınız
+                      </span>
+                    ) : !x.href ? (
+                      <span className="rounded border border-[var(--lk-line)] px-1.5 py-0.5 text-[10.5px] font-semibold text-[var(--lk-muted)]">
+                        Yakında
+                      </span>
+                    ) : null}
                   </span>
+                  <span className="mt-2.5 block text-[13.5px] font-bold leading-snug">{x.name}</span>
+                  <span className="mt-1 block flex-1 text-[12px] leading-snug text-[var(--lk-muted)]">{x.text}</span>
+                  {x.href && (
+                    <span className="mt-2.5 block truncate text-[11.5px] font-semibold" style={{ color: x.color }}>
+                      {x.href.replace("https://", "")}
+                      {live && " ↗"}
+                    </span>
+                  )}
                 </span>
-                <span className="mt-0.5 block text-[12.5px] text-[var(--lk-muted)]">{x.text}</span>
               </>
             );
-            const cls = "block h-full border-b border-r border-[var(--lk-line)] bg-[var(--lk-panel)] px-4 py-3";
+            const cls =
+              "group flex h-full flex-col overflow-hidden rounded border bg-[var(--lk-panel)] transition-[border-color,box-shadow,transform] duration-150";
             return (
-              <li key={x.id}>
-                {x.href && !isCurrent ? (
-                  <a href={x.href} target="_blank" rel="noopener noreferrer" className={`${cls} transition-colors hover:bg-[var(--lk-soft)]`}>
+              <li key={x.id} className="min-w-0">
+                {live ? (
+                  <a
+                    href={x.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`${cls} border-[var(--lk-line)] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_-8px_rgba(0,0,0,.25)]`}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = x.color)}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = "")}
+                  >
                     {body}
                   </a>
                 ) : (
-                  <div className={`${cls} ${isCurrent ? "shadow-[inset_3px_0_0_var(--lk-accent)]" : ""}`}>{body}</div>
+                  <div
+                    className={`${cls} ${isCurrent ? "" : "border-[var(--lk-line)] opacity-80"}`}
+                    style={isCurrent ? { borderColor: x.color } : undefined}
+                  >
+                    {body}
+                  </div>
                 )}
               </li>
             );
