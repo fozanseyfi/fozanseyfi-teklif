@@ -1,6 +1,6 @@
 /**
  * Tanıtım sayfasının platforma özgü ayarları. Tanıtım bileşenleri (components/tanitim/tour-view.tsx,
- * components/auth/tour-promo.tsx) bütün platformlarda birebir aynıdır; yalnız bu dosya ve
+ * components/auth/login-kit.tsx) bütün platformlarda birebir aynıdır; yalnız bu dosya ve
  * manifest/görüntüler platforma göre değişir.
  */
 export const TOUR = {
