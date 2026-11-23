@@ -49,8 +49,8 @@ export interface LoginPlatform {
     total: number;
     previews: { id: string; img: string; title: string; label: string }[];
   };
-  /** Bağlantılar (varsayılanlar: /register, /forgot-password, /tanitim) */
-  links?: { register?: string; forgot?: string; tour?: string };
+  /** Bağlantılar (varsayılanlar: /register, /forgot-password, /tanitim). register: null → kayıt bağlantıları gizlenir. */
+  links?: { register?: string | null; forgot?: string; tour?: string };
 }
 
 export interface LoginFormProps {
@@ -61,6 +61,14 @@ export interface LoginFormProps {
   error?: string | null;
   defaultEmail?: string;
   defaultPassword?: string;
+  /**
+   * "password" (varsayılan): e-posta + şifre.
+   * "profile": şifresiz yerel profil — Ad Soyad (name="fullName") + e-posta (isteğe bağlı).
+   */
+  mode?: "password" | "profile";
+  defaultName?: string;
+  /** Formun altına küçük açıklama (ör. "Şifreli giriş yakında") */
+  note?: string;
 }
 
 // ─── Ortak içerik ────────────────────────────────────────────────────────────
@@ -119,12 +127,22 @@ function TopBar({ p }: { p: LoginPlatform }) {
           <a href="#platformlar" className="hidden px-1 text-[var(--lk-muted)] hover:text-[var(--lk-text)] md:inline">
             Diğer platformlar
           </a>
-          <Link
-            href={p.links?.register ?? "/register"}
-            className="rounded border border-[var(--lk-line)] px-3 py-1.5 font-semibold hover:border-[var(--lk-accent)] hover:text-[var(--lk-accent)]"
-          >
-            Hesap oluştur
-          </Link>
+          {p.links?.register !== null && (
+            <Link
+              href={p.links?.register ?? "/register"}
+              className="rounded border border-[var(--lk-line)] px-3 py-1.5 font-semibold hover:border-[var(--lk-accent)] hover:text-[var(--lk-accent)]"
+            >
+              Hesap oluştur
+            </Link>
+          )}
+          {p.links?.register === null && (
+            <Link
+              href={p.links?.tour ?? "/tanitim"}
+              className="rounded border border-[var(--lk-line)] px-3 py-1.5 font-semibold hover:border-[var(--lk-accent)] hover:text-[var(--lk-accent)] sm:hidden"
+            >
+              Tanıtım
+            </Link>
+          )}
         </nav>
       </div>
     </header>
@@ -145,19 +163,32 @@ function LoginForm({ p, form }: { p: LoginPlatform; form: LoginFormProps }) {
             {form.error}
           </div>
         )}
+        {form.mode === "profile" && (
+          <label className="block">
+            <span className="mb-1.5 block text-[13px] font-semibold">Ad Soyad</span>
+            <input
+              className="lk-input"
+              name="fullName"
+              required
+              autoComplete="name"
+              placeholder="Adınız Soyadınız"
+              defaultValue={form.defaultName}
+            />
+          </label>
+        )}
         <label className="block">
           <span className="mb-1.5 block text-[13px] font-semibold">E-posta</span>
           <input
             className="lk-input"
             name="email"
             type="email"
-            required
+            required={form.mode !== "profile"}
             autoComplete="email"
             placeholder="ornek@firma.com"
             defaultValue={form.defaultEmail}
           />
         </label>
-        <div>
+        {form.mode !== "profile" && <div>
           <div className="mb-1.5 flex items-baseline justify-between">
             <label htmlFor="lk-password" className="text-[13px] font-semibold">Şifre</label>
             <Link href={p.links?.forgot ?? "/forgot-password"} className="lk-link text-[12px]">
@@ -184,18 +215,23 @@ function LoginForm({ p, form }: { p: LoginPlatform; form: LoginFormProps }) {
               {show ? "Gizle" : "Göster"}
             </button>
           </div>
-        </div>
+        </div>}
         <button type="submit" className="lk-btn w-full" disabled={form.pending}>
           {form.pending ? "Giriş yapılıyor…" : "Giriş yap"}
         </button>
+        {form.note && <p className="text-center text-[12px] text-[var(--lk-muted)]">{form.note}</p>}
       </form>
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--lk-line)] bg-[var(--lk-soft)] px-6 py-3 text-[13px]">
-        <span className="text-[var(--lk-muted)]">
-          Hesabınız yok mu?{" "}
-          <Link href={p.links?.register ?? "/register"} className="lk-link">
-            Kayıt olun
-          </Link>
-        </span>
+        {p.links?.register !== null ? (
+          <span className="text-[var(--lk-muted)]">
+            Hesabınız yok mu?{" "}
+            <Link href={p.links?.register ?? "/register"} className="lk-link">
+              Kayıt olun
+            </Link>
+          </span>
+        ) : (
+          <span />
+        )}
         <Link href={p.links?.tour ?? "/tanitim"} className="text-[var(--lk-muted)] hover:text-[var(--lk-text)]">
           Önce bir göz atın →
         </Link>
