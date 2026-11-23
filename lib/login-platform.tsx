@@ -24,10 +24,10 @@ export const LOGIN_PLATFORM: LoginPlatform = {
   accent: "#1d6b47",
   accentDark: "#3f9b6f",
   intro: {
-    eyebrow: "GES EPC teklifleri için",
-    title: "Keşiften imzalı sözleşmeye, teklifin bütün aşamaları tek yerde.",
+    eyebrow: "Platform hakkında",
+    title: "SolarTeklif, GES projeleri için EPC teklifi hazırlama ve takip platformudur.",
     text:
-      "Keşif kalemlerini girin, kritik malzemeyi seçin, kârı kalem bazında dağıtın. Teklif belgesi, müşteri linki, sözleşme ve maliyet takibi aynı verinin üzerinden çalışır; aynı rakamı üç ayrı dosyada güncellemezsiniz.",
+      "Keşif kalemleri, kritik malzeme seçimi ve kâr oranlarıyla teklif hesaplanır. Teklif belgesi, müşteriyle paylaşım linki, sözleşme taslağı ve maliyet takibi aynı proje verisinden hazırlanır. Ücretsizdir; bireysel olarak geliştirilmiş ve sektörle paylaşılmıştır.",
     points: [
       { title: "Keşif ve analiz", text: "Keşif-A / B, kritik malzeme alternatifleri, marj ve nakit akışı" },
       { title: "Teklif ve BoQ çıktıları", text: "Ana teklif, P-BoQ ve kapsam matrisi; PDF ve Excel" },
