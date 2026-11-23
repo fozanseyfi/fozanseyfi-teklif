@@ -75,9 +75,9 @@ export interface LoginFormProps {
 
 const DEV = {
   name: "Furkan Ozan Seyfi",
-  linkedin: "https://www.linkedin.com/in/furkan-ozan-seyfi",
+  linkedin: "https://www.linkedin.com/in/fozanseyfi/",
   site: "https://fozanseyfi.com",
-  email: "mailto:ozan.seyfi@kontrolmatik.com",
+  email: "mailto:fozanseyfi@gmail.com",
 };
 
 const PLATFORMS: { id: PlatformId | "muhendislik"; name: string; text: string; href?: string }[] = [

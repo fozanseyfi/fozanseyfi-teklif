@@ -173,6 +173,6 @@ Güvenlik açığı bildirimi için: [SECURITY.md](./SECURITY.md)
 ## İletişim
 
 - **Furkan Ozan SEYFİ** (Elektrik Mühendisi)
-- LinkedIn: [linkedin.com/in/furkan-ozan-seyfi](https://linkedin.com/in/furkan-ozan-seyfi)
+- LinkedIn: [linkedin.com/in/fozanseyfi](https://www.linkedin.com/in/fozanseyfi/)
 - Mail: fozanseyfi@gmail.com
 - Web: [fozanseyfi.com](https://fozanseyfi.com)
