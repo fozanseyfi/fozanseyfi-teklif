@@ -71,6 +71,7 @@ export const PLATFORMS: PlatformInfo[] = [
     tagline: "Solar BOM · Konstrüksiyon tonaj hesabı",
     description:
       "GES konstrüksiyon masalarının (kolon, kiriş, aşık, çapraz ve bağlantı elemanları, galvaniz) ağırlığını otomatik hesaplar. Proje tonajı, sevk malzeme listesi, Excel/PDF rapor ve 3D önizleme.",
+    href: "https://konstruksiyon.fozanseyfi.com",
     status: "live",
   },
   {

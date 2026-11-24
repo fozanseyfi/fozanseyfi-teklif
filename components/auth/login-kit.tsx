@@ -101,7 +101,7 @@ const PLATFORMS: {
     text: "Tedarikçi tekliflerini ağırlıklı ölçütlerle puanlayıp karşılaştırma." },
   { id: "fizibilite", logo: "fizibilite", name: "Solar Fizibilite", color: "#1f4e8c", href: "https://fizibilite.fozanseyfi.com",
     text: "GES ve batarya yatırımında nakit akışı, getiri ve geri ödeme analizi." },
-  { id: "bom", logo: "bom", name: "Konstrüksiyon BoM", color: "#1a4a94",
+  { id: "bom", logo: "bom", name: "Konstrüksiyon BoM", color: "#1a4a94", href: "https://konstruksiyon.fozanseyfi.com",
     text: "Sehpa parça listesi, tonaj ve konstrüksiyon maliyeti hesabı." },
   { id: "muhendislik", logo: "ges-muh", name: "GES Mühendislik", color: "#e11d48",
     text: "GES tasarım hesapları ve teknik dokümantasyon." },
