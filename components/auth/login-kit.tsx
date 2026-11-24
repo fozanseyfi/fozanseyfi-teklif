@@ -417,7 +417,7 @@ function PlatformList({ current }: { current: PlatformId }) {
             <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--lk-accent)]">Platform ailesi</p>
             <h2 className="mt-1.5 text-[22px] font-bold tracking-tight">Diğer platformlarım</h2>
             <p className="mt-1 max-w-[60ch] text-[13.5px] text-[var(--lk-muted)]">
-              GES projelerinin farklı aşamaları için yazdığım araçlar. Tek hesapla hepsine girebilirsiniz.
+              GES projelerinin farklı aşamaları için yazdığım araçlar. Her birine kendi hesabınızla ayrıca giriş yapılır.
             </p>
           </div>
           <a href={DEV.site} target="_blank" rel="noopener noreferrer" className="lk-link text-[13px]">
@@ -426,7 +426,7 @@ function PlatformList({ current }: { current: PlatformId }) {
         </div>
 
         <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {PLATFORMS.map((x) => {
+          {[...PLATFORMS].sort((a, b) => Number(b.id === current) - Number(a.id === current)).map((x) => {
             const isCurrent = x.id === current;
             const live = !!x.href && !isCurrent;
             const domain = x.href?.replace("https://", "");
