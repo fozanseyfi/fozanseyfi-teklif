@@ -4,7 +4,7 @@ import { Wrench } from "lucide-react";
  * Platformların GERÇEK logoları — her biri kendi projesinden birebir alındı:
  * - teklif      : teklif/app/icon.svg (zümrüt degrade + güneşli teklif belgesi)
  * - proje       : proje-takip/src/components/brand/logo.tsx LogoMark (slate gradient + 3 sütun + emerald nokta)
- * - karardestek : https://karardestek.fozanseyfi.com/icon.svg (sarı gradient + kupa)
+ * - karardestek : karardestek/app/icon.svg (amber degrade + sıralama çubukları + seçim onayı)
  * - fizibilite  : bu projenin src/app/icon.svg
  * - bom         : mounting/src/app/icon.svg (Solar BOM — konstrüksiyon)
  * - ges-muh     : henüz yayında değil, kendi logosu yok → diğer platform listelerindeki anahtar simgesi
@@ -53,22 +53,19 @@ export function PlatformLogo({ id, size = 40, className }: { id: PlatformId; siz
       );
     case "karardestek":
       return (
-        <svg {...p} viewBox="0 0 32 32">
+        <svg {...p} viewBox="0 0 64 64">
           <defs>
             <linearGradient id="pl-kd" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#eab308" />
-              <stop offset="100%" stopColor="#ca8a04" />
+              <stop offset="0" stopColor="#854D0E" />
+              <stop offset="1" stopColor="#CA8A04" />
             </linearGradient>
           </defs>
-          <rect width="32" height="32" rx="7" fill="url(#pl-kd)" />
-          <g transform="translate(4 4)" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none">
-            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-            <path d="M4 22h16" />
-            <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-          </g>
+          <rect width="64" height="64" rx="14" fill="url(#pl-kd)" />
+          <rect x="12" y="15" width="28" height="8" rx="4" fill="#FFFFFF" />
+          <rect x="12" y="28" width="21" height="8" rx="4" fill="#FFFFFF" opacity="0.7" />
+          <rect x="12" y="41" width="14" height="8" rx="4" fill="#FFFFFF" opacity="0.45" />
+          <circle cx="47.5" cy="19" r="8" fill="#0B2350" />
+          <path d="M43.8 19.2 L46.6 22 L51.3 16.8" fill="none" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
     case "fizibilite":
