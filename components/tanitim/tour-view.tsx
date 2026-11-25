@@ -66,7 +66,7 @@ export function TourView({ top = 0 }: { top?: number }) {
       let i = 0;
       for (let k = 0; k < markers.current.length; k++) {
         const mk = markers.current[k];
-        if (mk && mk.offsetTop <= y) i = k;
+        if (mk && mk.offsetTop + mk.offsetHeight <= y) i = k;
         else break;
       }
       activeRef.current = i;
@@ -92,7 +92,7 @@ export function TourView({ top = 0 }: { top?: number }) {
       mk.nextElementSibling?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
       return;
     }
-    el.scrollTo({ top: mk.offsetTop, behavior: smooth ? "smooth" : "auto" });
+    el.scrollTo({ top: mk.offsetTop + mk.offsetHeight, behavior: smooth ? "smooth" : "auto" });
   }, []);
 
   // Tam ekran: aynı görünüm bütün ekranı kaplar (tarayıcı tam ekranı da denenir). Kart yükseklikleri
@@ -198,7 +198,9 @@ export function TourView({ top = 0 }: { top?: number }) {
                         ref={(el) => {
                           markers.current[i] = el;
                         }}
-                        className="h-0"
+                        // Geniş ekranda kartlar arasında kısa bir kaydırma payı: yapışan kart, sonraki kart
+                        // üstüne binmeden önce alt kenarıyla birlikte tam görünür.
+                        className={c.kind === "step" ? "h-0 lg:h-[72px]" : "h-0"}
                         aria-hidden
                       />
                       {c.kind === "intro" ? (
